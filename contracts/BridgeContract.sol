@@ -2,23 +2,31 @@
 pragma solidity ^0.8.9;
 
 contract Bridge {
+    
+    // To set when compiling contract for loading its bytes into genesis script.
+    address public constant relayer = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
+    address[7] public validators = [
+        0x70997970C51812dc3A010C7d01b50e0d17dc79C8,
+        0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC,
+        0x90F79bf6EB2c4f870365E785982E1f101E93b906,
+        0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65,
+        0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc,
+        0x976EA74026E726554dB657fA54763abd0C3a0aa9,
+        0x14dC79964da2C08b23698B3D3cc7Ca32193d9955
+    ];
+    uint256 public constant minWithdrawalAmount = 1_00000000_0000000000;
+    
+    // Bundle smaller variables together to optimize slot usage.
+    uint32 public mintNonce;
 
     uint32 public maxIndex;
     uint32 public withdrawalNonce;
-    uint256 public minWithdrawalAmount;
 
     mapping(uint256 => bytes32) rootMap;
 
     // Events
 
     event Withdrawal(uint _nonce, address _recipientOnNeo, uint _value);
-
-    // Constructor
-    constructor (uint256 _minWithdrawalAmount) {
-        minWithdrawalAmount = _minWithdrawalAmount;
-        // withdrawalNonce default initial value is 0
-        // maxIndex default initial value is 0
-    }
 
     // Deposit Verification
 
@@ -27,6 +35,7 @@ contract Bridge {
 
     // Withdrawal
 
+    // Todo: Consider adding fallback method
     // fallback(
     //     bytes calldata _data
     // )
