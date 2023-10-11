@@ -33,7 +33,7 @@ contract Bridge {
     // Deposit Verification //
     //////////////////////////
 
-    // Todo: Introduce limits for # of proofs and max mint amount
+    // Todo: Introduce limit for max mint amount -> max amount limit should be handled in Bridge contract on Neo.
 
     // Deposit Structs
     struct MerkleProof {
@@ -50,16 +50,18 @@ contract Bridge {
         bytes32 s;
     }
 
-    // Distribution
+    // Deposit
 
-    function distribute(
+    function deposit(
         MerkleProof[] calldata _proofs,
         Signature[] calldata _signatures
     )
         public
         onlyRelayer
     {
-        require(_proofs.length > 0, "At least one proof is required.");
+        require(_proofs.length > 0, "At least 1 proof is required.");
+        // Todo: Discuss upperbound for number of proofs per transaction.
+        require(_proofs.length <= 10, "At most 10 proofs are allowed.");
         require(_proofs[0].nonce == nonce + 1, "Only the next nonce is allowed in the first proof.");
         require(subsequentNonces(_proofs, nonce), "The nonces of the proofs must be subsequent.");
         require(_signatures.length == 5, "Distribution requires 5 signatures of the 7 validators.");
