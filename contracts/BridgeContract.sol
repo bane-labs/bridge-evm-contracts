@@ -16,8 +16,8 @@ contract Bridge {
     ];
     uint256 public constant minWithdrawalAmount = 1_00000000_0000000000;
     
-    // Bundle smaller variables together to optimize slot usage.
-    uint32 public mintNonce;
+    // Bundle smaller variables types together to optimize slot usage.
+    uint32 public nonce;
 
     uint32 public maxIndex;
     uint32 public withdrawalNonce;
@@ -26,14 +26,157 @@ contract Bridge {
 
     // Events
 
-    event Withdrawal(uint _nonce, address _recipientOnNeo, uint _value);
+    event Deposit(uint _nonce, address _to, uint _value);
+    event Withdrawal(uint _nonce, address _recipient, uint _value);
 
-    // Deposit Verification
+    //////////////////////////
+    // Deposit Verification //
+    //////////////////////////
 
-    // Todo: Add function to verify root and transfer gas
     // Todo: Introduce limits for # of proofs and max mint amount
 
-    // Withdrawal
+    // Deposit Structs
+    struct MerkleProof {
+        uint32 nonce;
+        address payable recipient;
+        uint256 amount;
+        bytes32[] proof;
+        bytes32 root;
+    }
+
+    struct Signature {
+        uint8 v;
+        bytes32 r;
+        bytes32 s;
+    }
+
+    // Distribution
+
+    function distribute(
+        MerkleProof[] calldata _proofs,
+        Signature[] calldata _signatures
+    )
+        public
+        onlyRelayer
+    {
+        require(_proofs.length > 0, "At least one proof is required.");
+        require(_proofs[0].nonce == nonce + 1, "Only the next nonce is allowed in the first proof.");
+        require(subsequentNonces(_proofs, nonce), "The nonces of the proofs must be subsequent.");
+        require(_signatures.length == 5, "Distribution requires 5 signatures of the 7 validators.");
+        require(verifyValidatorSignatures(_signatures, _proofs), "Validator signature verification failed.");
+
+        verifyProofsAndTransfer(_proofs);
+        nonce = _proofs[_proofs.length-1].nonce;
+    }
+
+    // Makes sure the proofs have subsequent nonces.
+    function subsequentNonces(
+        MerkleProof[] calldata _proofs,
+        uint32 startNonce
+    )
+        pure
+        private
+        returns (bool)
+    {
+        for (uint8 i = 1; i <= _proofs.length; i++) {
+            if (_proofs[i-1].nonce != startNonce + i) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    function verifyProofsAndTransfer(
+        MerkleProof[] calldata _proofs
+    )
+        private
+    {
+        for (uint i = 0; i < _proofs.length; i++) {
+            MerkleProof calldata proof = _proofs[i];
+            if (verify(proof)) {
+                address payable to = proof.recipient;
+                if (!isContract(to)) {
+                    assert(to.send(proof.amount));
+                    emit Deposit(proof.nonce, to, proof.amount);
+                }
+                // In case the recipient is a contract, no funds are sent. However, the Merkle Tree computation must withstand.
+            } else {
+                // If a proof verification failed, the transaction is reverted.
+                revert();
+            }
+        }
+    }
+
+    function verify(
+        MerkleProof calldata _proof
+    )
+        pure
+        private
+        returns (bool)
+    {
+        bytes32 right = sha256(abi.encodePacked(_proof.nonce, _proof.recipient, _proof.amount));
+        for (uint i = 0; i < _proof.proof.length; i++) {
+            right = sha256(abi.encodePacked(_proof.proof[i], right));
+        }
+        return right == _proof.root;
+    }
+
+    function verifyValidatorSignatures(
+        Signature[] calldata _signatures,
+        MerkleProof[] calldata _proofs
+    )
+        view
+        private
+        returns (bool)
+    {
+        bytes32 rootsMsgHash = concatRootsAndCreateMessage(_proofs);
+        uint8 j = 0;
+        uint8 covered = 0;
+        for (uint i = 0; i < 5; i++) {
+            Signature calldata sig = _signatures[i];
+            address recovered = ecrecover(rootsMsgHash, sig.v, sig.r, sig.s);
+            if (recovered == validators[j]) {
+                covered++;
+            }
+            j++;
+        }
+        return covered == 5;
+    }
+
+    function concatRootsAndCreateMessage(
+        MerkleProof[] calldata _proofs
+    )
+        pure
+        private
+        returns (bytes32)
+    {
+        bytes memory concatRoots = abi.encode(_proofs[0].root);
+        for (uint i = 1; i < _proofs.length; i++) {
+            concatRoots = abi.encodePacked(concatRoots, _proofs[i].root);
+        }
+        return keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", keccak256(concatRoots)));
+    }
+
+    function isContract(
+        address _addr
+    )
+        view
+        private
+        returns (bool)
+    {
+        return _addr.code.length > 0;
+    }
+
+    // Modifier
+
+    modifier onlyRelayer() {
+        require(msg.sender == relayer, "Not relayer");
+        _;
+    }
+
+    ////////////////
+    // Withdrawal //
+    ////////////////
 
     // Todo: Consider adding fallback method
     // fallback(
