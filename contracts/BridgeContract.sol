@@ -17,7 +17,7 @@ contract Bridge {
     uint256 public constant minWithdrawalAmount = 1_00000000_0000000000;
     
     // Bundle smaller variables types together to optimize slot usage.
-    uint32 public nonce;
+    uint32 public depositNonce;
 
     uint32 public maxIndex;
     uint32 public withdrawalNonce;
@@ -62,13 +62,13 @@ contract Bridge {
         require(_proofs.length > 0, "At least 1 proof is required.");
         // Todo: Discuss upperbound for number of proofs per transaction.
         require(_proofs.length <= 10, "At most 10 proofs are allowed.");
-        require(_proofs[0].nonce == nonce + 1, "Only the next nonce is allowed in the first proof.");
-        require(subsequentNonces(_proofs, nonce), "The nonces of the proofs must be subsequent.");
+        require(_proofs[0].nonce == depositNonce + 1, "Only the next nonce is allowed in the first proof.");
+        require(subsequentNonces(_proofs, depositNonce), "The nonces of the proofs must be subsequent.");
         require(_signatures.length == 5, "Distribution requires 5 signatures of the 7 validators.");
         require(verifyValidatorSignatures(_signatures, _proofs), "Validator signature verification failed.");
 
         verifyProofsAndTransfer(_proofs);
-        nonce = _proofs[_proofs.length-1].nonce;
+        depositNonce = _proofs[_proofs.length-1].nonce;
     }
 
     // Makes sure the proofs have subsequent nonces.
@@ -142,7 +142,7 @@ contract Bridge {
             }
             j++;
         }
-        return covered == 5;
+        return covered == 5; 
     }
 
     function concatRootsAndCreateMessage(
