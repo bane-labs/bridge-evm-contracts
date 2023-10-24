@@ -60,7 +60,8 @@ export interface BridgeInterface extends Interface {
     nameOrSignature:
       | "deposit"
       | "depositNonce"
-      | "maxIndex"
+      | "maxDepth"
+      | "maxWithdrawalAmount"
       | "minWithdrawalAmount"
       | "relayer"
       | "validators"
@@ -79,7 +80,11 @@ export interface BridgeInterface extends Interface {
     functionFragment: "depositNonce",
     values?: undefined
   ): string;
-  encodeFunctionData(functionFragment: "maxIndex", values?: undefined): string;
+  encodeFunctionData(functionFragment: "maxDepth", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "maxWithdrawalAmount",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "minWithdrawalAmount",
     values?: undefined
@@ -107,7 +112,11 @@ export interface BridgeInterface extends Interface {
     functionFragment: "depositNonce",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "maxIndex", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "maxDepth", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "maxWithdrawalAmount",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "minWithdrawalAmount",
     data: BytesLike
@@ -228,7 +237,9 @@ export interface Bridge extends BaseContract {
 
   depositNonce: TypedContractMethod<[], [bigint], "view">;
 
-  maxIndex: TypedContractMethod<[], [bigint], "view">;
+  maxDepth: TypedContractMethod<[], [bigint], "view">;
+
+  maxWithdrawalAmount: TypedContractMethod<[], [bigint], "view">;
 
   minWithdrawalAmount: TypedContractMethod<[], [bigint], "view">;
 
@@ -260,7 +271,10 @@ export interface Bridge extends BaseContract {
     nameOrSignature: "depositNonce"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
-    nameOrSignature: "maxIndex"
+    nameOrSignature: "maxDepth"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "maxWithdrawalAmount"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "minWithdrawalAmount"
