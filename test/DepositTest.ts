@@ -137,16 +137,16 @@ describe("Bridge contract", function () {
       const tx = await bridgeContract.connect(relayer).deposit(proofs, signatures);
 
       const totalAmount = toEthDecimals(proof2.amount + proof3.amount + proof4.amount + proof5.amount + proof6.amount + proof7.amount + proof8.amount + proof9.amount);
-      await expect(tx).to.changeEtherBalances([bridgeContract, to2, to3, to4, to5, to6, to7, to8, to9], 
-        [-totalAmount, 
-          toEthDecimals(proof2.amount), 
-          toEthDecimals(proof3.amount), 
-          toEthDecimals(proof4.amount), 
-          toEthDecimals(proof5.amount), 
-          toEthDecimals(proof6.amount), 
-          toEthDecimals(proof7.amount), 
-          toEthDecimals(proof8.amount),
-          toEthDecimals(proof9.amount)]);
+      await expect(tx).to.changeEtherBalances([bridgeContract, to2, to3, to4, to5, to6, to7, to8, to9],
+        [-totalAmount,
+        toEthDecimals(proof2.amount),
+        toEthDecimals(proof3.amount),
+        toEthDecimals(proof4.amount),
+        toEthDecimals(proof5.amount),
+        toEthDecimals(proof6.amount),
+        toEthDecimals(proof7.amount),
+        toEthDecimals(proof8.amount),
+        toEthDecimals(proof9.amount)]);
     });
 
     it("Should revert with empty proofs", async function () {
@@ -171,20 +171,20 @@ describe("Bridge contract", function () {
     });
 
     it("Should revert when signature length is not 5", async function () {
-      const { bridgeContract, relayer} = await loadFixture(deployBridgeFixture);
+      const { bridgeContract, relayer } = await loadFixture(deployBridgeFixture);
       const proofs = [proof1, proof2];
       const msgToSign = concatRoots(proofs);
       const signatures = await getValidatorSignatures(msgToSign, [2, 4, 5, 6]);
 
-      await expect(bridgeContract.connect(relayer).deposit(proofs,signatures)).to.be.revertedWith("Distribution requires exactly 5 signatures of the 7 validators.");
+      await expect(bridgeContract.connect(relayer).deposit(proofs, signatures)).to.be.revertedWith("Distribution requires exactly 5 signatures of the 7 validators.");
     });
 
     it("Should revert when signature verify failed", async function () {
-      const { bridgeContract, relayer} = await loadFixture(deployBridgeFixture);
+      const { bridgeContract, relayer } = await loadFixture(deployBridgeFixture);
       const proofs = [proof1, proof2];
       const msgToSign = concatRoots(proofs);
       const signatures = await getValidatorSignatures(msgToSign, [0, 2, 4, 5, 6]);
-      await expect(bridgeContract.connect(relayer).deposit(proofs,signatures)).to.be.revertedWith("Validator signature verification failed.");
+      await expect(bridgeContract.connect(relayer).deposit(proofs, signatures)).to.be.revertedWith("Validator signature verification failed.");
     });
 
     it("Should continue when contract fund is insufficient", async function () {
@@ -197,7 +197,7 @@ describe("Bridge contract", function () {
       const msgToSign = concatRoots(proofs);
       const signatures = await getValidatorSignatures(msgToSign);
       // Depends on What happens if the transfer fails?
-      const tx = await bridgeContract.connect(relayer).deposit(proofs,signatures);
+      const tx = await bridgeContract.connect(relayer).deposit(proofs, signatures);
       await expect(tx).to.changeEtherBalances([bridgeContract, to1, to2], [-toEthDecimals(proof1.amount), toEthDecimals(proof1.amount), 0]);
       // await expect(bridgeContract.connect(relayer).deposit(proofs,signatures)).to.be.revertedWithPanic(0x1);
     });
@@ -207,11 +207,11 @@ describe("Bridge contract", function () {
       fundContract(bridgeContract, relayer);
 
       let invalidproof = proof2;
-      invalidproof.proof = [ ethers.sha256(ethers.ZeroHash)];
+      invalidproof.proof = [ethers.sha256(ethers.ZeroHash)];
       const proofs = [proof1, invalidproof];
       const msgToSign = concatRoots(proofs);
       const signatures = await getValidatorSignatures(msgToSign);
-      await expect(bridgeContract.connect(relayer).deposit(proofs,signatures)).to.be.revertedWithoutReason();
+      await expect(bridgeContract.connect(relayer).deposit(proofs, signatures)).to.be.revertedWithoutReason();
     });
 
     it("Should do nothing when one of the recipient is contract address", async function () {
@@ -219,14 +219,13 @@ describe("Bridge contract", function () {
       fundContract(bridgeContract, relayer);
 
       const bridgeContractAddress = await bridgeContract.getAddress();
-      const { proof, root} = await createMerkleTree(2, bridgeContractAddress, ethers.parseEther("1"));
+      const { proof, root } = await createMerkleTree(2, bridgeContractAddress, ethers.parseEther("1"));
       const self_createproof = { nonce: 2, to: bridgeContractAddress, amount: ethers.parseEther("1"), proof: proof, root: root };
       const proofs = [proof1, self_createproof];
       const msgToSign = concatRoots(proofs);
       const signatures = await getValidatorSignatures(msgToSign);
-      const tx = await bridgeContract.connect(relayer).deposit(proofs,signatures);
+      const tx = await bridgeContract.connect(relayer).deposit(proofs, signatures);
       await expect(tx).to.changeEtherBalances([bridgeContract, proof1.to], [-toEthDecimals(proof1.amount), toEthDecimals(proof1.amount)]);
-
     });
 
   });
