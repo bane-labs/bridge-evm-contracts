@@ -367,9 +367,9 @@
     "chai": "^4.3.10",
     "ethers": "^6.8.0",
     "hardhat": "^2.18.2",
+    "merkletreejs": "^0.3.11",
     "mocha": "^10.2.0",
-    "typechain": "^8.3.2",
-    "merkletreejs": "^0.2.32"
+    "typechain": "^8.3.2"
   },
   "scripts": {
     "test": "mocha"
