@@ -183,6 +183,7 @@ describe("Bridge contract", function () {
       const { bridgeContract, relayer } = await loadFixture(deployBridgeFixture);
       const proofs = [proof1, proof2];
       const msgToSign = concatRoots(proofs);
+      // [0, 2, 4, 5, 6] -> index 0 refers to the relayer signer in the method getValidatorSignatures, thus there are only 4 validator signatures and the signature verification should fail.
       const signatures = await getValidatorSignatures(msgToSign, [0, 2, 4, 5, 6]);
       await expect(bridgeContract.connect(relayer).deposit(proofs, signatures)).to.be.revertedWith("Validator signature verification failed.");
     });
