@@ -31,7 +31,7 @@ contract Bridge {
     uint32 public maxDepth;
     uint32 public withdrawalNonce;
 
-    mapping(uint256 => bytes32) rootMap;
+    mapping(uint256 => bytes32) public rootMap;
 
     // Events
 
