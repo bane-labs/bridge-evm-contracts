@@ -64,6 +64,7 @@ export interface BridgeInterface extends Interface {
       | "maxWithdrawalAmount"
       | "minWithdrawalAmount"
       | "relayer"
+      | "rootMap"
       | "validators"
       | "withdraw"
       | "withdrawalNonce"
@@ -90,6 +91,10 @@ export interface BridgeInterface extends Interface {
     values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "relayer", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "rootMap",
+    values: [BigNumberish]
+  ): string;
   encodeFunctionData(
     functionFragment: "validators",
     values: [BigNumberish]
@@ -122,6 +127,7 @@ export interface BridgeInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "relayer", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "rootMap", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "validators", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "withdraw", data: BytesLike): Result;
   decodeFunctionResult(
@@ -245,6 +251,8 @@ export interface Bridge extends BaseContract {
 
   relayer: TypedContractMethod<[], [string], "view">;
 
+  rootMap: TypedContractMethod<[arg0: BigNumberish], [string], "view">;
+
   validators: TypedContractMethod<[arg0: BigNumberish], [string], "view">;
 
   withdraw: TypedContractMethod<[_to: AddressLike], [void], "payable">;
@@ -282,6 +290,9 @@ export interface Bridge extends BaseContract {
   getFunction(
     nameOrSignature: "relayer"
   ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "rootMap"
+  ): TypedContractMethod<[arg0: BigNumberish], [string], "view">;
   getFunction(
     nameOrSignature: "validators"
   ): TypedContractMethod<[arg0: BigNumberish], [string], "view">;
