@@ -188,7 +188,7 @@ describe("Bridge contract", function () {
       await expect(bridgeContract.connect(relayer).deposit(proofs, signatures)).to.be.revertedWith("Validator signature verification failed.");
     });
 
-    it("Should continue when contract fund is insufficient", async function () {
+    it("Test behaviour when transfer returns false (funds of the bridge contract are insufficient)", async function () {
       const { bridgeContract, relayer } = await loadFixture(deployBridgeFixture);
       const amount = ethers.parseEther("1.0");
       const to = await bridgeContract.getAddress()
@@ -197,10 +197,7 @@ describe("Bridge contract", function () {
       const proofs = [proof1, proof2];
       const msgToSign = concatRoots(proofs);
       const signatures = await getValidatorSignatures(msgToSign);
-      // Depends on What happens if the transfer fails?
-      const tx = await bridgeContract.connect(relayer).deposit(proofs, signatures);
-      await expect(tx).to.changeEtherBalances([bridgeContract, to1, to2], [-toEthDecimals(proof1.amount), toEthDecimals(proof1.amount), 0]);
-      // await expect(bridgeContract.connect(relayer).deposit(proofs,signatures)).to.be.revertedWithPanic(0x1);
+      await expect.fail("The planned behaviour for this test is not yet implemented in the contract.");
     });
 
     it("Should revert when any one proof verify failed", async function () {
@@ -215,7 +212,7 @@ describe("Bridge contract", function () {
       await expect(bridgeContract.connect(relayer).deposit(proofs, signatures)).to.be.revertedWithoutReason();
     });
 
-    it("Should do nothing when one of the recipient is contract address", async function () {
+    it("Test behaviour when one of the recipient addresses is a contract", async function () {
       const { bridgeContract, relayer } = await loadFixture(deployBridgeFixture);
       fundContract(bridgeContract, relayer);
 
@@ -226,7 +223,7 @@ describe("Bridge contract", function () {
       const msgToSign = concatRoots(proofs);
       const signatures = await getValidatorSignatures(msgToSign);
       const tx = await bridgeContract.connect(relayer).deposit(proofs, signatures);
-      await expect(tx).to.changeEtherBalances([bridgeContract, proof1.to], [-toEthDecimals(proof1.amount), toEthDecimals(proof1.amount)]);
+      await expect.fail("The planned behaviour for this test is not yet implemented in the contract.");
     });
 
   });
