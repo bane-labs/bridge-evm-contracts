@@ -58,8 +58,8 @@ export declare namespace Bridge {
 export interface BridgeInterface extends Interface {
   getFunction(
     nameOrSignature:
-      | "claimToContract"
-      | "claimToEOA"
+      | "claim((uint64,address,uint64,uint64,bytes32[]))"
+      | "claim((uint64,address,uint64,uint64,bytes32[]),uint256)"
       | "claimableDeposits"
       | "deposit"
       | "depositNonce"
@@ -77,12 +77,12 @@ export interface BridgeInterface extends Interface {
   getEvent(nameOrSignatureOrTopic: "Deposit" | "Withdrawal"): EventFragment;
 
   encodeFunctionData(
-    functionFragment: "claimToContract",
-    values: [Bridge.MerkleProofStruct, BigNumberish]
+    functionFragment: "claim((uint64,address,uint64,uint64,bytes32[]))",
+    values: [Bridge.MerkleProofStruct]
   ): string;
   encodeFunctionData(
-    functionFragment: "claimToEOA",
-    values: [Bridge.MerkleProofStruct]
+    functionFragment: "claim((uint64,address,uint64,uint64,bytes32[]),uint256)",
+    values: [Bridge.MerkleProofStruct, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "claimableDeposits",
@@ -136,10 +136,13 @@ export interface BridgeInterface extends Interface {
   ): string;
 
   decodeFunctionResult(
-    functionFragment: "claimToContract",
+    functionFragment: "claim((uint64,address,uint64,uint64,bytes32[]))",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "claimToEOA", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "claim((uint64,address,uint64,uint64,bytes32[]),uint256)",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "claimableDeposits",
     data: BytesLike
@@ -267,14 +270,14 @@ export interface Bridge extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
-  claimToContract: TypedContractMethod<
-    [_proof: Bridge.MerkleProofStruct, gas: BigNumberish],
+  "claim((uint64,address,uint64,uint64,bytes32[]))": TypedContractMethod<
+    [_proof: Bridge.MerkleProofStruct],
     [void],
     "nonpayable"
   >;
 
-  claimToEOA: TypedContractMethod<
-    [_proof: Bridge.MerkleProofStruct],
+  "claim((uint64,address,uint64,uint64,bytes32[]),uint256)": TypedContractMethod<
+    [_proof: Bridge.MerkleProofStruct, gas: BigNumberish],
     [void],
     "nonpayable"
   >;
@@ -321,16 +324,16 @@ export interface Bridge extends BaseContract {
   ): T;
 
   getFunction(
-    nameOrSignature: "claimToContract"
+    nameOrSignature: "claim((uint64,address,uint64,uint64,bytes32[]))"
   ): TypedContractMethod<
-    [_proof: Bridge.MerkleProofStruct, gas: BigNumberish],
+    [_proof: Bridge.MerkleProofStruct],
     [void],
     "nonpayable"
   >;
   getFunction(
-    nameOrSignature: "claimToEOA"
+    nameOrSignature: "claim((uint64,address,uint64,uint64,bytes32[]),uint256)"
   ): TypedContractMethod<
-    [_proof: Bridge.MerkleProofStruct],
+    [_proof: Bridge.MerkleProofStruct, gas: BigNumberish],
     [void],
     "nonpayable"
   >;

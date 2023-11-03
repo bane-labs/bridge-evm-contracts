@@ -147,7 +147,8 @@ contract Bridge {
                     // Todo: Consider emitting an event here.
                 } else {
                     uint256 transferAmount = toEthDecimals(p.amount);
-                    if (p.to.send(transferAmount)) {
+                    (bool sent, ) = p.to.call{value: transferAmount}("");
+                    if (sent) {
                         emit Deposit(p.nonce, p.to, p.amount);
                     } else {
                         claimableDeposits[p.nonce] = true;
@@ -163,7 +164,7 @@ contract Bridge {
 
     // Todo: Add functionality to move deposit to withdrawal without claiming.
 
-    function claimToEOA(MerkleProof calldata _proof) external {
+    function claim(MerkleProof calldata _proof) external {
         require(isContract(_proof.to), "Recipient must be an EOA.");
         require(
             claimableDeposits[_proof.nonce],
@@ -173,13 +174,15 @@ contract Bridge {
         require(verify(_proof), "Proof verification failed.");
 
         uint256 transferAmount = toEthDecimals(_proof.amount);
-        if (!_proof.to.send(transferAmount)) {
+
+        (bool sent, ) = _proof.to.call{value: transferAmount}("");
+        if (!sent) {
             revert();
         }
         emit Deposit(_proof.nonce, _proof.to, _proof.amount);
     }
 
-    function claimToContract(MerkleProof calldata _proof, uint gas) external {
+    function claim(MerkleProof calldata _proof, uint gas) external {
         require(isContract(_proof.to), "Recipient must be a contract.");
         require(
             claimableDeposits[_proof.nonce],
@@ -189,10 +192,8 @@ contract Bridge {
         require(verify(_proof), "Proof verification failed.");
 
         uint256 transferAmount = toEthDecimals(_proof.amount);
-        (bool successful, ) = _proof.to.call{gas: gas, value: transferAmount}(
-            ""
-        );
-        if (!successful) {
+        (bool sent, ) = _proof.to.call{gas: gas, value: transferAmount}("");
+        if (!sent) {
             revert();
         }
         emit Deposit(_proof.nonce, _proof.to, _proof.amount);
