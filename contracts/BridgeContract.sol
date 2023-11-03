@@ -139,10 +139,7 @@ contract Bridge {
     function verifyProofsAndTransfer(MerkleProof[] calldata _proofs) private {
         for (uint i = 0; i < _proofs.length; i++) {
             MerkleProof calldata p = _proofs[i];
-            if (!verify(p)) {
-                // If a proof verification failed, the transaction is reverted.
-                revert();
-            } else {
+            if (verify(p)) {
                 if (isContract(p.to)) {
                     // If the recipient is a contract, the deposit is not transferred to the recipient.
                     // Instead, the deposit is stored in a mapping and can be claimed individually.
@@ -157,6 +154,9 @@ contract Bridge {
                         // Todo: Consider emitting an event here.
                     }
                 }
+            } else {
+                // If a proof verification failed, the transaction is reverted.
+                revert();
             }
         }
     }
