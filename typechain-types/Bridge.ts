@@ -75,11 +75,7 @@ export interface BridgeInterface extends Interface {
   ): FunctionFragment;
 
   getEvent(
-    nameOrSignatureOrTopic:
-      | "ClaimableAdded"
-      | "Claimed"
-      | "Deposit"
-      | "Withdrawal"
+    nameOrSignatureOrTopic: "Claimable" | "Claimed" | "Deposit" | "Withdrawal"
   ): EventFragment;
 
   encodeFunctionData(
@@ -184,7 +180,7 @@ export interface BridgeInterface extends Interface {
   ): Result;
 }
 
-export namespace ClaimableAddedEvent {
+export namespace ClaimableEvent {
   export type InputTuple = [_nonce: BigNumberish];
   export type OutputTuple = [_nonce: bigint];
   export interface OutputObject {
@@ -414,11 +410,11 @@ export interface Bridge extends BaseContract {
   ): TypedContractMethod<[], [string], "view">;
 
   getEvent(
-    key: "ClaimableAdded"
+    key: "Claimable"
   ): TypedContractEvent<
-    ClaimableAddedEvent.InputTuple,
-    ClaimableAddedEvent.OutputTuple,
-    ClaimableAddedEvent.OutputObject
+    ClaimableEvent.InputTuple,
+    ClaimableEvent.OutputTuple,
+    ClaimableEvent.OutputObject
   >;
   getEvent(
     key: "Claimed"
@@ -443,15 +439,15 @@ export interface Bridge extends BaseContract {
   >;
 
   filters: {
-    "ClaimableAdded(uint64)": TypedContractEvent<
-      ClaimableAddedEvent.InputTuple,
-      ClaimableAddedEvent.OutputTuple,
-      ClaimableAddedEvent.OutputObject
+    "Claimable(uint64)": TypedContractEvent<
+      ClaimableEvent.InputTuple,
+      ClaimableEvent.OutputTuple,
+      ClaimableEvent.OutputObject
     >;
-    ClaimableAdded: TypedContractEvent<
-      ClaimableAddedEvent.InputTuple,
-      ClaimableAddedEvent.OutputTuple,
-      ClaimableAddedEvent.OutputObject
+    Claimable: TypedContractEvent<
+      ClaimableEvent.InputTuple,
+      ClaimableEvent.OutputTuple,
+      ClaimableEvent.OutputObject
     >;
 
     "Claimed(uint64)": TypedContractEvent<

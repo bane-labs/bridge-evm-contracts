@@ -46,7 +46,7 @@ contract Bridge {
         bytes32 _withdrawalHash,
         bytes32 _root
     );
-    event ClaimableAdded(uint64 _nonce);
+    event Claimable(uint64 _nonce);
     event Claimed(uint64 _nonce);
 
     // Todo: This is only used for testing.
@@ -146,7 +146,7 @@ contract Bridge {
                     // If the recipient is a contract, the deposit is not transferred to the recipient.
                     // Instead, the deposit is stored in a mapping and can be claimed individually.
                     claimableDeposits[p.nonce] = true;
-                    emit ClaimableAdded(p.nonce);
+                    emit Claimable(p.nonce);
                 } else {
                     uint256 transferAmount = toEthDecimals(p.amount);
                     (bool sent, ) = p.to.call{value: transferAmount}("");
@@ -154,7 +154,7 @@ contract Bridge {
                         emit Deposit(p.nonce, p.to, p.amount);
                     } else {
                         claimableDeposits[p.nonce] = true;
-                        emit ClaimableAdded(p.nonce);
+                        emit Claimable(p.nonce);
                     }
                 }
             } else {
