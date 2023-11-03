@@ -74,7 +74,13 @@ export interface BridgeInterface extends Interface {
       | "withdrawalRoot"
   ): FunctionFragment;
 
-  getEvent(nameOrSignatureOrTopic: "Deposit" | "Withdrawal"): EventFragment;
+  getEvent(
+    nameOrSignatureOrTopic:
+      | "ClaimableAdded"
+      | "Claimed"
+      | "Deposit"
+      | "Withdrawal"
+  ): EventFragment;
 
   encodeFunctionData(
     functionFragment: "claim((uint64,address,uint64,uint64,bytes32[]))",
@@ -176,6 +182,30 @@ export interface BridgeInterface extends Interface {
     functionFragment: "withdrawalRoot",
     data: BytesLike
   ): Result;
+}
+
+export namespace ClaimableAddedEvent {
+  export type InputTuple = [_nonce: BigNumberish];
+  export type OutputTuple = [_nonce: bigint];
+  export interface OutputObject {
+    _nonce: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace ClaimedEvent {
+  export type InputTuple = [_nonce: BigNumberish];
+  export type OutputTuple = [_nonce: bigint];
+  export interface OutputObject {
+    _nonce: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
 }
 
 export namespace DepositEvent {
@@ -384,6 +414,20 @@ export interface Bridge extends BaseContract {
   ): TypedContractMethod<[], [string], "view">;
 
   getEvent(
+    key: "ClaimableAdded"
+  ): TypedContractEvent<
+    ClaimableAddedEvent.InputTuple,
+    ClaimableAddedEvent.OutputTuple,
+    ClaimableAddedEvent.OutputObject
+  >;
+  getEvent(
+    key: "Claimed"
+  ): TypedContractEvent<
+    ClaimedEvent.InputTuple,
+    ClaimedEvent.OutputTuple,
+    ClaimedEvent.OutputObject
+  >;
+  getEvent(
     key: "Deposit"
   ): TypedContractEvent<
     DepositEvent.InputTuple,
@@ -399,6 +443,28 @@ export interface Bridge extends BaseContract {
   >;
 
   filters: {
+    "ClaimableAdded(uint64)": TypedContractEvent<
+      ClaimableAddedEvent.InputTuple,
+      ClaimableAddedEvent.OutputTuple,
+      ClaimableAddedEvent.OutputObject
+    >;
+    ClaimableAdded: TypedContractEvent<
+      ClaimableAddedEvent.InputTuple,
+      ClaimableAddedEvent.OutputTuple,
+      ClaimableAddedEvent.OutputObject
+    >;
+
+    "Claimed(uint64)": TypedContractEvent<
+      ClaimedEvent.InputTuple,
+      ClaimedEvent.OutputTuple,
+      ClaimedEvent.OutputObject
+    >;
+    Claimed: TypedContractEvent<
+      ClaimedEvent.InputTuple,
+      ClaimedEvent.OutputTuple,
+      ClaimedEvent.OutputObject
+    >;
+
     "Deposit(uint64,address,uint256)": TypedContractEvent<
       DepositEvent.InputTuple,
       DepositEvent.OutputTuple,

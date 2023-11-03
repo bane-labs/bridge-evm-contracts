@@ -46,6 +46,8 @@ contract Bridge {
         bytes32 _withdrawalHash,
         bytes32 _root
     );
+    event ClaimableAdded(uint64 _nonce);
+    event Claimed(uint64 _nonce);
 
     // Todo: This is only used for testing.
     receive() external payable onlyRelayer {}
@@ -144,7 +146,7 @@ contract Bridge {
                     // If the recipient is a contract, the deposit is not transferred to the recipient.
                     // Instead, the deposit is stored in a mapping and can be claimed individually.
                     claimableDeposits[p.nonce] = true;
-                    // Todo: Consider emitting an event here.
+                    emit ClaimableAdded(p.nonce);
                 } else {
                     uint256 transferAmount = toEthDecimals(p.amount);
                     (bool sent, ) = p.to.call{value: transferAmount}("");
@@ -152,7 +154,7 @@ contract Bridge {
                         emit Deposit(p.nonce, p.to, p.amount);
                     } else {
                         claimableDeposits[p.nonce] = true;
-                        // Todo: Consider emitting an event here.
+                        emit ClaimableAdded(p.nonce);
                     }
                 }
             } else {
@@ -175,11 +177,13 @@ contract Bridge {
 
         uint256 transferAmount = toEthDecimals(_proof.amount);
 
-        (bool sent, ) = _proof.to.call{value: transferAmount}("");
-        if (!sent) {
+        (bool successful, ) = _proof.to.call{value: transferAmount}("");
+        if (successful) {
+            emit Deposit(_proof.nonce, _proof.to, _proof.amount);
+            emit Claimed(_proof.nonce);
+        } else {
             revert();
         }
-        emit Deposit(_proof.nonce, _proof.to, _proof.amount);
     }
 
     function claim(MerkleProof calldata _proof, uint gas) external {
@@ -192,11 +196,15 @@ contract Bridge {
         require(verify(_proof), "Proof verification failed.");
 
         uint256 transferAmount = toEthDecimals(_proof.amount);
-        (bool sent, ) = _proof.to.call{gas: gas, value: transferAmount}("");
-        if (!sent) {
+        (bool successful, ) = _proof.to.call{gas: gas, value: transferAmount}(
+            ""
+        );
+        if (successful) {
+            emit Deposit(_proof.nonce, _proof.to, _proof.amount);
+            emit Claimed(_proof.nonce);
+        } else {
             revert();
         }
-        emit Deposit(_proof.nonce, _proof.to, _proof.amount);
     }
 
     function verify(MerkleProof calldata _p) private view returns (bool) {
@@ -312,18 +320,18 @@ contract Bridge {
     function updateWithdrawalMerkleTree(
         bytes32 _withdrawalHash
     ) private returns (bytes32) {
-        uint32 max = maxDepth;
+        uint _maxDepth = maxDepth;
         bool carry = true;
         bytes32 right = _withdrawalHash;
-        for (uint i = 0; i <= max; i++) {
+        for (uint i = 0; i <= _maxDepth; i++) {
             bool stored = rootMap[i] != 0x00;
             if (stored) {
                 right = computeParentHash(rootMap[i], right);
                 if (carry) {
                     delete rootMap[i];
-                    if (i == max) {
+                    if (i == _maxDepth) {
                         maxDepth += 1;
-                        rootMap[maxDepth + 1] = right;
+                        rootMap[maxDepth] = right;
                     }
                 }
             } else {
