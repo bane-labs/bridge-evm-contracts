@@ -24,20 +24,21 @@ contract Bridge {
     uint256 public constant minWithdrawalAmount = 1_00000000_0000000000;
     uint256 public constant maxWithdrawalAmount = 10000_00000000_0000000000;
 
-    bytes32 public withdrawalRoot;
-    // Bundle smaller variables types together to optimize slot usage.
-    uint32 public depositNonce;
+    bytes32 public depositRoot;
+    uint64 public depositNonce;
 
-    uint32 public maxDepth;
-    uint32 public withdrawalNonce;
+    uint32 maxDepth;
+
+    bytes32 public withdrawalRoot;
+    uint64 public withdrawalNonce;
 
     mapping(uint256 => bytes32) public rootMap;
 
     // Events
 
-    event Deposit(uint _nonce, address _to, uint _value);
+    event Deposit(uint64 _nonce, address _to, uint _value);
     event Withdrawal(
-        uint _nonce,
+        uint64 _nonce,
         address from,
         address _to,
         uint _amount,
@@ -56,11 +57,11 @@ contract Bridge {
 
     // Deposit Structs
     struct MerkleProof {
-        uint32 nonce;
+        uint64 nonce;
         address payable to;
         uint64 amount;
+        uint64 path;
         bytes32[] proof;
-        bytes32 root;
     }
 
     struct Signature {
@@ -71,38 +72,60 @@ contract Bridge {
 
     // Deposit
 
+    /**
+     * @notice This function is used to deposit funds from Neo N3 and is restricted to the relayer.
+     * @dev Distributes deposits to the respective recipients.
+     */
     function deposit(
-        MerkleProof[] calldata _proofs,
-        Signature[] calldata _signatures
+        bytes32 _depositRoot,
+        uint64 _lastNonce,
+        Signature[] calldata _signatures,
+        MerkleProof[] calldata _proofs
     ) external onlyRelayer {
-        require(_proofs.length > 0, "At least 1 proof is required.");
-        // Todo: Discuss upperbound for number of proofs per transaction.
-        require(_proofs.length <= 10, "At most 10 proofs are allowed.");
+        // Logical Parameter Checks
+        uint nrProofs = _proofs.length;
+        require(nrProofs > 0, "At least 1 proof is required.");
+        // Todo: Discuss upperbound for number of proofs per transaction. If not required, remove this check.
+        require(nrProofs <= 10, "At most 10 proofs are allowed.");
         require(
             _proofs[0].nonce == depositNonce + 1,
             "Only the next nonce is allowed in the first proof."
         );
         require(
+            _proofs[nrProofs - 1].nonce == depositNonce + _lastNonce,
+            "Must provide all proofs that have not been processed under the provided root."
+        );
+        require(
             subsequentNonces(_proofs, depositNonce),
             "The nonces of the proofs must be subsequent."
         );
+
+        // Validator Signature Check
         require(
             _signatures.length == 5,
             "Distribution requires exactly 5 signatures of the 7 validators."
         );
         require(
-            buildMsgAndVerifyValidatorSignatures(_signatures, _proofs),
+            buildMsgAndVerifyValidatorSignatures(
+                _depositRoot,
+                _lastNonce,
+                _signatures
+            ),
             "Validator signature verification failed."
         );
 
-        verifyProofsAndTransfer(_proofs);
+        // Updating Root and Nonce
+        depositRoot = _depositRoot;
         depositNonce = _proofs[_proofs.length - 1].nonce;
+
+        // Verify all Proofs and Transfer Funds
+        verifyProofsAndTransfer(_proofs);
     }
 
     // Makes sure the proofs have subsequent nonces.
     function subsequentNonces(
         MerkleProof[] calldata _proofs,
-        uint32 startNonce
+        uint64 startNonce
     ) private pure returns (bool) {
         for (uint8 i = 1; i <= _proofs.length; i++) {
             if (_proofs[i - 1].nonce != startNonce + i) {
@@ -114,21 +137,21 @@ contract Bridge {
 
     function verifyProofsAndTransfer(MerkleProof[] calldata _proofs) private {
         for (uint i = 0; i < _proofs.length; i++) {
-            MerkleProof calldata proof = _proofs[i];
-            if (verify(proof)) {
-                address payable to = proof.to;
-                uint256 transferAmount = toEthDecimals(proof.amount);
-                if (!isContract(to)) {
-                    if (to.send(transferAmount)) {
-                        emit Deposit(proof.nonce, to, proof.amount);
+            MerkleProof calldata p = _proofs[i];
+            // Verify if the proof is correct.
+            if (verify(p)) {
+                uint256 transferAmount = toEthDecimals(p.amount);
+                if (!isContract(p.to)) {
+                    if (p.to.send(transferAmount)) {
+                        emit Deposit(p.nonce, p.to, p.amount);
                     } else {
-                        // Todo: What happens if the transfer fails?
-                        // emit FailedDeposit(proof.nonce, to, proof.amount);
+                        // Todo: Implement claim functionality.
+                        // Todo: Consider adding functionality to move deposit to withdrawal without claiming. Only the recipient should be able to do this.
+                        // Consider emitting an event here.
                     }
                 }
-                // In case the recipient is a contract, no funds are sent. However, the Merkle Tree computation must withstand.
-                // Todo: Discuss if we want to provide refund support in case the recipient is a contract.
-                // emit FailedDeposit(proof.nonce, to, proof.amount);
+                // Todo: Implement claim functionality. Anyone should be able to claim the deposit if the recipient is a contract, since the funds will be transferred to the contract address.
+                // Todo: Consider adding functionality to move deposit to withdrawal without claiming. Only the recipient should be able to do this.
             } else {
                 // If a proof verification failed, the transaction is reverted.
                 revert();
@@ -136,27 +159,39 @@ contract Bridge {
         }
     }
 
-    function verify(MerkleProof calldata _proof) private pure returns (bool) {
-        bytes32 right = sha256(
-            abi.encodePacked(_proof.nonce, _proof.to, _proof.amount)
-        );
-        for (uint i = 0; i < _proof.proof.length; i++) {
-            right = sha256(abi.encodePacked(_proof.proof[i], right));
+    function verify(MerkleProof calldata _p) private view returns (bool) {
+        bytes32 parent = sha256(abi.encodePacked(_p.nonce, _p.to, _p.amount));
+        uint height = 0;
+        for (uint i = 0; i < _p.proof.length; i++) {
+            // If the path bit at the current height is 1, the proof element is on the right side. Otherwise it is on the left side.
+            if ((_p.path >> height) & 1 == 1) {
+                parent = computeParentHash(parent, _p.proof[i]);
+            } else {
+                parent = computeParentHash(_p.proof[i], parent);
+            }
+            height += 1;
         }
-        return right == _proof.root;
+        return parent == depositRoot;
     }
 
     function buildMsgAndVerifyValidatorSignatures(
-        Signature[] calldata _signatures,
-        MerkleProof[] calldata _proofs
+        bytes32 _depositRoot,
+        uint64 _lastNonce,
+        Signature[] calldata _signatures
     ) private view returns (bool) {
-        bytes32 rootsMsgHash = concatRootsAndCreateMessage(_proofs);
-        return verifyValidatorSignatures(_signatures, rootsMsgHash);
+        bytes32 depositMsg = keccak256(
+            abi.encodePacked(
+                "\x19Ethereum Signed Message:\n32",
+                keccak256(abi.encodePacked(_depositRoot, _lastNonce))
+            )
+        );
+
+        return verifyValidatorSignatures(depositMsg, _signatures);
     }
 
     function verifyValidatorSignatures(
-        Signature[] calldata _signatures,
-        bytes32 _msgHash
+        bytes32 _msgHash,
+        Signature[] calldata _signatures
     ) private view returns (bool) {
         require(
             _signatures.length == 5,
@@ -181,22 +216,6 @@ contract Bridge {
             n = j;
         }
         return covered == 5;
-    }
-
-    function concatRootsAndCreateMessage(
-        MerkleProof[] calldata _proofs
-    ) private pure returns (bytes32) {
-        bytes memory concatRoots = abi.encode(_proofs[0].root);
-        for (uint i = 1; i < _proofs.length; i++) {
-            concatRoots = abi.encodePacked(concatRoots, _proofs[i].root);
-        }
-        return
-            keccak256(
-                abi.encodePacked(
-                    "\x19Ethereum Signed Message:\n32",
-                    keccak256(concatRoots)
-                )
-            );
     }
 
     function isContract(address _addr) private view returns (bool) {
@@ -243,7 +262,7 @@ contract Bridge {
     }
 
     function hashWithdrawal(
-        uint32 _withdrawalNonce,
+        uint64 _withdrawalNonce,
         address _to,
         uint256 _amount
     ) private pure returns (bytes32) {

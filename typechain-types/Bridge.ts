@@ -24,34 +24,34 @@ import type {
 } from "./common";
 
 export declare namespace Bridge {
-  export type MerkleProofStruct = {
-    nonce: BigNumberish;
-    to: AddressLike;
-    amount: BigNumberish;
-    proof: BytesLike[];
-    root: BytesLike;
-  };
-
-  export type MerkleProofStructOutput = [
-    nonce: bigint,
-    to: string,
-    amount: bigint,
-    proof: string[],
-    root: string
-  ] & {
-    nonce: bigint;
-    to: string;
-    amount: bigint;
-    proof: string[];
-    root: string;
-  };
-
   export type SignatureStruct = { v: BigNumberish; r: BytesLike; s: BytesLike };
 
   export type SignatureStructOutput = [v: bigint, r: string, s: string] & {
     v: bigint;
     r: string;
     s: string;
+  };
+
+  export type MerkleProofStruct = {
+    nonce: BigNumberish;
+    to: AddressLike;
+    amount: BigNumberish;
+    path: BigNumberish;
+    proof: BytesLike[];
+  };
+
+  export type MerkleProofStructOutput = [
+    nonce: bigint,
+    to: string,
+    amount: bigint,
+    path: bigint,
+    proof: string[]
+  ] & {
+    nonce: bigint;
+    to: string;
+    amount: bigint;
+    path: bigint;
+    proof: string[];
   };
 }
 
@@ -60,7 +60,7 @@ export interface BridgeInterface extends Interface {
     nameOrSignature:
       | "deposit"
       | "depositNonce"
-      | "maxDepth"
+      | "depositRoot"
       | "maxWithdrawalAmount"
       | "minWithdrawalAmount"
       | "relayer"
@@ -75,13 +75,21 @@ export interface BridgeInterface extends Interface {
 
   encodeFunctionData(
     functionFragment: "deposit",
-    values: [Bridge.MerkleProofStruct[], Bridge.SignatureStruct[]]
+    values: [
+      BytesLike,
+      BigNumberish,
+      Bridge.SignatureStruct[],
+      Bridge.MerkleProofStruct[]
+    ]
   ): string;
   encodeFunctionData(
     functionFragment: "depositNonce",
     values?: undefined
   ): string;
-  encodeFunctionData(functionFragment: "maxDepth", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "depositRoot",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "maxWithdrawalAmount",
     values?: undefined
@@ -117,7 +125,10 @@ export interface BridgeInterface extends Interface {
     functionFragment: "depositNonce",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "maxDepth", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "depositRoot",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "maxWithdrawalAmount",
     data: BytesLike
@@ -234,8 +245,10 @@ export interface Bridge extends BaseContract {
 
   deposit: TypedContractMethod<
     [
-      _proofs: Bridge.MerkleProofStruct[],
-      _signatures: Bridge.SignatureStruct[]
+      _depositRoot: BytesLike,
+      _lastNonce: BigNumberish,
+      _signatures: Bridge.SignatureStruct[],
+      _proofs: Bridge.MerkleProofStruct[]
     ],
     [void],
     "nonpayable"
@@ -243,7 +256,7 @@ export interface Bridge extends BaseContract {
 
   depositNonce: TypedContractMethod<[], [bigint], "view">;
 
-  maxDepth: TypedContractMethod<[], [bigint], "view">;
+  depositRoot: TypedContractMethod<[], [string], "view">;
 
   maxWithdrawalAmount: TypedContractMethod<[], [bigint], "view">;
 
@@ -269,8 +282,10 @@ export interface Bridge extends BaseContract {
     nameOrSignature: "deposit"
   ): TypedContractMethod<
     [
-      _proofs: Bridge.MerkleProofStruct[],
-      _signatures: Bridge.SignatureStruct[]
+      _depositRoot: BytesLike,
+      _lastNonce: BigNumberish,
+      _signatures: Bridge.SignatureStruct[],
+      _proofs: Bridge.MerkleProofStruct[]
     ],
     [void],
     "nonpayable"
@@ -279,8 +294,8 @@ export interface Bridge extends BaseContract {
     nameOrSignature: "depositNonce"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
-    nameOrSignature: "maxDepth"
-  ): TypedContractMethod<[], [bigint], "view">;
+    nameOrSignature: "depositRoot"
+  ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "maxWithdrawalAmount"
   ): TypedContractMethod<[], [bigint], "view">;
@@ -322,7 +337,7 @@ export interface Bridge extends BaseContract {
   >;
 
   filters: {
-    "Deposit(uint256,address,uint256)": TypedContractEvent<
+    "Deposit(uint64,address,uint256)": TypedContractEvent<
       DepositEvent.InputTuple,
       DepositEvent.OutputTuple,
       DepositEvent.OutputObject
@@ -333,7 +348,7 @@ export interface Bridge extends BaseContract {
       DepositEvent.OutputObject
     >;
 
-    "Withdrawal(uint256,address,address,uint256,bytes32,bytes32)": TypedContractEvent<
+    "Withdrawal(uint64,address,address,uint256,bytes32,bytes32)": TypedContractEvent<
       WithdrawalEvent.InputTuple,
       WithdrawalEvent.OutputTuple,
       WithdrawalEvent.OutputObject
