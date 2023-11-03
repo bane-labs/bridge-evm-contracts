@@ -138,23 +138,22 @@ contract Bridge {
     function verifyProofsAndTransfer(MerkleProof[] calldata _proofs) private {
         for (uint i = 0; i < _proofs.length; i++) {
             MerkleProof calldata p = _proofs[i];
-            // Verify if the proof is correct.
-            if (verify(p)) {
-                uint256 transferAmount = toEthDecimals(p.amount);
-                if (!isContract(p.to)) {
-                    if (p.to.send(transferAmount)) {
-                        emit Deposit(p.nonce, p.to, p.amount);
-                    } else {
-                        // Todo: Implement claim functionality.
-                        // Todo: Consider adding functionality to move deposit to withdrawal without claiming. Only the recipient should be able to do this.
-                        // Consider emitting an event here.
-                    }
-                }
+            if (isContract(p.to)) {
                 // Todo: Implement claim functionality. Anyone should be able to claim the deposit if the recipient is a contract, since the funds will be transferred to the contract address.
                 // Todo: Consider adding functionality to move deposit to withdrawal without claiming. Only the recipient should be able to do this.
             } else {
-                // If a proof verification failed, the transaction is reverted.
-                revert();
+                if (!verify(p)) {
+                    // If a proof verification failed, the transaction is reverted.
+                    revert();
+                }
+                uint256 transferAmount = toEthDecimals(p.amount);
+                if (p.to.send(transferAmount)) {
+                    emit Deposit(p.nonce, p.to, p.amount);
+                } else {
+                    // Todo: Implement claim functionality.
+                    // Todo: Consider adding functionality to move deposit to withdrawal without claiming. Only the recipient should be able to do this.
+                    // Consider emitting an event here.
+                }
             }
         }
     }
