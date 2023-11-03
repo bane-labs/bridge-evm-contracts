@@ -33,6 +33,7 @@ contract Bridge {
     uint64 public withdrawalNonce;
 
     mapping(uint256 => bytes32) public rootMap;
+    mapping(uint64 => bool) public claimableDeposits;
 
     // Events
 
@@ -138,25 +139,63 @@ contract Bridge {
     function verifyProofsAndTransfer(MerkleProof[] calldata _proofs) private {
         for (uint i = 0; i < _proofs.length; i++) {
             MerkleProof calldata p = _proofs[i];
-            if (verify(p)) {
+            if (!verify(p)) {
+                // If a proof verification failed, the transaction is reverted.
+                revert();
+            } else {
                 if (isContract(p.to)) {
-                    // Todo: Implement claim functionality. Anyone should be able to claim the deposit if the recipient is a contract, since the funds will be transferred to the contract address.
-                    // Todo: Consider adding functionality to move deposit to withdrawal without claiming. Only the recipient should be able to do this.
+                    // If the recipient is a contract, the deposit is not transferred to the recipient.
+                    // Instead, the deposit is stored in a mapping and can be claimed individually.
+                    claimableDeposits[p.nonce] = true;
+                    // Todo: Consider emitting an event here.
                 } else {
                     uint256 transferAmount = toEthDecimals(p.amount);
                     if (p.to.send(transferAmount)) {
                         emit Deposit(p.nonce, p.to, p.amount);
                     } else {
-                        // Todo: Implement claim functionality.
-                        // Todo: Consider adding functionality to move deposit to withdrawal without claiming. Only the recipient should be able to do this.
-                        // Consider emitting an event here.
+                        claimableDeposits[p.nonce] = true;
+                        // Todo: Consider emitting an event here.
                     }
                 }
-            } else {
-                // If a proof verification failed, the transaction is reverted.
-                revert();
             }
         }
+    }
+
+    // Todo: Add functionality to move deposit to withdrawal without claiming.
+
+    function claimToEOA(MerkleProof calldata _proof) external {
+        require(isContract(_proof.to), "Recipient must be an EOA.");
+        require(
+            claimableDeposits[_proof.nonce],
+            "Deposit has already been claimed."
+        );
+        delete claimableDeposits[_proof.nonce];
+        require(verify(_proof), "Proof verification failed.");
+
+        uint256 transferAmount = toEthDecimals(_proof.amount);
+        if (!_proof.to.send(transferAmount)) {
+            revert();
+        }
+        emit Deposit(_proof.nonce, _proof.to, _proof.amount);
+    }
+
+    function claimToContract(MerkleProof calldata _proof, uint gas) external {
+        require(isContract(_proof.to), "Recipient must be a contract.");
+        require(
+            claimableDeposits[_proof.nonce],
+            "Deposit has already been claimed."
+        );
+        delete claimableDeposits[_proof.nonce];
+        require(verify(_proof), "Proof verification failed.");
+
+        uint256 transferAmount = toEthDecimals(_proof.amount);
+        (bool successful, ) = _proof.to.call{gas: gas, value: transferAmount}(
+            ""
+        );
+        if (!successful) {
+            revert();
+        }
+        emit Deposit(_proof.nonce, _proof.to, _proof.amount);
     }
 
     function verify(MerkleProof calldata _p) private view returns (bool) {

@@ -24,14 +24,6 @@ import type {
 } from "./common";
 
 export declare namespace Bridge {
-  export type SignatureStruct = { v: BigNumberish; r: BytesLike; s: BytesLike };
-
-  export type SignatureStructOutput = [v: bigint, r: string, s: string] & {
-    v: bigint;
-    r: string;
-    s: string;
-  };
-
   export type MerkleProofStruct = {
     nonce: BigNumberish;
     to: AddressLike;
@@ -53,11 +45,22 @@ export declare namespace Bridge {
     path: bigint;
     proof: string[];
   };
+
+  export type SignatureStruct = { v: BigNumberish; r: BytesLike; s: BytesLike };
+
+  export type SignatureStructOutput = [v: bigint, r: string, s: string] & {
+    v: bigint;
+    r: string;
+    s: string;
+  };
 }
 
 export interface BridgeInterface extends Interface {
   getFunction(
     nameOrSignature:
+      | "claimToContract"
+      | "claimToEOA"
+      | "claimableDeposits"
       | "deposit"
       | "depositNonce"
       | "depositRoot"
@@ -73,6 +76,18 @@ export interface BridgeInterface extends Interface {
 
   getEvent(nameOrSignatureOrTopic: "Deposit" | "Withdrawal"): EventFragment;
 
+  encodeFunctionData(
+    functionFragment: "claimToContract",
+    values: [Bridge.MerkleProofStruct, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "claimToEOA",
+    values: [Bridge.MerkleProofStruct]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "claimableDeposits",
+    values: [BigNumberish]
+  ): string;
   encodeFunctionData(
     functionFragment: "deposit",
     values: [
@@ -120,6 +135,15 @@ export interface BridgeInterface extends Interface {
     values?: undefined
   ): string;
 
+  decodeFunctionResult(
+    functionFragment: "claimToContract",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "claimToEOA", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "claimableDeposits",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "deposit", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "depositNonce",
@@ -243,6 +267,24 @@ export interface Bridge extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
+  claimToContract: TypedContractMethod<
+    [_proof: Bridge.MerkleProofStruct, gas: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+
+  claimToEOA: TypedContractMethod<
+    [_proof: Bridge.MerkleProofStruct],
+    [void],
+    "nonpayable"
+  >;
+
+  claimableDeposits: TypedContractMethod<
+    [arg0: BigNumberish],
+    [boolean],
+    "view"
+  >;
+
   deposit: TypedContractMethod<
     [
       _depositRoot: BytesLike,
@@ -278,6 +320,23 @@ export interface Bridge extends BaseContract {
     key: string | FunctionFragment
   ): T;
 
+  getFunction(
+    nameOrSignature: "claimToContract"
+  ): TypedContractMethod<
+    [_proof: Bridge.MerkleProofStruct, gas: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "claimToEOA"
+  ): TypedContractMethod<
+    [_proof: Bridge.MerkleProofStruct],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "claimableDeposits"
+  ): TypedContractMethod<[arg0: BigNumberish], [boolean], "view">;
   getFunction(
     nameOrSignature: "deposit"
   ): TypedContractMethod<
