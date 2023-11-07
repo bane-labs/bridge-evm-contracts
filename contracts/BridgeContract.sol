@@ -167,7 +167,7 @@ contract Bridge {
     // Todo: Add functionality to move deposit to withdrawal without claiming.
 
     function claim(MerkleProof calldata _proof) external {
-        require(isContract(_proof.to), "Recipient must be an EOA.");
+        require(!isContract(_proof.to), "Recipient must be an EOA.");
         require(
             claimableDeposits[_proof.nonce],
             "Deposit has already been claimed."
