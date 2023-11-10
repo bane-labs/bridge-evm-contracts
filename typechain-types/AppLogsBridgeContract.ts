@@ -58,6 +58,7 @@ export declare namespace AppLogsBridgeContract {
 export interface AppLogsBridgeContractInterface extends Interface {
   getFunction(
     nameOrSignature:
+      | "claim"
       | "claimableAmount"
       | "claimableTo"
       | "deposit"
@@ -72,9 +73,10 @@ export interface AppLogsBridgeContractInterface extends Interface {
   ): FunctionFragment;
 
   getEvent(
-    nameOrSignatureOrTopic: "Claimable" | "Deposit" | "Withdrawal"
+    nameOrSignatureOrTopic: "Claimable" | "Claimed" | "Deposit" | "Withdrawal"
   ): EventFragment;
 
+  encodeFunctionData(functionFragment: "claim", values: [BigNumberish]): string;
   encodeFunctionData(
     functionFragment: "claimableAmount",
     values: [BigNumberish]
@@ -121,6 +123,7 @@ export interface AppLogsBridgeContractInterface extends Interface {
     values?: undefined
   ): string;
 
+  decodeFunctionResult(functionFragment: "claim", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "claimableAmount",
     data: BytesLike
@@ -156,6 +159,24 @@ export interface AppLogsBridgeContractInterface extends Interface {
 }
 
 export namespace ClaimableEvent {
+  export type InputTuple = [
+    nonce: BigNumberish,
+    amount: BigNumberish,
+    to: AddressLike
+  ];
+  export type OutputTuple = [nonce: bigint, amount: bigint, to: string];
+  export interface OutputObject {
+    nonce: bigint;
+    amount: bigint;
+    to: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace ClaimedEvent {
   export type InputTuple = [
     nonce: BigNumberish,
     amount: BigNumberish,
@@ -259,6 +280,8 @@ export interface AppLogsBridgeContract extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
+  claim: TypedContractMethod<[_nonce: BigNumberish], [void], "nonpayable">;
+
   claimableAmount: TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
 
   claimableTo: TypedContractMethod<[arg0: BigNumberish], [string], "view">;
@@ -293,6 +316,9 @@ export interface AppLogsBridgeContract extends BaseContract {
     key: string | FunctionFragment
   ): T;
 
+  getFunction(
+    nameOrSignature: "claim"
+  ): TypedContractMethod<[_nonce: BigNumberish], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "claimableAmount"
   ): TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
@@ -343,6 +369,13 @@ export interface AppLogsBridgeContract extends BaseContract {
     ClaimableEvent.OutputObject
   >;
   getEvent(
+    key: "Claimed"
+  ): TypedContractEvent<
+    ClaimedEvent.InputTuple,
+    ClaimedEvent.OutputTuple,
+    ClaimedEvent.OutputObject
+  >;
+  getEvent(
     key: "Deposit"
   ): TypedContractEvent<
     DepositEvent.InputTuple,
@@ -367,6 +400,17 @@ export interface AppLogsBridgeContract extends BaseContract {
       ClaimableEvent.InputTuple,
       ClaimableEvent.OutputTuple,
       ClaimableEvent.OutputObject
+    >;
+
+    "Claimed(uint64,uint64,address)": TypedContractEvent<
+      ClaimedEvent.InputTuple,
+      ClaimedEvent.OutputTuple,
+      ClaimedEvent.OutputObject
+    >;
+    Claimed: TypedContractEvent<
+      ClaimedEvent.InputTuple,
+      ClaimedEvent.OutputTuple,
+      ClaimedEvent.OutputObject
     >;
 
     "Deposit(uint64,uint64,address)": TypedContractEvent<

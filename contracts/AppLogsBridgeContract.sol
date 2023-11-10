@@ -30,12 +30,15 @@ contract AppLogsBridgeContract {
     uint64 public withdrawalNonce = 0;
 
     mapping(uint64 => address) public claimableTo;
+    // Important: The claimableAmount mapping contains the uint64 value that is still the value with 8 decimal places.
     mapping(uint64 => uint64) public claimableAmount;
 
     // Events
 
-    event Claimable(uint64 nonce, uint64 amount, address to);
     event Deposit(uint64 nonce, uint64 amount, address to);
+    event Claimable(uint64 nonce, uint64 amount, address to);
+    event Claimed(uint64 nonce, uint64 amount, address to);
+
     event Withdrawal(uint64 nonce, uint256 amount, address to, address from);
 
     // Todo: This is only used for testing. Remove it before compiling byte code for genesis script.
@@ -61,7 +64,9 @@ contract AppLogsBridgeContract {
         bytes32 s;
     }
 
-    // Deposit
+    /////////////
+    // Deposit //
+    /////////////
 
     // The validators compute the merkle tree root from the notification of the deposits that happened on Neo N3.
     // They sign the root of that merkle tree and provide their signature to the relayer. The relayer then computes the
@@ -222,6 +227,27 @@ contract AppLogsBridgeContract {
     modifier onlyRelayer() {
         require(msg.sender == relayer, "Not relayer");
         _;
+    }
+
+    ///////////
+    // Claim //
+    ///////////
+
+    // Anyone can execute a claim. The funds of a claimable will be sent to the defined address in the claimableTo mapping.
+    function claim(uint64 _nonce) external {
+        address payable to = payable(claimableTo[_nonce]);
+        uint64 claimAmount = claimableAmount[_nonce];
+        require(claimableAmount[_nonce] != 0, "No claimable funds");
+        require(to != address(0), "No claimable funds");
+
+        delete claimableAmount[_nonce];
+        delete claimableTo[_nonce];
+        uint256 sendValue = addTenDecimals(claimAmount);
+        (bool success, ) = to.call{value: sendValue}("");
+        if (!success) {
+            revert("Transfer failed");
+        }
+        emit Claimed(_nonce, claimAmount, to);
     }
 
     ////////////////
