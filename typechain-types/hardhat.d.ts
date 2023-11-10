@@ -14,10 +14,19 @@ import * as Contracts from ".";
 declare module "hardhat/types/runtime" {
   interface HardhatEthersHelpers extends HardhatEthersHelpersBase {
     getContractFactory(
+      name: "AppLogsBridgeContract",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.AppLogsBridgeContract__factory>;
+    getContractFactory(
       name: "Bridge",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Bridge__factory>;
 
+    getContractAt(
+      name: "AppLogsBridgeContract",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.AppLogsBridgeContract>;
     getContractAt(
       name: "Bridge",
       address: string | ethers.Addressable,
@@ -25,10 +34,19 @@ declare module "hardhat/types/runtime" {
     ): Promise<Contracts.Bridge>;
 
     deployContract(
+      name: "AppLogsBridgeContract",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.AppLogsBridgeContract>;
+    deployContract(
       name: "Bridge",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.Bridge>;
 
+    deployContract(
+      name: "AppLogsBridgeContract",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.AppLogsBridgeContract>;
     deployContract(
       name: "Bridge",
       args: any[],
