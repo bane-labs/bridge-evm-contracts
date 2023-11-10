@@ -4,7 +4,9 @@
 import type * as bridgeContractSol from "./BridgeContract.sol";
 export type { bridgeContractSol };
 export type { AppLogsBridgeContract } from "./AppLogsBridgeContract";
+export type { HashTreeBridgeContract } from "./HashTreeBridgeContract";
 export * as factories from "./factories";
 export { AppLogsBridgeContract__factory } from "./factories/AppLogsBridgeContract__factory";
 export type { Bridge } from "./BridgeContract.sol/Bridge";
 export { Bridge__factory } from "./factories/BridgeContract.sol/Bridge__factory";
+export { HashTreeBridgeContract__factory } from "./factories/HashTreeBridgeContract__factory";

@@ -3,3 +3,4 @@
 /* eslint-disable */
 export * as bridgeContractSol from "./BridgeContract.sol";
 export { AppLogsBridgeContract__factory } from "./AppLogsBridgeContract__factory";
+export { HashTreeBridgeContract__factory } from "./HashTreeBridgeContract__factory";
