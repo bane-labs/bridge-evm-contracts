@@ -22,37 +22,23 @@ contract AppLogsBridgeContract {
         0x14dC79964da2C08b23698B3D3cc7Ca32193d9955
     ];
 
-    // uint256 public constant minWithdrawalAmount = 1_00000000_0000000000;
-    // uint256 public constant maxWithdrawalAmount = 10000_00000000_0000000000;
+    uint256 public constant minWithdrawalAmount = 1_00000000_0000000000;
+    uint256 public constant maxWithdrawalAmount = 10000_00000000_0000000000;
 
-    // bytes32 public withdrawalRoot;
     bytes32 public depositRoot;
     uint64 public depositNonce = 0;
+    uint64 public withdrawalNonce = 0;
 
     mapping(uint64 => address) public claimableTo;
     mapping(uint64 => uint64) public claimableAmount;
 
-    // uint32 public maxDepth;
-    // uint32 public withdrawalNonce;
-
-    // mapping(uint256 => bytes32) public rootMap;
-
     // Events
 
     event Claimable(uint64 nonce, uint64 amount, address to);
-    event Withdrawal(uint64 nonce, uint64 amount, address to);
+    event Deposit(uint64 nonce, uint64 amount, address to);
+    event Withdrawal(uint64 nonce, uint256 amount, address to, address from);
 
-    // event Deposit(uint _nonce, address _to, uint _value);
-    // event Withdrawal(
-    //     uint _nonce,
-    //     address from,
-    //     address _to,
-    //     uint _amount,
-    //     bytes32 _withdrawalHash,
-    //     bytes32 _root
-    // );
-
-    // Todo: This is only used for testing.
+    // Todo: This is only used for testing. Remove it before compiling byte code for genesis script.
     receive() external payable onlyRelayer {}
 
     //////////////////////////
@@ -149,7 +135,7 @@ contract AppLogsBridgeContract {
                         depositEntry.to
                     );
                 } else {
-                    emit Withdrawal(
+                    emit Deposit(
                         depositEntry.nonce,
                         depositEntry.amount,
                         depositEntry.to
@@ -242,33 +228,28 @@ contract AppLogsBridgeContract {
     // Withdrawal //
     ////////////////
 
-    // function withdraw(address _to) external payable {
-    //     require(
-    //         (msg.value % (10 ** 10)) == 0,
-    //         "Only amounts with 8 non-zero decimals allowed for withdrawal"
-    //     );
-    //     require(
-    //         msg.value >= minWithdrawalAmount,
-    //         "Smaller than minimum withdrawal amount"
-    //     );
+    function withdraw(address _to) external payable {
+        require(
+            (msg.value % (10 ** 10)) == 0,
+            "Only amounts with 8 non-zero decimals allowed for withdrawal"
+        );
+        require(
+            msg.value >= minWithdrawalAmount,
+            "Smaller than minimum withdrawal amount"
+        );
+        require(
+            msg.value <= maxWithdrawalAmount,
+            "Larger than maximum withdrawal amount"
+        );
 
-    //     withdrawalNonce++;
-    //     bytes32 withdrawalHash = hashWithdrawal(
-    //         withdrawalNonce,
-    //         _to,
-    //         msg.value
-    //     );
-    //     bytes32 root = updateWithdrawalMerkleTree(withdrawalHash);
-    //     withdrawalRoot = root;
-    //     emit Withdrawal(
-    //         withdrawalNonce,
-    //         msg.sender,
-    //         _to,
-    //         msg.value,
-    //         withdrawalHash,
-    //         root
-    //     );
-    // }
+        withdrawalNonce++;
+        emit Withdrawal(
+            withdrawalNonce,
+            removeTenDecimals(msg.value),
+            _to,
+            msg.sender
+        );
+    }
 
     function hashDepositOrWithdrawal(
         uint64 _nonce,
@@ -288,5 +269,10 @@ contract AppLogsBridgeContract {
     // Adds 10 decimals to the amount. GasToken originally has 8 decimals and on this chain it has 18 decimals.
     function addTenDecimals(uint256 _value) private pure returns (uint256) {
         return _value * (10 ** 10);
+    }
+
+    // Removes 10 decimal points from the amount. GasToken originally has 8 decimals and on this chain it has 18 decimals.
+    function removeTenDecimals(uint256 _value) private pure returns (uint256) {
+        return _value / (10 ** 10);
     }
 }

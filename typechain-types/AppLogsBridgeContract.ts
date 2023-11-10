@@ -63,11 +63,17 @@ export interface AppLogsBridgeContractInterface extends Interface {
       | "deposit"
       | "depositNonce"
       | "depositRoot"
+      | "maxWithdrawalAmount"
+      | "minWithdrawalAmount"
       | "relayer"
       | "validators"
+      | "withdraw"
+      | "withdrawalNonce"
   ): FunctionFragment;
 
-  getEvent(nameOrSignatureOrTopic: "Claimable" | "Withdrawal"): EventFragment;
+  getEvent(
+    nameOrSignatureOrTopic: "Claimable" | "Deposit" | "Withdrawal"
+  ): EventFragment;
 
   encodeFunctionData(
     functionFragment: "claimableAmount",
@@ -93,10 +99,26 @@ export interface AppLogsBridgeContractInterface extends Interface {
     functionFragment: "depositRoot",
     values?: undefined
   ): string;
+  encodeFunctionData(
+    functionFragment: "maxWithdrawalAmount",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "minWithdrawalAmount",
+    values?: undefined
+  ): string;
   encodeFunctionData(functionFragment: "relayer", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "validators",
     values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "withdraw",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "withdrawalNonce",
+    values?: undefined
   ): string;
 
   decodeFunctionResult(
@@ -116,11 +138,42 @@ export interface AppLogsBridgeContractInterface extends Interface {
     functionFragment: "depositRoot",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "maxWithdrawalAmount",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "minWithdrawalAmount",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "relayer", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "validators", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "withdraw", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "withdrawalNonce",
+    data: BytesLike
+  ): Result;
 }
 
 export namespace ClaimableEvent {
+  export type InputTuple = [
+    nonce: BigNumberish,
+    amount: BigNumberish,
+    to: AddressLike
+  ];
+  export type OutputTuple = [nonce: bigint, amount: bigint, to: string];
+  export interface OutputObject {
+    nonce: bigint;
+    amount: bigint;
+    to: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace DepositEvent {
   export type InputTuple = [
     nonce: BigNumberish,
     amount: BigNumberish,
@@ -142,13 +195,20 @@ export namespace WithdrawalEvent {
   export type InputTuple = [
     nonce: BigNumberish,
     amount: BigNumberish,
-    to: AddressLike
+    to: AddressLike,
+    from: AddressLike
   ];
-  export type OutputTuple = [nonce: bigint, amount: bigint, to: string];
+  export type OutputTuple = [
+    nonce: bigint,
+    amount: bigint,
+    to: string,
+    from: string
+  ];
   export interface OutputObject {
     nonce: bigint;
     amount: bigint;
     to: string;
+    from: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -217,9 +277,17 @@ export interface AppLogsBridgeContract extends BaseContract {
 
   depositRoot: TypedContractMethod<[], [string], "view">;
 
+  maxWithdrawalAmount: TypedContractMethod<[], [bigint], "view">;
+
+  minWithdrawalAmount: TypedContractMethod<[], [bigint], "view">;
+
   relayer: TypedContractMethod<[], [string], "view">;
 
   validators: TypedContractMethod<[arg0: BigNumberish], [string], "view">;
+
+  withdraw: TypedContractMethod<[_to: AddressLike], [void], "payable">;
+
+  withdrawalNonce: TypedContractMethod<[], [bigint], "view">;
 
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
@@ -249,11 +317,23 @@ export interface AppLogsBridgeContract extends BaseContract {
     nameOrSignature: "depositRoot"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
+    nameOrSignature: "maxWithdrawalAmount"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "minWithdrawalAmount"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
     nameOrSignature: "relayer"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "validators"
   ): TypedContractMethod<[arg0: BigNumberish], [string], "view">;
+  getFunction(
+    nameOrSignature: "withdraw"
+  ): TypedContractMethod<[_to: AddressLike], [void], "payable">;
+  getFunction(
+    nameOrSignature: "withdrawalNonce"
+  ): TypedContractMethod<[], [bigint], "view">;
 
   getEvent(
     key: "Claimable"
@@ -261,6 +341,13 @@ export interface AppLogsBridgeContract extends BaseContract {
     ClaimableEvent.InputTuple,
     ClaimableEvent.OutputTuple,
     ClaimableEvent.OutputObject
+  >;
+  getEvent(
+    key: "Deposit"
+  ): TypedContractEvent<
+    DepositEvent.InputTuple,
+    DepositEvent.OutputTuple,
+    DepositEvent.OutputObject
   >;
   getEvent(
     key: "Withdrawal"
@@ -282,7 +369,18 @@ export interface AppLogsBridgeContract extends BaseContract {
       ClaimableEvent.OutputObject
     >;
 
-    "Withdrawal(uint64,uint64,address)": TypedContractEvent<
+    "Deposit(uint64,uint64,address)": TypedContractEvent<
+      DepositEvent.InputTuple,
+      DepositEvent.OutputTuple,
+      DepositEvent.OutputObject
+    >;
+    Deposit: TypedContractEvent<
+      DepositEvent.InputTuple,
+      DepositEvent.OutputTuple,
+      DepositEvent.OutputObject
+    >;
+
+    "Withdrawal(uint64,uint256,address,address)": TypedContractEvent<
       WithdrawalEvent.InputTuple,
       WithdrawalEvent.OutputTuple,
       WithdrawalEvent.OutputObject
