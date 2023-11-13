@@ -86,7 +86,7 @@ contract HashTreeBridgeContract {
             verifyValidatorSignatures(_depositRoot, _signatures),
             "Invalid or insufficient validator signatures."
         );
-        withdrawalNonce = _deposits[_deposits.length - 1].nonce;
+        depositNonce = _deposits[_deposits.length - 1].nonce;
         bytes32 formerDepositRoot = depositRoot;
         depositRoot = _depositRoot;
         verifyDepositsAndTransfer(formerDepositRoot, _deposits);
