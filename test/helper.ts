@@ -38,3 +38,13 @@ export async function fundContract(bridgeContract: any, funder: HardhatEthersSig
     const to = await bridgeContract.getAddress()
     await funder.sendTransaction({ to, value: amount });
 }
+
+export async function hashDepositOrWithdrawal(nonce: number, amount: bigint, to: string): Promise<string> {
+    const packData = ethers.solidityPacked(["uint64", "uint64", "address"], [nonce, amount, to]);
+    const hashData = ethers.sha256(packData);
+    return hashData;
+}
+
+export async function computeRoot(previouRoot: string, newHash: string): Promise<string> {
+    return ethers.sha256(ethers.solidityPacked(["bytes32", "bytes32"], [ethers.getBytes(previouRoot), ethers.getBytes(newHash)]));
+}
