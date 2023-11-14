@@ -165,16 +165,47 @@ describe("Hash Tree Bridge contract", function () {
 
         });
 
+        it("Deposit When Deposit Length is Equal to 10", async function () {
+            const { hashTreebridgeContract, relayer } = await loadFixture(deployBridgeFixture);
+            await fundContract( hashTreebridgeContract, relayer);
+
+            const dataArray = [];
+            let hashResult = ethers.ZeroHash;
+            for(let i = 0; i < 10; i++) {
+                dataArray.push({nonce: i+1, amount: 100000000n, to: relayer.address});
+                hashResult = await computeRoot(hashResult, await hashDepositOrWithdrawal(dataArray[i].nonce, dataArray[i].amount, dataArray[i].to));
+            }
+            const new_encodeRoot = ethers.solidityPackedKeccak256(["bytes32"], [hashResult]);
+            const signatures = await getValidatorSignatures(ethers.getBytes(new_encodeRoot), [1, 2, 3, 4, 5]);
+
+            const tx = await hashTreebridgeContract.connect(relayer).deposit(hashResult, signatures, dataArray);
+            await expect(tx).to.changeEtherBalances([hashTreebridgeContract, relayer.address], [-toEthDecimals(dataArray[0].amount * 10n), toEthDecimals(dataArray[0].amount * 10n)]);
+            expect(await hashTreebridgeContract.depositNonce()).to.equal(10);
+            expect(await hashTreebridgeContract.depositRoot()).to.equal(hashResult);
+            for(let i = 0; i< 10; i++) {
+                await expect(tx).to.emit(hashTreebridgeContract, "Deposit").withArgs(dataArray[i].nonce, dataArray[i].amount, dataArray[i].to);
+            }
+        });
+
         it("Should revert with empty proofs", async function () {
             const { hashTreebridgeContract, relayer } = await loadFixture(deployBridgeFixture);
             await expect(hashTreebridgeContract.connect(relayer).deposit(ethers.ZeroHash, [], [])).to.be.revertedWith("At least 1 deposit is required.");
         });
 
-        // it("Should revert with proofs length greater than 10", async function () {
-        //     const { bridgeContract, relayer } = await loadFixture(deployBridgeFixture);
-        //     const proofs = [proof1, proof2, proof3, proof4, proof5, proof6, proof7, proof8, proof9, proof10, proof11];
-        //     await expect(bridgeContract.connect(relayer).deposit(proofs, [])).to.be.revertedWith("At most 10 proofs are allowed.");
-        // });
+        it("Should revert with proofs length greater than 10", async function () {
+            const { hashTreebridgeContract, relayer } = await loadFixture(deployBridgeFixture);
+            const dataArray = [];
+            let hashResult = ethers.ZeroHash;
+            for(let i = 0; i < 11; i++) {
+                dataArray.push({nonce: i+1, amount: 100000000n, to: relayer.address});
+                hashResult = await computeRoot(hashResult, await hashDepositOrWithdrawal(dataArray[i].nonce, dataArray[i].amount, dataArray[i].to));
+            }
+            const new_encodeRoot = ethers.solidityPackedKeccak256(["bytes32"], [hashResult]);
+            const signatures = await getValidatorSignatures(ethers.getBytes(new_encodeRoot), [1, 2, 3, 4, 5]);
+
+            await expect(hashTreebridgeContract.connect(relayer).deposit(hashResult, signatures, dataArray)).to.be.revertedWith("Too many deposits provided.");
+
+        });
 
         it("Should revert with the wrong first nonce", async function () {
             const { hashTreebridgeContract, relayer } = await loadFixture(deployBridgeFixture);
@@ -186,17 +217,17 @@ describe("Hash Tree Bridge contract", function () {
             await expect(hashTreebridgeContract.connect(relayer).deposit(ethers.ZeroHash, [], [Depositdata1, Depositdata3])).to.be.revertedWith("The nonces of the proofs must be subsequent.");
         });
 
-        // it("Should revert when signature length less than 5", async function () {
-        //     const { hashTreebridgeContract, relayer } = await loadFixture(deployBridgeFixture);
-        //     await fundContract(hashTreebridgeContract, relayer);
+        it("Should revert when signature length less than 5", async function () {
+            const { hashTreebridgeContract, relayer } = await loadFixture(deployBridgeFixture);
+            await fundContract(hashTreebridgeContract, relayer);
 
-        //     const hashDepositData1 = await hashDepositOrWithdrawal(Depositdata1.nonce, Depositdata1.amount, Depositdata1.to);
-        //     const root1 = await computeRoot(ethers.ZeroHash, hashDepositData1);
-        //     const encodeRoot1 = ethers.solidityPackedKeccak256(["bytes32"], [root1]);
-        //     const signatures = await getValidatorSignatures(ethers.getBytes(encodeRoot1), [0, 2, 3, 4]);
+            const hashDepositData1 = await hashDepositOrWithdrawal(Depositdata1.nonce, Depositdata1.amount, Depositdata1.to);
+            const root1 = await computeRoot(ethers.ZeroHash, hashDepositData1);
+            const encodeRoot1 = ethers.solidityPackedKeccak256(["bytes32"], [root1]);
+            const signatures = await getValidatorSignatures(ethers.getBytes(encodeRoot1), [0, 2, 3, 4]);
 
-        //     await expect(hashTreebridgeContract.connect(relayer).deposit(root1, signatures, [Depositdata1])).to.be.revertedWith("Invalid or insufficient validator signatures.");
-        // });
+            await expect(hashTreebridgeContract.connect(relayer).deposit(root1, signatures, [Depositdata1])).to.be.revertedWith("Invalid number of signatures.");
+        });
 
         it("Should revert when signature verify failed", async function () {
             const { hashTreebridgeContract, relayer } = await loadFixture(deployBridgeFixture);
