@@ -24,6 +24,11 @@ export function toEthDecimals(value: bigint): bigint {
     return ethers.parseUnits(value.toString(), 10);
 }
 
+export function toNeoDecimals(value: bigint): bigint {
+    const formatStr = ethers.formatUnits(value.toString(), 10);
+    return BigInt(Math.floor(Number(formatStr)));
+}
+
 export function concatRoots(proofs: any): Uint8Array {
     let concat = proofs[0].root;
     for (let i = 1; i < proofs.length; i++) {

@@ -5,7 +5,7 @@ import { getValidatorSignatures } from "../utils/signature-utils";
 import {
     // relayer, validator1, validator2, validator3, validator4, validator5, validator6, validator7,
     to1, to2, to3, to4, to5, to6, to7, to8, to9, to0,
-    toEthDecimals, hashDepositOrWithdrawal, fundContract, computeRoot, validator1, validator2, validator3
+    toEthDecimals, toNeoDecimals, hashDepositOrWithdrawal, fundContract, computeRoot, validator1, validator2, validator3
 } from "./helper";
 
 const Depositdata1 = { to: validator1, amount: 100000000n, nonce: 1 };
@@ -84,7 +84,7 @@ describe("Hash Tree Bridge contract", function () {
             const signatures = await getValidatorSignatures(ethers.getBytes(new_encodeRoot), [1, 2, 3, 4, 5]);
 
             const tx = await hashTreebridgeContract.connect(relayer).deposit(new_root, signatures, [Depositdata1, Depositdata2]);
-            
+
             await expect(tx).to.changeEtherBalances([hashTreebridgeContract, Depositdata1.to, Depositdata2.to], [-toEthDecimals(Depositdata1.amount + Depositdata2.amount), toEthDecimals(Depositdata1.amount), toEthDecimals(Depositdata2.amount)]);
             await expect(tx).to.emit(hashTreebridgeContract, "Deposit").withArgs(Depositdata1.nonce, Depositdata1.amount, Depositdata1.to);
             await expect(tx).to.emit(hashTreebridgeContract, "Deposit").withArgs(Depositdata2.nonce, Depositdata2.amount, Depositdata2.to);
@@ -102,7 +102,7 @@ describe("Hash Tree Bridge contract", function () {
             const encodeRoot1 = ethers.solidityPackedKeccak256(["bytes32"], [root1]);
             const signatures_first = await getValidatorSignatures(ethers.getBytes(encodeRoot1), [1, 2, 3, 4, 5]);
             await hashTreebridgeContract.connect(relayer).deposit(root1, signatures_first, [Depositdata1]);
-            
+
             //calculate the root and signatures for the second deposit
             const hashDepositData2 = await hashDepositOrWithdrawal(Depositdata2.nonce, Depositdata2.amount, Depositdata2.to);
             const hash12 = await computeRoot(root1, hashDepositData2);
@@ -112,13 +112,222 @@ describe("Hash Tree Bridge contract", function () {
             const signatures = await getValidatorSignatures(ethers.getBytes(new_encodeRoot), [1, 2, 3, 4, 5]);
 
             const tx = await hashTreebridgeContract.connect(relayer).deposit(hash123, signatures, [Depositdata2, Depositdata3]);
-            
+
             await expect(tx).to.changeEtherBalances([hashTreebridgeContract, Depositdata2.to, Depositdata3.to], [-toEthDecimals(Depositdata2.amount + Depositdata3.amount), toEthDecimals(Depositdata2.amount), toEthDecimals(Depositdata3.amount)]);
             await expect(tx).to.emit(hashTreebridgeContract, "Deposit").withArgs(Depositdata2.nonce, Depositdata2.amount, Depositdata2.to);
             await expect(tx).to.emit(hashTreebridgeContract, "Deposit").withArgs(Depositdata3.nonce, Depositdata3.amount, Depositdata3.to);
 
             expect(await hashTreebridgeContract.depositNonce()).to.equal(Depositdata3.nonce);
             expect(await hashTreebridgeContract.depositRoot()).to.equal(hash123);
+        });
+
+        it("Deposit with insufficient fund of Contract", async function () {
+            const { hashTreebridgeContract, relayer } = await loadFixture(deployBridgeFixture);
+
+            const hashDepositData1 = await hashDepositOrWithdrawal(Depositdata1.nonce, Depositdata1.amount, Depositdata1.to);
+            const hashDepositData2 = await hashDepositOrWithdrawal(Depositdata2.nonce, Depositdata2.amount, Depositdata2.to);
+            const root1 = await computeRoot(ethers.ZeroHash, hashDepositData1);
+            const new_root = await computeRoot(root1, hashDepositData2);
+            const new_encodeRoot = ethers.solidityPackedKeccak256(["bytes32"], [new_root]);
+            const signatures = await getValidatorSignatures(ethers.getBytes(new_encodeRoot), [1, 2, 3, 4, 5]);
+
+            const tx = await hashTreebridgeContract.connect(relayer).deposit(new_root, signatures, [Depositdata1, Depositdata2]);
+            // check the balance is not change for the recipient address; but the root and depositNonce are both updated
+            await expect(tx).to.changeEtherBalances([hashTreebridgeContract, Depositdata1.to, Depositdata2.to], [0, 0, 0]);
+            expect(await hashTreebridgeContract.depositNonce()).to.equal(Depositdata2.nonce);
+            expect(await hashTreebridgeContract.depositRoot()).to.equal(new_root);
+
+        });
+
+        it("Deposit When Recipient is Contract", async function () {
+            const { hashTreebridgeContract, relayer } = await loadFixture(deployBridgeFixture);
+            await fundContract(hashTreebridgeContract, relayer);
+
+            const data2 = { nonce: 2, amount: 200000000n, to: await hashTreebridgeContract.getAddress() };
+
+            const hashDepositData1 = await hashDepositOrWithdrawal(Depositdata1.nonce, Depositdata1.amount, Depositdata1.to);
+            const hashDepositData2 = await hashDepositOrWithdrawal(data2.nonce, data2.amount, data2.to);
+            const root1 = await computeRoot(ethers.ZeroHash, hashDepositData1);
+            const new_root = await computeRoot(root1, hashDepositData2);
+            const new_encodeRoot = ethers.solidityPackedKeccak256(["bytes32"], [new_root]);
+            const signatures = await getValidatorSignatures(ethers.getBytes(new_encodeRoot), [1, 2, 3, 4, 5]);
+
+            const tx = await hashTreebridgeContract.connect(relayer).deposit(new_root, signatures, [Depositdata1, data2]);
+
+            await expect(tx).to.changeEtherBalances([hashTreebridgeContract, Depositdata1.to], [-toEthDecimals(Depositdata1.amount), toEthDecimals(Depositdata1.amount)]);
+            expect(await hashTreebridgeContract.depositNonce()).to.equal(data2.nonce);
+            expect(await hashTreebridgeContract.depositRoot()).to.equal(new_root);
+            //check claim table change
+            expect(await hashTreebridgeContract.claimableTo(Depositdata1.nonce)).to.equal(ethers.ZeroAddress);
+            expect(await hashTreebridgeContract.claimableAmount(Depositdata1.nonce)).to.equal(0);
+            expect(await hashTreebridgeContract.claimableTo(data2.nonce)).to.equal(data2.to);
+            expect(await hashTreebridgeContract.claimableAmount(data2.nonce)).to.equal(data2.amount);
+
+        });
+
+        it("Should revert with empty proofs", async function () {
+            const { hashTreebridgeContract, relayer } = await loadFixture(deployBridgeFixture);
+            await expect(hashTreebridgeContract.connect(relayer).deposit(ethers.ZeroHash, [], [])).to.be.revertedWith("At least 1 deposit is required.");
+        });
+
+        // it("Should revert with proofs length greater than 10", async function () {
+        //     const { bridgeContract, relayer } = await loadFixture(deployBridgeFixture);
+        //     const proofs = [proof1, proof2, proof3, proof4, proof5, proof6, proof7, proof8, proof9, proof10, proof11];
+        //     await expect(bridgeContract.connect(relayer).deposit(proofs, [])).to.be.revertedWith("At most 10 proofs are allowed.");
+        // });
+
+        it("Should revert with the wrong first nonce", async function () {
+            const { hashTreebridgeContract, relayer } = await loadFixture(deployBridgeFixture);
+            await expect(hashTreebridgeContract.connect(relayer).deposit(ethers.ZeroHash, [], [Depositdata2])).to.be.revertedWith("Only the next nonce is allowed in the first proof.");
+        });
+
+        it("Should revert when nonce is not subsequent", async function () {
+            const { hashTreebridgeContract, relayer } = await loadFixture(deployBridgeFixture);
+            await expect(hashTreebridgeContract.connect(relayer).deposit(ethers.ZeroHash, [], [Depositdata1, Depositdata3])).to.be.revertedWith("The nonces of the proofs must be subsequent.");
+        });
+
+        // it("Should revert when signature length less than 5", async function () {
+        //     const { hashTreebridgeContract, relayer } = await loadFixture(deployBridgeFixture);
+        //     await fundContract(hashTreebridgeContract, relayer);
+
+        //     const hashDepositData1 = await hashDepositOrWithdrawal(Depositdata1.nonce, Depositdata1.amount, Depositdata1.to);
+        //     const root1 = await computeRoot(ethers.ZeroHash, hashDepositData1);
+        //     const encodeRoot1 = ethers.solidityPackedKeccak256(["bytes32"], [root1]);
+        //     const signatures = await getValidatorSignatures(ethers.getBytes(encodeRoot1), [0, 2, 3, 4]);
+
+        //     await expect(hashTreebridgeContract.connect(relayer).deposit(root1, signatures, [Depositdata1])).to.be.revertedWith("Invalid or insufficient validator signatures.");
+        // });
+
+        it("Should revert when signature verify failed", async function () {
+            const { hashTreebridgeContract, relayer } = await loadFixture(deployBridgeFixture);
+            await fundContract(hashTreebridgeContract, relayer);
+
+            const hashDepositData1 = await hashDepositOrWithdrawal(Depositdata1.nonce, Depositdata1.amount, Depositdata1.to);
+            const root1 = await computeRoot(ethers.ZeroHash, hashDepositData1);
+            const encodeRoot1 = ethers.solidityPackedKeccak256(["bytes32"], [root1]);
+            const signatures = await getValidatorSignatures(ethers.getBytes(encodeRoot1), [0, 2, 3, 4, 5]);
+
+            await expect(hashTreebridgeContract.connect(relayer).deposit(root1, signatures, [Depositdata1])).to.be.revertedWith("Invalid or insufficient validator signatures.");
+        });
+
+        it("Should revert when root is invalid", async function () {
+            const { hashTreebridgeContract, relayer } = await loadFixture(deployBridgeFixture);
+            await fundContract(hashTreebridgeContract, relayer);
+
+            const hashDepositData1 = await hashDepositOrWithdrawal(Depositdata1.nonce, Depositdata1.amount, Depositdata1.to);
+            const root1 = await computeRoot(hashDepositData1, hashDepositData1);
+            const encodeRoot1 = ethers.solidityPackedKeccak256(["bytes32"], [root1]);
+            const signatures = await getValidatorSignatures(ethers.getBytes(encodeRoot1), [1, 2, 3, 4, 5]);
+
+            await expect(hashTreebridgeContract.connect(relayer).deposit(root1, signatures, [Depositdata1])).to.be.revertedWith("Invalid deposit root.");
+        });
+
+    });
+
+    describe("Withdraw", function () {
+        it("withdraw only once", async function () {
+            const { hashTreebridgeContract, relayer } = await loadFixture(deployBridgeFixture);
+
+            const withdrawData = { nonce: 1, amount: ethers.parseEther("1"), to: relayer.address };
+            const tx = await hashTreebridgeContract.connect(relayer).withdraw(withdrawData.to, { value: withdrawData.amount });
+
+            const hashWithdrawData1 = await hashDepositOrWithdrawal(withdrawData.nonce, toNeoDecimals(withdrawData.amount), relayer.address);
+            const new_withdrawRoot = await computeRoot(ethers.ZeroHash, hashWithdrawData1);
+
+            expect(await hashTreebridgeContract.withdrawalNonce()).to.be.equal(1);
+            expect(await hashTreebridgeContract.withdrawalRoot()).to.be.equal(new_withdrawRoot);
+            await expect(tx).to.emit(hashTreebridgeContract, "Withdrawal").withArgs(1, toNeoDecimals(withdrawData.amount), relayer.address, relayer.address);
+
+        });
+
+        it("withdraw multiple times", async function () {
+            const { hashTreebridgeContract, relayer, validator1 } = await loadFixture(deployBridgeFixture);
+
+            const withdrawData1 = { nonce: 1, amount: ethers.parseEther("1"), to: relayer.address };
+            const tx = await hashTreebridgeContract.connect(relayer).withdraw(withdrawData1.to, { value: withdrawData1.amount });
+            const withdrawData2 = { nonce: 2, amount: ethers.parseEther("2"), to: validator1.address };
+
+            const hashWithdrawData1 = await hashDepositOrWithdrawal(withdrawData1.nonce, toNeoDecimals(withdrawData1.amount), relayer.address);
+            const hash1 = await computeRoot(ethers.ZeroHash, hashWithdrawData1);
+            const hashWithdrawData2 = await hashDepositOrWithdrawal(withdrawData2.nonce, toNeoDecimals(withdrawData2.amount), validator1.address);
+            const hash12 = await computeRoot(hash1, hashWithdrawData2);
+
+            const tx2 = await hashTreebridgeContract.connect(relayer).withdraw(withdrawData2.to, { value: withdrawData2.amount });
+
+            expect(await hashTreebridgeContract.withdrawalNonce()).to.be.equal(2);
+            expect(await hashTreebridgeContract.withdrawalRoot()).to.be.equal(hash12);
+            await expect(tx2).to.emit(hashTreebridgeContract, "Withdrawal").withArgs(2, toNeoDecimals(withdrawData2.amount), validator1.address, relayer.address);
+
+        });
+
+        it("withdraw with the wrong amount", async function () {
+            const { hashTreebridgeContract, relayer } = await loadFixture(deployBridgeFixture);
+
+            await expect(hashTreebridgeContract.connect(relayer).withdraw(relayer, { value: ethers.parseEther("0.000000001") })).to.be.revertedWith("Only amounts with 8 non-zero decimals allowed for withdrawal");
+        });
+
+        it("withdraw with the amount smaller than minWithdrawalAmount", async function () {
+            const { hashTreebridgeContract, relayer } = await loadFixture(deployBridgeFixture);
+
+            await expect(hashTreebridgeContract.connect(relayer).withdraw(relayer, { value: ethers.parseEther("0.9") })).to.be.revertedWith("Smaller than minimum withdrawal amount");
+        });
+    });
+
+    describe("Claim", function () {
+        it("Claim successful for EOA account", async function () {
+            const { hashTreebridgeContract, relayer, validator1 } = await loadFixture(deployBridgeFixture);
+
+            const hashDepositData1 = await hashDepositOrWithdrawal(Depositdata1.nonce, Depositdata1.amount, Depositdata1.to);
+            const new_root = await computeRoot(ethers.ZeroHash, hashDepositData1);
+            const new_encodeRoot = ethers.solidityPackedKeccak256(["bytes32"], [new_root]);
+            const signatures = await getValidatorSignatures(ethers.getBytes(new_encodeRoot), [1, 2, 3, 4, 5]);
+
+            const tx = await hashTreebridgeContract.connect(relayer).deposit(new_root, signatures, [Depositdata1]);
+
+            await expect(tx).to.changeEtherBalances([hashTreebridgeContract, Depositdata1.to], [0, 0, 0]);
+            expect(await hashTreebridgeContract.depositNonce()).to.equal(Depositdata1.nonce);
+            expect(await hashTreebridgeContract.depositRoot()).to.equal(new_root);
+
+            expect(await hashTreebridgeContract.claimableTo(Depositdata1.nonce)).to.equal(Depositdata1.to);
+            expect(await hashTreebridgeContract.claimableAmount(Depositdata1.nonce)).to.equal(Depositdata1.amount);
+            await expect(tx).to.emit(hashTreebridgeContract, "Claimable").withArgs(Depositdata1.nonce, Depositdata1.amount, Depositdata1.to);
+
+            await fundContract(hashTreebridgeContract, relayer);
+            const claim_tx1 = await hashTreebridgeContract.connect(validator1).claim(Depositdata1.nonce);
+
+            expect(await hashTreebridgeContract.claimableTo(Depositdata1.nonce)).to.equal(ethers.ZeroAddress);
+            expect(await hashTreebridgeContract.claimableAmount(Depositdata1.nonce)).to.equal(0);
+            await expect(claim_tx1).to.emit(hashTreebridgeContract, "Claimed").withArgs(Depositdata1.nonce, Depositdata1.amount, Depositdata1.to);
+            await expect(claim_tx1).to.changeEtherBalances([hashTreebridgeContract, Depositdata1.to], [-toEthDecimals(Depositdata1.amount), toEthDecimals(Depositdata1.amount)]);
+
+        });
+
+        it("Fail to claim due to Contract not payable", async function () {
+            const { hashTreebridgeContract, relayer, validator1 } = await loadFixture(deployBridgeFixture);
+ 
+            const data1 = { nonce: 1, amount: 100000000n, to: await hashTreebridgeContract.getAddress() };
+            const hashDepositData1 = await hashDepositOrWithdrawal(data1.nonce, data1.amount, data1.to);
+            const new_root = await computeRoot(ethers.ZeroHash, hashDepositData1);
+            const new_encodeRoot = ethers.solidityPackedKeccak256(["bytes32"], [new_root]);
+            const signatures = await getValidatorSignatures(ethers.getBytes(new_encodeRoot), [1, 2, 3, 4, 5]);
+
+            const tx = await hashTreebridgeContract.connect(relayer).deposit(new_root, signatures, [data1]);
+
+            await expect(tx).to.changeEtherBalances([hashTreebridgeContract, data1.to], [0, 0, 0]);
+            expect(await hashTreebridgeContract.depositNonce()).to.equal(data1.nonce);
+            expect(await hashTreebridgeContract.depositRoot()).to.equal(new_root);
+
+            expect(await hashTreebridgeContract.claimableTo(data1.nonce)).to.equal(data1.to);
+            expect(await hashTreebridgeContract.claimableAmount(data1.nonce)).to.equal(data1.amount);
+            await expect(tx).to.emit(hashTreebridgeContract, "Claimable").withArgs(data1.nonce, data1.amount, data1.to);
+
+            await fundContract(hashTreebridgeContract, relayer);
+            await expect(hashTreebridgeContract.connect(validator1).claim(data1.nonce)).to.be.revertedWith("Transfer failed");
+        });
+
+        it("Fail to claim for not existed nonce in the claim table", async function () {
+            const { hashTreebridgeContract, relayer, validator1 } = await loadFixture(deployBridgeFixture);
+            await expect(hashTreebridgeContract.connect(validator1).claim(3)).to.be.revertedWith("No claimable funds");
         });
 
     });
