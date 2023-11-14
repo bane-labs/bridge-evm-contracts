@@ -64,9 +64,11 @@ export interface AppLogsBridgeContractInterface extends Interface {
       | "deposit"
       | "depositNonce"
       | "depositRoot"
+      | "maxDepositsPerDistribution"
       | "maxWithdrawalAmount"
       | "minWithdrawalAmount"
       | "relayer"
+      | "requiredValidatorSignaturesForDeposit"
       | "validators"
       | "withdraw"
       | "withdrawalNonce"
@@ -102,6 +104,10 @@ export interface AppLogsBridgeContractInterface extends Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
+    functionFragment: "maxDepositsPerDistribution",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "maxWithdrawalAmount",
     values?: undefined
   ): string;
@@ -110,6 +116,10 @@ export interface AppLogsBridgeContractInterface extends Interface {
     values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "relayer", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "requiredValidatorSignaturesForDeposit",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "validators",
     values: [BigNumberish]
@@ -142,6 +152,10 @@ export interface AppLogsBridgeContractInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "maxDepositsPerDistribution",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "maxWithdrawalAmount",
     data: BytesLike
   ): Result;
@@ -150,6 +164,10 @@ export interface AppLogsBridgeContractInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "relayer", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "requiredValidatorSignaturesForDeposit",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "validators", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "withdraw", data: BytesLike): Result;
   decodeFunctionResult(
@@ -300,11 +318,19 @@ export interface AppLogsBridgeContract extends BaseContract {
 
   depositRoot: TypedContractMethod<[], [string], "view">;
 
+  maxDepositsPerDistribution: TypedContractMethod<[], [bigint], "view">;
+
   maxWithdrawalAmount: TypedContractMethod<[], [bigint], "view">;
 
   minWithdrawalAmount: TypedContractMethod<[], [bigint], "view">;
 
   relayer: TypedContractMethod<[], [string], "view">;
+
+  requiredValidatorSignaturesForDeposit: TypedContractMethod<
+    [],
+    [bigint],
+    "view"
+  >;
 
   validators: TypedContractMethod<[arg0: BigNumberish], [string], "view">;
 
@@ -343,6 +369,9 @@ export interface AppLogsBridgeContract extends BaseContract {
     nameOrSignature: "depositRoot"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
+    nameOrSignature: "maxDepositsPerDistribution"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
     nameOrSignature: "maxWithdrawalAmount"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
@@ -351,6 +380,9 @@ export interface AppLogsBridgeContract extends BaseContract {
   getFunction(
     nameOrSignature: "relayer"
   ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "requiredValidatorSignaturesForDeposit"
+  ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "validators"
   ): TypedContractMethod<[arg0: BigNumberish], [string], "view">;

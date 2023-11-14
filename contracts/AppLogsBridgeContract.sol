@@ -26,8 +26,12 @@ contract AppLogsBridgeContract {
     uint256 public constant maxWithdrawalAmount = 10000_00000000_0000000000;
 
     bytes32 public depositRoot;
+
     uint64 public depositNonce = 0;
     uint64 public withdrawalNonce = 0;
+
+    uint8 public requiredValidatorSignaturesForDeposit = 5;
+    uint8 public maxDepositsPerDistribution = 10;
 
     mapping(uint64 => address) public claimableTo;
     // Important: The claimableAmount mapping contains the uint64 value that is still the value with 8 decimal places.
@@ -80,7 +84,12 @@ contract AppLogsBridgeContract {
         DepositWithProof[] calldata _deposits
     ) external onlyRelayer {
         // Input Validation Checks
-        require(_deposits.length > 0, "At least 1 deposit is required.");
+        uint depositLength = _deposits.length;
+        require(depositLength > 0, "At least 1 deposit is required.");
+        require(
+            depositLength <= maxDepositsPerDistribution,
+            "Too many deposits provided."
+        );
 
         // Check Subsequent Nonces
         require(
@@ -99,7 +108,7 @@ contract AppLogsBridgeContract {
         );
 
         // Updating Root and Nonce before verifying and transferring funds
-        depositNonce = _deposits[_deposits.length - 1].nonce;
+        depositNonce = _deposits[depositLength - 1].nonce;
         depositRoot = _newDepositRoot;
 
         // Verify all Proofs and Transfer Funds
@@ -191,6 +200,10 @@ contract AppLogsBridgeContract {
         bytes32 _newDepositRoot,
         Signature[] calldata _signatures
     ) private view returns (bool) {
+        require(
+            _signatures.length == requiredValidatorSignaturesForDeposit,
+            "Invalid number of signatures."
+        );
         bytes32 signedRootMsg = keccak256(
             abi.encodePacked(
                 "\x19Ethereum Signed Message:\n32",

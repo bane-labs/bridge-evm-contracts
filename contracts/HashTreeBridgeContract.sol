@@ -27,8 +27,12 @@ contract HashTreeBridgeContract {
 
     bytes32 public depositRoot;
     bytes32 public withdrawalRoot;
+
     uint64 public depositNonce = 0;
     uint64 public withdrawalNonce = 0;
+
+    uint8 public requiredValidatorSignaturesForDeposit = 5;
+    uint8 public maxDepositsPerDistribution = 10;
 
     mapping(uint64 => address) public claimableTo;
     // Important: The claimableAmount mapping contains the uint64 value that is still the value with 8 decimal places.
@@ -72,7 +76,12 @@ contract HashTreeBridgeContract {
         Signature[] calldata _signatures,
         DepositData[] calldata _deposits
     ) external onlyRelayer {
-        require(_deposits.length > 0, "At least 1 deposit is required.");
+        uint depositLength = _deposits.length;
+        require(depositLength > 0, "At least 1 deposit is required.");
+        require(
+            depositLength <= maxDepositsPerDistribution,
+            "Too many deposits provided."
+        );
         require(
             _deposits[0].nonce == depositNonce + 1,
             "Only the next nonce is allowed in the first proof."
@@ -86,7 +95,7 @@ contract HashTreeBridgeContract {
             verifyValidatorSignatures(_depositRoot, _signatures),
             "Invalid or insufficient validator signatures."
         );
-        depositNonce = _deposits[_deposits.length - 1].nonce;
+        depositNonce = _deposits[depositLength - 1].nonce;
         bytes32 formerDepositRoot = depositRoot;
         depositRoot = _depositRoot;
         verifyDepositsAndTransfer(formerDepositRoot, _deposits);
@@ -161,6 +170,10 @@ contract HashTreeBridgeContract {
         bytes32 _newDepositRoot,
         Signature[] calldata _signatures
     ) private view returns (bool) {
+        require(
+            _signatures.length == requiredValidatorSignaturesForDeposit,
+            "Invalid number of signatures."
+        );
         bytes32 signedRootMsg = keccak256(
             abi.encodePacked(
                 "\x19Ethereum Signed Message:\n32",
