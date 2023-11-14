@@ -136,6 +136,12 @@ describe("Hash Tree Bridge contract", function () {
             await expect(tx).to.changeEtherBalances([hashTreebridgeContract, Depositdata1.to, Depositdata2.to], [0, 0, 0]);
             expect(await hashTreebridgeContract.depositNonce()).to.equal(Depositdata2.nonce);
             expect(await hashTreebridgeContract.depositRoot()).to.equal(new_root);
+            expect(await hashTreebridgeContract.claimableTo(Depositdata1.nonce)).to.equal(Depositdata1.to);
+            expect(await hashTreebridgeContract.claimableAmount(Depositdata1.nonce)).to.equal(Depositdata1.amount);
+            expect(await hashTreebridgeContract.claimableTo(Depositdata2.nonce)).to.equal(Depositdata2.to);
+            expect(await hashTreebridgeContract.claimableAmount(Depositdata2.nonce)).to.equal(Depositdata2.amount);
+            await expect(tx).to.emit(hashTreebridgeContract, "Claimable").withArgs(Depositdata1.nonce, Depositdata1.amount, Depositdata1.to);
+            await expect(tx).to.emit(hashTreebridgeContract, "Claimable").withArgs(Depositdata2.nonce, Depositdata2.amount, Depositdata2.to);
 
         });
 
