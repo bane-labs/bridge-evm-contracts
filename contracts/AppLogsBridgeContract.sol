@@ -128,7 +128,6 @@ contract AppLogsBridgeContract {
             if (!verify(_depositRoot, depositEntry)) {
                 revert("Invalid proof provided for a deposit.");
             }
-            require(depositEntry.to != address(0), "Address must not be the zero address");
             if (!isContract(depositEntry.to)) {
                 uint256 sendValue = addTenDecimals(depositEntry.amount);
                 // Todo: Verify that this call works as expected, i.e., the funds have not been sent if it returns false.

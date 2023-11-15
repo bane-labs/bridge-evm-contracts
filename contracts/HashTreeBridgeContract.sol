@@ -113,7 +113,6 @@ contract HashTreeBridgeContract {
         uint depositsLength = _deposits.length;
         for (uint i = 0; i < depositsLength; i++) {
             DepositData calldata depositData = _deposits[i];
-            require(depositData.to != address(0), "Address must not be the zero address");
             bytes32 depositHash = hashDepositOrWithdrawal(
                 depositData.nonce,
                 depositData.amount,
