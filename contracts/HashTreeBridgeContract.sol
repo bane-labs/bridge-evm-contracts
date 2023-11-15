@@ -113,6 +113,7 @@ contract HashTreeBridgeContract {
         uint depositsLength = _deposits.length;
         for (uint i = 0; i < depositsLength; i++) {
             DepositData calldata depositData = _deposits[i];
+            require(depositData.to != address(0), "Address must not be the zero address");
             bytes32 depositHash = hashDepositOrWithdrawal(
                 depositData.nonce,
                 depositData.amount,
@@ -225,6 +226,8 @@ contract HashTreeBridgeContract {
     ////////////////
 
     function withdraw(address _to) external payable {
+        require(_to != address(0), "Address must not be the zero address");
+
         require(
             (msg.value % (10 ** 10)) == 0,
             "Only amounts with 8 non-zero decimals allowed for withdrawal"

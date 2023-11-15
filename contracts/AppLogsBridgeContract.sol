@@ -128,6 +128,7 @@ contract AppLogsBridgeContract {
             if (!verify(_depositRoot, depositEntry)) {
                 revert("Invalid proof provided for a deposit.");
             }
+            require(depositEntry.to != address(0), "Address must not be the zero address");
             if (!isContract(depositEntry.to)) {
                 uint256 sendValue = addTenDecimals(depositEntry.amount);
                 // Todo: Verify that this call works as expected, i.e., the funds have not been sent if it returns false.
@@ -255,6 +256,8 @@ contract AppLogsBridgeContract {
     ////////////////
 
     function withdraw(address _to) external payable {
+        require(_to != address(0), "Address must not be the zero address");
+
         require(
             (msg.value % (10 ** 10)) == 0,
             "Only amounts with 8 non-zero decimals allowed for withdrawal"
