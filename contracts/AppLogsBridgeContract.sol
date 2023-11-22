@@ -181,7 +181,7 @@ contract AppLogsBridgeContract {
         uint height = 0;
         for (uint i = 0; i < proofLength; i++) {
             // If the bit on position `height` is 1, the i-th proof element is the right child of the next parent.
-            if ((path >> height) == 1) {
+            if ((path >> height) & 0x1 == 1) {
                 parent = computeParentHash(parent, proof[i]);
             } else {
                 parent = computeParentHash(proof[i], parent);
