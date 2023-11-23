@@ -266,6 +266,18 @@ describe("Hash Tree Bridge contract", function () {
             await expect(hashTreebridgeContract.connect(relayer).deposit(root1, signatures, [Depositdata1])).to.be.revertedWith("Invalid or insufficient validator signatures.");
         });
 
+        it("Should revert when signature length is 5 but not with order", async function () {
+            const { hashTreebridgeContract, relayer } = await loadFixture(deployBridgeFixture);
+            await fundContract(hashTreebridgeContract, relayer);
+
+            const hashDepositData1 = await hashDepositOrWithdrawal(Depositdata1.nonce, Depositdata1.amount, Depositdata1.to);
+            const root1 = await computeRoot(ethers.ZeroHash, hashDepositData1);
+            const encodeRoot1 = ethers.solidityPackedKeccak256(["bytes32"], [root1]);
+            const signatures = await getValidatorSignatures(ethers.getBytes(encodeRoot1), [1, 2, 3, 6, 5]);
+
+            await expect(hashTreebridgeContract.connect(relayer).deposit(root1, signatures, [Depositdata1])).to.be.revertedWith("Invalid or insufficient validator signatures.");
+        });
+
         it("Should revert when signature verify failed", async function () {
             const { hashTreebridgeContract, relayer } = await loadFixture(deployBridgeFixture);
             await fundContract(hashTreebridgeContract, relayer);
