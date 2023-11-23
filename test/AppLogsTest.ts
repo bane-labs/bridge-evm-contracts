@@ -329,7 +329,7 @@ describe("App Logs Bridge contract", function () {
 
             const DepositWithProof = { to: depositData1.to, amount: depositData1.amount, nonce: depositData1.nonce, path: proofResult1.path, proof: proofResult1.proof };
 
-            await expect(appLogsBridgeContract.connect(relayer).deposit(proofResult1.root, signatures, [DepositWithProof])).to.be.revertedWith("Invalid number of signatures.");
+            await expect(appLogsBridgeContract.connect(relayer).deposit(proofResult1.root, signatures, [DepositWithProof])).to.be.revertedWith("Invalid or insufficient validator signatures.");
         });
 
         it("Should revert when signature verify failed", async function () {

@@ -263,7 +263,7 @@ describe("Hash Tree Bridge contract", function () {
             const encodeRoot1 = ethers.solidityPackedKeccak256(["bytes32"], [root1]);
             const signatures = await getValidatorSignatures(ethers.getBytes(encodeRoot1), [1, 1, 3, 4, 5]);
 
-            await expect(hashTreebridgeContract.connect(relayer).deposit(root1, signatures, [Depositdata1])).to.be.revertedWith("Invalid number of signatures.");
+            await expect(hashTreebridgeContract.connect(relayer).deposit(root1, signatures, [Depositdata1])).to.be.revertedWith("Invalid or insufficient validator signatures.");
         });
 
         it("Should revert when signature verify failed", async function () {
