@@ -24,6 +24,11 @@ export function toEthDecimals(value: bigint): bigint {
     return ethers.parseUnits(value.toString(), 10);
 }
 
+export function toNeoDecimals(value: bigint): bigint {
+    const formatStr = ethers.formatUnits(value.toString(), 10);
+    return BigInt(Math.floor(Number(formatStr)));
+}
+
 export function concatRoots(proofs: any): Uint8Array {
     let concat = proofs[0].root;
     for (let i = 1; i < proofs.length; i++) {
@@ -37,4 +42,14 @@ export async function fundContract(bridgeContract: any, funder: HardhatEthersSig
     const amount = ethers.parseEther("100.0");
     const to = await bridgeContract.getAddress()
     await funder.sendTransaction({ to, value: amount });
+}
+
+export async function hashDepositOrWithdrawal(nonce: number, amount: bigint, to: string): Promise<string> {
+    const packData = ethers.solidityPacked(["uint64", "uint64", "address"], [nonce, amount, to]);
+    const hashData = ethers.sha256(packData);
+    return hashData;
+}
+
+export async function computeRoot(previouRoot: string, newHash: string): Promise<string> {
+    return ethers.sha256(ethers.solidityPacked(["bytes32", "bytes32"], [ethers.getBytes(previouRoot), ethers.getBytes(newHash)]));
 }
