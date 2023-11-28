@@ -226,7 +226,7 @@ contract AppLogsBridgeContract {
                     break;
                 }
             }
-            n = j;
+            n = j + 1;
         }
         return covered == 5;
     }

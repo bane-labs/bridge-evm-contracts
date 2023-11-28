@@ -88,12 +88,10 @@ describe("App Logs Bridge contract", function () {
             for(let i=0;i<2;i++){
                 datahash.push(await hashDepositOrWithdrawal(data[i].nonce, data[i].amount, data[i].to));
             }
-            console.log("datahash:", datahash);
             const proofResultArray = [];
             for (let i = 0; i < 2; i++) {
                 proofResultArray.push(await getMerkleProof(datahash, datahash[i]));
             }
-            console.log("proof array", proofResultArray);
             const encodeRoot1 = ethers.solidityPackedKeccak256(["bytes32"], [proofResultArray[0].root]);
             const signatures = await getValidatorSignatures(ethers.getBytes(encodeRoot1), [1, 2, 3, 4, 5]);
             const depositandproof = [];
@@ -315,6 +313,36 @@ describe("App Logs Bridge contract", function () {
             const DepositWithProof = { to: depositData1.to, amount: depositData1.amount, nonce: depositData1.nonce, path: proofResult1.path, proof: proofResult1.proof };
 
             await expect(appLogsBridgeContract.connect(relayer).deposit(proofResult1.root, signatures, [DepositWithProof])).to.be.revertedWith("Invalid number of signatures.");
+        });
+
+        it("Should revert when signature length is 5 but with two duplicate signature", async function () {
+            const { appLogsBridgeContract, relayer } = await loadFixture(deployBridgeFixture);
+            await fundContract(appLogsBridgeContract, relayer);
+
+            const depositData1 = { nonce: 1, amount: 100000000n, to: relayer.address };
+            const hash1 = await hashDepositOrWithdrawal(depositData1.nonce, depositData1.amount, depositData1.to);
+            const proofResult1 = await getMerkleProof([hash1], hash1);
+            const encodeRoot1 = ethers.solidityPackedKeccak256(["bytes32"], [proofResult1.root]);
+            const signatures = await getValidatorSignatures(ethers.getBytes(encodeRoot1), [1, 1, 3, 4, 5]);
+
+            const DepositWithProof = { to: depositData1.to, amount: depositData1.amount, nonce: depositData1.nonce, path: proofResult1.path, proof: proofResult1.proof };
+
+            await expect(appLogsBridgeContract.connect(relayer).deposit(proofResult1.root, signatures, [DepositWithProof])).to.be.revertedWith("Invalid or insufficient validator signatures.");
+        });
+
+        it("Should revert when signature length is 5 but not with order", async function () {
+            const { appLogsBridgeContract, relayer } = await loadFixture(deployBridgeFixture);
+            await fundContract(appLogsBridgeContract, relayer);
+
+            const depositData1 = { nonce: 1, amount: 100000000n, to: relayer.address };
+            const hash1 = await hashDepositOrWithdrawal(depositData1.nonce, depositData1.amount, depositData1.to);
+            const proofResult1 = await getMerkleProof([hash1], hash1);
+            const encodeRoot1 = ethers.solidityPackedKeccak256(["bytes32"], [proofResult1.root]);
+            const signatures = await getValidatorSignatures(ethers.getBytes(encodeRoot1), [1, 2, 3, 6, 5]);
+
+            const DepositWithProof = { to: depositData1.to, amount: depositData1.amount, nonce: depositData1.nonce, path: proofResult1.path, proof: proofResult1.proof };
+
+            await expect(appLogsBridgeContract.connect(relayer).deposit(proofResult1.root, signatures, [DepositWithProof])).to.be.revertedWith("Invalid or insufficient validator signatures.");
         });
 
         it("Should revert when signature verify failed", async function () {
