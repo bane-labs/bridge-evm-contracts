@@ -208,8 +208,8 @@ describe("Hash Tree Bridge contract", function () {
             await expect(tx).to.changeEtherBalances([hashTreebridgeContract, ethers.ZeroAddress], [-toEthDecimals(data_withZeroAddress.amount), toEthDecimals(data_withZeroAddress.amount)]);
             expect(await hashTreebridgeContract.depositNonce()).to.equal(1);
             expect(await hashTreebridgeContract.depositRoot()).to.equal(root);
-            await expect(tx).to.emit(hashTreebridgeContract, "Deposit").withArgs(data_withZeroAddress.nonce, data_withZeroAddress.amount,data_withZeroAddress.to);
-        
+            await expect(tx).to.emit(hashTreebridgeContract, "Deposit").withArgs(data_withZeroAddress.nonce, data_withZeroAddress.amount, data_withZeroAddress.to);
+
         });
 
         it("Should revert with empty proofs", async function () {
@@ -395,7 +395,6 @@ describe("Hash Tree Bridge contract", function () {
             expect(await hashTreebridgeContract.claimableAmount(Depositdata1.nonce)).to.equal(0);
             await expect(claim_tx1).to.emit(hashTreebridgeContract, "Claimed").withArgs(Depositdata1.nonce, Depositdata1.amount, Depositdata1.to);
             await expect(claim_tx1).to.changeEtherBalances([hashTreebridgeContract, Depositdata1.to], [-toEthDecimals(Depositdata1.amount), toEthDecimals(Depositdata1.amount)]);
-
         });
 
         it("Claim successful for payable contract", async function () {
