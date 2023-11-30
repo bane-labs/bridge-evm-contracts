@@ -44,7 +44,7 @@ contract HashTreeBridgeContract {
     event Claimable(uint64 nonce, uint64 amount, address to);
     event Claimed(uint64 nonce, uint64 amount, address to);
 
-    event Withdrawal(uint64 nonce, uint64 amount, address to, address from);
+    event Withdrawal(uint64 nonce, uint64 amount, address to, address from, bytes32 withdrawalHash, bytes32 withdrawalRoot);
 
     // Todo: This is only used for testing. Remove it before compiling byte code for genesis script.
     receive() external payable onlyRelayer {}
@@ -265,7 +265,7 @@ contract HashTreeBridgeContract {
             withdrawalHash
         );
         // Todo: Consider passing the new withdrawalRoot in the Withdrawal event as well.
-        emit Withdrawal(withdrawalNonce, hashAmount, _to, msg.sender);
+        emit Withdrawal(withdrawalNonce, hashAmount, _to, msg.sender, withdrawalHash, withdrawalRoot);
     }
 
     function hashDepositOrWithdrawal(
