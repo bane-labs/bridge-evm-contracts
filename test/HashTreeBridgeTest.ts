@@ -392,7 +392,6 @@ describe("Hash Tree Bridge contract", function () {
             expect(await hashTreebridgeContract.claimableAmount(Depositdata1.nonce)).to.equal(0);
             await expect(claim_tx1).to.emit(hashTreebridgeContract, "Claimed").withArgs(Depositdata1.nonce, Depositdata1.amount, Depositdata1.to);
             await expect(claim_tx1).to.changeEtherBalances([hashTreebridgeContract, Depositdata1.to], [-toEthDecimals(Depositdata1.amount), toEthDecimals(Depositdata1.amount)]);
-
         });
 
         it("Claim successful for payable contract", async function () {

@@ -6,7 +6,7 @@ import { getValidatorSignatures } from "../utils/signature-utils";
 import {
     // relayer, validator1, validator2, validator3, validator4, validator5, validator6, validator7,
     to1, to2, to3, to4, to5, to6, to7, to8, to9, to0,
-    toEthDecimals, toNeoDecimals, hashDepositOrWithdrawal, fundContract, computeRoot,  validator1, validator2, validator3
+    toEthDecimals, toNeoDecimals, hashDepositOrWithdrawal, fundContract, computeRoot, validator1, validator2, validator3
 } from "./helper";
 
 import { getMerkleProof } from "../utils/merkletree-utils";
@@ -85,7 +85,7 @@ describe("App Logs Bridge contract", function () {
                 { nonce: 2, amount: 200000000n, to: validator1.address }
             ];
             const datahash = [];
-            for(let i=0;i<2;i++){
+            for (let i = 0; i < 2; i++) {
                 datahash.push(await hashDepositOrWithdrawal(data[i].nonce, data[i].amount, data[i].to));
             }
             const proofResultArray = [];
@@ -131,11 +131,11 @@ describe("App Logs Bridge contract", function () {
                 { nonce: 3, amount: 200000000n, to: validator1.address }
             ];
             const datahash_secondtime = [];
-            for(let i=0;i<2;i++){
+            for (let i = 0; i < 2; i++) {
                 datahash_secondtime.push(await hashDepositOrWithdrawal(data_secondtime[i].nonce, data_secondtime[i].amount, data_secondtime[i].to));
             }
             const proofResultArray_secondtime = [];
-            for(let i=0;i<2;i++){
+            for (let i = 0; i < 2; i++) {
                 proofResultArray_secondtime.push(await getMerkleProof([hash1].concat(datahash_secondtime), datahash_secondtime[i]));
             }
             const new_root = proofResultArray_secondtime[0].root;
@@ -143,7 +143,7 @@ describe("App Logs Bridge contract", function () {
             const signatures2 = await getValidatorSignatures(ethers.getBytes(encodeRoot2), [1, 2, 3, 4, 5]);
 
             const depositandproof2 = [];
-            for(let i=0;i<2;i++){
+            for (let i = 0; i < 2; i++) {
                 depositandproof2.push({ to: data_secondtime[i].to, amount: data_secondtime[i].amount, nonce: data_secondtime[i].nonce, path: proofResultArray_secondtime[i].path, proof: proofResultArray_secondtime[i].proof });
             }
             const tx2 = await appLogsBridgeContract.connect(relayer).deposit(new_root, signatures2, depositandproof2);
@@ -164,18 +164,18 @@ describe("App Logs Bridge contract", function () {
                 { nonce: 2, amount: 200000000n, to: validator1.address }
             ];
             const datahash = [];
-            for(let i=0;i<2;i++){
+            for (let i = 0; i < 2; i++) {
                 datahash.push(await hashDepositOrWithdrawal(data[i].nonce, data[i].amount, data[i].to));
             }
             const proofResultArray = [];
-            for(let i=0;i<2;i++){
+            for (let i = 0; i < 2; i++) {
                 proofResultArray.push(await getMerkleProof(datahash, datahash[i]));
             }
             const root = proofResultArray[0].root;
             const encodeRoot = ethers.solidityPackedKeccak256(["bytes32"], [root]);
             const signatures = await getValidatorSignatures(ethers.getBytes(encodeRoot), [1, 2, 3, 4, 5]);
             const depositandproof = [];
-            for(let i=0;i<2;i++){
+            for (let i = 0; i < 2; i++) {
                 depositandproof.push({ to: data[i].to, amount: data[i].amount, nonce: data[i].nonce, path: proofResultArray[i].path, proof: proofResultArray[i].proof });
             }
             const tx = await appLogsBridgeContract.connect(relayer).deposit(root, signatures, depositandproof);
@@ -183,7 +183,7 @@ describe("App Logs Bridge contract", function () {
             await expect(tx).to.changeEtherBalances([appLogsBridgeContract, data[0].to, data[1].to], [0, 0, 0]);
             expect(await appLogsBridgeContract.depositNonce()).to.equal(data[1].nonce);
             expect(await appLogsBridgeContract.depositRoot()).to.equal(root);
-            for(let i=0;i<2;i++) {
+            for (let i = 0; i < 2; i++) {
                 expect(await appLogsBridgeContract.claimableTo(data[i].nonce)).to.equal(data[i].to);
                 expect(await appLogsBridgeContract.claimableAmount(data[i].nonce)).to.equal(data[i].amount);
                 await expect(tx).to.emit(appLogsBridgeContract, "Claimable").withArgs(data[i].nonce, data[i].amount, data[i].to);
@@ -202,18 +202,18 @@ describe("App Logs Bridge contract", function () {
                 { nonce: 2, amount: 200000000n, to: await testpayablecontract.getAddress() }
             ];
             const datahash = [];
-            for(let i=0;i<2;i++){
+            for (let i = 0; i < 2; i++) {
                 datahash.push(await hashDepositOrWithdrawal(data[i].nonce, data[i].amount, data[i].to));
             }
             const proofResultArray = [];
-            for(let i=0;i<2;i++){
+            for (let i = 0; i < 2; i++) {
                 proofResultArray.push(await getMerkleProof(datahash, datahash[i]));
             }
             const root = proofResultArray[0].root;
             const encodeRoot = ethers.solidityPackedKeccak256(["bytes32"], [root]);
             const signatures = await getValidatorSignatures(ethers.getBytes(encodeRoot), [1, 2, 3, 4, 5]);
             const depositandproof = [];
-            for(let i=0;i<2;i++){
+            for (let i = 0; i < 2; i++) {
                 depositandproof.push({ to: data[i].to, amount: data[i].amount, nonce: data[i].nonce, path: proofResultArray[i].path, proof: proofResultArray[i].proof });
             }
             const tx = await appLogsBridgeContract.connect(relayer).deposit(root, signatures, depositandproof);
@@ -288,14 +288,14 @@ describe("App Logs Bridge contract", function () {
 
         it("Should revert with the wrong first nonce", async function () {
             const { appLogsBridgeContract, relayer } = await loadFixture(deployBridgeFixture);
-            await expect(appLogsBridgeContract.connect(relayer).deposit(ethers.ZeroHash, [], [{nonce: 2, amount: 100000000n, to: relayer.address, proof:[], path: 0}])).to.be.revertedWith("Only the next nonce is allowed in the first proof.");
+            await expect(appLogsBridgeContract.connect(relayer).deposit(ethers.ZeroHash, [], [{ nonce: 2, amount: 100000000n, to: relayer.address, proof: [], path: 0 }])).to.be.revertedWith("Only the next nonce is allowed in the first proof.");
         });
 
         it("Should revert when nonce is not subsequent", async function () {
             const { appLogsBridgeContract, relayer } = await loadFixture(deployBridgeFixture);
             const depositandproof = [
-                {nonce: 1, amount: 100000000n, to: relayer.address, proof:[], path: 0},
-                {nonce: 3, amount: 100000000n, to: relayer.address, proof:[], path: 0}
+                { nonce: 1, amount: 100000000n, to: relayer.address, proof: [], path: 0 },
+                { nonce: 3, amount: 100000000n, to: relayer.address, proof: [], path: 0 }
             ];
             await expect(appLogsBridgeContract.connect(relayer).deposit(ethers.ZeroHash, [], depositandproof)).to.be.revertedWith("The nonces of the proofs must be subsequent.");
         });
