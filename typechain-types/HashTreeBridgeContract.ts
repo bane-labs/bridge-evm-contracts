@@ -234,19 +234,25 @@ export namespace WithdrawalEvent {
     nonce: BigNumberish,
     amount: BigNumberish,
     to: AddressLike,
-    from: AddressLike
+    from: AddressLike,
+    withdrawalHash: BytesLike,
+    withdrawalRoot: BytesLike
   ];
   export type OutputTuple = [
     nonce: bigint,
     amount: bigint,
     to: string,
-    from: string
+    from: string,
+    withdrawalHash: string,
+    withdrawalRoot: string
   ];
   export interface OutputObject {
     nonce: bigint;
     amount: bigint;
     to: string;
     from: string;
+    withdrawalHash: string;
+    withdrawalRoot: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -460,7 +466,7 @@ export interface HashTreeBridgeContract extends BaseContract {
       DepositEvent.OutputObject
     >;
 
-    "Withdrawal(uint64,uint64,address,address)": TypedContractEvent<
+    "Withdrawal(uint64,uint64,address,address,bytes32,bytes32)": TypedContractEvent<
       WithdrawalEvent.InputTuple,
       WithdrawalEvent.OutputTuple,
       WithdrawalEvent.OutputObject
