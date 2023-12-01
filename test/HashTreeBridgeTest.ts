@@ -209,7 +209,6 @@ describe("Hash Tree Bridge contract", function () {
             expect(await hashTreebridgeContract.depositNonce()).to.equal(1);
             expect(await hashTreebridgeContract.depositRoot()).to.equal(root);
             await expect(tx).to.emit(hashTreebridgeContract, "Deposit").withArgs(data_withZeroAddress.nonce, data_withZeroAddress.amount, data_withZeroAddress.to);
-
         });
 
         it("Should revert with empty proofs", async function () {
@@ -317,8 +316,7 @@ describe("Hash Tree Bridge contract", function () {
 
             expect(await hashTreebridgeContract.withdrawalNonce()).to.be.equal(1);
             expect(await hashTreebridgeContract.withdrawalRoot()).to.be.equal(new_withdrawRoot);
-            await expect(tx).to.emit(hashTreebridgeContract, "Withdrawal").withArgs(1, toNeoDecimals(withdrawData.amount), relayer.address, relayer.address);
-
+            await expect(tx).to.emit(hashTreebridgeContract, "Withdrawal").withArgs(1, toNeoDecimals(withdrawData.amount), relayer.address, relayer.address, hashWithdrawData1, new_withdrawRoot);
         });
 
         it("withdraw multiple times", async function () {
@@ -337,8 +335,7 @@ describe("Hash Tree Bridge contract", function () {
 
             expect(await hashTreebridgeContract.withdrawalNonce()).to.be.equal(2);
             expect(await hashTreebridgeContract.withdrawalRoot()).to.be.equal(hash12);
-            await expect(tx2).to.emit(hashTreebridgeContract, "Withdrawal").withArgs(2, toNeoDecimals(withdrawData2.amount), validator1.address, relayer.address);
-
+            await expect(tx2).to.emit(hashTreebridgeContract, "Withdrawal").withArgs(2, toNeoDecimals(withdrawData2.amount), validator1.address, relayer.address, hashWithdrawData2, hash12);
         });
 
         it("withdraw with amount edge case", async function () {
@@ -352,7 +349,7 @@ describe("Hash Tree Bridge contract", function () {
 
             expect(await hashTreebridgeContract.withdrawalNonce()).to.be.equal(1);
             expect(await hashTreebridgeContract.withdrawalRoot()).to.be.equal(new_withdrawRoot);
-            await expect(tx).to.emit(hashTreebridgeContract, "Withdrawal").withArgs(1, toNeoDecimals(withdrawData.amount), relayer.address, relayer.address);
+            await expect(tx).to.emit(hashTreebridgeContract, "Withdrawal").withArgs(1, toNeoDecimals(withdrawData.amount), relayer.address, relayer.address, hashWithdrawData1, new_withdrawRoot);
             await expect(tx).to.changeEtherBalances([hashTreebridgeContract, relayer], [ethers.parseEther("1.00000001"), -ethers.parseEther("1.00000001")]);
         });
 
