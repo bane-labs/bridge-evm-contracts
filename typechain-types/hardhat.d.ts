@@ -14,10 +14,6 @@ import * as Contracts from ".";
 declare module "hardhat/types/runtime" {
   interface HardhatEthersHelpers extends HardhatEthersHelpersBase {
     getContractFactory(
-      name: "AppLogsBridgeContract",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.AppLogsBridgeContract__factory>;
-    getContractFactory(
       name: "HashTreeBridgeContract",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.HashTreeBridgeContract__factory>;
@@ -27,11 +23,6 @@ declare module "hardhat/types/runtime" {
     ): Promise<Contracts.TestPayableContract__factory>;
 
     getContractAt(
-      name: "AppLogsBridgeContract",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.AppLogsBridgeContract>;
-    getContractAt(
       name: "HashTreeBridgeContract",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -43,10 +34,6 @@ declare module "hardhat/types/runtime" {
     ): Promise<Contracts.TestPayableContract>;
 
     deployContract(
-      name: "AppLogsBridgeContract",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.AppLogsBridgeContract>;
-    deployContract(
       name: "HashTreeBridgeContract",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.HashTreeBridgeContract>;
@@ -55,11 +42,6 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TestPayableContract>;
 
-    deployContract(
-      name: "AppLogsBridgeContract",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.AppLogsBridgeContract>;
     deployContract(
       name: "HashTreeBridgeContract",
       args: any[],
