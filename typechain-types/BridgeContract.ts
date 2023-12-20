@@ -23,7 +23,7 @@ import type {
   TypedContractMethod,
 } from "./common";
 
-export declare namespace HashTreeBridgeContract {
+export declare namespace BridgeContract {
   export type SignatureStruct = { v: BigNumberish; r: BytesLike; s: BytesLike };
 
   export type SignatureStructOutput = [v: bigint, r: string, s: string] & {
@@ -45,7 +45,7 @@ export declare namespace HashTreeBridgeContract {
   ] & { to: string; amount: bigint; nonce: bigint };
 }
 
-export interface HashTreeBridgeContractInterface extends Interface {
+export interface BridgeContractInterface extends Interface {
   getFunction(
     nameOrSignature:
       | "claim"
@@ -82,8 +82,8 @@ export interface HashTreeBridgeContractInterface extends Interface {
     functionFragment: "deposit",
     values: [
       BytesLike,
-      HashTreeBridgeContract.SignatureStruct[],
-      HashTreeBridgeContract.DepositDataStruct[]
+      BridgeContract.SignatureStruct[],
+      BridgeContract.DepositDataStruct[]
     ]
   ): string;
   encodeFunctionData(
@@ -260,11 +260,11 @@ export namespace WithdrawalEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export interface HashTreeBridgeContract extends BaseContract {
-  connect(runner?: ContractRunner | null): HashTreeBridgeContract;
+export interface BridgeContract extends BaseContract {
+  connect(runner?: ContractRunner | null): BridgeContract;
   waitForDeployment(): Promise<this>;
 
-  interface: HashTreeBridgeContractInterface;
+  interface: BridgeContractInterface;
 
   queryFilter<TCEvent extends TypedContractEvent>(
     event: TCEvent,
@@ -312,8 +312,8 @@ export interface HashTreeBridgeContract extends BaseContract {
   deposit: TypedContractMethod<
     [
       _depositRoot: BytesLike,
-      _signatures: HashTreeBridgeContract.SignatureStruct[],
-      _deposits: HashTreeBridgeContract.DepositDataStruct[]
+      _signatures: BridgeContract.SignatureStruct[],
+      _deposits: BridgeContract.DepositDataStruct[]
     ],
     [void],
     "nonpayable"
@@ -363,8 +363,8 @@ export interface HashTreeBridgeContract extends BaseContract {
   ): TypedContractMethod<
     [
       _depositRoot: BytesLike,
-      _signatures: HashTreeBridgeContract.SignatureStruct[],
-      _deposits: HashTreeBridgeContract.DepositDataStruct[]
+      _signatures: BridgeContract.SignatureStruct[],
+      _deposits: BridgeContract.DepositDataStruct[]
     ],
     [void],
     "nonpayable"

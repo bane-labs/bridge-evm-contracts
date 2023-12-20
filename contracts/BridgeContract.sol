@@ -8,7 +8,7 @@ pragma solidity ^0.8.9;
 // - maxWithdrawalAmount
 // - remove the receive function as it is only used for testing purpose.
 
-contract HashTreeBridgeContract {
+contract BridgeContract {
     // Todo: Discuss using values hardcoded here as default and adding an overwrite functionality.
     address public constant relayer =
         0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
