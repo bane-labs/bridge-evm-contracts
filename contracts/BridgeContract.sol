@@ -32,7 +32,7 @@ contract BridgeContract {
     uint64 public withdrawalNonce = 0;
 
     uint8 public requiredValidatorSignaturesForDeposit = 5;
-    uint8 public maxDepositsPerDistribution = 10;
+    uint8 public maxDepositsPerDistribution = 100;
 
     mapping(uint64 => address) public claimableTo;
     // Important: The claimableAmount mapping contains the uint64 value that is still the value with 8 decimal places.

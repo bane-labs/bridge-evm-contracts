@@ -216,11 +216,11 @@ describe("Hash Tree Bridge contract", function () {
             await expect(bridgeContract.connect(relayer).deposit(ethers.ZeroHash, [], [])).to.be.revertedWith("At least 1 deposit is required.");
         });
 
-        it("Should revert with proofs length greater than 10", async function () {
+        it("Should revert when providing too many deposits in single transaction", async function () {
             const { bridgeContract: bridgeContract, relayer } = await loadFixture(deployBridgeFixture);
             const dataArray = [];
             let hashResult = ethers.ZeroHash;
-            for (let i = 0; i < 11; i++) {
+            for (let i = 0; i < 101; i++) {
                 dataArray.push({ nonce: i + 1, amount: 100000000n, to: relayer.address });
                 hashResult = await computeRoot(hashResult, await hashDepositOrWithdrawal(dataArray[i].nonce, dataArray[i].amount, dataArray[i].to));
             }
