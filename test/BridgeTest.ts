@@ -455,4 +455,28 @@ describe("Hash Tree Bridge contract", function () {
         });
 
     });
+
+    describe("Lock Function", async function () {
+        it("Lock with Admin Account and Unlock with Recoverer", async function () {
+            const { bridgeContract: bridgeContract, relayer, validator1, validator2 } = await loadFixture(deployBridgeFixture);
+            await fundContract(bridgeContract, relayer);
+
+            await bridgeContract.connect(validator1).lock();
+            expect(await bridgeContract.isLocked()).to.equal(true);
+
+            const hashDepositData1 = await hashDepositOrWithdrawal(Depositdata1.nonce, Depositdata1.amount, Depositdata1.to);
+            const root1 = await computeRoot(ethers.ZeroHash, hashDepositData1);
+            const encodeRoot1 = ethers.solidityPackedKeccak256(["bytes32"], [root1]);
+            const signatures = await getValidatorSignatures(ethers.getBytes(encodeRoot1), [1, 2, 3, 4, 5]);
+
+            await expect(bridgeContract.connect(relayer).deposit(root1, signatures, [Depositdata1])).to.be.revertedWith("Locked");
+
+            // unlock with the recoverer
+            await expect(bridgeContract.connect(validator1).unLock()).to.be.revertedWith("Not recoverer");
+            await bridgeContract.connect(validator2).unLock();
+            expect(await bridgeContract.isLocked()).to.equal(false);
+            const tx = await bridgeContract.connect(relayer).deposit(root1, signatures, [Depositdata1]);
+            await expect(tx).to.changeEtherBalances([bridgeContract, Depositdata1.to], [-toEthDecimals(Depositdata1.amount), toEthDecimals(Depositdata1.amount)]);
+        });
+    });
 });
