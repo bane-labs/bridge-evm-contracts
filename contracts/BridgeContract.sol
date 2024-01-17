@@ -36,7 +36,8 @@ contract BridgeContract {
 
     bool private locked = false;
     address public administrator = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
-    address public recoverer = 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC;
+    address public governor = 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC;
+    address public securityGuard = 0x90F79bf6EB2c4f870365E785982E1f101E93b906;
 
     mapping(uint64 => address) public claimableTo;
     // Important: The claimableAmount mapping contains the uint64 value that is still the value with 8 decimal places.
@@ -223,8 +224,13 @@ contract BridgeContract {
         _;
     }
 
-    modifier onlyRecoverer() {
-        require(msg.sender == recoverer, "Not recoverer");
+    modifier onlyGovernor() {
+        require(msg.sender == governor, "Not governor");
+        _;
+    }
+
+    modifier onlySecurityGuard() {
+        require(msg.sender == securityGuard, "Not securityGuard");
         _;
     }
 
@@ -330,12 +336,12 @@ contract BridgeContract {
     }
 
     // Lock the deposit process.
-    function lock() external onlyAdmin {
+    function lock() external onlySecurityGuard {
         locked = true;
     }
 
-    // UnLock the deposit process.
-    function unLock() external onlyRecoverer {
+    // Unlock the deposit process.
+    function unlock() external onlyGovernor {
         locked = false;
     }
 
