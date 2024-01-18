@@ -249,7 +249,7 @@ contract BridgeContract {
     ///////////
 
     // Anyone can execute a claim. The funds of a claimable will be sent to the defined address in the claimableTo mapping.
-    function claim(uint64 _nonce) external {
+    function claim(uint64 _nonce) external unlocked {
         address payable to = payable(claimableTo[_nonce]);
         uint64 claimAmount = claimableAmount[_nonce];
         require(claimableAmount[_nonce] != 0, "No claimable funds");
@@ -269,7 +269,7 @@ contract BridgeContract {
     // Withdrawal //
     ////////////////
 
-    function withdraw(address _to) external payable {
+    function withdraw(address _to) external payable unlocked {
         require(_to != address(0), "Address must not be the zero address");
 
         require(
@@ -336,12 +336,13 @@ contract BridgeContract {
     }
 
     // Lock the contract
-    function lock() external onlySecurityGuard {
+    function lock() external onlySecurityGuard unlocked {
         locked = true;
     }
 
     // Unlock the contract
     function unlock() external onlyGovernor {
+        require(locked, "Contract is already locked");
         locked = false;
     }
 }

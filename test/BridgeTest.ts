@@ -467,19 +467,32 @@ describe("Bridge contract", function () {
             await bridgeContract.connect(securityGuard).lock();
             expect(await bridgeContract.locked()).to.equal(true);
 
-            const hashDepositData1 = await hashDepositOrWithdrawal(Depositdata1.nonce, Depositdata1.amount, Depositdata1.to);
-            const root1 = await computeRoot(ethers.ZeroHash, hashDepositData1);
-            const encodeRoot1 = ethers.solidityPackedKeccak256(["bytes32"], [root1]);
-            const signatures = await getValidatorSignatures(ethers.getBytes(encodeRoot1), [1, 2, 3, 4, 5]);
-
-            await expect(bridgeContract.connect(relayer).deposit(root1, signatures, [Depositdata1])).to.be.revertedWith("Contract is locked");
-
             // unlock with the governor
             await expect(bridgeContract.connect(validator1).unlock()).to.be.revertedWith("Not governor");
             await bridgeContract.connect(governor).unlock();
             expect(await bridgeContract.locked()).to.equal(false);
-            const tx = await bridgeContract.connect(relayer).deposit(root1, signatures, [Depositdata1]);
-            await expect(tx).to.changeEtherBalances([bridgeContract, Depositdata1.to], [-toEthDecimals(Depositdata1.amount), toEthDecimals(Depositdata1.amount)]);
+        });
+
+        it("Cannot unlock if already unlocked", async function () {
+            const { bridgeContract: bridgeContract, relayer, validator1, validator2, validator3 } = await loadFixture(deployBridgeFixture);
+            const governor = validator2;
+            await expect(bridgeContract.connect(governor).unlock()).to.be.revertedWith("Contract is already locked");
+        });
+
+        it("Cannot deposit, claim, withdraw or lock if contract is locked", async function () {
+            const { bridgeContract: bridgeContract, relayer, validator1, validator2, validator3 } = await loadFixture(deployBridgeFixture);
+            const securityGuard = validator3;
+            await bridgeContract.connect(securityGuard).lock()
+
+            const hashDepositData1 = await hashDepositOrWithdrawal(Depositdata1.nonce, Depositdata1.amount, Depositdata1.to);
+            const root1 = await computeRoot(ethers.ZeroHash, hashDepositData1);
+            const encodeRoot1 = ethers.solidityPackedKeccak256(["bytes32"], [root1]);
+            const signatures = await getValidatorSignatures(ethers.getBytes(encodeRoot1), [1, 2, 3, 4, 5]);
+            await expect(bridgeContract.connect(relayer).deposit(root1, signatures, [Depositdata1])).to.be.revertedWith("Contract is locked");
+            await expect(bridgeContract.connect(relayer).claim(Depositdata1.nonce)).to.be.revertedWith("Contract is locked");
+            const withdrawData = { nonce: 1, amount: ethers.parseEther("1"), to: relayer.address };
+            await expect(bridgeContract.connect(relayer).withdraw(withdrawData.to, { value: withdrawData.amount })).to.be.revertedWith("Contract is locked");
+            await expect(bridgeContract.connect(securityGuard).lock()).to.be.revertedWith("Contract is locked");
         });
     });
 });
