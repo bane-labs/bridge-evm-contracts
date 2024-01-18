@@ -48,7 +48,6 @@ export declare namespace BridgeContract {
 export interface BridgeContractInterface extends Interface {
   getFunction(
     nameOrSignature:
-      | "administrator"
       | "claim"
       | "claimableAmount"
       | "claimableTo"
@@ -58,9 +57,11 @@ export interface BridgeContractInterface extends Interface {
       | "governor"
       | "isLocked"
       | "lock"
+      | "locked"
       | "maxDepositsPerDistribution"
       | "maxWithdrawalAmount"
       | "minWithdrawalAmount"
+      | "owner"
       | "relayer"
       | "requiredValidatorSignaturesForDeposit"
       | "securityGuard"
@@ -75,10 +76,6 @@ export interface BridgeContractInterface extends Interface {
     nameOrSignatureOrTopic: "Claimable" | "Claimed" | "Deposit" | "Withdrawal"
   ): EventFragment;
 
-  encodeFunctionData(
-    functionFragment: "administrator",
-    values?: undefined
-  ): string;
   encodeFunctionData(functionFragment: "claim", values: [BigNumberish]): string;
   encodeFunctionData(
     functionFragment: "claimableAmount",
@@ -107,6 +104,7 @@ export interface BridgeContractInterface extends Interface {
   encodeFunctionData(functionFragment: "governor", values?: undefined): string;
   encodeFunctionData(functionFragment: "isLocked", values?: undefined): string;
   encodeFunctionData(functionFragment: "lock", values?: undefined): string;
+  encodeFunctionData(functionFragment: "locked", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "maxDepositsPerDistribution",
     values?: undefined
@@ -119,6 +117,7 @@ export interface BridgeContractInterface extends Interface {
     functionFragment: "minWithdrawalAmount",
     values?: undefined
   ): string;
+  encodeFunctionData(functionFragment: "owner", values?: undefined): string;
   encodeFunctionData(functionFragment: "relayer", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "requiredValidatorSignaturesForDeposit",
@@ -146,10 +145,6 @@ export interface BridgeContractInterface extends Interface {
     values?: undefined
   ): string;
 
-  decodeFunctionResult(
-    functionFragment: "administrator",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(functionFragment: "claim", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "claimableAmount",
@@ -171,6 +166,7 @@ export interface BridgeContractInterface extends Interface {
   decodeFunctionResult(functionFragment: "governor", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "isLocked", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "lock", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "locked", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "maxDepositsPerDistribution",
     data: BytesLike
@@ -183,6 +179,7 @@ export interface BridgeContractInterface extends Interface {
     functionFragment: "minWithdrawalAmount",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "relayer", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "requiredValidatorSignaturesForDeposit",
@@ -333,8 +330,6 @@ export interface BridgeContract extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
-  administrator: TypedContractMethod<[], [string], "view">;
-
   claim: TypedContractMethod<[_nonce: BigNumberish], [void], "nonpayable">;
 
   claimableAmount: TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
@@ -361,11 +356,15 @@ export interface BridgeContract extends BaseContract {
 
   lock: TypedContractMethod<[], [void], "nonpayable">;
 
+  locked: TypedContractMethod<[], [boolean], "view">;
+
   maxDepositsPerDistribution: TypedContractMethod<[], [bigint], "view">;
 
   maxWithdrawalAmount: TypedContractMethod<[], [bigint], "view">;
 
   minWithdrawalAmount: TypedContractMethod<[], [bigint], "view">;
+
+  owner: TypedContractMethod<[], [string], "view">;
 
   relayer: TypedContractMethod<[], [string], "view">;
 
@@ -391,9 +390,6 @@ export interface BridgeContract extends BaseContract {
     key: string | FunctionFragment
   ): T;
 
-  getFunction(
-    nameOrSignature: "administrator"
-  ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "claim"
   ): TypedContractMethod<[_nonce: BigNumberish], [void], "nonpayable">;
@@ -430,6 +426,9 @@ export interface BridgeContract extends BaseContract {
     nameOrSignature: "lock"
   ): TypedContractMethod<[], [void], "nonpayable">;
   getFunction(
+    nameOrSignature: "locked"
+  ): TypedContractMethod<[], [boolean], "view">;
+  getFunction(
     nameOrSignature: "maxDepositsPerDistribution"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
@@ -438,6 +437,9 @@ export interface BridgeContract extends BaseContract {
   getFunction(
     nameOrSignature: "minWithdrawalAmount"
   ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "owner"
+  ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "relayer"
   ): TypedContractMethod<[], [string], "view">;

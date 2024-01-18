@@ -35,7 +35,7 @@ contract BridgeContract {
     uint8 public maxDepositsPerDistribution = 100;
 
     bool private locked = false;
-    address public administrator = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
+    address public owner = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
     address public governor = 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC;
     address public securityGuard = 0x90F79bf6EB2c4f870365E785982E1f101E93b906;
 
@@ -234,13 +234,13 @@ contract BridgeContract {
         _;
     }
 
-    modifier onlyAdmin() {
-        require(msg.sender == administrator, "Not administrator");
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Not owner");
         _;
     }
 
     modifier unlocked() {
-        require(!locked, "Locked");
+        require(!locked, "Contract is locked");
         _;
     }
 
