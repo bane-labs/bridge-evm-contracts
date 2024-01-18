@@ -34,7 +34,7 @@ contract BridgeContract {
     uint8 public requiredValidatorSignaturesForDeposit = 5;
     uint8 public maxDepositsPerDistribution = 100;
 
-    bool private locked = false;
+    bool public locked = false;
     address public owner = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
     address public governor = 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC;
     address public securityGuard = 0x90F79bf6EB2c4f870365E785982E1f101E93b906;
@@ -335,17 +335,13 @@ contract BridgeContract {
         return uint64(_value / (10 ** 10));
     }
 
-    // Lock the deposit process.
+    // Lock the contract
     function lock() external onlySecurityGuard {
         locked = true;
     }
 
-    // Unlock the deposit process.
+    // Unlock the contract
     function unlock() external onlyGovernor {
         locked = false;
-    }
-
-    function isLocked() external view returns (bool) {
-        return locked;
     }
 }

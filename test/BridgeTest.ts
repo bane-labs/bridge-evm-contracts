@@ -12,7 +12,7 @@ const Depositdata1 = { to: validator1, amount: 100000000n, nonce: 1 };
 const Depositdata2 = { to: validator2, amount: 100000000n, nonce: 2 };
 const Depositdata3 = { to: validator3, amount: 200000000n, nonce: 3 };
 
-describe("Hash Tree Bridge contract", function () {
+describe("Bridge contract", function () {
     async function deployBridgeFixture() {
         const [
             relayer,
@@ -465,19 +465,19 @@ describe("Hash Tree Bridge contract", function () {
             const securityGuard = validator3;
 
             await bridgeContract.connect(securityGuard).lock();
-            expect(await bridgeContract.isLocked()).to.equal(true);
+            expect(await bridgeContract.locked()).to.equal(true);
 
             const hashDepositData1 = await hashDepositOrWithdrawal(Depositdata1.nonce, Depositdata1.amount, Depositdata1.to);
             const root1 = await computeRoot(ethers.ZeroHash, hashDepositData1);
             const encodeRoot1 = ethers.solidityPackedKeccak256(["bytes32"], [root1]);
             const signatures = await getValidatorSignatures(ethers.getBytes(encodeRoot1), [1, 2, 3, 4, 5]);
 
-            await expect(bridgeContract.connect(relayer).deposit(root1, signatures, [Depositdata1])).to.be.revertedWith("Locked");
+            await expect(bridgeContract.connect(relayer).deposit(root1, signatures, [Depositdata1])).to.be.revertedWith("Contract is locked");
 
             // unlock with the governor
             await expect(bridgeContract.connect(validator1).unlock()).to.be.revertedWith("Not governor");
             await bridgeContract.connect(governor).unlock();
-            expect(await bridgeContract.isLocked()).to.equal(false);
+            expect(await bridgeContract.locked()).to.equal(false);
             const tx = await bridgeContract.connect(relayer).deposit(root1, signatures, [Depositdata1]);
             await expect(tx).to.changeEtherBalances([bridgeContract, Depositdata1.to], [-toEthDecimals(Depositdata1.amount), toEthDecimals(Depositdata1.amount)]);
         });

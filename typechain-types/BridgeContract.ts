@@ -55,7 +55,6 @@ export interface BridgeContractInterface extends Interface {
       | "depositNonce"
       | "depositRoot"
       | "governor"
-      | "isLocked"
       | "lock"
       | "locked"
       | "maxDepositsPerDistribution"
@@ -102,7 +101,6 @@ export interface BridgeContractInterface extends Interface {
     values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "governor", values?: undefined): string;
-  encodeFunctionData(functionFragment: "isLocked", values?: undefined): string;
   encodeFunctionData(functionFragment: "lock", values?: undefined): string;
   encodeFunctionData(functionFragment: "locked", values?: undefined): string;
   encodeFunctionData(
@@ -164,7 +162,6 @@ export interface BridgeContractInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "governor", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "isLocked", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "lock", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "locked", data: BytesLike): Result;
   decodeFunctionResult(
@@ -352,8 +349,6 @@ export interface BridgeContract extends BaseContract {
 
   governor: TypedContractMethod<[], [string], "view">;
 
-  isLocked: TypedContractMethod<[], [boolean], "view">;
-
   lock: TypedContractMethod<[], [void], "nonpayable">;
 
   locked: TypedContractMethod<[], [boolean], "view">;
@@ -419,9 +414,6 @@ export interface BridgeContract extends BaseContract {
   getFunction(
     nameOrSignature: "governor"
   ): TypedContractMethod<[], [string], "view">;
-  getFunction(
-    nameOrSignature: "isLocked"
-  ): TypedContractMethod<[], [boolean], "view">;
   getFunction(
     nameOrSignature: "lock"
   ): TypedContractMethod<[], [void], "nonpayable">;
