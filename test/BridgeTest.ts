@@ -12,7 +12,7 @@ const Depositdata1 = { to: validator1, amount: 100000000n, nonce: 1 };
 const Depositdata2 = { to: validator2, amount: 100000000n, nonce: 2 };
 const Depositdata3 = { to: validator3, amount: 200000000n, nonce: 3 };
 
-describe("Hash Tree Bridge contract", function () {
+describe("Bridge contract", function () {
     async function deployBridgeFixture() {
         const [
             relayer,
@@ -454,5 +454,45 @@ describe("Hash Tree Bridge contract", function () {
             await expect(bridgeContract.connect(validator1).claim(3)).to.be.revertedWith("No claimable funds");
         });
 
+    });
+
+    describe("Lock Function", async function () {
+        it("Lock with SecurityGuard Account and Unlock with Governor", async function () {
+            const { bridgeContract: bridgeContract, relayer, validator1, validator2, validator3 } = await loadFixture(deployBridgeFixture);
+            await fundContract(bridgeContract, relayer);
+
+            const governor = validator2;
+            const securityGuard = validator3;
+
+            await bridgeContract.connect(securityGuard).lock();
+            expect(await bridgeContract.locked()).to.equal(true);
+
+            // unlock with the governor
+            await expect(bridgeContract.connect(validator1).unlock()).to.be.revertedWith("Not governor");
+            await bridgeContract.connect(governor).unlock();
+            expect(await bridgeContract.locked()).to.equal(false);
+        });
+
+        it("Cannot unlock if already unlocked", async function () {
+            const { bridgeContract: bridgeContract, relayer, validator1, validator2, validator3 } = await loadFixture(deployBridgeFixture);
+            const governor = validator2;
+            await expect(bridgeContract.connect(governor).unlock()).to.be.revertedWith("Contract is already locked");
+        });
+
+        it("Cannot deposit, claim, withdraw or lock if contract is locked", async function () {
+            const { bridgeContract: bridgeContract, relayer, validator1, validator2, validator3 } = await loadFixture(deployBridgeFixture);
+            const securityGuard = validator3;
+            await bridgeContract.connect(securityGuard).lock()
+
+            const hashDepositData1 = await hashDepositOrWithdrawal(Depositdata1.nonce, Depositdata1.amount, Depositdata1.to);
+            const root1 = await computeRoot(ethers.ZeroHash, hashDepositData1);
+            const encodeRoot1 = ethers.solidityPackedKeccak256(["bytes32"], [root1]);
+            const signatures = await getValidatorSignatures(ethers.getBytes(encodeRoot1), [1, 2, 3, 4, 5]);
+            await expect(bridgeContract.connect(relayer).deposit(root1, signatures, [Depositdata1])).to.be.revertedWith("Contract is locked");
+            await expect(bridgeContract.connect(relayer).claim(Depositdata1.nonce)).to.be.revertedWith("Contract is locked");
+            const withdrawData = { nonce: 1, amount: ethers.parseEther("1"), to: relayer.address };
+            await expect(bridgeContract.connect(relayer).withdraw(withdrawData.to, { value: withdrawData.amount })).to.be.revertedWith("Contract is locked");
+            await expect(bridgeContract.connect(securityGuard).lock()).to.be.revertedWith("Contract is locked");
+        });
     });
 });

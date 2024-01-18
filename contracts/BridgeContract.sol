@@ -34,6 +34,11 @@ contract BridgeContract {
     uint8 public requiredValidatorSignaturesForDeposit = 5;
     uint8 public maxDepositsPerDistribution = 100;
 
+    bool public locked = false;
+    address public owner = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
+    address public governor = 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC;
+    address public securityGuard = 0x90F79bf6EB2c4f870365E785982E1f101E93b906;
+
     mapping(uint64 => address) public claimableTo;
     // Important: The claimableAmount mapping contains the uint64 value that is still the value with 8 decimal places.
     mapping(uint64 => uint64) public claimableAmount;
@@ -82,7 +87,7 @@ contract BridgeContract {
         bytes32 _depositRoot,
         Signature[] calldata _signatures,
         DepositData[] calldata _deposits
-    ) external onlyRelayer {
+    ) external onlyRelayer unlocked {
         uint depositLength = _deposits.length;
         require(depositLength > 0, "At least 1 deposit is required.");
         require(
@@ -219,12 +224,32 @@ contract BridgeContract {
         _;
     }
 
+    modifier onlyGovernor() {
+        require(msg.sender == governor, "Not governor");
+        _;
+    }
+
+    modifier onlySecurityGuard() {
+        require(msg.sender == securityGuard, "Not securityGuard");
+        _;
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Not owner");
+        _;
+    }
+
+    modifier unlocked() {
+        require(!locked, "Contract is locked");
+        _;
+    }
+
     ///////////
     // Claim //
     ///////////
 
     // Anyone can execute a claim. The funds of a claimable will be sent to the defined address in the claimableTo mapping.
-    function claim(uint64 _nonce) external {
+    function claim(uint64 _nonce) external unlocked {
         address payable to = payable(claimableTo[_nonce]);
         uint64 claimAmount = claimableAmount[_nonce];
         require(claimableAmount[_nonce] != 0, "No claimable funds");
@@ -244,7 +269,7 @@ contract BridgeContract {
     // Withdrawal //
     ////////////////
 
-    function withdraw(address _to) external payable {
+    function withdraw(address _to) external payable unlocked {
         require(_to != address(0), "Address must not be the zero address");
 
         require(
@@ -308,5 +333,16 @@ contract BridgeContract {
     // Removes 10 decimal points from the amount. GasToken originally has 8 decimals and on this chain it has 18 decimals.
     function removeTenDecimals(uint256 _value) private pure returns (uint64) {
         return uint64(_value / (10 ** 10));
+    }
+
+    // Lock the contract
+    function lock() external onlySecurityGuard unlocked {
+        locked = true;
+    }
+
+    // Unlock the contract
+    function unlock() external onlyGovernor {
+        require(locked, "Contract is already locked");
+        locked = false;
     }
 }
