@@ -22,6 +22,7 @@ contract BridgeContract {
         0x14dC79964da2C08b23698B3D3cc7Ca32193d9955
     ];
 
+    uint256 public withdrawalFee = 10000000_0000000000;
     uint256 public constant minWithdrawalAmount = 1_00000000_0000000000;
     uint256 public constant maxWithdrawalAmount = 10000_00000000_0000000000;
 
@@ -271,22 +272,23 @@ contract BridgeContract {
 
     function withdraw(address _to) external payable unlocked {
         require(_to != address(0), "Address must not be the zero address");
-
         require(
             (msg.value % (10 ** 10)) == 0,
-            "Only amounts with 8 non-zero decimals allowed for withdrawal"
+            "Only amounts with maximally 8 non-zero decimals are allowed for withdrawals"
+        );
+
+        uint256 actualWithdrawalAmount = msg.value - withdrawalFee;
+        require(
+            actualWithdrawalAmount >= minWithdrawalAmount,
+            "Withdrawal amount is too low"
         );
         require(
-            msg.value >= minWithdrawalAmount,
-            "Smaller than minimum withdrawal amount"
-        );
-        require(
-            msg.value <= maxWithdrawalAmount,
-            "Larger than maximum withdrawal amount"
+            actualWithdrawalAmount <= maxWithdrawalAmount,
+            "Withdrawal amount is too high"
         );
 
         withdrawalNonce++;
-        uint64 hashAmount = removeTenDecimals(msg.value);
+        uint64 hashAmount = removeTenDecimals(actualWithdrawalAmount);
         bytes32 withdrawalHash = hashDepositOrWithdrawal(
             withdrawalNonce,
             hashAmount,
@@ -296,7 +298,6 @@ contract BridgeContract {
             withdrawalRoot,
             withdrawalHash
         );
-        // Todo: Consider passing the new withdrawalRoot in the Withdrawal event as well.
         emit Withdrawal(
             withdrawalNonce,
             hashAmount,

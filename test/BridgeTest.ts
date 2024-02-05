@@ -3,9 +3,8 @@ import { ethers } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { getValidatorSignatures } from "../utils/signature-utils";
 import {
-    // relayer, validator1, validator2, validator3, validator4, validator5, validator6, validator7,
     to1, to2, to3, to4, to5, to6, to7, to8, to9, to0,
-    toEthDecimals, toNeoDecimals, hashDepositOrWithdrawal, fundContract, computeRoot, validator1, validator2, validator3
+    toEthDecimals, toNeoDecimals, hashDepositOrWithdrawal, fundContract, computeRoot, validator1, validator2, validator3, validator7
 } from "./helper";
 
 const Depositdata1 = { to: validator1, amount: 100000000n, nonce: 1 };
@@ -168,7 +167,6 @@ describe("Bridge contract", function () {
             expect(await bridgeContract.claimableAmount(Depositdata1.nonce)).to.equal(0);
             expect(await bridgeContract.claimableTo(data2.nonce)).to.equal(data2.to);
             expect(await bridgeContract.claimableAmount(data2.nonce)).to.equal(data2.amount);
-
         });
 
         it("Deposit When Deposit Length is Equal to 10", async function () {
@@ -308,30 +306,36 @@ describe("Bridge contract", function () {
         it("withdraw only once", async function () {
             const { bridgeContract: bridgeContract, relayer } = await loadFixture(deployBridgeFixture);
 
-            const withdrawData = { nonce: 1, amount: ethers.parseEther("1"), to: relayer.address };
+            const withdrawalAmount = ethers.parseEther("10");
+            const withdrawalFee = await bridgeContract.withdrawalFee();
+
+            const withdrawData = { nonce: 1, amount: withdrawalAmount + withdrawalFee, to: relayer.address };
             const tx = await bridgeContract.connect(relayer).withdraw(withdrawData.to, { value: withdrawData.amount });
 
-            const hashWithdrawData1 = await hashDepositOrWithdrawal(withdrawData.nonce, toNeoDecimals(withdrawData.amount), relayer.address);
+            const hashWithdrawData1 = await hashDepositOrWithdrawal(withdrawData.nonce, toNeoDecimals(withdrawalAmount), relayer.address);
             const new_withdrawRoot = await computeRoot(ethers.ZeroHash, hashWithdrawData1);
 
             expect(await bridgeContract.withdrawalNonce()).to.be.equal(1);
             expect(await bridgeContract.withdrawalRoot()).to.be.equal(new_withdrawRoot);
-            await expect(tx).to.emit(bridgeContract, "Withdrawal").withArgs(1, toNeoDecimals(withdrawData.amount), relayer.address, relayer.address, hashWithdrawData1, new_withdrawRoot);
+            await expect(tx).to.emit(bridgeContract, "Withdrawal").withArgs(1, toNeoDecimals(withdrawalAmount), relayer.address, relayer.address, hashWithdrawData1, new_withdrawRoot);
         });
 
         it("withdraw multiple times", async function () {
             const { bridgeContract: bridgeContract, relayer, validator1 } = await loadFixture(deployBridgeFixture);
 
-            const withdrawData1 = { nonce: 1, amount: ethers.parseEther("1"), to: relayer.address };
-            const tx = await bridgeContract.connect(relayer).withdraw(withdrawData1.to, { value: withdrawData1.amount });
-            const withdrawData2 = { nonce: 2, amount: ethers.parseEther("2"), to: validator1.address };
+            let withdrawalAmount_1 = ethers.parseEther("1");
+            let withdrawalAmount_2 = ethers.parseEther("2");
+            let withdrawalFee = await bridgeContract.withdrawalFee();
+
+            const withdrawData1 = { nonce: 1, amount: withdrawalAmount_1, to: relayer.address };
+            await bridgeContract.connect(relayer).withdraw(withdrawData1.to, { value: withdrawalAmount_1 + withdrawalFee });
+            const withdrawData2 = { nonce: 2, amount: withdrawalAmount_2, to: validator1.address };
+            const tx2 = await bridgeContract.connect(relayer).withdraw(withdrawData2.to, { value: withdrawalAmount_2 + withdrawalFee });
 
             const hashWithdrawData1 = await hashDepositOrWithdrawal(withdrawData1.nonce, toNeoDecimals(withdrawData1.amount), relayer.address);
             const hash1 = await computeRoot(ethers.ZeroHash, hashWithdrawData1);
             const hashWithdrawData2 = await hashDepositOrWithdrawal(withdrawData2.nonce, toNeoDecimals(withdrawData2.amount), validator1.address);
             const hash12 = await computeRoot(hash1, hashWithdrawData2);
-
-            const tx2 = await bridgeContract.connect(relayer).withdraw(withdrawData2.to, { value: withdrawData2.amount });
 
             expect(await bridgeContract.withdrawalNonce()).to.be.equal(2);
             expect(await bridgeContract.withdrawalRoot()).to.be.equal(hash12);
@@ -341,28 +345,51 @@ describe("Bridge contract", function () {
         it("withdraw with amount edge case", async function () {
             const { bridgeContract: bridgeContract, relayer } = await loadFixture(deployBridgeFixture);
 
-            const withdrawData = { nonce: 1, amount: ethers.parseEther("1.00000001"), to: relayer.address };
-            const tx = await bridgeContract.connect(relayer).withdraw(withdrawData.to, { value: withdrawData.amount });
+            const withdrawalAmount = await bridgeContract.minWithdrawalAmount() + ethers.parseEther("0.00000001");
+            const withdrawalFee = await bridgeContract.withdrawalFee();
+            const withdrawalAmountWithFee = withdrawalAmount + withdrawalFee;
 
-            const hashWithdrawData1 = await hashDepositOrWithdrawal(withdrawData.nonce, toNeoDecimals(withdrawData.amount), relayer.address);
+            const withdrawData = { nonce: 1, amount: withdrawalAmount, to: relayer.address };
+            const tx = await bridgeContract.connect(relayer).withdraw(withdrawData.to, { value: withdrawalAmountWithFee });
+
+            const hashWithdrawData1 = await hashDepositOrWithdrawal(withdrawData.nonce, toNeoDecimals(withdrawalAmount), relayer.address);
             const new_withdrawRoot = await computeRoot(ethers.ZeroHash, hashWithdrawData1);
 
             expect(await bridgeContract.withdrawalNonce()).to.be.equal(1);
             expect(await bridgeContract.withdrawalRoot()).to.be.equal(new_withdrawRoot);
             await expect(tx).to.emit(bridgeContract, "Withdrawal").withArgs(1, toNeoDecimals(withdrawData.amount), relayer.address, relayer.address, hashWithdrawData1, new_withdrawRoot);
-            await expect(tx).to.changeEtherBalances([bridgeContract, relayer], [ethers.parseEther("1.00000001"), -ethers.parseEther("1.00000001")]);
+            await expect(tx).to.changeEtherBalances([bridgeContract, relayer], [withdrawalAmountWithFee, -withdrawalAmountWithFee]);
         });
 
         it("withdraw with the wrong amount", async function () {
             const { bridgeContract: bridgeContract, relayer } = await loadFixture(deployBridgeFixture);
-
-            await expect(bridgeContract.connect(relayer).withdraw(relayer, { value: ethers.parseEther("0.000000001") })).to.be.revertedWith("Only amounts with 8 non-zero decimals allowed for withdrawal");
+            const invalidAmount = ethers.parseEther("2.000000001");
+            const minWithdrawalAmount = await bridgeContract.minWithdrawalAmount();
+            const maxWithdrawalAmount = await bridgeContract.maxWithdrawalAmount();
+            const withdrawlFee = await bridgeContract.withdrawalFee();
+            await expect(invalidAmount).to.be.greaterThanOrEqual(minWithdrawalAmount + withdrawlFee);
+            await expect(invalidAmount).to.be.lessThanOrEqual(maxWithdrawalAmount + withdrawlFee);
+            await expect(bridgeContract.connect(relayer).withdraw(relayer, { value: invalidAmount })).to.be.revertedWith("Only amounts with maximally 8 non-zero decimals are allowed for withdrawals");
         });
 
-        it("withdraw with the amount smaller than minWithdrawalAmount", async function () {
+        it("withdraw is too low", async function () {
             const { bridgeContract: bridgeContract, relayer } = await loadFixture(deployBridgeFixture);
+            const minFraction = ethers.parseEther("0.00000001");
+            const minWithdrawalAmount = await bridgeContract.minWithdrawalAmount();
+            const withdrawlFee = await bridgeContract.withdrawalFee();
+            const tooLowWithdrawalAmount = minWithdrawalAmount + withdrawlFee - minFraction;
+            await expect(bridgeContract.connect(relayer).withdraw(relayer, { value: tooLowWithdrawalAmount })).to.be.revertedWith("Withdrawal amount is too low");
+        });
 
-            await expect(bridgeContract.connect(relayer).withdraw(relayer, { value: ethers.parseEther("0.9") })).to.be.revertedWith("Smaller than minimum withdrawal amount");
+        it("withdraw is too high", async function () {
+            const { bridgeContract: bridgeContract, validator6, validator7 } = await loadFixture(deployBridgeFixture);
+            validator6.sendTransaction({ to: validator7, value: ethers.parseEther("1000") }); // make sure validator7 has a high enough balance
+            const minFraction = ethers.parseEther("0.00000001");
+            const maxWithdrawalAmount = await bridgeContract.maxWithdrawalAmount();
+            const withdrawlFee = await bridgeContract.withdrawalFee();
+            const tooHighWithdrawalAmount = maxWithdrawalAmount + withdrawlFee + minFraction;
+            await expect(bridgeContract.connect(validator7).withdraw(validator6, { value: tooHighWithdrawalAmount })).to.be.revertedWith("Withdrawal amount is too high");
+            validator7.sendTransaction({ to: validator6, value: ethers.parseEther("1000") });
         });
     });
 

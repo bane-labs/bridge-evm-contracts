@@ -67,6 +67,7 @@ export interface BridgeContractInterface extends Interface {
       | "unlock"
       | "validators"
       | "withdraw"
+      | "withdrawalFee"
       | "withdrawalNonce"
       | "withdrawalRoot"
   ): FunctionFragment;
@@ -135,6 +136,10 @@ export interface BridgeContractInterface extends Interface {
     values: [AddressLike]
   ): string;
   encodeFunctionData(
+    functionFragment: "withdrawalFee",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "withdrawalNonce",
     values?: undefined
   ): string;
@@ -189,6 +194,10 @@ export interface BridgeContractInterface extends Interface {
   decodeFunctionResult(functionFragment: "unlock", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "validators", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "withdraw", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "withdrawalFee",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "withdrawalNonce",
     data: BytesLike
@@ -377,6 +386,8 @@ export interface BridgeContract extends BaseContract {
 
   withdraw: TypedContractMethod<[_to: AddressLike], [void], "payable">;
 
+  withdrawalFee: TypedContractMethod<[], [bigint], "view">;
+
   withdrawalNonce: TypedContractMethod<[], [bigint], "view">;
 
   withdrawalRoot: TypedContractMethod<[], [string], "view">;
@@ -450,6 +461,9 @@ export interface BridgeContract extends BaseContract {
   getFunction(
     nameOrSignature: "withdraw"
   ): TypedContractMethod<[_to: AddressLike], [void], "payable">;
+  getFunction(
+    nameOrSignature: "withdrawalFee"
+  ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "withdrawalNonce"
   ): TypedContractMethod<[], [bigint], "view">;
