@@ -64,6 +64,10 @@ export interface BridgeContractInterface extends Interface {
       | "relayer"
       | "requiredValidatorSignaturesForDeposit"
       | "securityGuard"
+      | "setMaxDepositsPerDistribution"
+      | "setMaxWithdrawalAmount"
+      | "setMinWithdrawalAmount"
+      | "setWithdrawalFee"
       | "unlock"
       | "validators"
       | "withdraw"
@@ -73,7 +77,15 @@ export interface BridgeContractInterface extends Interface {
   ): FunctionFragment;
 
   getEvent(
-    nameOrSignatureOrTopic: "Claimable" | "Claimed" | "Deposit" | "Withdrawal"
+    nameOrSignatureOrTopic:
+      | "Claimable"
+      | "Claimed"
+      | "Deposit"
+      | "MaxDepositsPerDistributionChanged"
+      | "MaxWithdrawalAmountChanged"
+      | "MinWithdrawalAmountChanged"
+      | "Withdrawal"
+      | "WithdrawalFeeChanged"
   ): EventFragment;
 
   encodeFunctionData(functionFragment: "claim", values: [BigNumberish]): string;
@@ -125,6 +137,22 @@ export interface BridgeContractInterface extends Interface {
   encodeFunctionData(
     functionFragment: "securityGuard",
     values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setMaxDepositsPerDistribution",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setMaxWithdrawalAmount",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setMinWithdrawalAmount",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setWithdrawalFee",
+    values: [BigNumberish]
   ): string;
   encodeFunctionData(functionFragment: "unlock", values?: undefined): string;
   encodeFunctionData(
@@ -189,6 +217,22 @@ export interface BridgeContractInterface extends Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "securityGuard",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setMaxDepositsPerDistribution",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setMaxWithdrawalAmount",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setMinWithdrawalAmount",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setWithdrawalFee",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "unlock", data: BytesLike): Result;
@@ -262,6 +306,42 @@ export namespace DepositEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace MaxDepositsPerDistributionChangedEvent {
+  export type InputTuple = [amount: BigNumberish];
+  export type OutputTuple = [amount: bigint];
+  export interface OutputObject {
+    amount: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace MaxWithdrawalAmountChangedEvent {
+  export type InputTuple = [amount: BigNumberish];
+  export type OutputTuple = [amount: bigint];
+  export interface OutputObject {
+    amount: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace MinWithdrawalAmountChangedEvent {
+  export type InputTuple = [newAmount: BigNumberish];
+  export type OutputTuple = [newAmount: bigint];
+  export interface OutputObject {
+    newAmount: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export namespace WithdrawalEvent {
   export type InputTuple = [
     nonce: BigNumberish,
@@ -286,6 +366,18 @@ export namespace WithdrawalEvent {
     from: string;
     withdrawalHash: string;
     withdrawalRoot: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace WithdrawalFeeChangedEvent {
+  export type InputTuple = [newFee: BigNumberish];
+  export type OutputTuple = [newFee: bigint];
+  export interface OutputObject {
+    newFee: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -380,6 +472,30 @@ export interface BridgeContract extends BaseContract {
 
   securityGuard: TypedContractMethod<[], [string], "view">;
 
+  setMaxDepositsPerDistribution: TypedContractMethod<
+    [_maxDepositsPerDistribution: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+
+  setMaxWithdrawalAmount: TypedContractMethod<
+    [_amount: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+
+  setMinWithdrawalAmount: TypedContractMethod<
+    [_amount: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+
+  setWithdrawalFee: TypedContractMethod<
+    [_fee: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+
   unlock: TypedContractMethod<[], [void], "nonpayable">;
 
   validators: TypedContractMethod<[arg0: BigNumberish], [string], "view">;
@@ -453,6 +569,22 @@ export interface BridgeContract extends BaseContract {
     nameOrSignature: "securityGuard"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
+    nameOrSignature: "setMaxDepositsPerDistribution"
+  ): TypedContractMethod<
+    [_maxDepositsPerDistribution: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "setMaxWithdrawalAmount"
+  ): TypedContractMethod<[_amount: BigNumberish], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "setMinWithdrawalAmount"
+  ): TypedContractMethod<[_amount: BigNumberish], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "setWithdrawalFee"
+  ): TypedContractMethod<[_fee: BigNumberish], [void], "nonpayable">;
+  getFunction(
     nameOrSignature: "unlock"
   ): TypedContractMethod<[], [void], "nonpayable">;
   getFunction(
@@ -493,11 +625,39 @@ export interface BridgeContract extends BaseContract {
     DepositEvent.OutputObject
   >;
   getEvent(
+    key: "MaxDepositsPerDistributionChanged"
+  ): TypedContractEvent<
+    MaxDepositsPerDistributionChangedEvent.InputTuple,
+    MaxDepositsPerDistributionChangedEvent.OutputTuple,
+    MaxDepositsPerDistributionChangedEvent.OutputObject
+  >;
+  getEvent(
+    key: "MaxWithdrawalAmountChanged"
+  ): TypedContractEvent<
+    MaxWithdrawalAmountChangedEvent.InputTuple,
+    MaxWithdrawalAmountChangedEvent.OutputTuple,
+    MaxWithdrawalAmountChangedEvent.OutputObject
+  >;
+  getEvent(
+    key: "MinWithdrawalAmountChanged"
+  ): TypedContractEvent<
+    MinWithdrawalAmountChangedEvent.InputTuple,
+    MinWithdrawalAmountChangedEvent.OutputTuple,
+    MinWithdrawalAmountChangedEvent.OutputObject
+  >;
+  getEvent(
     key: "Withdrawal"
   ): TypedContractEvent<
     WithdrawalEvent.InputTuple,
     WithdrawalEvent.OutputTuple,
     WithdrawalEvent.OutputObject
+  >;
+  getEvent(
+    key: "WithdrawalFeeChanged"
+  ): TypedContractEvent<
+    WithdrawalFeeChangedEvent.InputTuple,
+    WithdrawalFeeChangedEvent.OutputTuple,
+    WithdrawalFeeChangedEvent.OutputObject
   >;
 
   filters: {
@@ -534,6 +694,39 @@ export interface BridgeContract extends BaseContract {
       DepositEvent.OutputObject
     >;
 
+    "MaxDepositsPerDistributionChanged(uint8)": TypedContractEvent<
+      MaxDepositsPerDistributionChangedEvent.InputTuple,
+      MaxDepositsPerDistributionChangedEvent.OutputTuple,
+      MaxDepositsPerDistributionChangedEvent.OutputObject
+    >;
+    MaxDepositsPerDistributionChanged: TypedContractEvent<
+      MaxDepositsPerDistributionChangedEvent.InputTuple,
+      MaxDepositsPerDistributionChangedEvent.OutputTuple,
+      MaxDepositsPerDistributionChangedEvent.OutputObject
+    >;
+
+    "MaxWithdrawalAmountChanged(uint256)": TypedContractEvent<
+      MaxWithdrawalAmountChangedEvent.InputTuple,
+      MaxWithdrawalAmountChangedEvent.OutputTuple,
+      MaxWithdrawalAmountChangedEvent.OutputObject
+    >;
+    MaxWithdrawalAmountChanged: TypedContractEvent<
+      MaxWithdrawalAmountChangedEvent.InputTuple,
+      MaxWithdrawalAmountChangedEvent.OutputTuple,
+      MaxWithdrawalAmountChangedEvent.OutputObject
+    >;
+
+    "MinWithdrawalAmountChanged(uint256)": TypedContractEvent<
+      MinWithdrawalAmountChangedEvent.InputTuple,
+      MinWithdrawalAmountChangedEvent.OutputTuple,
+      MinWithdrawalAmountChangedEvent.OutputObject
+    >;
+    MinWithdrawalAmountChanged: TypedContractEvent<
+      MinWithdrawalAmountChangedEvent.InputTuple,
+      MinWithdrawalAmountChangedEvent.OutputTuple,
+      MinWithdrawalAmountChangedEvent.OutputObject
+    >;
+
     "Withdrawal(uint64,uint64,address,address,bytes32,bytes32)": TypedContractEvent<
       WithdrawalEvent.InputTuple,
       WithdrawalEvent.OutputTuple,
@@ -543,6 +736,17 @@ export interface BridgeContract extends BaseContract {
       WithdrawalEvent.InputTuple,
       WithdrawalEvent.OutputTuple,
       WithdrawalEvent.OutputObject
+    >;
+
+    "WithdrawalFeeChanged(uint256)": TypedContractEvent<
+      WithdrawalFeeChangedEvent.InputTuple,
+      WithdrawalFeeChangedEvent.OutputTuple,
+      WithdrawalFeeChangedEvent.OutputObject
+    >;
+    WithdrawalFeeChanged: TypedContractEvent<
+      WithdrawalFeeChangedEvent.InputTuple,
+      WithdrawalFeeChangedEvent.OutputTuple,
+      WithdrawalFeeChangedEvent.OutputObject
     >;
   };
 }

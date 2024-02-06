@@ -1,17 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-// Todo: Before compiling byte code for genesis script, make sure to set the correct values for the following variables:
-// - relayer
-// - validators
-// - minWithdrawalAmount
-// - maxWithdrawalAmount
-// - remove the receive function as it is only used for testing purpose.
+// Todo: Before compiling byte code for genesis script, make sure to remove the receive function as it is only used for testing purpose.
 
 contract BridgeContract {
-    // Todo: Discuss using values hardcoded here as default and adding an overwrite functionality.
-    address public constant relayer =
-        0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
+    // Roles
+    address public owner = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
+    address public relayer = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
     address[] public validators = [
         0x70997970C51812dc3A010C7d01b50e0d17dc79C8,
         0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC,
@@ -21,28 +16,28 @@ contract BridgeContract {
         0x976EA74026E726554dB657fA54763abd0C3a0aa9,
         0x14dC79964da2C08b23698B3D3cc7Ca32193d9955
     ];
+    address public governor = 0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f;
+    address public securityGuard = 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720;
 
+    // Bridge parameters
     uint256 public withdrawalFee = 10000000_0000000000;
-    uint256 public constant minWithdrawalAmount = 1_00000000_0000000000;
-    uint256 public constant maxWithdrawalAmount = 10000_00000000_0000000000;
+    uint256 public minWithdrawalAmount = 1_00000000_0000000000;
+    uint256 public maxWithdrawalAmount = 10000_00000000_0000000000;
+    uint8 public maxDepositsPerDistribution = 100;
+
+    uint8 public requiredValidatorSignaturesForDeposit = 5;
+
+    bool public locked = false;
+
+    // Initial deposit and withdrawal values
+    uint64 public depositNonce = 0;
+    uint64 public withdrawalNonce = 0;
 
     bytes32 public depositRoot;
     bytes32 public withdrawalRoot;
 
-    uint64 public depositNonce = 0;
-    uint64 public withdrawalNonce = 0;
-
-    uint8 public requiredValidatorSignaturesForDeposit = 5;
-    uint8 public maxDepositsPerDistribution = 100;
-
-    bool public locked = false;
-    address public owner = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
-    address public governor = 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC;
-    address public securityGuard = 0x90F79bf6EB2c4f870365E785982E1f101E93b906;
-
     mapping(uint64 => address) public claimableTo;
-    // Important: The claimableAmount mapping contains the uint64 value that is still the value with 8 decimal places.
-    mapping(uint64 => uint64) public claimableAmount;
+    mapping(uint64 => uint64) public claimableAmount; // Holds the claimable amount values with 8 decimal places
 
     // Events
 
@@ -58,15 +53,17 @@ contract BridgeContract {
         bytes32 withdrawalHash,
         bytes32 withdrawalRoot
     );
+    event WithdrawalFeeChanged(uint256 newFee);
+    event MinWithdrawalAmountChanged(uint256 newAmount);
+    event MaxWithdrawalAmountChanged(uint256 amount);
+    event MaxDepositsPerDistributionChanged(uint8 amount);
 
-    // Todo: This is only used for testing. Remove it before compiling byte code for genesis script.
+    // This is only used for testing. Remove it before compiling byte code for genesis script.
     receive() external payable onlyRelayer {}
 
     //////////////////////////
     // Deposit Verification //
     //////////////////////////
-
-    // Todo: Introduce limit for max mint amount -> max amount limit should be handled in Bridge contract on Neo.
 
     struct DepositData {
         address payable to;
@@ -218,7 +215,7 @@ contract BridgeContract {
         return _addr.code.length > 0;
     }
 
-    // Modifier
+    // Modifiers
 
     modifier onlyRelayer() {
         require(msg.sender == relayer, "Not relayer");
@@ -336,14 +333,62 @@ contract BridgeContract {
         return uint64(_value / (10 ** 10));
     }
 
-    // Lock the contract
+    // Contract Locking
+
     function lock() external onlySecurityGuard unlocked {
         locked = true;
     }
 
-    // Unlock the contract
     function unlock() external onlyGovernor {
         require(locked, "Contract is already locked");
         locked = false;
+    }
+
+    // Bridge Parameter Setters
+
+    function setWithdrawalFee(uint256 _fee) external onlyGovernor {
+        require(
+            (_fee % (10 ** 10)) == 0,
+            "Fee must have maximally 8 non-zero decimals"
+        );
+        withdrawalFee = _fee;
+        emit WithdrawalFeeChanged(_fee);
+    }
+
+    function setMinWithdrawalAmount(uint256 _amount) external onlyGovernor {
+        require(
+            (_amount % (10 ** 10)) == 0,
+            "Amount must have maximally 8 non-zero decimals"
+        );
+        require(
+            _amount < maxWithdrawalAmount,
+            "Amount must be less than the maximal withdrawal amount"
+        );
+        minWithdrawalAmount = _amount;
+        emit MinWithdrawalAmountChanged(_amount);
+    }
+
+    function setMaxWithdrawalAmount(uint256 _amount) external onlyGovernor {
+        require(
+            (_amount % (10 ** 10)) == 0,
+            "Amount must have maximally 8 non-zero decimals"
+        );
+        require(
+            _amount > minWithdrawalAmount,
+            "Amount must be greater than the minimal withdrawal amount"
+        );
+        maxWithdrawalAmount = _amount;
+        emit MaxWithdrawalAmountChanged(_amount);
+    }
+
+    function setMaxDepositsPerDistribution(
+        uint8 _maxDepositsPerDistribution
+    ) external onlyGovernor {
+        require(
+            _maxDepositsPerDistribution > 0,
+            "Value must be greater than 0"
+        );
+        maxDepositsPerDistribution = _maxDepositsPerDistribution;
+        emit MaxDepositsPerDistributionChanged(_maxDepositsPerDistribution);
     }
 }

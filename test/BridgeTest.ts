@@ -21,7 +21,9 @@ describe("Bridge contract", function () {
             validator4,
             validator5,
             validator6,
-            validator7
+            validator7,
+            governor,
+            securityGuard
         ] = await ethers.getSigners();
         const bridgeContract = await ethers.deployContract("BridgeContract");
         await bridgeContract.waitForDeployment();
@@ -34,7 +36,9 @@ describe("Bridge contract", function () {
             validator4,
             validator5,
             validator6,
-            validator7
+            validator7,
+            governor,
+            securityGuard
         }
     }
 
@@ -485,11 +489,8 @@ describe("Bridge contract", function () {
 
     describe("Lock Function", async function () {
         it("Lock with SecurityGuard Account and Unlock with Governor", async function () {
-            const { bridgeContract: bridgeContract, relayer, validator1, validator2, validator3 } = await loadFixture(deployBridgeFixture);
+            const { bridgeContract: bridgeContract, relayer, validator1, governor, securityGuard } = await loadFixture(deployBridgeFixture);
             await fundContract(bridgeContract, relayer);
-
-            const governor = validator2;
-            const securityGuard = validator3;
 
             await bridgeContract.connect(securityGuard).lock();
             expect(await bridgeContract.locked()).to.equal(true);
@@ -501,14 +502,12 @@ describe("Bridge contract", function () {
         });
 
         it("Cannot unlock if already unlocked", async function () {
-            const { bridgeContract: bridgeContract, relayer, validator1, validator2, validator3 } = await loadFixture(deployBridgeFixture);
-            const governor = validator2;
+            const { bridgeContract: bridgeContract, governor } = await loadFixture(deployBridgeFixture);
             await expect(bridgeContract.connect(governor).unlock()).to.be.revertedWith("Contract is already locked");
         });
 
         it("Cannot deposit, claim, withdraw or lock if contract is locked", async function () {
-            const { bridgeContract: bridgeContract, relayer, validator1, validator2, validator3 } = await loadFixture(deployBridgeFixture);
-            const securityGuard = validator3;
+            const { bridgeContract: bridgeContract, relayer, securityGuard } = await loadFixture(deployBridgeFixture);
             await bridgeContract.connect(securityGuard).lock()
 
             const hashDepositData1 = await hashDepositOrWithdrawal(Depositdata1.nonce, Depositdata1.amount, Depositdata1.to);
@@ -520,6 +519,68 @@ describe("Bridge contract", function () {
             const withdrawData = { nonce: 1, amount: ethers.parseEther("1"), to: relayer.address };
             await expect(bridgeContract.connect(relayer).withdraw(withdrawData.to, { value: withdrawData.amount })).to.be.revertedWith("Contract is locked");
             await expect(bridgeContract.connect(securityGuard).lock()).to.be.revertedWith("Contract is locked");
+        });
+    });
+
+    describe("Bridge parameter setting", function () {
+        it("Set withdrawal fee", async function () {
+            const { bridgeContract: bridgeContract, governor } = await loadFixture(deployBridgeFixture);
+            const oldFee = ethers.parseEther("0.1");
+            await expect(await bridgeContract.withdrawalFee()).to.be.equal(oldFee);
+            const newFee = ethers.parseEther("0.2");
+            const tx = await bridgeContract.connect(governor).setWithdrawalFee(newFee);
+            await expect(tx).to.emit(bridgeContract, "WithdrawalFeeChanged").withArgs(newFee);
+            await expect(await bridgeContract.withdrawalFee()).to.be.equal(newFee);
+        });
+
+        it("Set min withdrawal amount", async function () {
+            const { bridgeContract: bridgeContract, governor } = await loadFixture(deployBridgeFixture);
+            const oldMinAmount = ethers.parseEther("1");
+            await expect(await bridgeContract.minWithdrawalAmount()).to.be.equal(oldMinAmount);
+            const newMinAmount = ethers.parseEther("0.2");
+            const tx = await bridgeContract.connect(governor).setMinWithdrawalAmount(newMinAmount);
+            await expect(tx).to.emit(bridgeContract, "MinWithdrawalAmountChanged").withArgs(newMinAmount);
+            await expect(await bridgeContract.minWithdrawalAmount()).to.be.equal(newMinAmount);
+        });
+
+        it("Set max withdrawal amount", async function () {
+            const { bridgeContract: bridgeContract, governor } = await loadFixture(deployBridgeFixture);
+            const oldMaxAmount = ethers.parseEther("10000");
+            await expect(await bridgeContract.maxWithdrawalAmount()).to.be.equal(oldMaxAmount);
+            const newMaxAmount = ethers.parseEther("5000");
+            const tx = await bridgeContract.connect(governor).setMaxWithdrawalAmount(newMaxAmount);
+            await expect(tx).to.emit(bridgeContract, "MaxWithdrawalAmountChanged").withArgs(newMaxAmount);
+            await expect(await bridgeContract.maxWithdrawalAmount()).to.be.equal(newMaxAmount);
+        });
+
+        it("Set invalid min and max withdrawal amounts", async function () {
+            const { bridgeContract: bridgeContract, governor } = await loadFixture(deployBridgeFixture);
+            const minWithdrawalAmount = await bridgeContract.minWithdrawalAmount();
+            const maxWithdrawalAmount = await bridgeContract.maxWithdrawalAmount();
+
+            let tx = bridgeContract.connect(governor).setMinWithdrawalAmount(maxWithdrawalAmount);
+            await expect(tx).to.be.revertedWith("Amount must be less than the maximal withdrawal amount");
+
+            tx = bridgeContract.connect(governor).setMaxWithdrawalAmount(minWithdrawalAmount);
+            await expect(tx).to.be.revertedWith("Amount must be greater than the minimal withdrawal amount");
+        });
+
+        it("Set max deposits per distribution", async function () {
+            const { bridgeContract: bridgeContract, governor } = await loadFixture(deployBridgeFixture);
+            const maxDepositsPerDistribution = await bridgeContract.maxDepositsPerDistribution();
+            const newMaxDepositsPerDistribution = 10;
+            const tx = bridgeContract.connect(governor).setMaxDepositsPerDistribution(newMaxDepositsPerDistribution);
+            await expect(tx).to.emit(bridgeContract, "MaxDepositsPerDistributionChanged").withArgs(newMaxDepositsPerDistribution);
+            await expect(await bridgeContract.maxDepositsPerDistribution()).to.be.equal(newMaxDepositsPerDistribution);
+        });
+
+        it("Fail setting max deposits per distribution to zero", async function () {
+            const { bridgeContract: bridgeContract, governor } = await loadFixture(deployBridgeFixture);
+            const maxDepositsPerDistribution = await bridgeContract.maxDepositsPerDistribution();
+            await expect(maxDepositsPerDistribution).to.be.greaterThan(0);
+
+            let tx = bridgeContract.connect(governor).setMaxDepositsPerDistribution(0);
+            await expect(tx).to.be.revertedWith("Value must be greater than 0");
         });
     });
 });
