@@ -2,4 +2,5 @@
 /* tslint:disable */
 /* eslint-disable */
 export { BridgeContract__factory } from "./BridgeContract__factory";
+export { BridgeManagementContract__factory } from "./BridgeManagementContract__factory";
 export { TestPayableContract__factory } from "./TestPayableContract__factory";

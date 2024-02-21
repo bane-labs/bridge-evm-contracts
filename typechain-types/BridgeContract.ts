@@ -54,24 +54,10 @@ export interface BridgeContractInterface extends Interface {
       | "deposit"
       | "depositNonce"
       | "depositRoot"
-      | "governor"
       | "lock"
       | "locked"
-      | "maxDepositsPerDistribution"
-      | "maxWithdrawalAmount"
-      | "minWithdrawalAmount"
-      | "owner"
-      | "relayer"
-      | "requiredValidatorSignaturesForDeposit"
-      | "securityGuard"
-      | "setMaxDepositsPerDistribution"
-      | "setMaxWithdrawalAmount"
-      | "setMinWithdrawalAmount"
-      | "setWithdrawalFee"
       | "unlock"
-      | "validators"
       | "withdraw"
-      | "withdrawalFee"
       | "withdrawalNonce"
       | "withdrawalRoot"
   ): FunctionFragment;
@@ -113,59 +99,12 @@ export interface BridgeContractInterface extends Interface {
     functionFragment: "depositRoot",
     values?: undefined
   ): string;
-  encodeFunctionData(functionFragment: "governor", values?: undefined): string;
   encodeFunctionData(functionFragment: "lock", values?: undefined): string;
   encodeFunctionData(functionFragment: "locked", values?: undefined): string;
-  encodeFunctionData(
-    functionFragment: "maxDepositsPerDistribution",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "maxWithdrawalAmount",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "minWithdrawalAmount",
-    values?: undefined
-  ): string;
-  encodeFunctionData(functionFragment: "owner", values?: undefined): string;
-  encodeFunctionData(functionFragment: "relayer", values?: undefined): string;
-  encodeFunctionData(
-    functionFragment: "requiredValidatorSignaturesForDeposit",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "securityGuard",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "setMaxDepositsPerDistribution",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "setMaxWithdrawalAmount",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "setMinWithdrawalAmount",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "setWithdrawalFee",
-    values: [BigNumberish]
-  ): string;
   encodeFunctionData(functionFragment: "unlock", values?: undefined): string;
-  encodeFunctionData(
-    functionFragment: "validators",
-    values: [BigNumberish]
-  ): string;
   encodeFunctionData(
     functionFragment: "withdraw",
     values: [AddressLike]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "withdrawalFee",
-    values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "withdrawalNonce",
@@ -194,54 +133,10 @@ export interface BridgeContractInterface extends Interface {
     functionFragment: "depositRoot",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "governor", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "lock", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "locked", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "maxDepositsPerDistribution",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "maxWithdrawalAmount",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "minWithdrawalAmount",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "relayer", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "requiredValidatorSignaturesForDeposit",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "securityGuard",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "setMaxDepositsPerDistribution",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "setMaxWithdrawalAmount",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "setMinWithdrawalAmount",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "setWithdrawalFee",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(functionFragment: "unlock", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "validators", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "withdraw", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "withdrawalFee",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(
     functionFragment: "withdrawalNonce",
     data: BytesLike
@@ -448,61 +343,13 @@ export interface BridgeContract extends BaseContract {
 
   depositRoot: TypedContractMethod<[], [string], "view">;
 
-  governor: TypedContractMethod<[], [string], "view">;
-
   lock: TypedContractMethod<[], [void], "nonpayable">;
 
   locked: TypedContractMethod<[], [boolean], "view">;
 
-  maxDepositsPerDistribution: TypedContractMethod<[], [bigint], "view">;
-
-  maxWithdrawalAmount: TypedContractMethod<[], [bigint], "view">;
-
-  minWithdrawalAmount: TypedContractMethod<[], [bigint], "view">;
-
-  owner: TypedContractMethod<[], [string], "view">;
-
-  relayer: TypedContractMethod<[], [string], "view">;
-
-  requiredValidatorSignaturesForDeposit: TypedContractMethod<
-    [],
-    [bigint],
-    "view"
-  >;
-
-  securityGuard: TypedContractMethod<[], [string], "view">;
-
-  setMaxDepositsPerDistribution: TypedContractMethod<
-    [_maxDepositsPerDistribution: BigNumberish],
-    [void],
-    "nonpayable"
-  >;
-
-  setMaxWithdrawalAmount: TypedContractMethod<
-    [_amount: BigNumberish],
-    [void],
-    "nonpayable"
-  >;
-
-  setMinWithdrawalAmount: TypedContractMethod<
-    [_amount: BigNumberish],
-    [void],
-    "nonpayable"
-  >;
-
-  setWithdrawalFee: TypedContractMethod<
-    [_fee: BigNumberish],
-    [void],
-    "nonpayable"
-  >;
-
   unlock: TypedContractMethod<[], [void], "nonpayable">;
 
-  validators: TypedContractMethod<[arg0: BigNumberish], [string], "view">;
-
   withdraw: TypedContractMethod<[_to: AddressLike], [void], "payable">;
-
-  withdrawalFee: TypedContractMethod<[], [bigint], "view">;
 
   withdrawalNonce: TypedContractMethod<[], [bigint], "view">;
 
@@ -539,63 +386,17 @@ export interface BridgeContract extends BaseContract {
     nameOrSignature: "depositRoot"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
-    nameOrSignature: "governor"
-  ): TypedContractMethod<[], [string], "view">;
-  getFunction(
     nameOrSignature: "lock"
   ): TypedContractMethod<[], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "locked"
   ): TypedContractMethod<[], [boolean], "view">;
   getFunction(
-    nameOrSignature: "maxDepositsPerDistribution"
-  ): TypedContractMethod<[], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "maxWithdrawalAmount"
-  ): TypedContractMethod<[], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "minWithdrawalAmount"
-  ): TypedContractMethod<[], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "owner"
-  ): TypedContractMethod<[], [string], "view">;
-  getFunction(
-    nameOrSignature: "relayer"
-  ): TypedContractMethod<[], [string], "view">;
-  getFunction(
-    nameOrSignature: "requiredValidatorSignaturesForDeposit"
-  ): TypedContractMethod<[], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "securityGuard"
-  ): TypedContractMethod<[], [string], "view">;
-  getFunction(
-    nameOrSignature: "setMaxDepositsPerDistribution"
-  ): TypedContractMethod<
-    [_maxDepositsPerDistribution: BigNumberish],
-    [void],
-    "nonpayable"
-  >;
-  getFunction(
-    nameOrSignature: "setMaxWithdrawalAmount"
-  ): TypedContractMethod<[_amount: BigNumberish], [void], "nonpayable">;
-  getFunction(
-    nameOrSignature: "setMinWithdrawalAmount"
-  ): TypedContractMethod<[_amount: BigNumberish], [void], "nonpayable">;
-  getFunction(
-    nameOrSignature: "setWithdrawalFee"
-  ): TypedContractMethod<[_fee: BigNumberish], [void], "nonpayable">;
-  getFunction(
     nameOrSignature: "unlock"
   ): TypedContractMethod<[], [void], "nonpayable">;
   getFunction(
-    nameOrSignature: "validators"
-  ): TypedContractMethod<[arg0: BigNumberish], [string], "view">;
-  getFunction(
     nameOrSignature: "withdraw"
   ): TypedContractMethod<[_to: AddressLike], [void], "payable">;
-  getFunction(
-    nameOrSignature: "withdrawalFee"
-  ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "withdrawalNonce"
   ): TypedContractMethod<[], [bigint], "view">;

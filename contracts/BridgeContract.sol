@@ -1,31 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
+import "./BridgeManagementContract.sol";
+
 // Todo: Before compiling byte code for genesis script, make sure to remove the receive function as it is only used for testing purpose.
 
 contract BridgeContract {
-    // Roles
-    address public owner = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
-    address public relayer = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
-    address[] public validators = [
-        0x70997970C51812dc3A010C7d01b50e0d17dc79C8,
-        0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC,
-        0x90F79bf6EB2c4f870365E785982E1f101E93b906,
-        0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65,
-        0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc,
-        0x976EA74026E726554dB657fA54763abd0C3a0aa9,
-        0x14dC79964da2C08b23698B3D3cc7Ca32193d9955
-    ];
-    address public governor = 0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f;
-    address public securityGuard = 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720;
 
-    // Bridge parameters
-    uint256 public withdrawalFee = 10000000_0000000000;
-    uint256 public minWithdrawalAmount = 1_00000000_0000000000;
-    uint256 public maxWithdrawalAmount = 10000_00000000_0000000000;
-    uint8 public maxDepositsPerDistribution = 100;
-
-    uint8 public requiredValidatorSignaturesForDeposit = 5;
+    BridgeManagementContract managementContract;
 
     bool public locked = false;
 
@@ -61,6 +43,10 @@ contract BridgeContract {
     // This is only used for testing. Remove it before compiling byte code for genesis script.
     receive() external payable onlyRelayer {}
 
+    constructor (address _managementContract) {
+        managementContract = BridgeManagementContract(_managementContract);
+    }
+
     //////////////////////////
     // Deposit Verification //
     //////////////////////////
@@ -89,7 +75,7 @@ contract BridgeContract {
         uint depositLength = _deposits.length;
         require(depositLength > 0, "At least 1 deposit is required.");
         require(
-            depositLength <= maxDepositsPerDistribution,
+            depositLength <= managementContract.maxDepositsPerDistribution(),
             "Too many deposits provided."
         );
         require(
@@ -181,7 +167,7 @@ contract BridgeContract {
         Signature[] calldata _signatures
     ) private view returns (bool) {
         require(
-            _signatures.length == requiredValidatorSignaturesForDeposit,
+            _signatures.length == managementContract.requiredValidatorSignaturesForDeposit(),
             "Invalid number of signatures."
         );
         bytes32 signedRootMsg = keccak256(
@@ -201,7 +187,7 @@ contract BridgeContract {
         uint j;
         for (uint i = 0; i < 5; i++) {
             for (j = n; j < 7; j++) {
-                if (recovered[i] == validators[j]) {
+                if (recovered[i] == managementContract.validators(j)) {
                     covered++;
                     break;
                 }
@@ -218,22 +204,22 @@ contract BridgeContract {
     // Modifiers
 
     modifier onlyRelayer() {
-        require(msg.sender == relayer, "Not relayer");
+        require(msg.sender == managementContract.relayer(), "Not relayer");
         _;
     }
 
     modifier onlyGovernor() {
-        require(msg.sender == governor, "Not governor");
+        require(msg.sender == managementContract.governor(), "Not governor");
         _;
     }
 
     modifier onlySecurityGuard() {
-        require(msg.sender == securityGuard, "Not securityGuard");
+        require(msg.sender == managementContract.securityGuard(), "Not securityGuard");
         _;
     }
 
     modifier onlyOwner() {
-        require(msg.sender == owner, "Not owner");
+        require(msg.sender == managementContract.owner(), "Not owner");
         _;
     }
 
@@ -274,13 +260,13 @@ contract BridgeContract {
             "Only amounts with maximally 8 non-zero decimals are allowed for withdrawals"
         );
 
-        uint256 actualWithdrawalAmount = msg.value - withdrawalFee;
+        uint256 actualWithdrawalAmount = msg.value - managementContract.withdrawalFee();
         require(
-            actualWithdrawalAmount >= minWithdrawalAmount,
+            actualWithdrawalAmount >= managementContract.minWithdrawalAmount(),
             "Withdrawal amount is too low"
         );
         require(
-            actualWithdrawalAmount <= maxWithdrawalAmount,
+            actualWithdrawalAmount <= managementContract.maxWithdrawalAmount(),
             "Withdrawal amount is too high"
         );
 
@@ -343,52 +329,5 @@ contract BridgeContract {
         require(locked, "Contract is already locked");
         locked = false;
     }
-
-    // Bridge Parameter Setters
-
-    function setWithdrawalFee(uint256 _fee) external onlyGovernor {
-        require(
-            (_fee % (10 ** 10)) == 0,
-            "Fee must have maximally 8 non-zero decimals"
-        );
-        withdrawalFee = _fee;
-        emit WithdrawalFeeChanged(_fee);
-    }
-
-    function setMinWithdrawalAmount(uint256 _amount) external onlyGovernor {
-        require(
-            (_amount % (10 ** 10)) == 0,
-            "Amount must have maximally 8 non-zero decimals"
-        );
-        require(
-            _amount < maxWithdrawalAmount,
-            "Amount must be less than the maximal withdrawal amount"
-        );
-        minWithdrawalAmount = _amount;
-        emit MinWithdrawalAmountChanged(_amount);
-    }
-
-    function setMaxWithdrawalAmount(uint256 _amount) external onlyGovernor {
-        require(
-            (_amount % (10 ** 10)) == 0,
-            "Amount must have maximally 8 non-zero decimals"
-        );
-        require(
-            _amount > minWithdrawalAmount,
-            "Amount must be greater than the minimal withdrawal amount"
-        );
-        maxWithdrawalAmount = _amount;
-        emit MaxWithdrawalAmountChanged(_amount);
-    }
-
-    function setMaxDepositsPerDistribution(
-        uint8 _maxDepositsPerDistribution
-    ) external onlyGovernor {
-        require(
-            _maxDepositsPerDistribution > 0,
-            "Value must be greater than 0"
-        );
-        maxDepositsPerDistribution = _maxDepositsPerDistribution;
-        emit MaxDepositsPerDistributionChanged(_maxDepositsPerDistribution);
-    }
+    
 }
