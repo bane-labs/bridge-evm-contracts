@@ -19,12 +19,6 @@ contract BridgeManagementContract {
     address public governor = 0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f;
     address public securityGuard = 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720;
 
-    // Bridge parameters
-    uint256 public withdrawalFee = 10000000_0000000000;
-    uint256 public minWithdrawalAmount = 1_00000000_0000000000;
-    uint256 public maxWithdrawalAmount = 10000_00000000_0000000000;
-    uint8 public maxDepositsPerDistribution = 100;
-
     uint8 public requiredValidatorSignaturesForDeposit = 5;
     mapping(address => bool) private addressExists;
 
@@ -62,6 +56,10 @@ contract BridgeManagementContract {
         _;
     }
 
+    function getValidators() public view returns (address[] memory) {
+        return validators;
+    }
+
     function setOwner(address _owner) external onlyOwner {
         owner = _owner;
         emit SetOwner(_owner);
@@ -72,9 +70,7 @@ contract BridgeManagementContract {
         emit SetRelayer(_relayer);
     }
 
-    function hasDuplicate(
-        address[] calldata addresses
-    ) private returns (bool) {
+    function hasDuplicate(address[] calldata addresses) private returns (bool) {
         for (uint i = 0; i < addresses.length; i++) {
             if (addressExists[addresses[i]]) {
                 return true;
@@ -123,53 +119,5 @@ contract BridgeManagementContract {
     function setSecurityGuard(address _securityGuard) external onlyOwner {
         securityGuard = _securityGuard;
         emit SetSecurityGuard(_securityGuard);
-    }
-
-    // Bridge Parameter Setters
-
-    function setWithdrawalFee(uint256 _fee) external onlyGovernor {
-        require(
-            (_fee % (10 ** 10)) == 0,
-            "Fee must have maximally 8 non-zero decimals"
-        );
-        withdrawalFee = _fee;
-        emit WithdrawalFeeChanged(_fee);
-    }
-
-    function setMinWithdrawalAmount(uint256 _amount) external onlyGovernor {
-        require(
-            (_amount % (10 ** 10)) == 0,
-            "Amount must have maximally 8 non-zero decimals"
-        );
-        require(
-            _amount < maxWithdrawalAmount,
-            "Amount must be less than the maximal withdrawal amount"
-        );
-        minWithdrawalAmount = _amount;
-        emit MinWithdrawalAmountChanged(_amount);
-    }
-
-    function setMaxWithdrawalAmount(uint256 _amount) external onlyGovernor {
-        require(
-            (_amount % (10 ** 10)) == 0,
-            "Amount must have maximally 8 non-zero decimals"
-        );
-        require(
-            _amount > minWithdrawalAmount,
-            "Amount must be greater than the minimal withdrawal amount"
-        );
-        maxWithdrawalAmount = _amount;
-        emit MaxWithdrawalAmountChanged(_amount);
-    }
-
-    function setMaxDepositsPerDistribution(
-        uint8 _maxDepositsPerDistribution
-    ) external onlyGovernor {
-        require(
-            _maxDepositsPerDistribution > 0,
-            "Value must be greater than 0"
-        );
-        maxDepositsPerDistribution = _maxDepositsPerDistribution;
-        emit MaxDepositsPerDistributionChanged(_maxDepositsPerDistribution);
     }
 }

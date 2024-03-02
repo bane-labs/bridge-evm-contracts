@@ -6,7 +6,6 @@ import "./BridgeManagementContract.sol";
 // Todo: Before compiling byte code for genesis script, make sure to remove the receive function as it is only used for testing purpose.
 
 contract BridgeContract {
-
     BridgeManagementContract managementContract;
 
     bool public locked = false;
@@ -20,6 +19,12 @@ contract BridgeContract {
 
     mapping(uint64 => address) public claimableTo;
     mapping(uint64 => uint64) public claimableAmount; // Holds the claimable amount values with 8 decimal places
+
+    // Bridge parameters
+    uint256 public withdrawalFee = 10000000_0000000000;
+    uint256 public minWithdrawalAmount = 1_00000000_0000000000;
+    uint256 public maxWithdrawalAmount = 10000_00000000_0000000000;
+    uint8 public maxDepositsPerDistribution = 100;
 
     // Events
 
@@ -43,7 +48,7 @@ contract BridgeContract {
     // This is only used for testing. Remove it before compiling byte code for genesis script.
     receive() external payable onlyRelayer {}
 
-    constructor (address _managementContract) {
+    constructor(address _managementContract) {
         managementContract = BridgeManagementContract(_managementContract);
     }
 
@@ -75,7 +80,7 @@ contract BridgeContract {
         uint depositLength = _deposits.length;
         require(depositLength > 0, "At least 1 deposit is required.");
         require(
-            depositLength <= managementContract.maxDepositsPerDistribution(),
+            depositLength <= maxDepositsPerDistribution,
             "Too many deposits provided."
         );
         require(
@@ -167,7 +172,8 @@ contract BridgeContract {
         Signature[] calldata _signatures
     ) private view returns (bool) {
         require(
-            _signatures.length == managementContract.requiredValidatorSignaturesForDeposit(),
+            _signatures.length ==
+                managementContract.requiredValidatorSignaturesForDeposit(),
             "Invalid number of signatures."
         );
         bytes32 signedRootMsg = keccak256(
@@ -176,8 +182,10 @@ contract BridgeContract {
                 keccak256(abi.encodePacked(_newDepositRoot))
             )
         );
-        address[] memory recovered = new address[](5);
-        for (uint i = 0; i < 5; i++) {
+        uint8 threshold = managementContract
+            .requiredValidatorSignaturesForDeposit();
+        address[] memory recovered = new address[](threshold);
+        for (uint i = 0; i < threshold; i++) {
             Signature calldata sig = _signatures[i];
             recovered[i] = ecrecover(signedRootMsg, sig.v, sig.r, sig.s);
         }
@@ -185,9 +193,10 @@ contract BridgeContract {
         uint covered = 0;
         uint n = 0;
         uint j;
-        for (uint i = 0; i < 5; i++) {
-            for (j = n; j < 7; j++) {
-                if (recovered[i] == managementContract.validators(j)) {
+        address[] memory validators = managementContract.getValidators();
+        for (uint i = 0; i < threshold; i++) {
+            for (j = n; j < validators.length; j++) {
+                if (recovered[i] == validators[j]) {
                     covered++;
                     break;
                 }
@@ -214,7 +223,10 @@ contract BridgeContract {
     }
 
     modifier onlySecurityGuard() {
-        require(msg.sender == managementContract.securityGuard(), "Not securityGuard");
+        require(
+            msg.sender == managementContract.securityGuard(),
+            "Not securityGuard"
+        );
         _;
     }
 
@@ -260,13 +272,13 @@ contract BridgeContract {
             "Only amounts with maximally 8 non-zero decimals are allowed for withdrawals"
         );
 
-        uint256 actualWithdrawalAmount = msg.value - managementContract.withdrawalFee();
+        uint256 actualWithdrawalAmount = msg.value - withdrawalFee;
         require(
-            actualWithdrawalAmount >= managementContract.minWithdrawalAmount(),
+            actualWithdrawalAmount >= minWithdrawalAmount,
             "Withdrawal amount is too low"
         );
         require(
-            actualWithdrawalAmount <= managementContract.maxWithdrawalAmount(),
+            actualWithdrawalAmount <= maxWithdrawalAmount,
             "Withdrawal amount is too high"
         );
 
@@ -329,5 +341,52 @@ contract BridgeContract {
         require(locked, "Contract is already locked");
         locked = false;
     }
-    
+
+    // Bridge Parameter Setters
+
+    function setWithdrawalFee(uint256 _fee) external onlyGovernor {
+        require(
+            (_fee % (10 ** 10)) == 0,
+            "Fee must have maximally 8 non-zero decimals"
+        );
+        withdrawalFee = _fee;
+        emit WithdrawalFeeChanged(_fee);
+    }
+
+    function setMinWithdrawalAmount(uint256 _amount) external onlyGovernor {
+        require(
+            (_amount % (10 ** 10)) == 0,
+            "Amount must have maximally 8 non-zero decimals"
+        );
+        require(
+            _amount < maxWithdrawalAmount,
+            "Amount must be less than the maximal withdrawal amount"
+        );
+        minWithdrawalAmount = _amount;
+        emit MinWithdrawalAmountChanged(_amount);
+    }
+
+    function setMaxWithdrawalAmount(uint256 _amount) external onlyGovernor {
+        require(
+            (_amount % (10 ** 10)) == 0,
+            "Amount must have maximally 8 non-zero decimals"
+        );
+        require(
+            _amount > minWithdrawalAmount,
+            "Amount must be greater than the minimal withdrawal amount"
+        );
+        maxWithdrawalAmount = _amount;
+        emit MaxWithdrawalAmountChanged(_amount);
+    }
+
+    function setMaxDepositsPerDistribution(
+        uint8 _maxDepositsPerDistribution
+    ) external onlyGovernor {
+        require(
+            _maxDepositsPerDistribution > 0,
+            "Value must be greater than 0"
+        );
+        maxDepositsPerDistribution = _maxDepositsPerDistribution;
+        emit MaxDepositsPerDistributionChanged(_maxDepositsPerDistribution);
+    }
 }

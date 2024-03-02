@@ -26,25 +26,18 @@ import type {
 export interface BridgeManagementContractInterface extends Interface {
   getFunction(
     nameOrSignature:
+      | "getValidators"
       | "governor"
-      | "maxDepositsPerDistribution"
-      | "maxWithdrawalAmount"
-      | "minWithdrawalAmount"
       | "owner"
       | "relayer"
       | "requiredValidatorSignaturesForDeposit"
       | "securityGuard"
       | "setGovernor"
-      | "setMaxDepositsPerDistribution"
-      | "setMaxWithdrawalAmount"
-      | "setMinWithdrawalAmount"
       | "setOwner"
       | "setRelayer"
       | "setSecurityGuard"
       | "setValidators"
-      | "setWithdrawalFee"
       | "validators"
-      | "withdrawalFee"
   ): FunctionFragment;
 
   getEvent(
@@ -60,19 +53,11 @@ export interface BridgeManagementContractInterface extends Interface {
       | "WithdrawalFeeChanged"
   ): EventFragment;
 
+  encodeFunctionData(
+    functionFragment: "getValidators",
+    values?: undefined
+  ): string;
   encodeFunctionData(functionFragment: "governor", values?: undefined): string;
-  encodeFunctionData(
-    functionFragment: "maxDepositsPerDistribution",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "maxWithdrawalAmount",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "minWithdrawalAmount",
-    values?: undefined
-  ): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
   encodeFunctionData(functionFragment: "relayer", values?: undefined): string;
   encodeFunctionData(
@@ -86,18 +71,6 @@ export interface BridgeManagementContractInterface extends Interface {
   encodeFunctionData(
     functionFragment: "setGovernor",
     values: [AddressLike]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "setMaxDepositsPerDistribution",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "setMaxWithdrawalAmount",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "setMinWithdrawalAmount",
-    values: [BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "setOwner",
@@ -116,31 +89,15 @@ export interface BridgeManagementContractInterface extends Interface {
     values: [AddressLike[], BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "setWithdrawalFee",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
     functionFragment: "validators",
     values: [BigNumberish]
   ): string;
-  encodeFunctionData(
-    functionFragment: "withdrawalFee",
-    values?: undefined
-  ): string;
 
+  decodeFunctionResult(
+    functionFragment: "getValidators",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "governor", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "maxDepositsPerDistribution",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "maxWithdrawalAmount",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "minWithdrawalAmount",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "relayer", data: BytesLike): Result;
   decodeFunctionResult(
@@ -155,18 +112,6 @@ export interface BridgeManagementContractInterface extends Interface {
     functionFragment: "setGovernor",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(
-    functionFragment: "setMaxDepositsPerDistribution",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "setMaxWithdrawalAmount",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "setMinWithdrawalAmount",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(functionFragment: "setOwner", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "setRelayer", data: BytesLike): Result;
   decodeFunctionResult(
@@ -177,15 +122,7 @@ export interface BridgeManagementContractInterface extends Interface {
     functionFragment: "setValidators",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(
-    functionFragment: "setWithdrawalFee",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(functionFragment: "validators", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "withdrawalFee",
-    data: BytesLike
-  ): Result;
 }
 
 export namespace MaxDepositsPerDistributionChangedEvent {
@@ -340,13 +277,9 @@ export interface BridgeManagementContract extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
+  getValidators: TypedContractMethod<[], [string[]], "view">;
+
   governor: TypedContractMethod<[], [string], "view">;
-
-  maxDepositsPerDistribution: TypedContractMethod<[], [bigint], "view">;
-
-  maxWithdrawalAmount: TypedContractMethod<[], [bigint], "view">;
-
-  minWithdrawalAmount: TypedContractMethod<[], [bigint], "view">;
 
   owner: TypedContractMethod<[], [string], "view">;
 
@@ -362,24 +295,6 @@ export interface BridgeManagementContract extends BaseContract {
 
   setGovernor: TypedContractMethod<
     [_governor: AddressLike],
-    [void],
-    "nonpayable"
-  >;
-
-  setMaxDepositsPerDistribution: TypedContractMethod<
-    [_maxDepositsPerDistribution: BigNumberish],
-    [void],
-    "nonpayable"
-  >;
-
-  setMaxWithdrawalAmount: TypedContractMethod<
-    [_amount: BigNumberish],
-    [void],
-    "nonpayable"
-  >;
-
-  setMinWithdrawalAmount: TypedContractMethod<
-    [_amount: BigNumberish],
     [void],
     "nonpayable"
   >;
@@ -404,32 +319,18 @@ export interface BridgeManagementContract extends BaseContract {
     "nonpayable"
   >;
 
-  setWithdrawalFee: TypedContractMethod<
-    [_fee: BigNumberish],
-    [void],
-    "nonpayable"
-  >;
-
   validators: TypedContractMethod<[arg0: BigNumberish], [string], "view">;
-
-  withdrawalFee: TypedContractMethod<[], [bigint], "view">;
 
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
   ): T;
 
   getFunction(
+    nameOrSignature: "getValidators"
+  ): TypedContractMethod<[], [string[]], "view">;
+  getFunction(
     nameOrSignature: "governor"
   ): TypedContractMethod<[], [string], "view">;
-  getFunction(
-    nameOrSignature: "maxDepositsPerDistribution"
-  ): TypedContractMethod<[], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "maxWithdrawalAmount"
-  ): TypedContractMethod<[], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "minWithdrawalAmount"
-  ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "owner"
   ): TypedContractMethod<[], [string], "view">;
@@ -445,19 +346,6 @@ export interface BridgeManagementContract extends BaseContract {
   getFunction(
     nameOrSignature: "setGovernor"
   ): TypedContractMethod<[_governor: AddressLike], [void], "nonpayable">;
-  getFunction(
-    nameOrSignature: "setMaxDepositsPerDistribution"
-  ): TypedContractMethod<
-    [_maxDepositsPerDistribution: BigNumberish],
-    [void],
-    "nonpayable"
-  >;
-  getFunction(
-    nameOrSignature: "setMaxWithdrawalAmount"
-  ): TypedContractMethod<[_amount: BigNumberish], [void], "nonpayable">;
-  getFunction(
-    nameOrSignature: "setMinWithdrawalAmount"
-  ): TypedContractMethod<[_amount: BigNumberish], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "setOwner"
   ): TypedContractMethod<[_owner: AddressLike], [void], "nonpayable">;
@@ -475,14 +363,8 @@ export interface BridgeManagementContract extends BaseContract {
     "nonpayable"
   >;
   getFunction(
-    nameOrSignature: "setWithdrawalFee"
-  ): TypedContractMethod<[_fee: BigNumberish], [void], "nonpayable">;
-  getFunction(
     nameOrSignature: "validators"
   ): TypedContractMethod<[arg0: BigNumberish], [string], "view">;
-  getFunction(
-    nameOrSignature: "withdrawalFee"
-  ): TypedContractMethod<[], [bigint], "view">;
 
   getEvent(
     key: "MaxDepositsPerDistributionChanged"
