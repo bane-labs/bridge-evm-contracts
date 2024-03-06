@@ -83,14 +83,21 @@ describe("Bridge contract", function () {
 
         it("Set invalid min and max withdrawal amounts", async function () {
             const { bridgeContract: bridgeContract, governor } = await loadFixture(deployBridgeFixture);
+            const fraction = ethers.parseEther("0.00000001");
             const minWithdrawalAmount = await bridgeContract.minWithdrawalAmount();
+            const lowerThanMinWithdrawalAmount = minWithdrawalAmount - fraction;
             const maxWithdrawalAmount = await bridgeContract.maxWithdrawalAmount();
+            const higherThanMaxWithdrawalAmount = maxWithdrawalAmount + fraction;
 
-            let tx = bridgeContract.connect(governor).setMinWithdrawalAmount(maxWithdrawalAmount);
+            let tx = bridgeContract.connect(governor).setMinWithdrawalAmount(higherThanMaxWithdrawalAmount);
+            await expect(tx).to.be.revertedWith("Amount must be less than the maximal withdrawal amount");
+            tx = bridgeContract.connect(governor).setMinWithdrawalAmount(maxWithdrawalAmount);
             await expect(tx).to.be.revertedWith("Amount must be less than the maximal withdrawal amount");
             tx = bridgeContract.connect(governor).setMinWithdrawalAmount(1000000000n);
             await expect(tx).to.be.revertedWith("Amount must have maximally 8 non-zero decimals");
 
+            tx = bridgeContract.connect(governor).setMaxWithdrawalAmount(lowerThanMinWithdrawalAmount);
+            await expect(tx).to.be.revertedWith("Amount must be greater than the minimal withdrawal amount");
             tx = bridgeContract.connect(governor).setMaxWithdrawalAmount(minWithdrawalAmount);
             await expect(tx).to.be.revertedWith("Amount must be greater than the minimal withdrawal amount");
             tx = bridgeContract.connect(governor).setMaxWithdrawalAmount(1000000000n);
