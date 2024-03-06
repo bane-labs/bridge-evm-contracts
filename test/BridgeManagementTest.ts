@@ -88,7 +88,7 @@ describe("Bridge Management contract", function () {
             await expect(tx).to.emit(bridgeManagementContract, "SetValidators").withArgs(new_validators, 2);
             await expect(await bridgeManagementContract.validators(0)).to.be.equal(new_validators[0]);
             await expect(await bridgeManagementContract.validators(1)).to.be.equal(new_validators[1]);
-            await expect(await bridgeManagementContract.requiredValidatorSignaturesForDeposit()).to.be.equal(2);
+            await expect(await bridgeManagementContract.validatorThreshold()).to.be.equal(2);
         });
 
         it("Set validators multiple times", async function () {
@@ -99,7 +99,7 @@ describe("Bridge Management contract", function () {
             await expect(await bridgeManagementContract.validators(0)).to.be.equal(validator1.address);
             await expect(await bridgeManagementContract.validators(1)).to.be.equal(validator2.address);
             await expect(await bridgeManagementContract.validators(2)).to.be.equal(validator3.address);
-            await expect(await bridgeManagementContract.requiredValidatorSignaturesForDeposit()).to.be.equal(2);
+            await expect(await bridgeManagementContract.validatorThreshold()).to.be.equal(2);
 
             // The 3rd validator address needs to be updated
             new_validators = [validator1.address, validator2.address, validator4.address];
@@ -108,7 +108,7 @@ describe("Bridge Management contract", function () {
             await expect(await bridgeManagementContract.validators(0)).to.be.equal(validator1.address);
             await expect(await bridgeManagementContract.validators(1)).to.be.equal(validator2.address);
             await expect(await bridgeManagementContract.validators(2)).to.be.equal(validator4.address);
-            await expect(await bridgeManagementContract.requiredValidatorSignaturesForDeposit()).to.be.equal(2);
+            await expect(await bridgeManagementContract.validatorThreshold()).to.be.equal(2);
         });
 
         it("Set validators with duplicate addresses", async function () {

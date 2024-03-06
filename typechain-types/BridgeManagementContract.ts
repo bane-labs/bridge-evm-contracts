@@ -30,13 +30,13 @@ export interface BridgeManagementContractInterface extends Interface {
       | "governor"
       | "owner"
       | "relayer"
-      | "requiredValidatorSignaturesForDeposit"
       | "securityGuard"
       | "setGovernor"
       | "setOwner"
       | "setRelayer"
       | "setSecurityGuard"
       | "setValidators"
+      | "validatorThreshold"
       | "validators"
   ): FunctionFragment;
 
@@ -56,10 +56,6 @@ export interface BridgeManagementContractInterface extends Interface {
   encodeFunctionData(functionFragment: "governor", values?: undefined): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
   encodeFunctionData(functionFragment: "relayer", values?: undefined): string;
-  encodeFunctionData(
-    functionFragment: "requiredValidatorSignaturesForDeposit",
-    values?: undefined
-  ): string;
   encodeFunctionData(
     functionFragment: "securityGuard",
     values?: undefined
@@ -85,6 +81,10 @@ export interface BridgeManagementContractInterface extends Interface {
     values: [AddressLike[], BigNumberish]
   ): string;
   encodeFunctionData(
+    functionFragment: "validatorThreshold",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "validators",
     values: [BigNumberish]
   ): string;
@@ -96,10 +96,6 @@ export interface BridgeManagementContractInterface extends Interface {
   decodeFunctionResult(functionFragment: "governor", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "relayer", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "requiredValidatorSignaturesForDeposit",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(
     functionFragment: "securityGuard",
     data: BytesLike
@@ -116,6 +112,10 @@ export interface BridgeManagementContractInterface extends Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "setValidators",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "validatorThreshold",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "validators", data: BytesLike): Result;
@@ -233,12 +233,6 @@ export interface BridgeManagementContract extends BaseContract {
 
   relayer: TypedContractMethod<[], [string], "view">;
 
-  requiredValidatorSignaturesForDeposit: TypedContractMethod<
-    [],
-    [bigint],
-    "view"
-  >;
-
   securityGuard: TypedContractMethod<[], [string], "view">;
 
   setGovernor: TypedContractMethod<
@@ -267,6 +261,8 @@ export interface BridgeManagementContract extends BaseContract {
     "nonpayable"
   >;
 
+  validatorThreshold: TypedContractMethod<[], [bigint], "view">;
+
   validators: TypedContractMethod<[arg0: BigNumberish], [string], "view">;
 
   getFunction<T extends ContractMethod = ContractMethod>(
@@ -285,9 +281,6 @@ export interface BridgeManagementContract extends BaseContract {
   getFunction(
     nameOrSignature: "relayer"
   ): TypedContractMethod<[], [string], "view">;
-  getFunction(
-    nameOrSignature: "requiredValidatorSignaturesForDeposit"
-  ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "securityGuard"
   ): TypedContractMethod<[], [string], "view">;
@@ -310,6 +303,9 @@ export interface BridgeManagementContract extends BaseContract {
     [void],
     "nonpayable"
   >;
+  getFunction(
+    nameOrSignature: "validatorThreshold"
+  ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "validators"
   ): TypedContractMethod<[arg0: BigNumberish], [string], "view">;
