@@ -171,7 +171,8 @@ contract BridgeContract {
         bytes32 _newDepositRoot,
         Signature[] calldata _signatures
     ) private view returns (bool) {
-        uint8 threshold = managementContract.requiredValidatorSignaturesForDeposit();
+        uint8 threshold = managementContract
+            .requiredValidatorSignaturesForDeposit();
         require(
             _signatures.length == threshold,
             "Invalid number of signatures."

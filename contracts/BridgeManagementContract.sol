@@ -65,12 +65,15 @@ contract BridgeManagementContract {
         emit SetRelayer(_relayer);
     }
 
-    function hasDuplicate(address[] calldata addresses) private returns (bool) {
-        for (uint i = 0; i < addresses.length; i++) {
-            if (addressExists[addresses[i]]) {
-                return true;
-            } else {
-                addressExists[addresses[i]] = true;
+    // The validators array is not expected to be large, so we can use a simple O(n^2) algorithm to check for duplicates.
+    function hasDuplicate(
+        address[] calldata addresses
+    ) private pure returns (bool) {
+        for (uint i = 0; i < addresses.length - 1; i++) {
+            for (uint j = i + 1; j < addresses.length; j++) {
+                if (addresses[i] == addresses[j]) {
+                    return true;
+                }
             }
         }
         return false;
