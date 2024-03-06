@@ -20,7 +20,6 @@ contract BridgeManagementContract {
     address public securityGuard = 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720;
 
     uint8 public requiredValidatorSignaturesForDeposit = 5;
-    mapping(address => bool) private addressExists;
 
     // Events
 
