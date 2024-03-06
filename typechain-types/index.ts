@@ -2,7 +2,9 @@
 /* tslint:disable */
 /* eslint-disable */
 export type { BridgeContract } from "./BridgeContract";
+export type { BridgeManagementContract } from "./BridgeManagementContract";
 export type { TestPayableContract } from "./TestPayableContract";
 export * as factories from "./factories";
 export { BridgeContract__factory } from "./factories/BridgeContract__factory";
+export { BridgeManagementContract__factory } from "./factories/BridgeManagementContract__factory";
 export { TestPayableContract__factory } from "./factories/TestPayableContract__factory";

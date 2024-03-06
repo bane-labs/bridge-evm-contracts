@@ -54,22 +54,16 @@ export interface BridgeContractInterface extends Interface {
       | "deposit"
       | "depositNonce"
       | "depositRoot"
-      | "governor"
       | "lock"
       | "locked"
       | "maxDepositsPerDistribution"
       | "maxWithdrawalAmount"
       | "minWithdrawalAmount"
-      | "owner"
-      | "relayer"
-      | "requiredValidatorSignaturesForDeposit"
-      | "securityGuard"
       | "setMaxDepositsPerDistribution"
       | "setMaxWithdrawalAmount"
       | "setMinWithdrawalAmount"
       | "setWithdrawalFee"
       | "unlock"
-      | "validators"
       | "withdraw"
       | "withdrawalFee"
       | "withdrawalNonce"
@@ -113,7 +107,6 @@ export interface BridgeContractInterface extends Interface {
     functionFragment: "depositRoot",
     values?: undefined
   ): string;
-  encodeFunctionData(functionFragment: "governor", values?: undefined): string;
   encodeFunctionData(functionFragment: "lock", values?: undefined): string;
   encodeFunctionData(functionFragment: "locked", values?: undefined): string;
   encodeFunctionData(
@@ -126,16 +119,6 @@ export interface BridgeContractInterface extends Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "minWithdrawalAmount",
-    values?: undefined
-  ): string;
-  encodeFunctionData(functionFragment: "owner", values?: undefined): string;
-  encodeFunctionData(functionFragment: "relayer", values?: undefined): string;
-  encodeFunctionData(
-    functionFragment: "requiredValidatorSignaturesForDeposit",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "securityGuard",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -155,10 +138,6 @@ export interface BridgeContractInterface extends Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(functionFragment: "unlock", values?: undefined): string;
-  encodeFunctionData(
-    functionFragment: "validators",
-    values: [BigNumberish]
-  ): string;
   encodeFunctionData(
     functionFragment: "withdraw",
     values: [AddressLike]
@@ -194,7 +173,6 @@ export interface BridgeContractInterface extends Interface {
     functionFragment: "depositRoot",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "governor", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "lock", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "locked", data: BytesLike): Result;
   decodeFunctionResult(
@@ -207,16 +185,6 @@ export interface BridgeContractInterface extends Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "minWithdrawalAmount",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "relayer", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "requiredValidatorSignaturesForDeposit",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "securityGuard",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -236,7 +204,6 @@ export interface BridgeContractInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "unlock", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "validators", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "withdraw", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "withdrawalFee",
@@ -448,8 +415,6 @@ export interface BridgeContract extends BaseContract {
 
   depositRoot: TypedContractMethod<[], [string], "view">;
 
-  governor: TypedContractMethod<[], [string], "view">;
-
   lock: TypedContractMethod<[], [void], "nonpayable">;
 
   locked: TypedContractMethod<[], [boolean], "view">;
@@ -459,18 +424,6 @@ export interface BridgeContract extends BaseContract {
   maxWithdrawalAmount: TypedContractMethod<[], [bigint], "view">;
 
   minWithdrawalAmount: TypedContractMethod<[], [bigint], "view">;
-
-  owner: TypedContractMethod<[], [string], "view">;
-
-  relayer: TypedContractMethod<[], [string], "view">;
-
-  requiredValidatorSignaturesForDeposit: TypedContractMethod<
-    [],
-    [bigint],
-    "view"
-  >;
-
-  securityGuard: TypedContractMethod<[], [string], "view">;
 
   setMaxDepositsPerDistribution: TypedContractMethod<
     [_maxDepositsPerDistribution: BigNumberish],
@@ -497,8 +450,6 @@ export interface BridgeContract extends BaseContract {
   >;
 
   unlock: TypedContractMethod<[], [void], "nonpayable">;
-
-  validators: TypedContractMethod<[arg0: BigNumberish], [string], "view">;
 
   withdraw: TypedContractMethod<[_to: AddressLike], [void], "payable">;
 
@@ -539,9 +490,6 @@ export interface BridgeContract extends BaseContract {
     nameOrSignature: "depositRoot"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
-    nameOrSignature: "governor"
-  ): TypedContractMethod<[], [string], "view">;
-  getFunction(
     nameOrSignature: "lock"
   ): TypedContractMethod<[], [void], "nonpayable">;
   getFunction(
@@ -556,18 +504,6 @@ export interface BridgeContract extends BaseContract {
   getFunction(
     nameOrSignature: "minWithdrawalAmount"
   ): TypedContractMethod<[], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "owner"
-  ): TypedContractMethod<[], [string], "view">;
-  getFunction(
-    nameOrSignature: "relayer"
-  ): TypedContractMethod<[], [string], "view">;
-  getFunction(
-    nameOrSignature: "requiredValidatorSignaturesForDeposit"
-  ): TypedContractMethod<[], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "securityGuard"
-  ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "setMaxDepositsPerDistribution"
   ): TypedContractMethod<
@@ -587,9 +523,6 @@ export interface BridgeContract extends BaseContract {
   getFunction(
     nameOrSignature: "unlock"
   ): TypedContractMethod<[], [void], "nonpayable">;
-  getFunction(
-    nameOrSignature: "validators"
-  ): TypedContractMethod<[arg0: BigNumberish], [string], "view">;
   getFunction(
     nameOrSignature: "withdraw"
   ): TypedContractMethod<[_to: AddressLike], [void], "payable">;
