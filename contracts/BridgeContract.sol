@@ -171,9 +171,9 @@ contract BridgeContract {
         bytes32 _newDepositRoot,
         Signature[] calldata _signatures
     ) private view returns (bool) {
+        uint8 threshold = managementContract.requiredValidatorSignaturesForDeposit();
         require(
-            _signatures.length ==
-                managementContract.requiredValidatorSignaturesForDeposit(),
+            _signatures.length == threshold,
             "Invalid number of signatures."
         );
         bytes32 signedRootMsg = keccak256(
@@ -182,8 +182,6 @@ contract BridgeContract {
                 keccak256(abi.encodePacked(_newDepositRoot))
             )
         );
-        uint8 threshold = managementContract
-            .requiredValidatorSignaturesForDeposit();
         address[] memory recovered = new address[](threshold);
         for (uint i = 0; i < threshold; i++) {
             Signature calldata sig = _signatures[i];

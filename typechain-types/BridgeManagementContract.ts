@@ -42,15 +42,11 @@ export interface BridgeManagementContractInterface extends Interface {
 
   getEvent(
     nameOrSignatureOrTopic:
-      | "MaxDepositsPerDistributionChanged"
-      | "MaxWithdrawalAmountChanged"
-      | "MinWithdrawalAmountChanged"
       | "SetGovernor"
       | "SetOwner"
       | "SetRelayer"
       | "SetSecurityGuard"
       | "SetValidators"
-      | "WithdrawalFeeChanged"
   ): EventFragment;
 
   encodeFunctionData(
@@ -125,42 +121,6 @@ export interface BridgeManagementContractInterface extends Interface {
   decodeFunctionResult(functionFragment: "validators", data: BytesLike): Result;
 }
 
-export namespace MaxDepositsPerDistributionChangedEvent {
-  export type InputTuple = [amount: BigNumberish];
-  export type OutputTuple = [amount: bigint];
-  export interface OutputObject {
-    amount: bigint;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
-export namespace MaxWithdrawalAmountChangedEvent {
-  export type InputTuple = [amount: BigNumberish];
-  export type OutputTuple = [amount: bigint];
-  export interface OutputObject {
-    amount: bigint;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
-export namespace MinWithdrawalAmountChangedEvent {
-  export type InputTuple = [newAmount: BigNumberish];
-  export type OutputTuple = [newAmount: bigint];
-  export interface OutputObject {
-    newAmount: bigint;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
 export namespace SetGovernorEvent {
   export type InputTuple = [governor: AddressLike];
   export type OutputTuple = [governor: string];
@@ -215,18 +175,6 @@ export namespace SetValidatorsEvent {
   export interface OutputObject {
     validators: string[];
     threshold: bigint;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
-export namespace WithdrawalFeeChangedEvent {
-  export type InputTuple = [newFee: BigNumberish];
-  export type OutputTuple = [newFee: bigint];
-  export interface OutputObject {
-    newFee: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -367,27 +315,6 @@ export interface BridgeManagementContract extends BaseContract {
   ): TypedContractMethod<[arg0: BigNumberish], [string], "view">;
 
   getEvent(
-    key: "MaxDepositsPerDistributionChanged"
-  ): TypedContractEvent<
-    MaxDepositsPerDistributionChangedEvent.InputTuple,
-    MaxDepositsPerDistributionChangedEvent.OutputTuple,
-    MaxDepositsPerDistributionChangedEvent.OutputObject
-  >;
-  getEvent(
-    key: "MaxWithdrawalAmountChanged"
-  ): TypedContractEvent<
-    MaxWithdrawalAmountChangedEvent.InputTuple,
-    MaxWithdrawalAmountChangedEvent.OutputTuple,
-    MaxWithdrawalAmountChangedEvent.OutputObject
-  >;
-  getEvent(
-    key: "MinWithdrawalAmountChanged"
-  ): TypedContractEvent<
-    MinWithdrawalAmountChangedEvent.InputTuple,
-    MinWithdrawalAmountChangedEvent.OutputTuple,
-    MinWithdrawalAmountChangedEvent.OutputObject
-  >;
-  getEvent(
     key: "SetGovernor"
   ): TypedContractEvent<
     SetGovernorEvent.InputTuple,
@@ -422,48 +349,8 @@ export interface BridgeManagementContract extends BaseContract {
     SetValidatorsEvent.OutputTuple,
     SetValidatorsEvent.OutputObject
   >;
-  getEvent(
-    key: "WithdrawalFeeChanged"
-  ): TypedContractEvent<
-    WithdrawalFeeChangedEvent.InputTuple,
-    WithdrawalFeeChangedEvent.OutputTuple,
-    WithdrawalFeeChangedEvent.OutputObject
-  >;
 
   filters: {
-    "MaxDepositsPerDistributionChanged(uint8)": TypedContractEvent<
-      MaxDepositsPerDistributionChangedEvent.InputTuple,
-      MaxDepositsPerDistributionChangedEvent.OutputTuple,
-      MaxDepositsPerDistributionChangedEvent.OutputObject
-    >;
-    MaxDepositsPerDistributionChanged: TypedContractEvent<
-      MaxDepositsPerDistributionChangedEvent.InputTuple,
-      MaxDepositsPerDistributionChangedEvent.OutputTuple,
-      MaxDepositsPerDistributionChangedEvent.OutputObject
-    >;
-
-    "MaxWithdrawalAmountChanged(uint256)": TypedContractEvent<
-      MaxWithdrawalAmountChangedEvent.InputTuple,
-      MaxWithdrawalAmountChangedEvent.OutputTuple,
-      MaxWithdrawalAmountChangedEvent.OutputObject
-    >;
-    MaxWithdrawalAmountChanged: TypedContractEvent<
-      MaxWithdrawalAmountChangedEvent.InputTuple,
-      MaxWithdrawalAmountChangedEvent.OutputTuple,
-      MaxWithdrawalAmountChangedEvent.OutputObject
-    >;
-
-    "MinWithdrawalAmountChanged(uint256)": TypedContractEvent<
-      MinWithdrawalAmountChangedEvent.InputTuple,
-      MinWithdrawalAmountChangedEvent.OutputTuple,
-      MinWithdrawalAmountChangedEvent.OutputObject
-    >;
-    MinWithdrawalAmountChanged: TypedContractEvent<
-      MinWithdrawalAmountChangedEvent.InputTuple,
-      MinWithdrawalAmountChangedEvent.OutputTuple,
-      MinWithdrawalAmountChangedEvent.OutputObject
-    >;
-
     "SetGovernor(address)": TypedContractEvent<
       SetGovernorEvent.InputTuple,
       SetGovernorEvent.OutputTuple,
@@ -517,17 +404,6 @@ export interface BridgeManagementContract extends BaseContract {
       SetValidatorsEvent.InputTuple,
       SetValidatorsEvent.OutputTuple,
       SetValidatorsEvent.OutputObject
-    >;
-
-    "WithdrawalFeeChanged(uint256)": TypedContractEvent<
-      WithdrawalFeeChangedEvent.InputTuple,
-      WithdrawalFeeChangedEvent.OutputTuple,
-      WithdrawalFeeChangedEvent.OutputObject
-    >;
-    WithdrawalFeeChanged: TypedContractEvent<
-      WithdrawalFeeChangedEvent.InputTuple,
-      WithdrawalFeeChangedEvent.OutputTuple,
-      WithdrawalFeeChangedEvent.OutputObject
     >;
   };
 }

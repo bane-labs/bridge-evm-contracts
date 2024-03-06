@@ -72,9 +72,13 @@ describe("Bridge contract", function () {
             const oldMaxAmount = ethers.parseEther("10000");
             await expect(await bridgeContract.maxWithdrawalAmount()).to.be.equal(oldMaxAmount);
             const newMaxAmount = ethers.parseEther("5000");
-            const tx = await bridgeContract.connect(governor).setMaxWithdrawalAmount(newMaxAmount);
+            let tx = await bridgeContract.connect(governor).setMaxWithdrawalAmount(newMaxAmount);
             await expect(tx).to.emit(bridgeContract, "MaxWithdrawalAmountChanged").withArgs(newMaxAmount);
             await expect(await bridgeContract.maxWithdrawalAmount()).to.be.equal(newMaxAmount);
+            const newMaxAount2 = ethers.parseEther("10000");
+            tx = await bridgeContract.connect(governor).setMaxWithdrawalAmount(newMaxAount2);
+            await expect(tx).to.emit(bridgeContract, "MaxWithdrawalAmountChanged").withArgs(newMaxAount2);
+            await expect(await bridgeContract.maxWithdrawalAmount()).to.be.equal(newMaxAount2);
         });
 
         it("Set invalid min and max withdrawal amounts", async function () {
@@ -84,9 +88,13 @@ describe("Bridge contract", function () {
 
             let tx = bridgeContract.connect(governor).setMinWithdrawalAmount(maxWithdrawalAmount);
             await expect(tx).to.be.revertedWith("Amount must be less than the maximal withdrawal amount");
+            tx = bridgeContract.connect(governor).setMinWithdrawalAmount(1000000000n);
+            await expect(tx).to.be.revertedWith("Amount must have maximally 8 non-zero decimals");
 
             tx = bridgeContract.connect(governor).setMaxWithdrawalAmount(minWithdrawalAmount);
             await expect(tx).to.be.revertedWith("Amount must be greater than the minimal withdrawal amount");
+            tx = bridgeContract.connect(governor).setMaxWithdrawalAmount(1000000000n);
+            await expect(tx).to.be.revertedWith("Amount must have maximally 8 non-zero decimals");
         });
 
         it("Set max deposits per distribution", async function () {

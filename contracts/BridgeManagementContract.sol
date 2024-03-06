@@ -5,7 +5,7 @@ pragma solidity ^0.8.9;
 
 contract BridgeManagementContract {
     // Roles
-    address public owner = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
+    address public owner = 0xBcd4042DE499D14e55001CcbB24a551F3b954096;
     address public relayer = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
     address[] public validators = [
         0x70997970C51812dc3A010C7d01b50e0d17dc79C8,
@@ -29,11 +29,6 @@ contract BridgeManagementContract {
     event SetValidators(address[] validators, uint threshold);
     event SetGovernor(address governor);
     event SetSecurityGuard(address securityGuard);
-
-    event WithdrawalFeeChanged(uint256 newFee);
-    event MinWithdrawalAmountChanged(uint256 newAmount);
-    event MaxWithdrawalAmountChanged(uint256 amount);
-    event MaxDepositsPerDistributionChanged(uint8 amount);
 
     // Modifiers
     modifier onlyOwner() {
@@ -85,15 +80,16 @@ contract BridgeManagementContract {
         address[] calldata _validators,
         uint threshold
     ) external onlyOwner {
+        uint256 nrValidators = _validators.length;
         require(
-            _validators.length > 0,
+            nrValidators > 0,
             "Validators array must contain at least one address"
         );
         require(
-            threshold > 0 && threshold <= _validators.length,
+            threshold > 0 && threshold <= nrValidators,
             "Threshold must be greater than 0 and less than or equal to the number of validators"
         );
-        for (uint256 i = 0; i < _validators.length; i++) {
+        for (uint256 i = 0; i < nrValidators; i++) {
             require(
                 _validators[i] != address(0),
                 "Validator address cannot be 0x0"
@@ -104,7 +100,7 @@ contract BridgeManagementContract {
             "Duplicate validator addresses are not allowed"
         );
         delete validators;
-        for (uint256 i = 0; i < _validators.length; i++) {
+        for (uint256 i = 0; i < nrValidators; i++) {
             validators.push(_validators[i]);
         }
         requiredValidatorSignaturesForDeposit = uint8(threshold);
