@@ -91,8 +91,28 @@ describe("Bridge Management contract", function () {
             await expect(await bridgeManagementContract.requiredValidatorSignaturesForDeposit()).to.be.equal(2);
         });
 
+        it("Set validators multiple times", async function () {
+            const { bridgeManagementContract, owner, validator1, validator2, validator3, validator4 } = await loadFixture(deployBridgeFixture);
+            let new_validators = [validator1.address, validator2.address, validator3.address];
+            let tx = await bridgeManagementContract.connect(owner).setValidators(new_validators, 2);
+            await expect(tx).to.emit(bridgeManagementContract, "SetValidators").withArgs(new_validators, 2);
+            await expect(await bridgeManagementContract.validators(0)).to.be.equal(validator1.address);
+            await expect(await bridgeManagementContract.validators(1)).to.be.equal(validator2.address);
+            await expect(await bridgeManagementContract.validators(2)).to.be.equal(validator3.address);
+            await expect(await bridgeManagementContract.requiredValidatorSignaturesForDeposit()).to.be.equal(2);
+
+            // The 3rd validator address needs to be updated
+            new_validators = [validator1.address, validator2.address, validator4.address];
+            tx = await bridgeManagementContract.connect(owner).setValidators(new_validators, 2);
+            await expect(tx).to.emit(bridgeManagementContract, "SetValidators").withArgs(new_validators, 2);
+            await expect(await bridgeManagementContract.validators(0)).to.be.equal(validator1.address);
+            await expect(await bridgeManagementContract.validators(1)).to.be.equal(validator2.address);
+            await expect(await bridgeManagementContract.validators(2)).to.be.equal(validator4.address);
+            await expect(await bridgeManagementContract.requiredValidatorSignaturesForDeposit()).to.be.equal(2);
+        });
+
         it("Set validators with duplicate addresses", async function () {
-            const { bridgeManagementContract, validator1, validator2, owner} = await loadFixture(deployBridgeFixture);
+            const { bridgeManagementContract, validator1, validator2, owner } = await loadFixture(deployBridgeFixture);
             const new_validators = [validator1.address, validator1.address, validator2.address];
             const tx = bridgeManagementContract.connect(owner).setValidators(new_validators, 2);
             await expect(tx).to.be.revertedWith("Duplicate validator addresses are not allowed");
