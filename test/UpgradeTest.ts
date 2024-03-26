@@ -5,7 +5,7 @@ import { getValidatorSignatures } from "../utils/signature-utils";
 import {
     toEthDecimals, hashDepositOrWithdrawal, fundContract, computeRoot, validator1, validator2, validator3
 } from "./helper";
-import { BridgeContract } from "../typechain-types/contracts/BridgeContract";
+import { BridgeImpl } from "../typechain-types/contracts/BridgeImpl";
 import { BridgeProxy } from "../typechain-types/contracts/BridgeProxy";
 import { TestBridgeImplV2 } from "../typechain-types/contracts/tests/TestBridgeImplV2";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
@@ -34,7 +34,7 @@ describe("Bridge Implementation", function () {
         await bridgeManagementContract.waitForDeployment();
         const bridgeManagementAddress = await bridgeManagementContract.getAddress();
 
-        const BridgeFactory = await ethers.getContractFactory("BridgeContract");
+        const BridgeFactory = await ethers.getContractFactory("BridgeImpl");
         const bridgeImplV1 = await BridgeFactory.deploy();
         await bridgeImplV1.waitForDeployment();
         const bridgeImplV1Address = await bridgeImplV1.getAddress();
@@ -51,7 +51,7 @@ describe("Bridge Implementation", function () {
 
         // These are both pointing to the same proxy contract, but provide different interfaces to use.
         // proxy provides the interface of the initial implementation, while proxyV2 provides the interface of the upgraded implementation.
-        const proxy = new ethers.Contract(proxyAddress, bridgeImplV1.interface, validator1) as unknown as BridgeContract;
+        const proxy = new ethers.Contract(proxyAddress, bridgeImplV1.interface, validator1) as unknown as BridgeImpl;
         const proxyV2 = new ethers.Contract(proxyAddress, bridgeImplV2.interface, validator2) as unknown as TestBridgeImplV2;
 
         await fundContract(proxy, relayer);
@@ -85,7 +85,7 @@ describe("Bridge Implementation", function () {
         }
     }
 
-    async function upgradeProxyImplementation(bridgeImplV1Contract: BridgeContract, bridgeImplV2Contract: TestBridgeImplV2, proxyContract: BridgeProxy, proxyOwner: HardhatEthersSigner) {
+    async function upgradeProxyImplementation(bridgeImplV1Contract: BridgeImpl, bridgeImplV2Contract: TestBridgeImplV2, proxyContract: BridgeProxy, proxyOwner: HardhatEthersSigner) {
         const oldImplementationAddress = await bridgeImplV1Contract.getAddress();
         const newImplementationAddress = await bridgeImplV2Contract.getAddress();
         expect(await proxyContract.implementation()).to.be.equal(oldImplementationAddress);

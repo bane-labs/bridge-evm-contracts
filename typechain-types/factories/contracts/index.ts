@@ -2,7 +2,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export * as tests from "./tests";
-export { BridgeContract__factory } from "./BridgeContract__factory";
+export { BridgeImpl__factory } from "./BridgeImpl__factory";
 export { BridgeManagementContract__factory } from "./BridgeManagementContract__factory";
 export { BridgeProxy__factory } from "./BridgeProxy__factory";
 export { BridgeStorage__factory } from "./BridgeStorage__factory";

@@ -23,7 +23,7 @@ import type {
   TypedContractMethod,
 } from "../common";
 
-export declare namespace BridgeContract {
+export declare namespace BridgeImpl {
   export type SignatureStruct = { v: BigNumberish; r: BytesLike; s: BytesLike };
 
   export type SignatureStructOutput = [v: bigint, r: string, s: string] & {
@@ -76,7 +76,7 @@ export declare namespace BridgeStorage {
   };
 }
 
-export interface BridgeContractInterface extends Interface {
+export interface BridgeImplInterface extends Interface {
   getFunction(
     nameOrSignature:
       | "claim"
@@ -120,8 +120,8 @@ export interface BridgeContractInterface extends Interface {
     functionFragment: "deposit",
     values: [
       BytesLike,
-      BridgeContract.SignatureStruct[],
-      BridgeContract.DepositDataStruct[]
+      BridgeImpl.SignatureStruct[],
+      BridgeImpl.DepositDataStruct[]
     ]
   ): string;
   encodeFunctionData(functionFragment: "gasBridge", values?: undefined): string;
@@ -361,11 +361,11 @@ export namespace WithdrawalFeeChangedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export interface BridgeContract extends BaseContract {
-  connect(runner?: ContractRunner | null): BridgeContract;
+export interface BridgeImpl extends BaseContract {
+  connect(runner?: ContractRunner | null): BridgeImpl;
   waitForDeployment(): Promise<this>;
 
-  interface: BridgeContractInterface;
+  interface: BridgeImplInterface;
 
   queryFilter<TCEvent extends TypedContractEvent>(
     event: TCEvent,
@@ -415,8 +415,8 @@ export interface BridgeContract extends BaseContract {
   deposit: TypedContractMethod<
     [
       _depositRoot: BytesLike,
-      _signatures: BridgeContract.SignatureStruct[],
-      _deposits: BridgeContract.DepositDataStruct[]
+      _signatures: BridgeImpl.SignatureStruct[],
+      _deposits: BridgeImpl.DepositDataStruct[]
     ],
     [void],
     "nonpayable"
@@ -499,8 +499,8 @@ export interface BridgeContract extends BaseContract {
   ): TypedContractMethod<
     [
       _depositRoot: BytesLike,
-      _signatures: BridgeContract.SignatureStruct[],
-      _deposits: BridgeContract.DepositDataStruct[]
+      _signatures: BridgeImpl.SignatureStruct[],
+      _deposits: BridgeImpl.DepositDataStruct[]
     ],
     [void],
     "nonpayable"

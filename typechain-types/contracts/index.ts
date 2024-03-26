@@ -3,7 +3,7 @@
 /* eslint-disable */
 import type * as tests from "./tests";
 export type { tests };
-export type { BridgeContract } from "./BridgeContract";
+export type { BridgeImpl } from "./BridgeImpl";
 export type { BridgeManagementContract } from "./BridgeManagementContract";
 export type { BridgeProxy } from "./BridgeProxy";
 export type { BridgeStorage } from "./BridgeStorage";

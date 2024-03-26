@@ -7,7 +7,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 // Todo: Before compiling byte code for genesis script, make sure to remove the receive function as it is only used for testing purpose.
 
-contract BridgeContract is BridgeStorage, Initializable {
+contract BridgeImpl is BridgeStorage, Initializable {
     event Locked();
     event Unlocked();
     event Deposit(uint64 nonce, uint64 amount, address to);

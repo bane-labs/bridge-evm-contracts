@@ -18,9 +18,9 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Initializable__factory>;
     getContractFactory(
-      name: "BridgeContract",
+      name: "BridgeImpl",
       signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.BridgeContract__factory>;
+    ): Promise<Contracts.BridgeImpl__factory>;
     getContractFactory(
       name: "BridgeManagementContract",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -56,10 +56,10 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.Initializable>;
     getContractAt(
-      name: "BridgeContract",
+      name: "BridgeImpl",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
-    ): Promise<Contracts.BridgeContract>;
+    ): Promise<Contracts.BridgeImpl>;
     getContractAt(
       name: "BridgeManagementContract",
       address: string | ethers.Addressable,
@@ -101,9 +101,9 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.Initializable>;
     deployContract(
-      name: "BridgeContract",
+      name: "BridgeImpl",
       signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.BridgeContract>;
+    ): Promise<Contracts.BridgeImpl>;
     deployContract(
       name: "BridgeManagementContract",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -139,10 +139,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.Initializable>;
     deployContract(
-      name: "BridgeContract",
+      name: "BridgeImpl",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.BridgeContract>;
+    ): Promise<Contracts.BridgeImpl>;
     deployContract(
       name: "BridgeManagementContract",
       args: any[],

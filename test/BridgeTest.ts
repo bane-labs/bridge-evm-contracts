@@ -27,7 +27,7 @@ describe("Bridge Implementation", function () {
         ] = await ethers.getSigners();
         const bridgeManagementContract = await ethers.deployContract("BridgeManagementContract");
         await bridgeManagementContract.waitForDeployment();
-        const BridgeContract = await ethers.getContractFactory("BridgeContract");
+        const BridgeContract = await ethers.getContractFactory("BridgeImpl");
         const bridgeContract = await BridgeContract.deploy();
         await bridgeContract.waitForDeployment();
 
