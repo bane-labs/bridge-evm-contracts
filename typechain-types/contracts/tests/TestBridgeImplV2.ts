@@ -21,9 +21,9 @@ import type {
   TypedLogDescription,
   TypedListener,
   TypedContractMethod,
-} from "../common";
+} from "../../common";
 
-export declare namespace TestUpgradeBridgeImpl {
+export declare namespace TestBridgeImplV2 {
   export type SignatureStruct = { v: BigNumberish; r: BytesLike; s: BytesLike };
 
   export type SignatureStructOutput = [v: bigint, r: string, s: string] & {
@@ -45,7 +45,7 @@ export declare namespace TestUpgradeBridgeImpl {
   ] & { to: string; amount: bigint; nonce: bigint };
 }
 
-export declare namespace BridgeStorageV1 {
+export declare namespace TestBridgeStorageV1 {
   export type StateStruct = { nonce: BigNumberish; root: BytesLike };
 
   export type StateStructOutput = [nonce: bigint, root: string] & {
@@ -76,7 +76,7 @@ export declare namespace BridgeStorageV1 {
   };
 }
 
-export interface TestUpgradeBridgeImplInterface extends Interface {
+export interface TestBridgeImplV2Interface extends Interface {
   getFunction(
     nameOrSignature:
       | "claim"
@@ -86,6 +86,9 @@ export interface TestUpgradeBridgeImplInterface extends Interface {
       | "isRegistered"
       | "lock"
       | "locked"
+      | "managementContract"
+      | "proxyGap"
+      | "register"
       | "setGasMaxNrDepositsPerDistribution"
       | "setGasWithdrawalFee"
       | "setGasWithdrawalMaxAmount"
@@ -117,8 +120,8 @@ export interface TestUpgradeBridgeImplInterface extends Interface {
     functionFragment: "deposit",
     values: [
       BytesLike,
-      TestUpgradeBridgeImpl.SignatureStruct[],
-      TestUpgradeBridgeImpl.DepositDataStruct[]
+      TestBridgeImplV2.SignatureStruct[],
+      TestBridgeImplV2.DepositDataStruct[]
     ]
   ): string;
   encodeFunctionData(functionFragment: "gasBridge", values?: undefined): string;
@@ -128,6 +131,18 @@ export interface TestUpgradeBridgeImplInterface extends Interface {
   ): string;
   encodeFunctionData(functionFragment: "lock", values?: undefined): string;
   encodeFunctionData(functionFragment: "locked", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "managementContract",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "proxyGap",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "register",
+    values: [AddressLike]
+  ): string;
   encodeFunctionData(
     functionFragment: "setGasMaxNrDepositsPerDistribution",
     values: [BigNumberish]
@@ -163,6 +178,12 @@ export interface TestUpgradeBridgeImplInterface extends Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "lock", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "locked", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "managementContract",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "proxyGap", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "register", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "setGasMaxNrDepositsPerDistribution",
     data: BytesLike
@@ -336,11 +357,11 @@ export namespace WithdrawalFeeChangedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export interface TestUpgradeBridgeImpl extends BaseContract {
-  connect(runner?: ContractRunner | null): TestUpgradeBridgeImpl;
+export interface TestBridgeImplV2 extends BaseContract {
+  connect(runner?: ContractRunner | null): TestBridgeImplV2;
   waitForDeployment(): Promise<this>;
 
-  interface: TestUpgradeBridgeImplInterface;
+  interface: TestBridgeImplV2Interface;
 
   queryFilter<TCEvent extends TypedContractEvent>(
     event: TCEvent,
@@ -390,8 +411,8 @@ export interface TestUpgradeBridgeImpl extends BaseContract {
   deposit: TypedContractMethod<
     [
       _depositRoot: BytesLike,
-      _signatures: TestUpgradeBridgeImpl.SignatureStruct[],
-      _deposits: TestUpgradeBridgeImpl.DepositDataStruct[]
+      _signatures: TestBridgeImplV2.SignatureStruct[],
+      _deposits: TestBridgeImplV2.DepositDataStruct[]
     ],
     [void],
     "nonpayable"
@@ -401,13 +422,13 @@ export interface TestUpgradeBridgeImpl extends BaseContract {
     [],
     [
       [
-        BridgeStorageV1.StateStructOutput,
-        BridgeStorageV1.StateStructOutput,
-        BridgeStorageV1.ConfigStructOutput
+        TestBridgeStorageV1.StateStructOutput,
+        TestBridgeStorageV1.StateStructOutput,
+        TestBridgeStorageV1.ConfigStructOutput
       ] & {
-        depositState: BridgeStorageV1.StateStructOutput;
-        withdrawalState: BridgeStorageV1.StateStructOutput;
-        config: BridgeStorageV1.ConfigStructOutput;
+        depositState: TestBridgeStorageV1.StateStructOutput;
+        withdrawalState: TestBridgeStorageV1.StateStructOutput;
+        config: TestBridgeStorageV1.ConfigStructOutput;
       }
     ],
     "view"
@@ -418,6 +439,12 @@ export interface TestUpgradeBridgeImpl extends BaseContract {
   lock: TypedContractMethod<[], [void], "nonpayable">;
 
   locked: TypedContractMethod<[], [boolean], "view">;
+
+  managementContract: TypedContractMethod<[], [string], "view">;
+
+  proxyGap: TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
+
+  register: TypedContractMethod<[_token: AddressLike], [void], "nonpayable">;
 
   setGasMaxNrDepositsPerDistribution: TypedContractMethod<
     [_maxNrDeposits: BigNumberish],
@@ -466,8 +493,8 @@ export interface TestUpgradeBridgeImpl extends BaseContract {
   ): TypedContractMethod<
     [
       _depositRoot: BytesLike,
-      _signatures: TestUpgradeBridgeImpl.SignatureStruct[],
-      _deposits: TestUpgradeBridgeImpl.DepositDataStruct[]
+      _signatures: TestBridgeImplV2.SignatureStruct[],
+      _deposits: TestBridgeImplV2.DepositDataStruct[]
     ],
     [void],
     "nonpayable"
@@ -478,13 +505,13 @@ export interface TestUpgradeBridgeImpl extends BaseContract {
     [],
     [
       [
-        BridgeStorageV1.StateStructOutput,
-        BridgeStorageV1.StateStructOutput,
-        BridgeStorageV1.ConfigStructOutput
+        TestBridgeStorageV1.StateStructOutput,
+        TestBridgeStorageV1.StateStructOutput,
+        TestBridgeStorageV1.ConfigStructOutput
       ] & {
-        depositState: BridgeStorageV1.StateStructOutput;
-        withdrawalState: BridgeStorageV1.StateStructOutput;
-        config: BridgeStorageV1.ConfigStructOutput;
+        depositState: TestBridgeStorageV1.StateStructOutput;
+        withdrawalState: TestBridgeStorageV1.StateStructOutput;
+        config: TestBridgeStorageV1.ConfigStructOutput;
       }
     ],
     "view"
@@ -498,6 +525,15 @@ export interface TestUpgradeBridgeImpl extends BaseContract {
   getFunction(
     nameOrSignature: "locked"
   ): TypedContractMethod<[], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "managementContract"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "proxyGap"
+  ): TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "register"
+  ): TypedContractMethod<[_token: AddressLike], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "setGasMaxNrDepositsPerDistribution"
   ): TypedContractMethod<[_maxNrDeposits: BigNumberish], [void], "nonpayable">;

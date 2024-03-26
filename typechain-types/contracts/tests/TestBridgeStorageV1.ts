@@ -20,7 +20,7 @@ import type {
   TypedContractMethod,
 } from "../../common";
 
-export declare namespace BridgeStorageV1 {
+export declare namespace TestBridgeStorageV1 {
   export type StateStruct = { nonce: BigNumberish; root: BytesLike };
 
   export type StateStructOutput = [nonce: bigint, root: string] & {
@@ -51,9 +51,14 @@ export declare namespace BridgeStorageV1 {
   };
 }
 
-export interface BridgeStorageV1Interface extends Interface {
+export interface TestBridgeStorageV1Interface extends Interface {
   getFunction(
-    nameOrSignature: "claimableGas" | "gasBridge" | "locked"
+    nameOrSignature:
+      | "claimableGas"
+      | "gasBridge"
+      | "locked"
+      | "managementContract"
+      | "proxyGap"
   ): FunctionFragment;
 
   encodeFunctionData(
@@ -62,6 +67,14 @@ export interface BridgeStorageV1Interface extends Interface {
   ): string;
   encodeFunctionData(functionFragment: "gasBridge", values?: undefined): string;
   encodeFunctionData(functionFragment: "locked", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "managementContract",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "proxyGap",
+    values: [BigNumberish]
+  ): string;
 
   decodeFunctionResult(
     functionFragment: "claimableGas",
@@ -69,13 +82,18 @@ export interface BridgeStorageV1Interface extends Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "gasBridge", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "locked", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "managementContract",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "proxyGap", data: BytesLike): Result;
 }
 
-export interface BridgeStorageV1 extends BaseContract {
-  connect(runner?: ContractRunner | null): BridgeStorageV1;
+export interface TestBridgeStorageV1 extends BaseContract {
+  connect(runner?: ContractRunner | null): TestBridgeStorageV1;
   waitForDeployment(): Promise<this>;
 
-  interface: BridgeStorageV1Interface;
+  interface: TestBridgeStorageV1Interface;
 
   queryFilter<TCEvent extends TypedContractEvent>(
     event: TCEvent,
@@ -124,19 +142,23 @@ export interface BridgeStorageV1 extends BaseContract {
     [],
     [
       [
-        BridgeStorageV1.StateStructOutput,
-        BridgeStorageV1.StateStructOutput,
-        BridgeStorageV1.ConfigStructOutput
+        TestBridgeStorageV1.StateStructOutput,
+        TestBridgeStorageV1.StateStructOutput,
+        TestBridgeStorageV1.ConfigStructOutput
       ] & {
-        depositState: BridgeStorageV1.StateStructOutput;
-        withdrawalState: BridgeStorageV1.StateStructOutput;
-        config: BridgeStorageV1.ConfigStructOutput;
+        depositState: TestBridgeStorageV1.StateStructOutput;
+        withdrawalState: TestBridgeStorageV1.StateStructOutput;
+        config: TestBridgeStorageV1.ConfigStructOutput;
       }
     ],
     "view"
   >;
 
   locked: TypedContractMethod<[], [boolean], "view">;
+
+  managementContract: TypedContractMethod<[], [string], "view">;
+
+  proxyGap: TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
 
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
@@ -155,13 +177,13 @@ export interface BridgeStorageV1 extends BaseContract {
     [],
     [
       [
-        BridgeStorageV1.StateStructOutput,
-        BridgeStorageV1.StateStructOutput,
-        BridgeStorageV1.ConfigStructOutput
+        TestBridgeStorageV1.StateStructOutput,
+        TestBridgeStorageV1.StateStructOutput,
+        TestBridgeStorageV1.ConfigStructOutput
       ] & {
-        depositState: BridgeStorageV1.StateStructOutput;
-        withdrawalState: BridgeStorageV1.StateStructOutput;
-        config: BridgeStorageV1.ConfigStructOutput;
+        depositState: TestBridgeStorageV1.StateStructOutput;
+        withdrawalState: TestBridgeStorageV1.StateStructOutput;
+        config: TestBridgeStorageV1.ConfigStructOutput;
       }
     ],
     "view"
@@ -169,6 +191,12 @@ export interface BridgeStorageV1 extends BaseContract {
   getFunction(
     nameOrSignature: "locked"
   ): TypedContractMethod<[], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "managementContract"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "proxyGap"
+  ): TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
 
   filters: {};
 }

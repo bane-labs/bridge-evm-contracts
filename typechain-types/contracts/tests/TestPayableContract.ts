@@ -3,11 +3,8 @@
 /* eslint-disable */
 import type {
   BaseContract,
-  BytesLike,
   FunctionFragment,
-  Result,
   Interface,
-  AddressLike,
   ContractRunner,
   ContractMethod,
   Listener,
@@ -17,37 +14,15 @@ import type {
   TypedDeferredTopicFilter,
   TypedEventLog,
   TypedListener,
-  TypedContractMethod,
-} from "./common";
+} from "../../common";
 
-export interface BridgeProxyInterface extends Interface {
-  getFunction(
-    nameOrSignature: "implementation" | "owner" | "upgrade"
-  ): FunctionFragment;
+export interface TestPayableContractInterface extends Interface {}
 
-  encodeFunctionData(
-    functionFragment: "implementation",
-    values?: undefined
-  ): string;
-  encodeFunctionData(functionFragment: "owner", values?: undefined): string;
-  encodeFunctionData(
-    functionFragment: "upgrade",
-    values: [AddressLike]
-  ): string;
-
-  decodeFunctionResult(
-    functionFragment: "implementation",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "upgrade", data: BytesLike): Result;
-}
-
-export interface BridgeProxy extends BaseContract {
-  connect(runner?: ContractRunner | null): BridgeProxy;
+export interface TestPayableContract extends BaseContract {
+  connect(runner?: ContractRunner | null): TestPayableContract;
   waitForDeployment(): Promise<this>;
 
-  interface: BridgeProxyInterface;
+  interface: TestPayableContractInterface;
 
   queryFilter<TCEvent extends TypedContractEvent>(
     event: TCEvent,
@@ -86,33 +61,9 @@ export interface BridgeProxy extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
-  implementation: TypedContractMethod<[], [string], "view">;
-
-  owner: TypedContractMethod<[], [string], "view">;
-
-  upgrade: TypedContractMethod<
-    [_newImplementation: AddressLike],
-    [void],
-    "nonpayable"
-  >;
-
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
   ): T;
-
-  getFunction(
-    nameOrSignature: "implementation"
-  ): TypedContractMethod<[], [string], "view">;
-  getFunction(
-    nameOrSignature: "owner"
-  ): TypedContractMethod<[], [string], "view">;
-  getFunction(
-    nameOrSignature: "upgrade"
-  ): TypedContractMethod<
-    [_newImplementation: AddressLike],
-    [void],
-    "nonpayable"
-  >;
 
   filters: {};
 }

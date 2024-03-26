@@ -13,8 +13,11 @@ import type {
   ContractDeployTransaction,
   ContractRunner,
 } from "ethers";
-import type { NonPayableOverrides } from "../common";
-import type { BridgeProxy, BridgeProxyInterface } from "../BridgeProxy";
+import type { NonPayableOverrides } from "../../common";
+import type {
+  BridgeProxy,
+  BridgeProxyInterface,
+} from "../../contracts/BridgeProxy";
 
 const _abi = [
   {

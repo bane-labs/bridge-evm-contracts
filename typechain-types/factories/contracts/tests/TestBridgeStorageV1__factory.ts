@@ -10,9 +10,9 @@ import {
 import type { Signer, ContractDeployTransaction, ContractRunner } from "ethers";
 import type { NonPayableOverrides } from "../../../common";
 import type {
-  BridgeStorageV1,
-  BridgeStorageV1Interface,
-} from "../../../tests/TestBridgeStorageV1.sol/BridgeStorageV1";
+  TestBridgeStorageV1,
+  TestBridgeStorageV1Interface,
+} from "../../../contracts/tests/TestBridgeStorageV1";
 
 const _abi = [
   {
@@ -56,7 +56,7 @@ const _abi = [
             type: "bytes32",
           },
         ],
-        internalType: "struct BridgeStorageV1.State",
+        internalType: "struct TestBridgeStorageV1.State",
         name: "depositState",
         type: "tuple",
       },
@@ -73,7 +73,7 @@ const _abi = [
             type: "bytes32",
           },
         ],
-        internalType: "struct BridgeStorageV1.State",
+        internalType: "struct TestBridgeStorageV1.State",
         name: "withdrawalState",
         type: "tuple",
       },
@@ -105,7 +105,7 @@ const _abi = [
             type: "uint256[2]",
           },
         ],
-        internalType: "struct BridgeStorageV1.Config",
+        internalType: "struct TestBridgeStorageV1.Config",
         name: "config",
         type: "tuple",
       },
@@ -126,21 +126,53 @@ const _abi = [
     stateMutability: "view",
     type: "function",
   },
+  {
+    inputs: [],
+    name: "managementContract",
+    outputs: [
+      {
+        internalType: "contract BridgeManagementContract",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    name: "proxyGap",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
 ] as const;
 
 const _bytecode =
-  "0x600060e0818152610100829052608090815261012082815261014083905260a05267016345785d8a0000610160818152670de0b6b3a764000061018081905269021e19e0c9bab24000006101a081905260646101c08190526102406040526102008781526102208890526101e081905260c0859052600180546001600160401b0319908116825560028a81556003805490921690915560049990995560059687556006949094556007929092556008805460ff19169091179055939490939192916100cd91600991906100e4565b50505050503480156100de57600080fd5b50610137565b8260028101928215610112579160200282015b828111156101125782518255916020019190600101906100f7565b5061011e929150610122565b5090565b5b8082111561011e5760008155600101610123565b61028e806101466000396000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c806360f72e5a14610046578063cf309012146100af578063f7e3d1b4146100d3575b600080fd5b610082610054366004610190565b600b602052600090815260409020546001600160a01b03811690600160a01b900467ffffffffffffffff1682565b604080516001600160a01b03909316835267ffffffffffffffff9091166020830152015b60405180910390f35b6000546100c390600160a01b900460ff1681565b60405190151581526020016100a6565b6100db6100ea565b6040516100a6939291906101c1565b6040805180820182526001805467ffffffffffffffff90811683526002805460208086019190915285518087018752600354909316835260045483820152855160a081018752600580548252600654928201929092526007548188015260085460ff166060820152865180880197889052959693959093919260808501926009919082845b81548152602001906001019080831161016f57505050505081525050905083565b6000602082840312156101a257600080fd5b813567ffffffffffffffff811681146101ba57600080fd5b9392505050565b835167ffffffffffffffff168152602080850151908201526101408101835167ffffffffffffffff166040830152602084015160608301528251608083015260208084015160a0840152604084015160c084015260ff60608501511660e08401526080840151610100840160005b600281101561024c5782518252918301919083019060010161022f565b5050505094935050505056fea264697066735822122070d65eefddfabc77dcaae6ff2378c23999311c34b1090bbfb2f488732ad8244564736f6c63430008140033";
+  "0x608060405234801561001057600080fd5b50610319806100206000396000f3fe608060405234801561001057600080fd5b50600436106100575760003560e01c806360f72e5a1461005c578063b3e5cc4a146100c5578063cabfe7c6146100f0578063cf30901214610111578063f7e3d1b41461012e575b600080fd5b61009861006a366004610202565b600d602052600090815260409020546001600160a01b03811690600160a01b900467ffffffffffffffff1682565b604080516001600160a01b03909316835267ffffffffffffffff9091166020830152015b60405180910390f35b6002546100d8906001600160a01b031681565b6040516001600160a01b0390911681526020016100bc565b6101036100fe366004610233565b610145565b6040519081526020016100bc565b600e5461011e9060ff1681565b60405190151581526020016100bc565b61013661015c565b6040516100bc9392919061024c565b6000816002811061015557600080fd5b0154905081565b6040805180820182526003805467ffffffffffffffff908116835260045460208085019190915284518086018652600554909216825260065482820152845160a0810186526007805482526008549282019290925260095481870152600a5460ff166060820152855180870196879052949592949092608084019190600b9060029082845b8154815260200190600101908083116101e157505050505081525050905083565b60006020828403121561021457600080fd5b813567ffffffffffffffff8116811461022c57600080fd5b9392505050565b60006020828403121561024557600080fd5b5035919050565b835167ffffffffffffffff168152602080850151908201526101408101835167ffffffffffffffff166040830152602084015160608301528251608083015260208084015160a0840152604084015160c084015260ff60608501511660e08401526080840151610100840160005b60028110156102d7578251825291830191908301906001016102ba565b5050505094935050505056fea2646970667358221220f95dbe01496f66b5f54c5f0a048b870df785aef1748f56a2ea3ca0e2137b5fe364736f6c63430008140033";
 
-type BridgeStorageV1ConstructorParams =
+type TestBridgeStorageV1ConstructorParams =
   | [signer?: Signer]
   | ConstructorParameters<typeof ContractFactory>;
 
 const isSuperArgs = (
-  xs: BridgeStorageV1ConstructorParams
+  xs: TestBridgeStorageV1ConstructorParams
 ): xs is ConstructorParameters<typeof ContractFactory> => xs.length > 1;
 
-export class BridgeStorageV1__factory extends ContractFactory {
-  constructor(...args: BridgeStorageV1ConstructorParams) {
+export class TestBridgeStorageV1__factory extends ContractFactory {
+  constructor(...args: TestBridgeStorageV1ConstructorParams) {
     if (isSuperArgs(args)) {
       super(...args);
     } else {
@@ -155,24 +187,30 @@ export class BridgeStorageV1__factory extends ContractFactory {
   }
   override deploy(overrides?: NonPayableOverrides & { from?: string }) {
     return super.deploy(overrides || {}) as Promise<
-      BridgeStorageV1 & {
+      TestBridgeStorageV1 & {
         deploymentTransaction(): ContractTransactionResponse;
       }
     >;
   }
-  override connect(runner: ContractRunner | null): BridgeStorageV1__factory {
-    return super.connect(runner) as BridgeStorageV1__factory;
+  override connect(
+    runner: ContractRunner | null
+  ): TestBridgeStorageV1__factory {
+    return super.connect(runner) as TestBridgeStorageV1__factory;
   }
 
   static readonly bytecode = _bytecode;
   static readonly abi = _abi;
-  static createInterface(): BridgeStorageV1Interface {
-    return new Interface(_abi) as BridgeStorageV1Interface;
+  static createInterface(): TestBridgeStorageV1Interface {
+    return new Interface(_abi) as TestBridgeStorageV1Interface;
   }
   static connect(
     address: string,
     runner?: ContractRunner | null
-  ): BridgeStorageV1 {
-    return new Contract(address, _abi, runner) as unknown as BridgeStorageV1;
+  ): TestBridgeStorageV1 {
+    return new Contract(
+      address,
+      _abi,
+      runner
+    ) as unknown as TestBridgeStorageV1;
   }
 }

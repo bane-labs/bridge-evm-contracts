@@ -19,9 +19,9 @@ import type {
   TypedEventLog,
   TypedListener,
   TypedContractMethod,
-} from "../common";
+} from "../../common";
 
-export declare namespace BridgeStorageV1 {
+export declare namespace TestBridgeStorageV1 {
   export type StateStruct = { nonce: BigNumberish; root: BytesLike };
 
   export type StateStructOutput = [nonce: bigint, root: string] & {
@@ -52,9 +52,16 @@ export declare namespace BridgeStorageV1 {
   };
 }
 
-export interface TestUpgradeBridgeStorageInterface extends Interface {
+export interface TestBridgeStorageV2Interface extends Interface {
   getFunction(
-    nameOrSignature: "claimableGas" | "gasBridge" | "isRegistered" | "locked"
+    nameOrSignature:
+      | "claimableGas"
+      | "gasBridge"
+      | "isRegistered"
+      | "locked"
+      | "managementContract"
+      | "proxyGap"
+      | "register"
   ): FunctionFragment;
 
   encodeFunctionData(
@@ -67,6 +74,18 @@ export interface TestUpgradeBridgeStorageInterface extends Interface {
     values: [AddressLike]
   ): string;
   encodeFunctionData(functionFragment: "locked", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "managementContract",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "proxyGap",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "register",
+    values: [AddressLike]
+  ): string;
 
   decodeFunctionResult(
     functionFragment: "claimableGas",
@@ -78,13 +97,19 @@ export interface TestUpgradeBridgeStorageInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "locked", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "managementContract",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "proxyGap", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "register", data: BytesLike): Result;
 }
 
-export interface TestUpgradeBridgeStorage extends BaseContract {
-  connect(runner?: ContractRunner | null): TestUpgradeBridgeStorage;
+export interface TestBridgeStorageV2 extends BaseContract {
+  connect(runner?: ContractRunner | null): TestBridgeStorageV2;
   waitForDeployment(): Promise<this>;
 
-  interface: TestUpgradeBridgeStorageInterface;
+  interface: TestBridgeStorageV2Interface;
 
   queryFilter<TCEvent extends TypedContractEvent>(
     event: TCEvent,
@@ -133,13 +158,13 @@ export interface TestUpgradeBridgeStorage extends BaseContract {
     [],
     [
       [
-        BridgeStorageV1.StateStructOutput,
-        BridgeStorageV1.StateStructOutput,
-        BridgeStorageV1.ConfigStructOutput
+        TestBridgeStorageV1.StateStructOutput,
+        TestBridgeStorageV1.StateStructOutput,
+        TestBridgeStorageV1.ConfigStructOutput
       ] & {
-        depositState: BridgeStorageV1.StateStructOutput;
-        withdrawalState: BridgeStorageV1.StateStructOutput;
-        config: BridgeStorageV1.ConfigStructOutput;
+        depositState: TestBridgeStorageV1.StateStructOutput;
+        withdrawalState: TestBridgeStorageV1.StateStructOutput;
+        config: TestBridgeStorageV1.ConfigStructOutput;
       }
     ],
     "view"
@@ -148,6 +173,12 @@ export interface TestUpgradeBridgeStorage extends BaseContract {
   isRegistered: TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
 
   locked: TypedContractMethod<[], [boolean], "view">;
+
+  managementContract: TypedContractMethod<[], [string], "view">;
+
+  proxyGap: TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
+
+  register: TypedContractMethod<[_token: AddressLike], [void], "nonpayable">;
 
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
@@ -166,13 +197,13 @@ export interface TestUpgradeBridgeStorage extends BaseContract {
     [],
     [
       [
-        BridgeStorageV1.StateStructOutput,
-        BridgeStorageV1.StateStructOutput,
-        BridgeStorageV1.ConfigStructOutput
+        TestBridgeStorageV1.StateStructOutput,
+        TestBridgeStorageV1.StateStructOutput,
+        TestBridgeStorageV1.ConfigStructOutput
       ] & {
-        depositState: BridgeStorageV1.StateStructOutput;
-        withdrawalState: BridgeStorageV1.StateStructOutput;
-        config: BridgeStorageV1.ConfigStructOutput;
+        depositState: TestBridgeStorageV1.StateStructOutput;
+        withdrawalState: TestBridgeStorageV1.StateStructOutput;
+        config: TestBridgeStorageV1.ConfigStructOutput;
       }
     ],
     "view"
@@ -183,6 +214,15 @@ export interface TestUpgradeBridgeStorage extends BaseContract {
   getFunction(
     nameOrSignature: "locked"
   ): TypedContractMethod<[], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "managementContract"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "proxyGap"
+  ): TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "register"
+  ): TypedContractMethod<[_token: AddressLike], [void], "nonpayable">;
 
   filters: {};
 }

@@ -8,11 +8,11 @@ import {
   Interface,
 } from "ethers";
 import type { Signer, ContractDeployTransaction, ContractRunner } from "ethers";
-import type { NonPayableOverrides } from "../../common";
+import type { NonPayableOverrides } from "../../../common";
 import type {
-  TestUpgradeBridgeStorage,
-  TestUpgradeBridgeStorageInterface,
-} from "../../tests/TestUpgradeBridgeStorage";
+  TestBridgeStorageV2,
+  TestBridgeStorageV2Interface,
+} from "../../../contracts/tests/TestBridgeStorageV2";
 
 const _abi = [
   {
@@ -56,7 +56,7 @@ const _abi = [
             type: "bytes32",
           },
         ],
-        internalType: "struct BridgeStorageV1.State",
+        internalType: "struct TestBridgeStorageV1.State",
         name: "depositState",
         type: "tuple",
       },
@@ -73,7 +73,7 @@ const _abi = [
             type: "bytes32",
           },
         ],
-        internalType: "struct BridgeStorageV1.State",
+        internalType: "struct TestBridgeStorageV1.State",
         name: "withdrawalState",
         type: "tuple",
       },
@@ -105,7 +105,7 @@ const _abi = [
             type: "uint256[2]",
           },
         ],
-        internalType: "struct BridgeStorageV1.Config",
+        internalType: "struct TestBridgeStorageV1.Config",
         name: "config",
         type: "tuple",
       },
@@ -145,21 +145,66 @@ const _abi = [
     stateMutability: "view",
     type: "function",
   },
+  {
+    inputs: [],
+    name: "managementContract",
+    outputs: [
+      {
+        internalType: "contract BridgeManagementContract",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    name: "proxyGap",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "_token",
+        type: "address",
+      },
+    ],
+    name: "register",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
 ] as const;
 
 const _bytecode =
-  "0x600060e0818152610100829052608090815261012082815261014083905260a05267016345785d8a0000610160818152670de0b6b3a764000061018081905269021e19e0c9bab24000006101a081905260646101c08190526102406040526102008781526102208890526101e081905260c0859052600180546001600160401b0319908116825560028a81556003805490921690915560049990995560059687556006949094556007929092556008805460ff19169091179055939490939192916100cd91600991906100e4565b50505050503480156100de57600080fd5b50610137565b8260028101928215610112579160200282015b828111156101125782518255916020019190600101906100f7565b5061011e929150610122565b5090565b5b8082111561011e5760008155600101610123565b6102e5806101466000396000f3fe608060405234801561001057600080fd5b506004361061004c5760003560e01c806360f72e5a14610051578063c3c5a547146100ba578063cf309012146100ed578063f7e3d1b414610101575b600080fd5b61008d61005f3660046101be565b600b602052600090815260409020546001600160a01b03811690600160a01b900467ffffffffffffffff1682565b604080516001600160a01b03909316835267ffffffffffffffff9091166020830152015b60405180910390f35b6100dd6100c83660046101ef565b600c6020526000908152604090205460ff1681565b60405190151581526020016100b1565b6000546100dd90600160a01b900460ff1681565b610109610118565b6040516100b193929190610218565b6040805180820182526001805467ffffffffffffffff90811683526002805460208086019190915285518087018752600354909316835260045483820152855160a081018752600580548252600654928201929092526007548188015260085460ff166060820152865180880197889052959693959093919260808501926009919082845b81548152602001906001019080831161019d57505050505081525050905083565b6000602082840312156101d057600080fd5b813567ffffffffffffffff811681146101e857600080fd5b9392505050565b60006020828403121561020157600080fd5b81356001600160a01b03811681146101e857600080fd5b835167ffffffffffffffff168152602080850151908201526101408101835167ffffffffffffffff166040830152602084015160608301528251608083015260208084015160a0840152604084015160c084015260ff60608501511660e08401526080840151610100840160005b60028110156102a357825182529183019190830190600101610286565b5050505094935050505056fea26469706673582212208d25b52a37fbf92b2c4446cb6f51847c0b9c51481e8b402f0a83095cbb72debf64736f6c63430008140033";
+  "0x608060405234801561001057600080fd5b506103bf806100206000396000f3fe608060405234801561001057600080fd5b506004361061007d5760003560e01c8063c3c5a5471161005b578063c3c5a5471461014a578063cabfe7c61461017d578063cf3090121461019e578063f7e3d1b4146101ab57600080fd5b80634420e4861461008257806360f72e5a146100b6578063b3e5cc4a1461011f575b600080fd5b6100b461009036600461027f565b6001600160a01b03166000908152600f60205260409020805460ff19166001179055565b005b6100f26100c43660046102af565b600d602052600090815260409020546001600160a01b03811690600160a01b900467ffffffffffffffff1682565b604080516001600160a01b03909316835267ffffffffffffffff9091166020830152015b60405180910390f35b600254610132906001600160a01b031681565b6040516001600160a01b039091168152602001610116565b61016d61015836600461027f565b600f6020526000908152604090205460ff1681565b6040519015158152602001610116565b61019061018b3660046102d9565b6101c2565b604051908152602001610116565b600e5461016d9060ff1681565b6101b36101d9565b604051610116939291906102f2565b600081600281106101d257600080fd5b0154905081565b6040805180820182526003805467ffffffffffffffff908116835260045460208085019190915284518086018652600554909216825260065482820152845160a0810186526007805482526008549282019290925260095481870152600a5460ff166060820152855180870196879052949592949092608084019190600b9060029082845b81548152602001906001019080831161025e57505050505081525050905083565b60006020828403121561029157600080fd5b81356001600160a01b03811681146102a857600080fd5b9392505050565b6000602082840312156102c157600080fd5b813567ffffffffffffffff811681146102a857600080fd5b6000602082840312156102eb57600080fd5b5035919050565b835167ffffffffffffffff168152602080850151908201526101408101835167ffffffffffffffff166040830152602084015160608301528251608083015260208084015160a0840152604084015160c084015260ff60608501511660e08401526080840151610100840160005b600281101561037d57825182529183019190830190600101610360565b5050505094935050505056fea2646970667358221220a28710e14140318b9e6ab751e2e9846e2d8eaa3add709b5bfa243b33a22783a664736f6c63430008140033";
 
-type TestUpgradeBridgeStorageConstructorParams =
+type TestBridgeStorageV2ConstructorParams =
   | [signer?: Signer]
   | ConstructorParameters<typeof ContractFactory>;
 
 const isSuperArgs = (
-  xs: TestUpgradeBridgeStorageConstructorParams
+  xs: TestBridgeStorageV2ConstructorParams
 ): xs is ConstructorParameters<typeof ContractFactory> => xs.length > 1;
 
-export class TestUpgradeBridgeStorage__factory extends ContractFactory {
-  constructor(...args: TestUpgradeBridgeStorageConstructorParams) {
+export class TestBridgeStorageV2__factory extends ContractFactory {
+  constructor(...args: TestBridgeStorageV2ConstructorParams) {
     if (isSuperArgs(args)) {
       super(...args);
     } else {
@@ -174,30 +219,30 @@ export class TestUpgradeBridgeStorage__factory extends ContractFactory {
   }
   override deploy(overrides?: NonPayableOverrides & { from?: string }) {
     return super.deploy(overrides || {}) as Promise<
-      TestUpgradeBridgeStorage & {
+      TestBridgeStorageV2 & {
         deploymentTransaction(): ContractTransactionResponse;
       }
     >;
   }
   override connect(
     runner: ContractRunner | null
-  ): TestUpgradeBridgeStorage__factory {
-    return super.connect(runner) as TestUpgradeBridgeStorage__factory;
+  ): TestBridgeStorageV2__factory {
+    return super.connect(runner) as TestBridgeStorageV2__factory;
   }
 
   static readonly bytecode = _bytecode;
   static readonly abi = _abi;
-  static createInterface(): TestUpgradeBridgeStorageInterface {
-    return new Interface(_abi) as TestUpgradeBridgeStorageInterface;
+  static createInterface(): TestBridgeStorageV2Interface {
+    return new Interface(_abi) as TestBridgeStorageV2Interface;
   }
   static connect(
     address: string,
     runner?: ContractRunner | null
-  ): TestUpgradeBridgeStorage {
+  ): TestBridgeStorageV2 {
     return new Contract(
       address,
       _abi,
       runner
-    ) as unknown as TestUpgradeBridgeStorage;
+    ) as unknown as TestBridgeStorageV2;
   }
 }

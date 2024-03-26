@@ -18,7 +18,7 @@ import type {
   TypedEventLog,
   TypedListener,
   TypedContractMethod,
-} from "./common";
+} from "../common";
 
 export declare namespace BridgeStorage {
   export type StateStruct = { nonce: BigNumberish; root: BytesLike };
@@ -53,7 +53,12 @@ export declare namespace BridgeStorage {
 
 export interface BridgeStorageInterface extends Interface {
   getFunction(
-    nameOrSignature: "claimableGas" | "gasBridge" | "locked"
+    nameOrSignature:
+      | "claimableGas"
+      | "gasBridge"
+      | "locked"
+      | "managementContract"
+      | "proxyGap"
   ): FunctionFragment;
 
   encodeFunctionData(
@@ -62,6 +67,14 @@ export interface BridgeStorageInterface extends Interface {
   ): string;
   encodeFunctionData(functionFragment: "gasBridge", values?: undefined): string;
   encodeFunctionData(functionFragment: "locked", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "managementContract",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "proxyGap",
+    values: [BigNumberish]
+  ): string;
 
   decodeFunctionResult(
     functionFragment: "claimableGas",
@@ -69,6 +82,11 @@ export interface BridgeStorageInterface extends Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "gasBridge", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "locked", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "managementContract",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "proxyGap", data: BytesLike): Result;
 }
 
 export interface BridgeStorage extends BaseContract {
@@ -138,6 +156,10 @@ export interface BridgeStorage extends BaseContract {
 
   locked: TypedContractMethod<[], [boolean], "view">;
 
+  managementContract: TypedContractMethod<[], [string], "view">;
+
+  proxyGap: TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
+
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
   ): T;
@@ -169,6 +191,12 @@ export interface BridgeStorage extends BaseContract {
   getFunction(
     nameOrSignature: "locked"
   ): TypedContractMethod<[], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "managementContract"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "proxyGap"
+  ): TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
 
   filters: {};
 }

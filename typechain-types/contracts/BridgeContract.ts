@@ -86,6 +86,8 @@ export interface BridgeContractInterface extends Interface {
       | "initialize"
       | "lock"
       | "locked"
+      | "managementContract"
+      | "proxyGap"
       | "setGasMaxNrDepositsPerDistribution"
       | "setGasWithdrawalFee"
       | "setGasWithdrawalMaxAmount"
@@ -125,10 +127,18 @@ export interface BridgeContractInterface extends Interface {
   encodeFunctionData(functionFragment: "gasBridge", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "initialize",
-    values: [AddressLike]
+    values: [AddressLike, BridgeStorage.ConfigStruct]
   ): string;
   encodeFunctionData(functionFragment: "lock", values?: undefined): string;
   encodeFunctionData(functionFragment: "locked", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "managementContract",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "proxyGap",
+    values: [BigNumberish]
+  ): string;
   encodeFunctionData(
     functionFragment: "setGasMaxNrDepositsPerDistribution",
     values: [BigNumberish]
@@ -161,6 +171,11 @@ export interface BridgeContractInterface extends Interface {
   decodeFunctionResult(functionFragment: "initialize", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "lock", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "locked", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "managementContract",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "proxyGap", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "setGasMaxNrDepositsPerDistribution",
     data: BytesLike
@@ -424,7 +439,7 @@ export interface BridgeContract extends BaseContract {
   >;
 
   initialize: TypedContractMethod<
-    [_managementContract: AddressLike],
+    [_managementContract: AddressLike, config: BridgeStorage.ConfigStruct],
     [void],
     "nonpayable"
   >;
@@ -432,6 +447,10 @@ export interface BridgeContract extends BaseContract {
   lock: TypedContractMethod<[], [void], "nonpayable">;
 
   locked: TypedContractMethod<[], [boolean], "view">;
+
+  managementContract: TypedContractMethod<[], [string], "view">;
+
+  proxyGap: TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
 
   setGasMaxNrDepositsPerDistribution: TypedContractMethod<
     [_maxNrDeposits: BigNumberish],
@@ -506,7 +525,7 @@ export interface BridgeContract extends BaseContract {
   getFunction(
     nameOrSignature: "initialize"
   ): TypedContractMethod<
-    [_managementContract: AddressLike],
+    [_managementContract: AddressLike, config: BridgeStorage.ConfigStruct],
     [void],
     "nonpayable"
   >;
@@ -516,6 +535,12 @@ export interface BridgeContract extends BaseContract {
   getFunction(
     nameOrSignature: "locked"
   ): TypedContractMethod<[], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "managementContract"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "proxyGap"
+  ): TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
   getFunction(
     nameOrSignature: "setGasMaxNrDepositsPerDistribution"
   ): TypedContractMethod<[_maxNrDeposits: BigNumberish], [void], "nonpayable">;
