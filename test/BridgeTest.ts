@@ -28,8 +28,11 @@ describe("Bridge Implementation", function () {
         const bridgeManagementContract = await ethers.deployContract("BridgeManagementContract");
         await bridgeManagementContract.waitForDeployment();
         const BridgeContract = await ethers.getContractFactory("BridgeContract");
-        const bridgeContract = await BridgeContract.deploy(bridgeManagementContract.target);
+        const bridgeContract = await BridgeContract.deploy();
         await bridgeContract.waitForDeployment();
+
+        await bridgeContract.initialize(bridgeManagementContract.target);
+
         return {
             bridgeContract: bridgeContract,
             bridgeManagementContract: bridgeManagementContract,

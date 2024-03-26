@@ -3,10 +3,11 @@ pragma solidity ^0.8.20;
 
 import "./BridgeManagementContract.sol";
 import "./BridgeStorage.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 // Todo: Before compiling byte code for genesis script, make sure to remove the receive function as it is only used for testing purpose.
 
-contract BridgeContract is BridgeStorage {
+contract BridgeContract is BridgeStorage, Initializable {
     event Locked();
     event Unlocked();
     event Deposit(uint64 nonce, uint64 amount, address to);
@@ -29,7 +30,7 @@ contract BridgeContract is BridgeStorage {
     // This is only used for testing. Remove it before compiling byte code for genesis script.
     receive() external payable onlyRelayer {}
 
-    constructor(address _managementContract) {
+    function initialize(address _managementContract) public initializer {
         managementContract = BridgeManagementContract(_managementContract);
     }
 

@@ -14,6 +14,10 @@ import * as Contracts from ".";
 declare module "hardhat/types/runtime" {
   interface HardhatEthersHelpers extends HardhatEthersHelpersBase {
     getContractFactory(
+      name: "Initializable",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.Initializable__factory>;
+    getContractFactory(
       name: "BridgeContract",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.BridgeContract__factory>;
@@ -47,6 +51,11 @@ declare module "hardhat/types/runtime" {
     ): Promise<Contracts.TestUpgradeBridgeStorage__factory>;
 
     getContractAt(
+      name: "Initializable",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.Initializable>;
+    getContractAt(
       name: "BridgeContract",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -88,6 +97,10 @@ declare module "hardhat/types/runtime" {
     ): Promise<Contracts.TestUpgradeBridgeStorage>;
 
     deployContract(
+      name: "Initializable",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Initializable>;
+    deployContract(
       name: "BridgeContract",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.BridgeContract>;
@@ -120,6 +133,11 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TestUpgradeBridgeStorage>;
 
+    deployContract(
+      name: "Initializable",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Initializable>;
     deployContract(
       name: "BridgeContract",
       args: any[],

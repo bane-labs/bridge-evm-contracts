@@ -38,9 +38,9 @@ export function concatRoots(proofs: any): Uint8Array {
     return ethers.getBytes(concatAndHashed);
 }
 
-export async function fundContract(bridgeContract: any, funder: HardhatEthersSigner) {
+export async function fundContract(contract: any, funder: HardhatEthersSigner) {
     const amount = ethers.parseEther("100.0");
-    const to = await bridgeContract.getAddress()
+    const to = await contract.getAddress()
     await funder.sendTransaction({ to, value: amount });
 }
 
