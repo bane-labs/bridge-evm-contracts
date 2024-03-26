@@ -21,9 +21,9 @@ import type {
   TypedLogDescription,
   TypedListener,
   TypedContractMethod,
-} from "./common";
+} from "../common";
 
-export declare namespace BridgeContract {
+export declare namespace TestUpgradeBridgeImpl {
   export type SignatureStruct = { v: BigNumberish; r: BytesLike; s: BytesLike };
 
   export type SignatureStructOutput = [v: bigint, r: string, s: string] & {
@@ -45,7 +45,7 @@ export declare namespace BridgeContract {
   ] & { to: string; amount: bigint; nonce: bigint };
 }
 
-export declare namespace BridgeStorage {
+export declare namespace BridgeStorageV1 {
   export type StateStruct = { nonce: BigNumberish; root: BytesLike };
 
   export type StateStructOutput = [nonce: bigint, root: string] & {
@@ -76,13 +76,14 @@ export declare namespace BridgeStorage {
   };
 }
 
-export interface BridgeContractInterface extends Interface {
+export interface TestUpgradeBridgeImplInterface extends Interface {
   getFunction(
     nameOrSignature:
       | "claim"
       | "claimableGas"
       | "deposit"
       | "gasBridge"
+      | "isRegistered"
       | "lock"
       | "locked"
       | "setGasMaxNrDepositsPerDistribution"
@@ -116,11 +117,15 @@ export interface BridgeContractInterface extends Interface {
     functionFragment: "deposit",
     values: [
       BytesLike,
-      BridgeContract.SignatureStruct[],
-      BridgeContract.DepositDataStruct[]
+      TestUpgradeBridgeImpl.SignatureStruct[],
+      TestUpgradeBridgeImpl.DepositDataStruct[]
     ]
   ): string;
   encodeFunctionData(functionFragment: "gasBridge", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "isRegistered",
+    values: [AddressLike]
+  ): string;
   encodeFunctionData(functionFragment: "lock", values?: undefined): string;
   encodeFunctionData(functionFragment: "locked", values?: undefined): string;
   encodeFunctionData(
@@ -152,6 +157,10 @@ export interface BridgeContractInterface extends Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "deposit", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "gasBridge", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "isRegistered",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "lock", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "locked", data: BytesLike): Result;
   decodeFunctionResult(
@@ -327,11 +336,11 @@ export namespace WithdrawalFeeChangedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export interface BridgeContract extends BaseContract {
-  connect(runner?: ContractRunner | null): BridgeContract;
+export interface TestUpgradeBridgeImpl extends BaseContract {
+  connect(runner?: ContractRunner | null): TestUpgradeBridgeImpl;
   waitForDeployment(): Promise<this>;
 
-  interface: BridgeContractInterface;
+  interface: TestUpgradeBridgeImplInterface;
 
   queryFilter<TCEvent extends TypedContractEvent>(
     event: TCEvent,
@@ -381,8 +390,8 @@ export interface BridgeContract extends BaseContract {
   deposit: TypedContractMethod<
     [
       _depositRoot: BytesLike,
-      _signatures: BridgeContract.SignatureStruct[],
-      _deposits: BridgeContract.DepositDataStruct[]
+      _signatures: TestUpgradeBridgeImpl.SignatureStruct[],
+      _deposits: TestUpgradeBridgeImpl.DepositDataStruct[]
     ],
     [void],
     "nonpayable"
@@ -392,17 +401,19 @@ export interface BridgeContract extends BaseContract {
     [],
     [
       [
-        BridgeStorage.StateStructOutput,
-        BridgeStorage.StateStructOutput,
-        BridgeStorage.ConfigStructOutput
+        BridgeStorageV1.StateStructOutput,
+        BridgeStorageV1.StateStructOutput,
+        BridgeStorageV1.ConfigStructOutput
       ] & {
-        depositState: BridgeStorage.StateStructOutput;
-        withdrawalState: BridgeStorage.StateStructOutput;
-        config: BridgeStorage.ConfigStructOutput;
+        depositState: BridgeStorageV1.StateStructOutput;
+        withdrawalState: BridgeStorageV1.StateStructOutput;
+        config: BridgeStorageV1.ConfigStructOutput;
       }
     ],
     "view"
   >;
+
+  isRegistered: TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
 
   lock: TypedContractMethod<[], [void], "nonpayable">;
 
@@ -455,8 +466,8 @@ export interface BridgeContract extends BaseContract {
   ): TypedContractMethod<
     [
       _depositRoot: BytesLike,
-      _signatures: BridgeContract.SignatureStruct[],
-      _deposits: BridgeContract.DepositDataStruct[]
+      _signatures: TestUpgradeBridgeImpl.SignatureStruct[],
+      _deposits: TestUpgradeBridgeImpl.DepositDataStruct[]
     ],
     [void],
     "nonpayable"
@@ -467,17 +478,20 @@ export interface BridgeContract extends BaseContract {
     [],
     [
       [
-        BridgeStorage.StateStructOutput,
-        BridgeStorage.StateStructOutput,
-        BridgeStorage.ConfigStructOutput
+        BridgeStorageV1.StateStructOutput,
+        BridgeStorageV1.StateStructOutput,
+        BridgeStorageV1.ConfigStructOutput
       ] & {
-        depositState: BridgeStorage.StateStructOutput;
-        withdrawalState: BridgeStorage.StateStructOutput;
-        config: BridgeStorage.ConfigStructOutput;
+        depositState: BridgeStorageV1.StateStructOutput;
+        withdrawalState: BridgeStorageV1.StateStructOutput;
+        config: BridgeStorageV1.ConfigStructOutput;
       }
     ],
     "view"
   >;
+  getFunction(
+    nameOrSignature: "isRegistered"
+  ): TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
   getFunction(
     nameOrSignature: "lock"
   ): TypedContractMethod<[], [void], "nonpayable">;

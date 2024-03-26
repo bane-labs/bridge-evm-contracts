@@ -8,11 +8,11 @@ import {
   Interface,
 } from "ethers";
 import type { Signer, ContractDeployTransaction, ContractRunner } from "ethers";
-import type { NonPayableOverrides } from "../common";
+import type { NonPayableOverrides } from "../../common";
 import type {
   TestPayableContract,
   TestPayableContractInterface,
-} from "../TestPayableContract";
+} from "../../tests/TestPayableContract";
 
 const _abi = [
   {
@@ -22,7 +22,7 @@ const _abi = [
 ] as const;
 
 const _bytecode =
-  "0x6080604052348015600f57600080fd5b50604580601d6000396000f3fe608060405236600a57005b600080fdfea264697066735822122004559d4c5e717ab2e1484856ab7c8814292e4f59b6fc4266d8e40912cf3c08e564736f6c63430008120033";
+  "0x6080604052348015600f57600080fd5b50604580601d6000396000f3fe608060405236600a57005b600080fdfea2646970667358221220982ba0e8efaaea66cc9bfa9aef53d855bb20e9bf1d28a0078c0a6a6c013371fe64736f6c63430008140033";
 
 type TestPayableContractConstructorParams =
   | [signer?: Signer]

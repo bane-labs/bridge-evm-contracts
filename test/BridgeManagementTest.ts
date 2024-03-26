@@ -4,7 +4,7 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { getValidatorSignatures } from "../utils/signature-utils";
 import { ZeroAddress } from "ethers";
 
-describe("Bridge Management contract", function () {
+describe("Bridge Management", function () {
     async function deployBridgeFixture() {
         const [
             relayer,
@@ -19,7 +19,6 @@ describe("Bridge Management contract", function () {
             securityGuard,
             owner
         ] = await ethers.getSigners();
-        console.log("owner", owner.address);
         const bridgeManagementContract = await ethers.deployContract("BridgeManagementContract");
         await bridgeManagementContract.waitForDeployment();
         return {

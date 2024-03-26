@@ -22,9 +22,29 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.BridgeManagementContract__factory>;
     getContractFactory(
+      name: "BridgeProxy",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.BridgeProxy__factory>;
+    getContractFactory(
+      name: "BridgeStorage",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.BridgeStorage__factory>;
+    getContractFactory(
+      name: "BridgeStorageV1",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.BridgeStorageV1__factory>;
+    getContractFactory(
       name: "TestPayableContract",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.TestPayableContract__factory>;
+    getContractFactory(
+      name: "TestUpgradeBridgeImpl",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.TestUpgradeBridgeImpl__factory>;
+    getContractFactory(
+      name: "TestUpgradeBridgeStorage",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.TestUpgradeBridgeStorage__factory>;
 
     getContractAt(
       name: "BridgeContract",
@@ -37,10 +57,35 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.BridgeManagementContract>;
     getContractAt(
+      name: "BridgeProxy",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.BridgeProxy>;
+    getContractAt(
+      name: "BridgeStorage",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.BridgeStorage>;
+    getContractAt(
+      name: "BridgeStorageV1",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.BridgeStorageV1>;
+    getContractAt(
       name: "TestPayableContract",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.TestPayableContract>;
+    getContractAt(
+      name: "TestUpgradeBridgeImpl",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.TestUpgradeBridgeImpl>;
+    getContractAt(
+      name: "TestUpgradeBridgeStorage",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.TestUpgradeBridgeStorage>;
 
     deployContract(
       name: "BridgeContract",
@@ -51,9 +96,29 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.BridgeManagementContract>;
     deployContract(
+      name: "BridgeProxy",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.BridgeProxy>;
+    deployContract(
+      name: "BridgeStorage",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.BridgeStorage>;
+    deployContract(
+      name: "BridgeStorageV1",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.BridgeStorageV1>;
+    deployContract(
       name: "TestPayableContract",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TestPayableContract>;
+    deployContract(
+      name: "TestUpgradeBridgeImpl",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TestUpgradeBridgeImpl>;
+    deployContract(
+      name: "TestUpgradeBridgeStorage",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TestUpgradeBridgeStorage>;
 
     deployContract(
       name: "BridgeContract",
@@ -66,10 +131,35 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.BridgeManagementContract>;
     deployContract(
+      name: "BridgeProxy",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.BridgeProxy>;
+    deployContract(
+      name: "BridgeStorage",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.BridgeStorage>;
+    deployContract(
+      name: "BridgeStorageV1",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.BridgeStorageV1>;
+    deployContract(
       name: "TestPayableContract",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TestPayableContract>;
+    deployContract(
+      name: "TestUpgradeBridgeImpl",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TestUpgradeBridgeImpl>;
+    deployContract(
+      name: "TestUpgradeBridgeStorage",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TestUpgradeBridgeStorage>;
 
     // default types
     getContractFactory(
