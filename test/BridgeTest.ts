@@ -31,7 +31,16 @@ describe("Bridge Implementation", function () {
         const bridgeContract = await BridgeContract.deploy();
         await bridgeContract.waitForDeployment();
 
-        await bridgeContract.initialize(bridgeManagementContract.target);
+        await bridgeContract.initialize(
+            bridgeManagementContract.target,
+            {
+                fee: ethers.parseEther("0.1"),
+                minAmount: ethers.parseEther("1"),
+                maxAmount: ethers.parseEther("10000"),
+                maxDepositsPerDistribution: 100,
+                gap: [0, 0]
+            }
+        );
 
         return {
             bridgeContract: bridgeContract,

@@ -3,10 +3,8 @@ pragma solidity ^0.8.20;
 
 import "../BridgeManagementContract.sol";
 
-contract BridgeStorageV1 {
-    BridgeManagementContract managementContract;
-
-    bool public locked;
+contract TestBridgeStorageV1 {
+    uint256[2] public proxyGap;
 
     struct GasBridge {
         State depositState;
@@ -27,25 +25,15 @@ contract BridgeStorageV1 {
         uint256[2] gap;
     }
 
-    GasBridge public gasBridge =
-        GasBridge({
-            depositState: State({nonce: 0, root: 0x0}),
-            withdrawalState: State({nonce: 0, root: 0x0}),
-            config: Config({
-                fee: 10000000_0000000000,
-                minAmount: 1_00000000_0000000000,
-                maxAmount: 10000_00000000_0000000000,
-                maxDepositsPerDistribution: 100,
-                gap: [uint256(0), uint256(0)]
-            })
-        });
-
     struct GasClaimable {
         address to;
         uint64 amount;
     }
 
+    BridgeManagementContract public managementContract;
+    GasBridge public gasBridge;
     mapping(uint64 => GasClaimable) public claimableGas;
+    bool public locked;
 
     function _lock() internal {
         require(!locked, "Contract is already locked.");

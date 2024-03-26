@@ -30,8 +30,16 @@ contract BridgeContract is BridgeStorage, Initializable {
     // This is only used for testing. Remove it before compiling byte code for genesis script.
     receive() external payable onlyRelayer {}
 
-    function initialize(address _managementContract) public initializer {
+    function initialize(
+        address _managementContract,
+        Config calldata config
+    ) public initializer {
         managementContract = BridgeManagementContract(_managementContract);
+        gasBridge = GasBridge({
+            depositState: State({nonce: 0, root: 0x0}),
+            withdrawalState: State({nonce: 0, root: 0x0}),
+            config: config
+        });
     }
 
     //////////////////////////
