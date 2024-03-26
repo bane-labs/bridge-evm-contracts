@@ -2,16 +2,15 @@
 pragma solidity ^0.8.20;
 
 import "../BridgeManagementContract.sol";
-import "./TestUpgradeBridgeStorage.sol";
+import "./TestBridgeStorageV2.sol";
 
 // DIFFERENCES for upgrade test:
 // - Removed onlyRelayer modifier on deposit function
-// - Restrict claim function to only the claimable address
 // - New mapping isRegistered
 // - New function register(address)
 // - Overridden function _setGasWithdrawalFee(uint256) with additional requirements
 
-contract TestUpgradeBridgeImpl is TestUpgradeBridgeStorage {
+contract TestBridgeImplV2 is TestBridgeStorageV2 {
     event Locked();
     event Unlocked();
     event Deposit(uint64 nonce, uint64 amount, address to);
@@ -246,13 +245,6 @@ contract TestUpgradeBridgeImpl is TestUpgradeBridgeStorage {
         address to = claimable.to;
         require(amount != 0, "No claimable funds");
         require(to != address(0), "No claimable funds");
-
-        // UPGRADE DIFFERENCE
-        require(
-            to == msg.sender,
-            "Only the claimable address can claim the funds"
-        );
-        // UPGRADE DIFFERENCE
 
         _deleteGasClaimable(_nonce);
         uint256 sendValue = _addTenDecimals(amount);

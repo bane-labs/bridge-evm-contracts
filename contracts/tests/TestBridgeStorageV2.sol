@@ -6,10 +6,10 @@ import "./TestBridgeStorageV1.sol";
 
 // This test just contains dummy data to test the upgradeability.
 
-contract TestUpgradeBridgeStorage is BridgeStorageV1 {
+contract TestBridgeStorageV2 is TestBridgeStorageV1 {
     mapping(address => bool) public isRegistered;
 
-    function _register(address _token) internal {
+    function register(address _token) external {
         isRegistered[_token] = true;
     }
 
