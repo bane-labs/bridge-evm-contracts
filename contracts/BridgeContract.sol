@@ -1,33 +1,14 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.20;
 
 import "./BridgeManagementContract.sol";
+import "./BridgeStorage.sol";
 
 // Todo: Before compiling byte code for genesis script, make sure to remove the receive function as it is only used for testing purpose.
 
-contract BridgeContract {
-    BridgeManagementContract managementContract;
-
-    bool public locked = false;
-
-    // Initial deposit and withdrawal values
-    uint64 public depositNonce = 0;
-    uint64 public withdrawalNonce = 0;
-
-    bytes32 public depositRoot;
-    bytes32 public withdrawalRoot;
-
-    mapping(uint64 => address) public claimableTo;
-    mapping(uint64 => uint64) public claimableAmount; // Holds the claimable amount values with 8 decimal places
-
-    // Bridge parameters
-    uint256 public withdrawalFee = 10000000_0000000000;
-    uint256 public minWithdrawalAmount = 1_00000000_0000000000;
-    uint256 public maxWithdrawalAmount = 10000_00000000_0000000000;
-    uint8 public maxDepositsPerDistribution = 100;
-
-    // Events
-
+contract BridgeContract is BridgeStorage {
+    event Locked();
+    event Unlocked();
     event Deposit(uint64 nonce, uint64 amount, address to);
     event Claimable(uint64 nonce, uint64 amount, address to);
     event Claimed(uint64 nonce, uint64 amount, address to);
@@ -79,31 +60,42 @@ contract BridgeContract {
     ) external onlyRelayer unlocked {
         uint depositLength = _deposits.length;
         require(depositLength > 0, "At least 1 deposit is required.");
+
+        State memory state = _getGasBridgeDepositState();
+        Config memory config = _getGasBridgeConfig();
         require(
-            depositLength <= maxDepositsPerDistribution,
+            depositLength <= config.maxDepositsPerDistribution,
             "Too many deposits provided."
         );
         require(
-            _deposits[0].nonce == depositNonce + 1,
+            _deposits[0].nonce == state.nonce + 1,
             "Only the next nonce is allowed in the first proof."
         );
         require(
-            subsequentNonces(_deposits, depositNonce),
+            _subsequentNonces(_deposits, state.nonce),
             "The nonces of the proofs must be subsequent."
         );
-
         require(
-            verifyValidatorSignatures(_depositRoot, _signatures),
-            "Invalid or insufficient validator signatures."
+            _verifyValidatorSignatures(_depositRoot, _signatures),
+            "Validator signature verification failed."
         );
-        depositNonce = _deposits[depositLength - 1].nonce;
-        bytes32 formerDepositRoot = depositRoot;
-        depositRoot = _depositRoot;
-        verifyDepositsAndTransfer(formerDepositRoot, _deposits);
+        require(
+            _computeNewTopRoot(state.root, _deposits) == _depositRoot,
+            "Deposits do not match the provided root."
+        );
+        _setGasBridgeDepositState(
+            State({
+                nonce: _deposits[depositLength - 1].nonce,
+                root: _depositRoot
+            })
+        );
+        _executeTransfers(_deposits);
     }
 
+    // Private functions
+
     // Makes sure the proofs have subsequent nonces.
-    function subsequentNonces(
+    function _subsequentNonces(
         DepositData[] calldata _deposits,
         uint64 startNonce
     ) private pure returns (bool) {
@@ -115,11 +107,11 @@ contract BridgeContract {
         return true;
     }
 
-    function verifyDepositsAndTransfer(
-        bytes32 _formerDepositRoot,
+    function _computeNewTopRoot(
+        bytes32 _previousRoot,
         DepositData[] calldata _deposits
-    ) private {
-        bytes32 parent = _formerDepositRoot;
+    ) private pure returns (bytes32) {
+        bytes32 parent = _previousRoot;
         uint depositsLength = _deposits.length;
         for (uint i = 0; i < depositsLength; i++) {
             DepositData calldata depositData = _deposits[i];
@@ -130,26 +122,30 @@ contract BridgeContract {
             );
             parent = computeNewRoot(parent, depositHash);
         }
-        if (parent != depositRoot) {
-            revert("Invalid deposit root.");
-        }
+        return parent;
+    }
 
+    function _executeTransfers(DepositData[] calldata _deposits) private {
         // Once this is reached, execute the deposits
-        for (uint i = 0; i < depositsLength; i++) {
+        for (uint i = 0; i < _deposits.length; i++) {
             DepositData calldata depositEntry = _deposits[i];
             address to = depositEntry.to;
             if (!isContract(to)) {
-                uint256 sendValue = addTenDecimals(depositEntry.amount);
+                uint256 sendValue = _addTenDecimals(depositEntry.amount);
                 // Todo: Verify that this call works as expected, i.e., the funds have not been sent if it returns false.
                 (bool success, ) = to.call{value: sendValue}("");
                 if (success) {
                     emit Deposit(depositEntry.nonce, depositEntry.amount, to);
                 } else {
-                    addToClaim(depositEntry);
+                    _addClaimableGas(
+                        depositEntry.nonce,
+                        depositEntry.amount,
+                        to
+                    );
                     emit Claimable(depositEntry.nonce, depositEntry.amount, to);
                 }
             } else {
-                addToClaim(depositEntry);
+                _addClaimableGas(depositEntry.nonce, depositEntry.amount, to);
                 emit Claimable(depositEntry.nonce, depositEntry.amount, to);
             }
         }
@@ -162,20 +158,15 @@ contract BridgeContract {
         return sha256(abi.encodePacked(formerRoot, depositHash));
     }
 
-    function addToClaim(DepositData calldata _deposit) private {
-        claimableTo[_deposit.nonce] = _deposit.to;
-        claimableAmount[_deposit.nonce] = _deposit.amount;
-    }
-
-    function verifyValidatorSignatures(
+    // Todo: Move this to the management contract
+    function _verifyValidatorSignatures(
         bytes32 _newDepositRoot,
         Signature[] calldata _signatures
     ) private view returns (bool) {
         uint8 threshold = managementContract.validatorThreshold();
-        require(
-            _signatures.length == threshold,
-            "Invalid number of signatures."
-        );
+        if (_signatures.length != threshold) {
+            return false;
+        }
         bytes32 signedRootMsg = keccak256(
             abi.encodePacked(
                 "\x19Ethereum Signed Message:\n32",
@@ -244,19 +235,19 @@ contract BridgeContract {
 
     // Anyone can execute a claim. The funds of a claimable will be sent to the defined address in the claimableTo mapping.
     function claim(uint64 _nonce) external unlocked {
-        address payable to = payable(claimableTo[_nonce]);
-        uint64 claimAmount = claimableAmount[_nonce];
-        require(claimableAmount[_nonce] != 0, "No claimable funds");
+        GasClaimable memory claimable = _getGasClaimable(_nonce);
+        uint256 amount = claimable.amount;
+        address to = claimable.to;
+        require(amount != 0, "No claimable funds");
         require(to != address(0), "No claimable funds");
 
-        delete claimableAmount[_nonce];
-        delete claimableTo[_nonce];
-        uint256 sendValue = addTenDecimals(claimAmount);
+        _deleteGasClaimable(_nonce);
+        uint256 sendValue = _addTenDecimals(amount);
         (bool success, ) = to.call{value: sendValue}("");
         if (!success) {
             revert("Transfer failed");
         }
-        emit Claimed(_nonce, claimAmount, to);
+        emit Claimed(_nonce, uint64(amount), to);
     }
 
     ////////////////
@@ -270,34 +261,34 @@ contract BridgeContract {
             "Only amounts with maximally 8 non-zero decimals are allowed for withdrawals"
         );
 
-        uint256 actualWithdrawalAmount = msg.value - withdrawalFee;
+        Config memory config = _getGasBridgeConfig();
+        State memory state = _getGasBridgeWithdrawalState();
+        uint256 actualWithdrawalAmount = msg.value - config.fee;
         require(
-            actualWithdrawalAmount >= minWithdrawalAmount,
+            actualWithdrawalAmount >= config.minAmount,
             "Withdrawal amount is too low"
         );
         require(
-            actualWithdrawalAmount <= maxWithdrawalAmount,
+            actualWithdrawalAmount <= config.maxAmount,
             "Withdrawal amount is too high"
         );
 
-        withdrawalNonce++;
-        uint64 hashAmount = removeTenDecimals(actualWithdrawalAmount);
+        uint64 amountForHashing = _removeTenDecimals(actualWithdrawalAmount);
+        uint64 newNonce = state.nonce + 1;
         bytes32 withdrawalHash = hashDepositOrWithdrawal(
-            withdrawalNonce,
-            hashAmount,
+            newNonce,
+            amountForHashing,
             _to
         );
-        withdrawalRoot = computeNewWithdrawalRoot(
-            withdrawalRoot,
-            withdrawalHash
-        );
+        bytes32 newRoot = computeNewWithdrawalRoot(state.root, withdrawalHash);
+        _setGasBridgeWithdrawalState(State({nonce: newNonce, root: newRoot}));
         emit Withdrawal(
-            withdrawalNonce,
-            hashAmount,
+            newNonce,
+            amountForHashing,
             _to,
             msg.sender,
             withdrawalHash,
-            withdrawalRoot
+            newRoot
         );
     }
 
@@ -320,71 +311,48 @@ contract BridgeContract {
     }
 
     // Adds 10 decimals to the amount. GasToken originally has 8 decimals and on this chain it has 18 decimals.
-    function addTenDecimals(uint64 _value) private pure returns (uint256) {
+    function _addTenDecimals(uint256 _value) private pure returns (uint256) {
         return uint256(_value) * (10 ** 10);
     }
 
     // Removes 10 decimal points from the amount. GasToken originally has 8 decimals and on this chain it has 18 decimals.
-    function removeTenDecimals(uint256 _value) private pure returns (uint64) {
+    function _removeTenDecimals(uint256 _value) private pure returns (uint64) {
         return uint64(_value / (10 ** 10));
     }
 
     // Contract Locking
 
     function lock() external onlySecurityGuard unlocked {
-        locked = true;
+        _lock();
+        emit Unlocked();
     }
 
     function unlock() external onlyGovernor {
-        require(locked, "Contract is already locked");
-        locked = false;
+        _unlock();
+        emit Locked();
     }
 
     // Bridge Parameter Setters
 
-    function setWithdrawalFee(uint256 _fee) external onlyGovernor {
-        require(
-            (_fee % (10 ** 10)) == 0,
-            "Fee must have maximally 8 non-zero decimals"
-        );
-        withdrawalFee = _fee;
+    function setGasWithdrawalFee(uint256 _fee) external onlyGovernor {
+        _setGasWithdrawalFee(_fee);
         emit WithdrawalFeeChanged(_fee);
     }
 
-    function setMinWithdrawalAmount(uint256 _amount) external onlyGovernor {
-        require(
-            (_amount % (10 ** 10)) == 0,
-            "Amount must have maximally 8 non-zero decimals"
-        );
-        require(
-            _amount < maxWithdrawalAmount,
-            "Amount must be less than the maximal withdrawal amount"
-        );
-        minWithdrawalAmount = _amount;
+    function setGasWithdrawalMinAmount(uint256 _amount) external onlyGovernor {
+        _setGasWithdrawalMinAmount(_amount);
         emit MinWithdrawalAmountChanged(_amount);
     }
 
-    function setMaxWithdrawalAmount(uint256 _amount) external onlyGovernor {
-        require(
-            (_amount % (10 ** 10)) == 0,
-            "Amount must have maximally 8 non-zero decimals"
-        );
-        require(
-            _amount > minWithdrawalAmount,
-            "Amount must be greater than the minimal withdrawal amount"
-        );
-        maxWithdrawalAmount = _amount;
+    function setGasWithdrawalMaxAmount(uint256 _amount) external onlyGovernor {
+        _setGasWithdrawalMaxAmount(_amount);
         emit MaxWithdrawalAmountChanged(_amount);
     }
 
-    function setMaxDepositsPerDistribution(
-        uint8 _maxDepositsPerDistribution
+    function setGasMaxNrDepositsPerDistribution(
+        uint8 _maxNrDeposits
     ) external onlyGovernor {
-        require(
-            _maxDepositsPerDistribution > 0,
-            "Value must be greater than 0"
-        );
-        maxDepositsPerDistribution = _maxDepositsPerDistribution;
-        emit MaxDepositsPerDistributionChanged(_maxDepositsPerDistribution);
+        _setGasMaxNrDepositsPerDistribution(_maxNrDeposits);
+        emit MaxDepositsPerDistributionChanged(_maxNrDeposits);
     }
 }
