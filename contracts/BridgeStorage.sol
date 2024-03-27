@@ -2,10 +2,9 @@
 pragma solidity ^0.8.20;
 
 import "./BridgeManagementContract.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-contract BridgeStorage {
-    uint256[2] public proxyGap;
-
+contract BridgeStorage is Initializable {
     struct GasBridge {
         State depositState;
         State withdrawalState;
@@ -34,6 +33,18 @@ contract BridgeStorage {
     GasBridge public gasBridge;
     mapping(uint64 => GasClaimable) public claimableGas;
     bool public locked;
+
+    function initialize(
+        address _managementContract,
+        Config calldata config
+    ) public initializer {
+        managementContract = BridgeManagementContract(_managementContract);
+        gasBridge = GasBridge({
+            depositState: State({nonce: 0, root: 0x0}),
+            withdrawalState: State({nonce: 0, root: 0x0}),
+            config: config
+        });
+    }
 
     function _lock() internal {
         require(!locked, "Contract is already locked.");

@@ -3,11 +3,17 @@ pragma solidity ^0.8.20;
 
 import "../BridgeManagementContract.sol";
 import "./TestBridgeStorageV1.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 // This test just contains dummy data to test the upgradeability.
 
 contract TestBridgeStorageV2 is TestBridgeStorageV1 {
     mapping(address => bool) public isRegistered;
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
 
     function register(address _token) external {
         isRegistered[_token] = true;

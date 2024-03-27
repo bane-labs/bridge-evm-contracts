@@ -3,11 +3,10 @@ pragma solidity ^0.8.20;
 
 import "./BridgeManagementContract.sol";
 import "./BridgeStorage.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 // Todo: Before compiling byte code for genesis script, make sure to remove the receive function as it is only used for testing purpose.
 
-contract BridgeImpl is BridgeStorage, Initializable {
+contract BridgeImpl is BridgeStorage {
     event Locked();
     event Unlocked();
     event Deposit(uint64 nonce, uint64 amount, address to);
@@ -29,18 +28,6 @@ contract BridgeImpl is BridgeStorage, Initializable {
 
     // This is only used for testing. Remove it before compiling byte code for genesis script.
     receive() external payable onlyRelayer {}
-
-    function initialize(
-        address _managementContract,
-        Config calldata config
-    ) public initializer {
-        managementContract = BridgeManagementContract(_managementContract);
-        gasBridge = GasBridge({
-            depositState: State({nonce: 0, root: 0x0}),
-            withdrawalState: State({nonce: 0, root: 0x0}),
-            config: config
-        });
-    }
 
     //////////////////////////
     // Deposit Verification //
