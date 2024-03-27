@@ -17,9 +17,18 @@ describe("Bridge Management", function () {
             validator7,
             governor,
             securityGuard,
-            owner
+            managementOwner
         ] = await ethers.getSigners();
-        const bridgeManagementContract = await ethers.deployContract("BridgeManagementContract");
+        const BridgeManagementFactory = await ethers.getContractFactory("BridgeManagementContract");
+        const bridgeManagementContract = await BridgeManagementFactory.connect(managementOwner).deploy(managementOwner.address,
+            {
+                relayer: relayer.address,
+                validators: [validator1.address, validator2.address, validator3.address, validator4.address, validator5.address, validator6.address, validator7.address],
+                validatorThreshold: 5,
+                governor: governor.address,
+                securityGuard: securityGuard.address
+            });
+        // const bridgeManagementContract = await ethers.deployContract("BridgeManagementContract");
         await bridgeManagementContract.waitForDeployment();
         return {
             bridgeManagementContract: bridgeManagementContract,
@@ -33,7 +42,7 @@ describe("Bridge Management", function () {
             validator7,
             governor,
             securityGuard,
-            owner
+            managementOwner
         }
     }
 
@@ -56,7 +65,7 @@ describe("Bridge Management", function () {
         });
 
         it("Should have the right owner", async function () {
-            const { bridgeManagementContract: bridgeManagementContract, owner } = await loadFixture(deployBridgeFixture);
+            const { bridgeManagementContract: bridgeManagementContract, managementOwner: owner } = await loadFixture(deployBridgeFixture);
             expect(await bridgeManagementContract.owner()).to.equal(owner.address);
         });
 
@@ -74,14 +83,14 @@ describe("Bridge Management", function () {
 
     describe("Bridge role setting", function () {
         it("Set owner", async function () {
-            const { bridgeManagementContract, owner, validator2 } = await loadFixture(deployBridgeFixture);
+            const { bridgeManagementContract, managementOwner: owner, validator2 } = await loadFixture(deployBridgeFixture);
             const tx = await bridgeManagementContract.connect(owner).setOwner(validator2.address);
             await expect(tx).to.emit(bridgeManagementContract, "SetOwner").withArgs(validator2.address);
             await expect(await bridgeManagementContract.owner()).to.be.equal(validator2.address);
         });
 
         it("Set validators with unique address", async function () {
-            const { bridgeManagementContract, owner } = await loadFixture(deployBridgeFixture);
+            const { bridgeManagementContract, managementOwner: owner } = await loadFixture(deployBridgeFixture);
             const new_validators = [ethers.Wallet.createRandom().address, ethers.Wallet.createRandom().address];
             const tx = await bridgeManagementContract.connect(owner).setValidators(new_validators, 2);
             await expect(tx).to.emit(bridgeManagementContract, "SetValidators").withArgs(new_validators, 2);
@@ -91,7 +100,7 @@ describe("Bridge Management", function () {
         });
 
         it("Set validators multiple times", async function () {
-            const { bridgeManagementContract, owner, validator1, validator2, validator3, validator4 } = await loadFixture(deployBridgeFixture);
+            const { bridgeManagementContract, managementOwner: owner, validator1, validator2, validator3, validator4 } = await loadFixture(deployBridgeFixture);
             let new_validators = [validator1.address, validator2.address, validator3.address];
             let tx = await bridgeManagementContract.connect(owner).setValidators(new_validators, 2);
             await expect(tx).to.emit(bridgeManagementContract, "SetValidators").withArgs(new_validators, 2);
@@ -111,47 +120,47 @@ describe("Bridge Management", function () {
         });
 
         it("Set validators with duplicate addresses", async function () {
-            const { bridgeManagementContract, validator1, validator2, owner } = await loadFixture(deployBridgeFixture);
+            const { bridgeManagementContract, validator1, validator2, managementOwner: owner } = await loadFixture(deployBridgeFixture);
             const new_validators = [validator1.address, validator1.address, validator2.address];
             const tx = bridgeManagementContract.connect(owner).setValidators(new_validators, 2);
             await expect(tx).to.be.revertedWith("Duplicate validator addresses are not allowed");
         });
 
         it("Set validators with threshold greater than validators length", async function () {
-            const { bridgeManagementContract, validator1, validator2, owner } = await loadFixture(deployBridgeFixture);
+            const { bridgeManagementContract, validator1, validator2, managementOwner: owner } = await loadFixture(deployBridgeFixture);
             const new_validators = [validator1.address, validator2.address];
             const tx = bridgeManagementContract.connect(owner).setValidators(new_validators, 3);
             await expect(tx).to.be.revertedWith("Threshold must be greater than 0 and less than or equal to the number of validators");
         });
 
         it("Set validators with empty validators", async function () {
-            const { bridgeManagementContract, owner } = await loadFixture(deployBridgeFixture);
+            const { bridgeManagementContract, managementOwner: owner } = await loadFixture(deployBridgeFixture);
             const tx = bridgeManagementContract.connect(owner).setValidators([], 1);
             await expect(tx).to.be.revertedWith("Validators array must contain at least one address");
         });
 
         it("Set validators with zero address validators", async function () {
-            const { bridgeManagementContract, validator1, owner } = await loadFixture(deployBridgeFixture);
+            const { bridgeManagementContract, validator1, managementOwner: owner } = await loadFixture(deployBridgeFixture);
             const tx = bridgeManagementContract.connect(owner).setValidators([validator1.address, ZeroAddress], 1);
             await expect(tx).to.be.revertedWith("Validator address cannot be 0x0");
         });
 
         it("Set relayer", async function () {
-            const { bridgeManagementContract, owner, validator2 } = await loadFixture(deployBridgeFixture);
+            const { bridgeManagementContract, managementOwner: owner, validator2 } = await loadFixture(deployBridgeFixture);
             const tx = await bridgeManagementContract.connect(owner).setRelayer(validator2.address);
             await expect(tx).to.emit(bridgeManagementContract, "SetRelayer").withArgs(validator2.address);
             await expect(await bridgeManagementContract.relayer()).to.be.equal(validator2.address);
         });
 
         it("Set governor", async function () {
-            const { bridgeManagementContract, owner, validator2 } = await loadFixture(deployBridgeFixture);
+            const { bridgeManagementContract, managementOwner: owner, validator2 } = await loadFixture(deployBridgeFixture);
             const tx = await bridgeManagementContract.connect(owner).setGovernor(validator2.address);
             await expect(tx).to.emit(bridgeManagementContract, "SetGovernor").withArgs(validator2.address);
             await expect(await bridgeManagementContract.governor()).to.be.equal(validator2.address);
         });
 
         it("Set securityGuard", async function () {
-            const { bridgeManagementContract, owner, validator2 } = await loadFixture(deployBridgeFixture);
+            const { bridgeManagementContract, managementOwner: owner, validator2 } = await loadFixture(deployBridgeFixture);
             let tx = bridgeManagementContract.connect(owner).setSecurityGuard(validator2.address);
             await expect(tx).to.emit(bridgeManagementContract, "SetSecurityGuard").withArgs(validator2.address);
             await expect(await bridgeManagementContract.securityGuard()).to.be.equal(validator2.address);

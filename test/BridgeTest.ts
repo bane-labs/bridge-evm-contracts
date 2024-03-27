@@ -23,10 +23,20 @@ describe("Bridge Implementation", function () {
             validator6,
             validator7,
             governor,
-            securityGuard
+            securityGuard,
+            managementOwner
         ] = await ethers.getSigners();
-        const bridgeManagementContract = await ethers.deployContract("BridgeManagementContract");
-        await bridgeManagementContract.waitForDeployment();
+
+        const BridgeManagementFactory = await ethers.getContractFactory("BridgeManagementContract");
+        const bridgeManagementContract = await BridgeManagementFactory.connect(managementOwner).deploy(managementOwner.address,
+            {
+                relayer: relayer.address,
+                validators: [validator1.address, validator2.address, validator3.address, validator4.address, validator5.address, validator6.address, validator7.address],
+                validatorThreshold: 5,
+                governor: governor.address,
+                securityGuard: securityGuard.address
+            });
+
         const BridgeContract = await ethers.getContractFactory("BridgeImpl");
         const bridgeContract = await BridgeContract.deploy();
         await bridgeContract.waitForDeployment();
@@ -54,7 +64,8 @@ describe("Bridge Implementation", function () {
             validator6,
             validator7,
             governor,
-            securityGuard
+            securityGuard,
+            managementOwner
         }
     }
 

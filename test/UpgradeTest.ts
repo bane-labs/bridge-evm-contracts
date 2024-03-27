@@ -25,10 +25,18 @@ describe("Bridge Implementation", function () {
             validator7,
             governor,
             securityGuard,
-            proxyOwner
+            proxyOwner,
+            managementOwner
         ] = await ethers.getSigners();
         const BridgeManagementFactory = await ethers.getContractFactory("BridgeManagementContract");
-        const bridgeManagementContract = await BridgeManagementFactory.deploy();
+        const bridgeManagementContract = await BridgeManagementFactory.connect(managementOwner).deploy(managementOwner.address,
+            {
+                relayer: relayer.address,
+                validators: [validator1.address, validator2.address, validator3.address, validator4.address, validator5.address, validator6.address, validator7.address],
+                validatorThreshold: 5,
+                governor: governor.address,
+                securityGuard: securityGuard.address
+            });
         await bridgeManagementContract.waitForDeployment();
         const bridgeManagementAddress = await bridgeManagementContract.getAddress();
 
@@ -42,7 +50,7 @@ describe("Bridge Implementation", function () {
             maxDepositsPerDistribution: 100,
             gap: [0, 0]
         }];
-        const proxyContract = await upgrades.deployProxy(BridgeFactory, initializeData, { initializer: "initialize", kind: "transparent" });
+        const proxyContract = await upgrades.deployProxy(BridgeFactory, initializeData, { initializer: "initialize", kind: "uups" });
         await proxyContract.waitForDeployment();
         const proxyAddress = await proxyContract.getAddress()
 
@@ -70,6 +78,7 @@ describe("Bridge Implementation", function () {
             validator7,
             governor,
             securityGuard,
+            managementOwner
         }
     }
 
@@ -96,7 +105,7 @@ describe("Bridge Implementation", function () {
         });
 
         it("Remove onlyRelayer modifier", async function () {
-            const { proxyV1: proxy, BridgeImplV2Factory, proxyContract, relayer, validator1, validator7 } = await loadFixture(deployBridgeFixture);
+            const { proxyV1: proxy, managementOwner, BridgeImplV2Factory, proxyContract, relayer, validator1, validator7 } = await loadFixture(deployBridgeFixture);
             const hashDepositData1 = await hashDepositOrWithdrawal(Depositdata1.nonce, Depositdata1.amount, Depositdata1.to);
             const root1 = await computeRoot(ethers.ZeroHash, hashDepositData1);
             const encodeRoot1 = ethers.solidityPackedKeccak256(["bytes32"], [root1]);
@@ -109,7 +118,7 @@ describe("Bridge Implementation", function () {
             expect(tx).to.changeEtherBalances([proxy, Depositdata1.to], [-toEthDecimals(Depositdata1.amount), toEthDecimals(Depositdata1.amount)]);
 
             // Upgrade
-            const contract = upgrades.upgradeProxy(await proxyContract.getAddress(), BridgeImplV2Factory, { kind: "transparent" });
+            const contract = upgrades.upgradeProxy(await proxyContract.getAddress(), BridgeImplV2Factory.connect(managementOwner), { kind: "uups" });
             expect(await contract).to.emit(contract, "Upgraded");
 
             const hashDepositData2 = await hashDepositOrWithdrawal(Depositdata2.nonce, Depositdata2.amount, Depositdata2.to);
@@ -123,14 +132,14 @@ describe("Bridge Implementation", function () {
         });
 
         it("Add new mapping and new function", async function () {
-            const { proxyV1: proxy, proxyV2, BridgeImplV2Factory, proxyContract, validator1 } = await loadFixture(deployBridgeFixture);
+            const { managementOwner, proxyV2, BridgeImplV2Factory, proxyContract, validator1 } = await loadFixture(deployBridgeFixture);
             const tx = proxyV2.isRegistered(validator1.address);
             expect(tx).to.be.revertedWithoutReason();
             const txRegister = proxyV2.register(validator1.address);
             expect(txRegister).to.be.revertedWithoutReason();
 
             // Upgrade
-            const contract = upgrades.upgradeProxy(await proxyContract.getAddress(), BridgeImplV2Factory, { kind: "transparent" });
+            const contract = upgrades.upgradeProxy(await proxyContract.getAddress(), BridgeImplV2Factory.connect(managementOwner), { kind: "uups" });
             expect(await contract).to.emit(contract, "Upgraded");
 
             let registered = await proxyV2.isRegistered(validator1.address);
@@ -141,12 +150,12 @@ describe("Bridge Implementation", function () {
         });
 
         it("Use overridden function", async function () {
-            const { proxyV2, BridgeImplV2Factory, proxyContract, governor } = await loadFixture(deployBridgeFixture);
+            const { managementOwner, proxyV2, BridgeImplV2Factory, proxyContract, governor } = await loadFixture(deployBridgeFixture);
             await proxyV2.connect(governor).setGasWithdrawalFee(ethers.parseEther("0.2"));
             expect((await proxyV2.gasBridge()).config.fee).to.be.equal(ethers.parseEther("0.2"));
 
             // Upgrade
-            const contract = upgrades.upgradeProxy(await proxyContract.getAddress(), BridgeImplV2Factory, { kind: "transparent" });
+            const contract = upgrades.upgradeProxy(await proxyContract.getAddress(), BridgeImplV2Factory.connect(managementOwner), { kind: "uups" });
             expect(await contract).to.emit(contract, "Upgraded");
 
             let tx = proxyV2.connect(governor).setGasWithdrawalFee(ethers.parseEther("0.3"));
