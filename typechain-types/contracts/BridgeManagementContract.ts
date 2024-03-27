@@ -23,6 +23,30 @@ import type {
   TypedContractMethod,
 } from "../common";
 
+export declare namespace BridgeManagementContract {
+  export type DeploymentDataStruct = {
+    relayer: AddressLike;
+    validators: AddressLike[];
+    validatorThreshold: BigNumberish;
+    governor: AddressLike;
+    securityGuard: AddressLike;
+  };
+
+  export type DeploymentDataStructOutput = [
+    relayer: string,
+    validators: string[],
+    validatorThreshold: bigint,
+    governor: string,
+    securityGuard: string
+  ] & {
+    relayer: string;
+    validators: string[];
+    validatorThreshold: bigint;
+    governor: string;
+    securityGuard: string;
+  };
+}
+
 export interface BridgeManagementContractInterface extends Interface {
   getFunction(
     nameOrSignature:

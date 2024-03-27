@@ -57,20 +57,33 @@ export declare namespace TestBridgeStorageV1 {
 export interface TestBridgeStorageV2Interface extends Interface {
   getFunction(
     nameOrSignature:
+      | "UPGRADE_INTERFACE_VERSION"
       | "claimableGas"
+      | "endUpgradeability"
       | "gasBridge"
       | "initialize"
       | "isRegistered"
       | "locked"
       | "managementContract"
+      | "proxiableUUID"
       | "register"
+      | "upgradeToAndCall"
+      | "upgradeabilityEnded"
   ): FunctionFragment;
 
-  getEvent(nameOrSignatureOrTopic: "Initialized"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "Initialized" | "Upgraded"): EventFragment;
 
+  encodeFunctionData(
+    functionFragment: "UPGRADE_INTERFACE_VERSION",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "claimableGas",
     values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "endUpgradeability",
+    values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "gasBridge", values?: undefined): string;
   encodeFunctionData(
@@ -87,12 +100,32 @@ export interface TestBridgeStorageV2Interface extends Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
+    functionFragment: "proxiableUUID",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "register",
     values: [AddressLike]
   ): string;
+  encodeFunctionData(
+    functionFragment: "upgradeToAndCall",
+    values: [AddressLike, BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "upgradeabilityEnded",
+    values?: undefined
+  ): string;
 
   decodeFunctionResult(
+    functionFragment: "UPGRADE_INTERFACE_VERSION",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "claimableGas",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "endUpgradeability",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "gasBridge", data: BytesLike): Result;
@@ -106,7 +139,19 @@ export interface TestBridgeStorageV2Interface extends Interface {
     functionFragment: "managementContract",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "proxiableUUID",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "register", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "upgradeToAndCall",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "upgradeabilityEnded",
+    data: BytesLike
+  ): Result;
 }
 
 export namespace InitializedEvent {
@@ -114,6 +159,18 @@ export namespace InitializedEvent {
   export type OutputTuple = [version: bigint];
   export interface OutputObject {
     version: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace UpgradedEvent {
+  export type InputTuple = [implementation: AddressLike];
+  export type OutputTuple = [implementation: string];
+  export interface OutputObject {
+    implementation: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -164,11 +221,15 @@ export interface TestBridgeStorageV2 extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
+  UPGRADE_INTERFACE_VERSION: TypedContractMethod<[], [string], "view">;
+
   claimableGas: TypedContractMethod<
     [arg0: BigNumberish],
     [[string, bigint] & { to: string; amount: bigint }],
     "view"
   >;
+
+  endUpgradeability: TypedContractMethod<[], [void], "nonpayable">;
 
   gasBridge: TypedContractMethod<
     [],
@@ -201,12 +262,25 @@ export interface TestBridgeStorageV2 extends BaseContract {
 
   managementContract: TypedContractMethod<[], [string], "view">;
 
+  proxiableUUID: TypedContractMethod<[], [string], "view">;
+
   register: TypedContractMethod<[_token: AddressLike], [void], "nonpayable">;
+
+  upgradeToAndCall: TypedContractMethod<
+    [newImplementation: AddressLike, data: BytesLike],
+    [void],
+    "payable"
+  >;
+
+  upgradeabilityEnded: TypedContractMethod<[], [boolean], "view">;
 
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
   ): T;
 
+  getFunction(
+    nameOrSignature: "UPGRADE_INTERFACE_VERSION"
+  ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "claimableGas"
   ): TypedContractMethod<
@@ -214,6 +288,9 @@ export interface TestBridgeStorageV2 extends BaseContract {
     [[string, bigint] & { to: string; amount: bigint }],
     "view"
   >;
+  getFunction(
+    nameOrSignature: "endUpgradeability"
+  ): TypedContractMethod<[], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "gasBridge"
   ): TypedContractMethod<
@@ -251,8 +328,21 @@ export interface TestBridgeStorageV2 extends BaseContract {
     nameOrSignature: "managementContract"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
+    nameOrSignature: "proxiableUUID"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
     nameOrSignature: "register"
   ): TypedContractMethod<[_token: AddressLike], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "upgradeToAndCall"
+  ): TypedContractMethod<
+    [newImplementation: AddressLike, data: BytesLike],
+    [void],
+    "payable"
+  >;
+  getFunction(
+    nameOrSignature: "upgradeabilityEnded"
+  ): TypedContractMethod<[], [boolean], "view">;
 
   getEvent(
     key: "Initialized"
@@ -260,6 +350,13 @@ export interface TestBridgeStorageV2 extends BaseContract {
     InitializedEvent.InputTuple,
     InitializedEvent.OutputTuple,
     InitializedEvent.OutputObject
+  >;
+  getEvent(
+    key: "Upgraded"
+  ): TypedContractEvent<
+    UpgradedEvent.InputTuple,
+    UpgradedEvent.OutputTuple,
+    UpgradedEvent.OutputObject
   >;
 
   filters: {
@@ -272,6 +369,17 @@ export interface TestBridgeStorageV2 extends BaseContract {
       InitializedEvent.InputTuple,
       InitializedEvent.OutputTuple,
       InitializedEvent.OutputObject
+    >;
+
+    "Upgraded(address)": TypedContractEvent<
+      UpgradedEvent.InputTuple,
+      UpgradedEvent.OutputTuple,
+      UpgradedEvent.OutputObject
+    >;
+    Upgraded: TypedContractEvent<
+      UpgradedEvent.InputTuple,
+      UpgradedEvent.OutputTuple,
+      UpgradedEvent.OutputObject
     >;
   };
 }

@@ -79,21 +79,26 @@ export declare namespace TestBridgeStorageV1 {
 export interface TestBridgeImplV2Interface extends Interface {
   getFunction(
     nameOrSignature:
+      | "UPGRADE_INTERFACE_VERSION"
       | "claim"
       | "claimableGas"
       | "deposit"
+      | "endUpgradeability"
       | "gasBridge"
       | "initialize"
       | "isRegistered"
       | "lock"
       | "locked"
       | "managementContract"
+      | "proxiableUUID"
       | "register"
       | "setGasMaxNrDepositsPerDistribution"
       | "setGasWithdrawalFee"
       | "setGasWithdrawalMaxAmount"
       | "setGasWithdrawalMinAmount"
       | "unlock"
+      | "upgradeToAndCall"
+      | "upgradeabilityEnded"
       | "withdraw"
   ): FunctionFragment;
 
@@ -108,10 +113,15 @@ export interface TestBridgeImplV2Interface extends Interface {
       | "MaxWithdrawalAmountChanged"
       | "MinWithdrawalAmountChanged"
       | "Unlocked"
+      | "Upgraded"
       | "Withdrawal"
       | "WithdrawalFeeChanged"
   ): EventFragment;
 
+  encodeFunctionData(
+    functionFragment: "UPGRADE_INTERFACE_VERSION",
+    values?: undefined
+  ): string;
   encodeFunctionData(functionFragment: "claim", values: [BigNumberish]): string;
   encodeFunctionData(
     functionFragment: "claimableGas",
@@ -124,6 +134,10 @@ export interface TestBridgeImplV2Interface extends Interface {
       TestBridgeImplV2.SignatureStruct[],
       TestBridgeImplV2.DepositDataStruct[]
     ]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "endUpgradeability",
+    values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "gasBridge", values?: undefined): string;
   encodeFunctionData(
@@ -138,6 +152,10 @@ export interface TestBridgeImplV2Interface extends Interface {
   encodeFunctionData(functionFragment: "locked", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "managementContract",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "proxiableUUID",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -162,16 +180,32 @@ export interface TestBridgeImplV2Interface extends Interface {
   ): string;
   encodeFunctionData(functionFragment: "unlock", values?: undefined): string;
   encodeFunctionData(
+    functionFragment: "upgradeToAndCall",
+    values: [AddressLike, BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "upgradeabilityEnded",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "withdraw",
     values: [AddressLike]
   ): string;
 
+  decodeFunctionResult(
+    functionFragment: "UPGRADE_INTERFACE_VERSION",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "claim", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "claimableGas",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "deposit", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "endUpgradeability",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "gasBridge", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "initialize", data: BytesLike): Result;
   decodeFunctionResult(
@@ -182,6 +216,10 @@ export interface TestBridgeImplV2Interface extends Interface {
   decodeFunctionResult(functionFragment: "locked", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "managementContract",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "proxiableUUID",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "register", data: BytesLike): Result;
@@ -202,6 +240,14 @@ export interface TestBridgeImplV2Interface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "unlock", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "upgradeToAndCall",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "upgradeabilityEnded",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "withdraw", data: BytesLike): Result;
 }
 
@@ -327,6 +373,18 @@ export namespace UnlockedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace UpgradedEvent {
+  export type InputTuple = [implementation: AddressLike];
+  export type OutputTuple = [implementation: string];
+  export interface OutputObject {
+    implementation: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export namespace WithdrawalEvent {
   export type InputTuple = [
     nonce: BigNumberish,
@@ -413,6 +471,8 @@ export interface TestBridgeImplV2 extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
+  UPGRADE_INTERFACE_VERSION: TypedContractMethod<[], [string], "view">;
+
   claim: TypedContractMethod<[_nonce: BigNumberish], [void], "nonpayable">;
 
   claimableGas: TypedContractMethod<
@@ -430,6 +490,8 @@ export interface TestBridgeImplV2 extends BaseContract {
     [void],
     "nonpayable"
   >;
+
+  endUpgradeability: TypedContractMethod<[], [void], "nonpayable">;
 
   gasBridge: TypedContractMethod<
     [],
@@ -464,6 +526,8 @@ export interface TestBridgeImplV2 extends BaseContract {
 
   managementContract: TypedContractMethod<[], [string], "view">;
 
+  proxiableUUID: TypedContractMethod<[], [string], "view">;
+
   register: TypedContractMethod<[_token: AddressLike], [void], "nonpayable">;
 
   setGasMaxNrDepositsPerDistribution: TypedContractMethod<
@@ -492,12 +556,23 @@ export interface TestBridgeImplV2 extends BaseContract {
 
   unlock: TypedContractMethod<[], [void], "nonpayable">;
 
+  upgradeToAndCall: TypedContractMethod<
+    [newImplementation: AddressLike, data: BytesLike],
+    [void],
+    "payable"
+  >;
+
+  upgradeabilityEnded: TypedContractMethod<[], [boolean], "view">;
+
   withdraw: TypedContractMethod<[_to: AddressLike], [void], "payable">;
 
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
   ): T;
 
+  getFunction(
+    nameOrSignature: "UPGRADE_INTERFACE_VERSION"
+  ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "claim"
   ): TypedContractMethod<[_nonce: BigNumberish], [void], "nonpayable">;
@@ -519,6 +594,9 @@ export interface TestBridgeImplV2 extends BaseContract {
     [void],
     "nonpayable"
   >;
+  getFunction(
+    nameOrSignature: "endUpgradeability"
+  ): TypedContractMethod<[], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "gasBridge"
   ): TypedContractMethod<
@@ -559,6 +637,9 @@ export interface TestBridgeImplV2 extends BaseContract {
     nameOrSignature: "managementContract"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
+    nameOrSignature: "proxiableUUID"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
     nameOrSignature: "register"
   ): TypedContractMethod<[_token: AddressLike], [void], "nonpayable">;
   getFunction(
@@ -576,6 +657,16 @@ export interface TestBridgeImplV2 extends BaseContract {
   getFunction(
     nameOrSignature: "unlock"
   ): TypedContractMethod<[], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "upgradeToAndCall"
+  ): TypedContractMethod<
+    [newImplementation: AddressLike, data: BytesLike],
+    [void],
+    "payable"
+  >;
+  getFunction(
+    nameOrSignature: "upgradeabilityEnded"
+  ): TypedContractMethod<[], [boolean], "view">;
   getFunction(
     nameOrSignature: "withdraw"
   ): TypedContractMethod<[_to: AddressLike], [void], "payable">;
@@ -642,6 +733,13 @@ export interface TestBridgeImplV2 extends BaseContract {
     UnlockedEvent.InputTuple,
     UnlockedEvent.OutputTuple,
     UnlockedEvent.OutputObject
+  >;
+  getEvent(
+    key: "Upgraded"
+  ): TypedContractEvent<
+    UpgradedEvent.InputTuple,
+    UpgradedEvent.OutputTuple,
+    UpgradedEvent.OutputObject
   >;
   getEvent(
     key: "Withdrawal"
@@ -756,6 +854,17 @@ export interface TestBridgeImplV2 extends BaseContract {
       UnlockedEvent.InputTuple,
       UnlockedEvent.OutputTuple,
       UnlockedEvent.OutputObject
+    >;
+
+    "Upgraded(address)": TypedContractEvent<
+      UpgradedEvent.InputTuple,
+      UpgradedEvent.OutputTuple,
+      UpgradedEvent.OutputObject
+    >;
+    Upgraded: TypedContractEvent<
+      UpgradedEvent.InputTuple,
+      UpgradedEvent.OutputTuple,
+      UpgradedEvent.OutputObject
     >;
 
     "Withdrawal(uint64,uint64,address,address,bytes32,bytes32)": TypedContractEvent<
