@@ -8,6 +8,8 @@ import type {
   FunctionFragment,
   Result,
   Interface,
+  EventFragment,
+  AddressLike,
   ContractRunner,
   ContractMethod,
   Listener,
@@ -16,6 +18,7 @@ import type {
   TypedContractEvent,
   TypedDeferredTopicFilter,
   TypedEventLog,
+  TypedLogDescription,
   TypedListener,
   TypedContractMethod,
 } from "../common";
@@ -56,24 +59,26 @@ export interface BridgeStorageInterface extends Interface {
     nameOrSignature:
       | "claimableGas"
       | "gasBridge"
+      | "initialize"
       | "locked"
       | "managementContract"
-      | "proxyGap"
   ): FunctionFragment;
+
+  getEvent(nameOrSignatureOrTopic: "Initialized"): EventFragment;
 
   encodeFunctionData(
     functionFragment: "claimableGas",
     values: [BigNumberish]
   ): string;
   encodeFunctionData(functionFragment: "gasBridge", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "initialize",
+    values: [AddressLike, BridgeStorage.ConfigStruct]
+  ): string;
   encodeFunctionData(functionFragment: "locked", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "managementContract",
     values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "proxyGap",
-    values: [BigNumberish]
   ): string;
 
   decodeFunctionResult(
@@ -81,12 +86,24 @@ export interface BridgeStorageInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "gasBridge", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "initialize", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "locked", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "managementContract",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "proxyGap", data: BytesLike): Result;
+}
+
+export namespace InitializedEvent {
+  export type InputTuple = [version: BigNumberish];
+  export type OutputTuple = [version: bigint];
+  export interface OutputObject {
+    version: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
 }
 
 export interface BridgeStorage extends BaseContract {
@@ -154,11 +171,15 @@ export interface BridgeStorage extends BaseContract {
     "view"
   >;
 
+  initialize: TypedContractMethod<
+    [_managementContract: AddressLike, config: BridgeStorage.ConfigStruct],
+    [void],
+    "nonpayable"
+  >;
+
   locked: TypedContractMethod<[], [boolean], "view">;
 
   managementContract: TypedContractMethod<[], [string], "view">;
-
-  proxyGap: TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
 
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
@@ -189,14 +210,37 @@ export interface BridgeStorage extends BaseContract {
     "view"
   >;
   getFunction(
+    nameOrSignature: "initialize"
+  ): TypedContractMethod<
+    [_managementContract: AddressLike, config: BridgeStorage.ConfigStruct],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
     nameOrSignature: "locked"
   ): TypedContractMethod<[], [boolean], "view">;
   getFunction(
     nameOrSignature: "managementContract"
   ): TypedContractMethod<[], [string], "view">;
-  getFunction(
-    nameOrSignature: "proxyGap"
-  ): TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
 
-  filters: {};
+  getEvent(
+    key: "Initialized"
+  ): TypedContractEvent<
+    InitializedEvent.InputTuple,
+    InitializedEvent.OutputTuple,
+    InitializedEvent.OutputObject
+  >;
+
+  filters: {
+    "Initialized(uint64)": TypedContractEvent<
+      InitializedEvent.InputTuple,
+      InitializedEvent.OutputTuple,
+      InitializedEvent.OutputObject
+    >;
+    Initialized: TypedContractEvent<
+      InitializedEvent.InputTuple,
+      InitializedEvent.OutputTuple,
+      InitializedEvent.OutputObject
+    >;
+  };
 }

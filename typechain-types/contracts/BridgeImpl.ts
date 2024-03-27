@@ -87,7 +87,6 @@ export interface BridgeImplInterface extends Interface {
       | "lock"
       | "locked"
       | "managementContract"
-      | "proxyGap"
       | "setGasMaxNrDepositsPerDistribution"
       | "setGasWithdrawalFee"
       | "setGasWithdrawalMaxAmount"
@@ -136,10 +135,6 @@ export interface BridgeImplInterface extends Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "proxyGap",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
     functionFragment: "setGasMaxNrDepositsPerDistribution",
     values: [BigNumberish]
   ): string;
@@ -175,7 +170,6 @@ export interface BridgeImplInterface extends Interface {
     functionFragment: "managementContract",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "proxyGap", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "setGasMaxNrDepositsPerDistribution",
     data: BytesLike
@@ -450,8 +444,6 @@ export interface BridgeImpl extends BaseContract {
 
   managementContract: TypedContractMethod<[], [string], "view">;
 
-  proxyGap: TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
-
   setGasMaxNrDepositsPerDistribution: TypedContractMethod<
     [_maxNrDeposits: BigNumberish],
     [void],
@@ -538,9 +530,6 @@ export interface BridgeImpl extends BaseContract {
   getFunction(
     nameOrSignature: "managementContract"
   ): TypedContractMethod<[], [string], "view">;
-  getFunction(
-    nameOrSignature: "proxyGap"
-  ): TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
   getFunction(
     nameOrSignature: "setGasMaxNrDepositsPerDistribution"
   ): TypedContractMethod<[_maxNrDeposits: BigNumberish], [void], "nonpayable">;

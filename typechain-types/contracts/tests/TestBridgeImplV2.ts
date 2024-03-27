@@ -83,11 +83,11 @@ export interface TestBridgeImplV2Interface extends Interface {
       | "claimableGas"
       | "deposit"
       | "gasBridge"
+      | "initialize"
       | "isRegistered"
       | "lock"
       | "locked"
       | "managementContract"
-      | "proxyGap"
       | "register"
       | "setGasMaxNrDepositsPerDistribution"
       | "setGasWithdrawalFee"
@@ -102,6 +102,7 @@ export interface TestBridgeImplV2Interface extends Interface {
       | "Claimable"
       | "Claimed"
       | "Deposit"
+      | "Initialized"
       | "Locked"
       | "MaxDepositsPerDistributionChanged"
       | "MaxWithdrawalAmountChanged"
@@ -126,6 +127,10 @@ export interface TestBridgeImplV2Interface extends Interface {
   ): string;
   encodeFunctionData(functionFragment: "gasBridge", values?: undefined): string;
   encodeFunctionData(
+    functionFragment: "initialize",
+    values: [AddressLike, TestBridgeStorageV1.ConfigStruct]
+  ): string;
+  encodeFunctionData(
     functionFragment: "isRegistered",
     values: [AddressLike]
   ): string;
@@ -134,10 +139,6 @@ export interface TestBridgeImplV2Interface extends Interface {
   encodeFunctionData(
     functionFragment: "managementContract",
     values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "proxyGap",
-    values: [BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "register",
@@ -172,6 +173,7 @@ export interface TestBridgeImplV2Interface extends Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "deposit", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "gasBridge", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "initialize", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "isRegistered",
     data: BytesLike
@@ -182,7 +184,6 @@ export interface TestBridgeImplV2Interface extends Interface {
     functionFragment: "managementContract",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "proxyGap", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "register", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "setGasMaxNrDepositsPerDistribution",
@@ -251,6 +252,18 @@ export namespace DepositEvent {
     nonce: bigint;
     amount: bigint;
     to: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace InitializedEvent {
+  export type InputTuple = [version: BigNumberish];
+  export type OutputTuple = [version: bigint];
+  export interface OutputObject {
+    version: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -434,6 +447,15 @@ export interface TestBridgeImplV2 extends BaseContract {
     "view"
   >;
 
+  initialize: TypedContractMethod<
+    [
+      _managementContract: AddressLike,
+      config: TestBridgeStorageV1.ConfigStruct
+    ],
+    [void],
+    "nonpayable"
+  >;
+
   isRegistered: TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
 
   lock: TypedContractMethod<[], [void], "nonpayable">;
@@ -441,8 +463,6 @@ export interface TestBridgeImplV2 extends BaseContract {
   locked: TypedContractMethod<[], [boolean], "view">;
 
   managementContract: TypedContractMethod<[], [string], "view">;
-
-  proxyGap: TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
 
   register: TypedContractMethod<[_token: AddressLike], [void], "nonpayable">;
 
@@ -517,6 +537,16 @@ export interface TestBridgeImplV2 extends BaseContract {
     "view"
   >;
   getFunction(
+    nameOrSignature: "initialize"
+  ): TypedContractMethod<
+    [
+      _managementContract: AddressLike,
+      config: TestBridgeStorageV1.ConfigStruct
+    ],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
     nameOrSignature: "isRegistered"
   ): TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
   getFunction(
@@ -528,9 +558,6 @@ export interface TestBridgeImplV2 extends BaseContract {
   getFunction(
     nameOrSignature: "managementContract"
   ): TypedContractMethod<[], [string], "view">;
-  getFunction(
-    nameOrSignature: "proxyGap"
-  ): TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
   getFunction(
     nameOrSignature: "register"
   ): TypedContractMethod<[_token: AddressLike], [void], "nonpayable">;
@@ -573,6 +600,13 @@ export interface TestBridgeImplV2 extends BaseContract {
     DepositEvent.InputTuple,
     DepositEvent.OutputTuple,
     DepositEvent.OutputObject
+  >;
+  getEvent(
+    key: "Initialized"
+  ): TypedContractEvent<
+    InitializedEvent.InputTuple,
+    InitializedEvent.OutputTuple,
+    InitializedEvent.OutputObject
   >;
   getEvent(
     key: "Locked"
@@ -656,6 +690,17 @@ export interface TestBridgeImplV2 extends BaseContract {
       DepositEvent.InputTuple,
       DepositEvent.OutputTuple,
       DepositEvent.OutputObject
+    >;
+
+    "Initialized(uint64)": TypedContractEvent<
+      InitializedEvent.InputTuple,
+      InitializedEvent.OutputTuple,
+      InitializedEvent.OutputObject
+    >;
+    Initialized: TypedContractEvent<
+      InitializedEvent.InputTuple,
+      InitializedEvent.OutputTuple,
+      InitializedEvent.OutputObject
     >;
 
     "Locked()": TypedContractEvent<

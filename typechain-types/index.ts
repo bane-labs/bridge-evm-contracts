@@ -12,8 +12,6 @@ export type { BridgeImpl } from "./contracts/BridgeImpl";
 export { BridgeImpl__factory } from "./factories/contracts/BridgeImpl__factory";
 export type { BridgeManagementContract } from "./contracts/BridgeManagementContract";
 export { BridgeManagementContract__factory } from "./factories/contracts/BridgeManagementContract__factory";
-export type { BridgeProxy } from "./contracts/BridgeProxy";
-export { BridgeProxy__factory } from "./factories/contracts/BridgeProxy__factory";
 export type { BridgeStorage } from "./contracts/BridgeStorage";
 export { BridgeStorage__factory } from "./factories/contracts/BridgeStorage__factory";
 export type { TestBridgeImplV2 } from "./contracts/tests/TestBridgeImplV2";
