@@ -2,9 +2,10 @@
 pragma solidity ^0.8.20;
 
 import "../BridgeManagementContract.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts/utils/StorageSlot.sol";
 
-contract TestBridgeStorageV1 is Initializable {
+contract TestBridgeStorageV1 is UUPSUpgradeable {
     struct GasBridge {
         State depositState;
         State withdrawalState;
@@ -44,6 +45,56 @@ contract TestBridgeStorageV1 is Initializable {
             withdrawalState: State({nonce: 0, root: 0x0}),
             config: config
         });
+    }
+
+    bytes32 private constant upgradeabilityEndedStorageSlot =
+        bytes32(uint256(keccak256("eip1967.proxy.upgradeabilityEnded")) - 1);
+
+    function endUpgradeability() external onlyOwner {
+        StorageSlot.getBooleanSlot(upgradeabilityEndedStorageSlot).value = true;
+    }
+
+    function upgradeabilityEnded() public view returns (bool) {
+        return StorageSlot.getBooleanSlot(upgradeabilityEndedStorageSlot).value;
+    }
+
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal virtual override onlyOwner onlyUpgradeable {}
+
+    // Modifiers
+
+    modifier onlyUpgradeable() {
+        require(!upgradeabilityEnded(), "Upgradeability has ended");
+        _;
+    }
+
+    modifier onlyRelayer() {
+        require(msg.sender == managementContract.relayer(), "Not relayer");
+        _;
+    }
+
+    modifier onlyGovernor() {
+        require(msg.sender == managementContract.governor(), "Not governor");
+        _;
+    }
+
+    modifier onlySecurityGuard() {
+        require(
+            msg.sender == managementContract.securityGuard(),
+            "Not securityGuard"
+        );
+        _;
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == managementContract.owner(), "Not owner");
+        _;
+    }
+
+    modifier unlocked() {
+        require(!locked, "Contract is locked");
+        _;
     }
 
     function _lock() internal {

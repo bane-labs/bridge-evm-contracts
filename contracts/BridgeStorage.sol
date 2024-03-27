@@ -2,9 +2,9 @@
 pragma solidity ^0.8.20;
 
 import "./BridgeManagementContract.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract BridgeStorage is Initializable {
+contract BridgeStorage is UUPSUpgradeable {
     struct GasBridge {
         State depositState;
         State withdrawalState;
@@ -44,6 +44,40 @@ contract BridgeStorage is Initializable {
             withdrawalState: State({nonce: 0, root: 0x0}),
             config: config
         });
+    }
+
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal virtual override onlyOwner {}
+
+    // Modifiers
+
+    modifier onlyRelayer() {
+        require(msg.sender == managementContract.relayer(), "Not relayer");
+        _;
+    }
+
+    modifier onlyGovernor() {
+        require(msg.sender == managementContract.governor(), "Not governor");
+        _;
+    }
+
+    modifier onlySecurityGuard() {
+        require(
+            msg.sender == managementContract.securityGuard(),
+            "Not securityGuard"
+        );
+        _;
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == managementContract.owner(), "Not owner");
+        _;
+    }
+
+    modifier unlocked() {
+        require(!locked, "Contract is locked");
+        _;
     }
 
     function _lock() internal {

@@ -30,9 +30,6 @@ contract TestBridgeImplV2 is TestBridgeStorageV2 {
     event MaxWithdrawalAmountChanged(uint256 amount);
     event MaxDepositsPerDistributionChanged(uint8 amount);
 
-    // This is only used for testing. Remove it before compiling byte code for genesis script.
-    receive() external payable onlyRelayer {}
-
     constructor() {}
 
     //////////////////////////
@@ -202,36 +199,6 @@ contract TestBridgeImplV2 is TestBridgeStorageV2 {
 
     function isContract(address _addr) private view returns (bool) {
         return _addr.code.length > 0;
-    }
-
-    // Modifiers
-
-    modifier onlyRelayer() {
-        require(msg.sender == managementContract.relayer(), "Not relayer");
-        _;
-    }
-
-    modifier onlyGovernor() {
-        require(msg.sender == managementContract.governor(), "Not governor");
-        _;
-    }
-
-    modifier onlySecurityGuard() {
-        require(
-            msg.sender == managementContract.securityGuard(),
-            "Not securityGuard"
-        );
-        _;
-    }
-
-    modifier onlyOwner() {
-        require(msg.sender == managementContract.owner(), "Not owner");
-        _;
-    }
-
-    modifier unlocked() {
-        require(!locked, "Contract is locked");
-        _;
     }
 
     ///////////

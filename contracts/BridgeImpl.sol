@@ -195,36 +195,6 @@ contract BridgeImpl is BridgeStorage {
         return _addr.code.length > 0;
     }
 
-    // Modifiers
-
-    modifier onlyRelayer() {
-        require(msg.sender == managementContract.relayer(), "Not relayer");
-        _;
-    }
-
-    modifier onlyGovernor() {
-        require(msg.sender == managementContract.governor(), "Not governor");
-        _;
-    }
-
-    modifier onlySecurityGuard() {
-        require(
-            msg.sender == managementContract.securityGuard(),
-            "Not securityGuard"
-        );
-        _;
-    }
-
-    modifier onlyOwner() {
-        require(msg.sender == managementContract.owner(), "Not owner");
-        _;
-    }
-
-    modifier unlocked() {
-        require(!locked, "Contract is locked");
-        _;
-    }
-
     ///////////
     // Claim //
     ///////////
