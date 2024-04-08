@@ -5,6 +5,14 @@ import "./BridgeManagementContract.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 contract BridgeStorage is UUPSUpgradeable {
+    address public constant GOV_ADMIN =
+        0x1212000000000000000000000000000000000000;
+
+    BridgeManagementContract public managementContract;
+    GasBridge public gasBridge;
+    mapping(uint64 => GasClaimable) public claimableGas;
+    bool public locked;
+
     struct GasBridge {
         State depositState;
         State withdrawalState;
@@ -29,11 +37,6 @@ contract BridgeStorage is UUPSUpgradeable {
         uint64 amount;
     }
 
-    BridgeManagementContract public managementContract;
-    GasBridge public gasBridge;
-    mapping(uint64 => GasClaimable) public claimableGas;
-    bool public locked;
-
     function initialize(
         address _managementContract,
         Config calldata config
@@ -46,9 +49,14 @@ contract BridgeStorage is UUPSUpgradeable {
         });
     }
 
+    modifier onlyAdmin() {
+        require(msg.sender == GOV_ADMIN, "Not admin");
+        _;
+    }
+
     function _authorizeUpgrade(
         address newImplementation
-    ) internal virtual override onlyOwner {}
+    ) internal virtual override onlyAdmin {}
 
     // Modifiers
 
