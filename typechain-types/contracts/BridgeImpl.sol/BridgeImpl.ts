@@ -21,9 +21,9 @@ import type {
   TypedLogDescription,
   TypedListener,
   TypedContractMethod,
-} from "../common";
+} from "../../common";
 
-export declare namespace BridgeImpl {
+export declare namespace BridgeLib {
   export type SignatureStruct = { v: BigNumberish; r: BytesLike; s: BytesLike };
 
   export type SignatureStructOutput = [v: bigint, r: string, s: string] & {
@@ -79,19 +79,23 @@ export declare namespace BridgeStorage {
 export interface BridgeImplInterface extends Interface {
   getFunction(
     nameOrSignature:
+      | "GOV_ADMIN"
+      | "SELF"
+      | "UPGRADE_INTERFACE_VERSION"
       | "claim"
       | "claimableGas"
       | "deposit"
       | "gasBridge"
-      | "initialize"
       | "lock"
       | "locked"
       | "managementContract"
+      | "proxiableUUID"
       | "setGasMaxNrDepositsPerDistribution"
       | "setGasWithdrawalFee"
       | "setGasWithdrawalMaxAmount"
       | "setGasWithdrawalMinAmount"
       | "unlock"
+      | "upgradeToAndCall"
       | "withdraw"
   ): FunctionFragment;
 
@@ -106,10 +110,17 @@ export interface BridgeImplInterface extends Interface {
       | "MaxWithdrawalAmountChanged"
       | "MinWithdrawalAmountChanged"
       | "Unlocked"
+      | "Upgraded"
       | "Withdrawal"
       | "WithdrawalFeeChanged"
   ): EventFragment;
 
+  encodeFunctionData(functionFragment: "GOV_ADMIN", values?: undefined): string;
+  encodeFunctionData(functionFragment: "SELF", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "UPGRADE_INTERFACE_VERSION",
+    values?: undefined
+  ): string;
   encodeFunctionData(functionFragment: "claim", values: [BigNumberish]): string;
   encodeFunctionData(
     functionFragment: "claimableGas",
@@ -119,19 +130,19 @@ export interface BridgeImplInterface extends Interface {
     functionFragment: "deposit",
     values: [
       BytesLike,
-      BridgeImpl.SignatureStruct[],
-      BridgeImpl.DepositDataStruct[]
+      BridgeLib.SignatureStruct[],
+      BridgeLib.DepositDataStruct[]
     ]
   ): string;
   encodeFunctionData(functionFragment: "gasBridge", values?: undefined): string;
-  encodeFunctionData(
-    functionFragment: "initialize",
-    values: [AddressLike, BridgeStorage.ConfigStruct]
-  ): string;
   encodeFunctionData(functionFragment: "lock", values?: undefined): string;
   encodeFunctionData(functionFragment: "locked", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "managementContract",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "proxiableUUID",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -152,10 +163,20 @@ export interface BridgeImplInterface extends Interface {
   ): string;
   encodeFunctionData(functionFragment: "unlock", values?: undefined): string;
   encodeFunctionData(
+    functionFragment: "upgradeToAndCall",
+    values: [AddressLike, BytesLike]
+  ): string;
+  encodeFunctionData(
     functionFragment: "withdraw",
     values: [AddressLike]
   ): string;
 
+  decodeFunctionResult(functionFragment: "GOV_ADMIN", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "SELF", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "UPGRADE_INTERFACE_VERSION",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "claim", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "claimableGas",
@@ -163,11 +184,14 @@ export interface BridgeImplInterface extends Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "deposit", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "gasBridge", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "initialize", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "lock", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "locked", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "managementContract",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "proxiableUUID",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -187,6 +211,10 @@ export interface BridgeImplInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "unlock", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "upgradeToAndCall",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "withdraw", data: BytesLike): Result;
 }
 
@@ -312,6 +340,18 @@ export namespace UnlockedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace UpgradedEvent {
+  export type InputTuple = [implementation: AddressLike];
+  export type OutputTuple = [implementation: string];
+  export interface OutputObject {
+    implementation: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export namespace WithdrawalEvent {
   export type InputTuple = [
     nonce: BigNumberish,
@@ -398,6 +438,12 @@ export interface BridgeImpl extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
+  GOV_ADMIN: TypedContractMethod<[], [string], "view">;
+
+  SELF: TypedContractMethod<[], [string], "view">;
+
+  UPGRADE_INTERFACE_VERSION: TypedContractMethod<[], [string], "view">;
+
   claim: TypedContractMethod<[_nonce: BigNumberish], [void], "nonpayable">;
 
   claimableGas: TypedContractMethod<
@@ -409,8 +455,8 @@ export interface BridgeImpl extends BaseContract {
   deposit: TypedContractMethod<
     [
       _depositRoot: BytesLike,
-      _signatures: BridgeImpl.SignatureStruct[],
-      _deposits: BridgeImpl.DepositDataStruct[]
+      _signatures: BridgeLib.SignatureStruct[],
+      _deposits: BridgeLib.DepositDataStruct[]
     ],
     [void],
     "nonpayable"
@@ -432,17 +478,13 @@ export interface BridgeImpl extends BaseContract {
     "view"
   >;
 
-  initialize: TypedContractMethod<
-    [_managementContract: AddressLike, config: BridgeStorage.ConfigStruct],
-    [void],
-    "nonpayable"
-  >;
-
   lock: TypedContractMethod<[], [void], "nonpayable">;
 
   locked: TypedContractMethod<[], [boolean], "view">;
 
   managementContract: TypedContractMethod<[], [string], "view">;
+
+  proxiableUUID: TypedContractMethod<[], [string], "view">;
 
   setGasMaxNrDepositsPerDistribution: TypedContractMethod<
     [_maxNrDeposits: BigNumberish],
@@ -470,12 +512,27 @@ export interface BridgeImpl extends BaseContract {
 
   unlock: TypedContractMethod<[], [void], "nonpayable">;
 
+  upgradeToAndCall: TypedContractMethod<
+    [newImplementation: AddressLike, data: BytesLike],
+    [void],
+    "payable"
+  >;
+
   withdraw: TypedContractMethod<[_to: AddressLike], [void], "payable">;
 
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
   ): T;
 
+  getFunction(
+    nameOrSignature: "GOV_ADMIN"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "SELF"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "UPGRADE_INTERFACE_VERSION"
+  ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "claim"
   ): TypedContractMethod<[_nonce: BigNumberish], [void], "nonpayable">;
@@ -491,8 +548,8 @@ export interface BridgeImpl extends BaseContract {
   ): TypedContractMethod<
     [
       _depositRoot: BytesLike,
-      _signatures: BridgeImpl.SignatureStruct[],
-      _deposits: BridgeImpl.DepositDataStruct[]
+      _signatures: BridgeLib.SignatureStruct[],
+      _deposits: BridgeLib.DepositDataStruct[]
     ],
     [void],
     "nonpayable"
@@ -515,13 +572,6 @@ export interface BridgeImpl extends BaseContract {
     "view"
   >;
   getFunction(
-    nameOrSignature: "initialize"
-  ): TypedContractMethod<
-    [_managementContract: AddressLike, config: BridgeStorage.ConfigStruct],
-    [void],
-    "nonpayable"
-  >;
-  getFunction(
     nameOrSignature: "lock"
   ): TypedContractMethod<[], [void], "nonpayable">;
   getFunction(
@@ -529,6 +579,9 @@ export interface BridgeImpl extends BaseContract {
   ): TypedContractMethod<[], [boolean], "view">;
   getFunction(
     nameOrSignature: "managementContract"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "proxiableUUID"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "setGasMaxNrDepositsPerDistribution"
@@ -545,6 +598,13 @@ export interface BridgeImpl extends BaseContract {
   getFunction(
     nameOrSignature: "unlock"
   ): TypedContractMethod<[], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "upgradeToAndCall"
+  ): TypedContractMethod<
+    [newImplementation: AddressLike, data: BytesLike],
+    [void],
+    "payable"
+  >;
   getFunction(
     nameOrSignature: "withdraw"
   ): TypedContractMethod<[_to: AddressLike], [void], "payable">;
@@ -611,6 +671,13 @@ export interface BridgeImpl extends BaseContract {
     UnlockedEvent.InputTuple,
     UnlockedEvent.OutputTuple,
     UnlockedEvent.OutputObject
+  >;
+  getEvent(
+    key: "Upgraded"
+  ): TypedContractEvent<
+    UpgradedEvent.InputTuple,
+    UpgradedEvent.OutputTuple,
+    UpgradedEvent.OutputObject
   >;
   getEvent(
     key: "Withdrawal"
@@ -725,6 +792,17 @@ export interface BridgeImpl extends BaseContract {
       UnlockedEvent.InputTuple,
       UnlockedEvent.OutputTuple,
       UnlockedEvent.OutputObject
+    >;
+
+    "Upgraded(address)": TypedContractEvent<
+      UpgradedEvent.InputTuple,
+      UpgradedEvent.OutputTuple,
+      UpgradedEvent.OutputObject
+    >;
+    Upgraded: TypedContractEvent<
+      UpgradedEvent.InputTuple,
+      UpgradedEvent.OutputTuple,
+      UpgradedEvent.OutputObject
     >;
 
     "Withdrawal(uint64,uint64,address,address,bytes32,bytes32)": TypedContractEvent<

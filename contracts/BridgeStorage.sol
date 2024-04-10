@@ -1,10 +1,31 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "./BridgeManagementContract.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "./BridgeManagementImpl.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract BridgeStorage is Initializable {
+contract BridgeStorage is UUPSUpgradeable {
+    address public constant SELF = 0x1212100000000000000000000000000000000004;
+    address public constant GOV_ADMIN =
+        0x1212000000000000000000000000000000000000;
+
+    BridgeManagementImpl public managementContract =
+        BridgeManagementImpl(0x72bb9c7ffbE2Ed234e53bc64862DdA6d9fFF333b);
+    GasBridge public gasBridge =
+        GasBridge({
+            depositState: State({nonce: 0, root: 0x0}),
+            withdrawalState: State({nonce: 0, root: 0x0}),
+            config: Config({
+                fee: 10 ** 17,
+                minAmount: 10 ** 18,
+                maxAmount: 10 ** 22,
+                maxDepositsPerDistribution: 100,
+                gap: [uint256(0), uint256(0)]
+            })
+        });
+    mapping(uint64 => GasClaimable) public claimableGas;
+    bool public locked;
+
     struct GasBridge {
         State depositState;
         State withdrawalState;
@@ -29,21 +50,34 @@ contract BridgeStorage is Initializable {
         uint64 amount;
     }
 
-    BridgeManagementContract public managementContract;
-    GasBridge public gasBridge;
-    mapping(uint64 => GasClaimable) public claimableGas;
-    bool public locked;
+    // Modifiers for Role Restriction
 
-    function initialize(
-        address _managementContract,
-        Config calldata config
-    ) public initializer {
-        managementContract = BridgeManagementContract(_managementContract);
-        gasBridge = GasBridge({
-            depositState: State({nonce: 0, root: 0x0}),
-            withdrawalState: State({nonce: 0, root: 0x0}),
-            config: config
-        });
+    modifier onlyRelayer() {
+        require(msg.sender == managementContract.relayer(), "Not relayer");
+        _;
+    }
+
+    modifier onlyGovernor() {
+        require(msg.sender == managementContract.governor(), "Not governor");
+        _;
+    }
+
+    modifier onlySecurityGuard() {
+        require(
+            msg.sender == managementContract.securityGuard(),
+            "Not securityGuard"
+        );
+        _;
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == managementContract.owner(), "Not owner");
+        _;
+    }
+
+    modifier unlocked() {
+        require(!locked, "Contract is locked");
+        _;
     }
 
     function _lock() internal {
@@ -141,5 +175,49 @@ contract BridgeStorage is Initializable {
     function _setGasMaxNrDepositsPerDistribution(uint8 _maxDeposits) internal {
         require(_maxDeposits > 0, "Value must be greater than 0");
         gasBridge.config.maxDepositsPerDistribution = _maxDeposits;
+    }
+
+    // Upgrade authorization
+
+    modifier onlyAdmin() {
+        require(msg.sender == GOV_ADMIN, "Not admin");
+        _;
+    }
+
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal virtual override onlyAdmin {}
+
+    // UUPSUpgradeable-specific functions required for precompiled version.
+
+    /**
+     * @dev Reverts if the execution is not performed via delegatecall or the execution
+     * context is not of a proxy with an ERC-1967 compliant implementation pointing to self.
+     * See the modifier {onlyProxy} in UUPSUpgradeable.sol.
+     *
+     * Only for precompiled uups implementation in genesis file, need to be removed when upgrading the contract.
+     * This override is added because "immutable __self" in UUPSUpgradeable is not avaliable in precompiled contract.
+     */
+    function _checkProxy() internal view virtual override {
+        if (
+            address(this) == SELF || // Must be called through delegatecall
+            ERC1967Utils.getImplementation() != SELF // Must be called through an active proxy
+        ) {
+            revert UUPSUnauthorizedCallContext();
+        }
+    }
+
+    /**
+     * @dev Reverts if the execution is performed via delegatecall.
+     * See the modifier {notDelegated} in UUPSUpgradeable.sol.
+     *
+     * Only for precompiled uups implementation in genesis file, need to be removed when upgrading the contract.
+     * This override is added because "immutable __self" in UUPSUpgradeable is not avaliable in precompiled contract.
+     */
+    function _checkNotDelegated() internal view virtual override {
+        if (address(this) != SELF) {
+            // Must not be called through delegatecall
+            revert UUPSUnauthorizedCallContext();
+        }
     }
 }

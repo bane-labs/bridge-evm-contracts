@@ -21,23 +21,17 @@ import type {
   TypedLogDescription,
   TypedListener,
   TypedContractMethod,
-} from "../common";
+} from "../../common";
 
-export interface BridgeManagementContractInterface extends Interface {
+export interface IBridgeManagementInterface extends Interface {
   getFunction(
     nameOrSignature:
       | "getValidators"
-      | "governor"
-      | "owner"
-      | "relayer"
-      | "securityGuard"
       | "setGovernor"
       | "setOwner"
       | "setRelayer"
       | "setSecurityGuard"
       | "setValidators"
-      | "validatorThreshold"
-      | "validators"
   ): FunctionFragment;
 
   getEvent(
@@ -51,13 +45,6 @@ export interface BridgeManagementContractInterface extends Interface {
 
   encodeFunctionData(
     functionFragment: "getValidators",
-    values?: undefined
-  ): string;
-  encodeFunctionData(functionFragment: "governor", values?: undefined): string;
-  encodeFunctionData(functionFragment: "owner", values?: undefined): string;
-  encodeFunctionData(functionFragment: "relayer", values?: undefined): string;
-  encodeFunctionData(
-    functionFragment: "securityGuard",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -80,24 +67,9 @@ export interface BridgeManagementContractInterface extends Interface {
     functionFragment: "setValidators",
     values: [AddressLike[], BigNumberish]
   ): string;
-  encodeFunctionData(
-    functionFragment: "validatorThreshold",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "validators",
-    values: [BigNumberish]
-  ): string;
 
   decodeFunctionResult(
     functionFragment: "getValidators",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(functionFragment: "governor", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "relayer", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "securityGuard",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -114,11 +86,6 @@ export interface BridgeManagementContractInterface extends Interface {
     functionFragment: "setValidators",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(
-    functionFragment: "validatorThreshold",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(functionFragment: "validators", data: BytesLike): Result;
 }
 
 export namespace SetGovernorEvent {
@@ -182,11 +149,11 @@ export namespace SetValidatorsEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export interface BridgeManagementContract extends BaseContract {
-  connect(runner?: ContractRunner | null): BridgeManagementContract;
+export interface IBridgeManagement extends BaseContract {
+  connect(runner?: ContractRunner | null): IBridgeManagement;
   waitForDeployment(): Promise<this>;
 
-  interface: BridgeManagementContractInterface;
+  interface: IBridgeManagementInterface;
 
   queryFilter<TCEvent extends TypedContractEvent>(
     event: TCEvent,
@@ -227,14 +194,6 @@ export interface BridgeManagementContract extends BaseContract {
 
   getValidators: TypedContractMethod<[], [string[]], "view">;
 
-  governor: TypedContractMethod<[], [string], "view">;
-
-  owner: TypedContractMethod<[], [string], "view">;
-
-  relayer: TypedContractMethod<[], [string], "view">;
-
-  securityGuard: TypedContractMethod<[], [string], "view">;
-
   setGovernor: TypedContractMethod<
     [_governor: AddressLike],
     [void],
@@ -261,10 +220,6 @@ export interface BridgeManagementContract extends BaseContract {
     "nonpayable"
   >;
 
-  validatorThreshold: TypedContractMethod<[], [bigint], "view">;
-
-  validators: TypedContractMethod<[arg0: BigNumberish], [string], "view">;
-
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
   ): T;
@@ -272,18 +227,6 @@ export interface BridgeManagementContract extends BaseContract {
   getFunction(
     nameOrSignature: "getValidators"
   ): TypedContractMethod<[], [string[]], "view">;
-  getFunction(
-    nameOrSignature: "governor"
-  ): TypedContractMethod<[], [string], "view">;
-  getFunction(
-    nameOrSignature: "owner"
-  ): TypedContractMethod<[], [string], "view">;
-  getFunction(
-    nameOrSignature: "relayer"
-  ): TypedContractMethod<[], [string], "view">;
-  getFunction(
-    nameOrSignature: "securityGuard"
-  ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "setGovernor"
   ): TypedContractMethod<[_governor: AddressLike], [void], "nonpayable">;
@@ -303,12 +246,6 @@ export interface BridgeManagementContract extends BaseContract {
     [void],
     "nonpayable"
   >;
-  getFunction(
-    nameOrSignature: "validatorThreshold"
-  ): TypedContractMethod<[], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "validators"
-  ): TypedContractMethod<[arg0: BigNumberish], [string], "view">;
 
   getEvent(
     key: "SetGovernor"

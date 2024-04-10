@@ -23,49 +23,20 @@ import type {
   TypedContractMethod,
 } from "../common";
 
-export declare namespace BridgeStorage {
-  export type StateStruct = { nonce: BigNumberish; root: BytesLike };
-
-  export type StateStructOutput = [nonce: bigint, root: string] & {
-    nonce: bigint;
-    root: string;
-  };
-
-  export type ConfigStruct = {
-    fee: BigNumberish;
-    minAmount: BigNumberish;
-    maxAmount: BigNumberish;
-    maxDepositsPerDistribution: BigNumberish;
-    gap: [BigNumberish, BigNumberish];
-  };
-
-  export type ConfigStructOutput = [
-    fee: bigint,
-    minAmount: bigint,
-    maxAmount: bigint,
-    maxDepositsPerDistribution: bigint,
-    gap: [bigint, bigint]
-  ] & {
-    fee: bigint;
-    minAmount: bigint;
-    maxAmount: bigint;
-    maxDepositsPerDistribution: bigint;
-    gap: [bigint, bigint];
-  };
-}
-
-export interface BridgeStorageInterface extends Interface {
+export interface BridgeManagementStorageInterface extends Interface {
   getFunction(
     nameOrSignature:
       | "GOV_ADMIN"
       | "SELF"
       | "UPGRADE_INTERFACE_VERSION"
-      | "claimableGas"
-      | "gasBridge"
-      | "locked"
-      | "managementContract"
+      | "governor"
+      | "owner"
       | "proxiableUUID"
+      | "relayer"
+      | "securityGuard"
       | "upgradeToAndCall"
+      | "validatorThreshold"
+      | "validators"
   ): FunctionFragment;
 
   getEvent(nameOrSignatureOrTopic: "Initialized" | "Upgraded"): EventFragment;
@@ -76,23 +47,28 @@ export interface BridgeStorageInterface extends Interface {
     functionFragment: "UPGRADE_INTERFACE_VERSION",
     values?: undefined
   ): string;
-  encodeFunctionData(
-    functionFragment: "claimableGas",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(functionFragment: "gasBridge", values?: undefined): string;
-  encodeFunctionData(functionFragment: "locked", values?: undefined): string;
-  encodeFunctionData(
-    functionFragment: "managementContract",
-    values?: undefined
-  ): string;
+  encodeFunctionData(functionFragment: "governor", values?: undefined): string;
+  encodeFunctionData(functionFragment: "owner", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "proxiableUUID",
+    values?: undefined
+  ): string;
+  encodeFunctionData(functionFragment: "relayer", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "securityGuard",
     values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "upgradeToAndCall",
     values: [AddressLike, BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "validatorThreshold",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "validators",
+    values: [BigNumberish]
   ): string;
 
   decodeFunctionResult(functionFragment: "GOV_ADMIN", data: BytesLike): Result;
@@ -101,24 +77,26 @@ export interface BridgeStorageInterface extends Interface {
     functionFragment: "UPGRADE_INTERFACE_VERSION",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(
-    functionFragment: "claimableGas",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(functionFragment: "gasBridge", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "locked", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "managementContract",
-    data: BytesLike
-  ): Result;
+  decodeFunctionResult(functionFragment: "governor", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "proxiableUUID",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "relayer", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "securityGuard",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
     functionFragment: "upgradeToAndCall",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "validatorThreshold",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "validators", data: BytesLike): Result;
 }
 
 export namespace InitializedEvent {
@@ -145,11 +123,11 @@ export namespace UpgradedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export interface BridgeStorage extends BaseContract {
-  connect(runner?: ContractRunner | null): BridgeStorage;
+export interface BridgeManagementStorage extends BaseContract {
+  connect(runner?: ContractRunner | null): BridgeManagementStorage;
   waitForDeployment(): Promise<this>;
 
-  interface: BridgeStorageInterface;
+  interface: BridgeManagementStorageInterface;
 
   queryFilter<TCEvent extends TypedContractEvent>(
     event: TCEvent,
@@ -194,39 +172,25 @@ export interface BridgeStorage extends BaseContract {
 
   UPGRADE_INTERFACE_VERSION: TypedContractMethod<[], [string], "view">;
 
-  claimableGas: TypedContractMethod<
-    [arg0: BigNumberish],
-    [[string, bigint] & { to: string; amount: bigint }],
-    "view"
-  >;
+  governor: TypedContractMethod<[], [string], "view">;
 
-  gasBridge: TypedContractMethod<
-    [],
-    [
-      [
-        BridgeStorage.StateStructOutput,
-        BridgeStorage.StateStructOutput,
-        BridgeStorage.ConfigStructOutput
-      ] & {
-        depositState: BridgeStorage.StateStructOutput;
-        withdrawalState: BridgeStorage.StateStructOutput;
-        config: BridgeStorage.ConfigStructOutput;
-      }
-    ],
-    "view"
-  >;
-
-  locked: TypedContractMethod<[], [boolean], "view">;
-
-  managementContract: TypedContractMethod<[], [string], "view">;
+  owner: TypedContractMethod<[], [string], "view">;
 
   proxiableUUID: TypedContractMethod<[], [string], "view">;
+
+  relayer: TypedContractMethod<[], [string], "view">;
+
+  securityGuard: TypedContractMethod<[], [string], "view">;
 
   upgradeToAndCall: TypedContractMethod<
     [newImplementation: AddressLike, data: BytesLike],
     [void],
     "payable"
   >;
+
+  validatorThreshold: TypedContractMethod<[], [bigint], "view">;
+
+  validators: TypedContractMethod<[arg0: BigNumberish], [string], "view">;
 
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
@@ -242,37 +206,19 @@ export interface BridgeStorage extends BaseContract {
     nameOrSignature: "UPGRADE_INTERFACE_VERSION"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
-    nameOrSignature: "claimableGas"
-  ): TypedContractMethod<
-    [arg0: BigNumberish],
-    [[string, bigint] & { to: string; amount: bigint }],
-    "view"
-  >;
+    nameOrSignature: "governor"
+  ): TypedContractMethod<[], [string], "view">;
   getFunction(
-    nameOrSignature: "gasBridge"
-  ): TypedContractMethod<
-    [],
-    [
-      [
-        BridgeStorage.StateStructOutput,
-        BridgeStorage.StateStructOutput,
-        BridgeStorage.ConfigStructOutput
-      ] & {
-        depositState: BridgeStorage.StateStructOutput;
-        withdrawalState: BridgeStorage.StateStructOutput;
-        config: BridgeStorage.ConfigStructOutput;
-      }
-    ],
-    "view"
-  >;
-  getFunction(
-    nameOrSignature: "locked"
-  ): TypedContractMethod<[], [boolean], "view">;
-  getFunction(
-    nameOrSignature: "managementContract"
+    nameOrSignature: "owner"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "proxiableUUID"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "relayer"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "securityGuard"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "upgradeToAndCall"
@@ -281,6 +227,12 @@ export interface BridgeStorage extends BaseContract {
     [void],
     "payable"
   >;
+  getFunction(
+    nameOrSignature: "validatorThreshold"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "validators"
+  ): TypedContractMethod<[arg0: BigNumberish], [string], "view">;
 
   getEvent(
     key: "Initialized"

@@ -23,7 +23,7 @@ import type {
   TypedContractMethod,
 } from "../../common";
 
-export declare namespace TestBridgeImplV2 {
+export declare namespace BridgeLib {
   export type SignatureStruct = { v: BigNumberish; r: BytesLike; s: BytesLike };
 
   export type SignatureStructOutput = [v: bigint, r: string, s: string] & {
@@ -45,50 +45,12 @@ export declare namespace TestBridgeImplV2 {
   ] & { to: string; amount: bigint; nonce: bigint };
 }
 
-export declare namespace TestBridgeStorageV1 {
-  export type StateStruct = { nonce: BigNumberish; root: BytesLike };
-
-  export type StateStructOutput = [nonce: bigint, root: string] & {
-    nonce: bigint;
-    root: string;
-  };
-
-  export type ConfigStruct = {
-    fee: BigNumberish;
-    minAmount: BigNumberish;
-    maxAmount: BigNumberish;
-    maxDepositsPerDistribution: BigNumberish;
-    gap: [BigNumberish, BigNumberish];
-  };
-
-  export type ConfigStructOutput = [
-    fee: bigint,
-    minAmount: bigint,
-    maxAmount: bigint,
-    maxDepositsPerDistribution: bigint,
-    gap: [bigint, bigint]
-  ] & {
-    fee: bigint;
-    minAmount: bigint;
-    maxAmount: bigint;
-    maxDepositsPerDistribution: bigint;
-    gap: [bigint, bigint];
-  };
-}
-
-export interface TestBridgeImplV2Interface extends Interface {
+export interface IBridgeInterface extends Interface {
   getFunction(
     nameOrSignature:
       | "claim"
-      | "claimableGas"
       | "deposit"
-      | "gasBridge"
-      | "initialize"
-      | "isRegistered"
       | "lock"
-      | "locked"
-      | "managementContract"
-      | "register"
       | "setGasMaxNrDepositsPerDistribution"
       | "setGasWithdrawalFee"
       | "setGasWithdrawalMaxAmount"
@@ -102,7 +64,6 @@ export interface TestBridgeImplV2Interface extends Interface {
       | "Claimable"
       | "Claimed"
       | "Deposit"
-      | "Initialized"
       | "Locked"
       | "MaxDepositsPerDistributionChanged"
       | "MaxWithdrawalAmountChanged"
@@ -114,36 +75,14 @@ export interface TestBridgeImplV2Interface extends Interface {
 
   encodeFunctionData(functionFragment: "claim", values: [BigNumberish]): string;
   encodeFunctionData(
-    functionFragment: "claimableGas",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
     functionFragment: "deposit",
     values: [
       BytesLike,
-      TestBridgeImplV2.SignatureStruct[],
-      TestBridgeImplV2.DepositDataStruct[]
+      BridgeLib.SignatureStruct[],
+      BridgeLib.DepositDataStruct[]
     ]
   ): string;
-  encodeFunctionData(functionFragment: "gasBridge", values?: undefined): string;
-  encodeFunctionData(
-    functionFragment: "initialize",
-    values: [AddressLike, TestBridgeStorageV1.ConfigStruct]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "isRegistered",
-    values: [AddressLike]
-  ): string;
   encodeFunctionData(functionFragment: "lock", values?: undefined): string;
-  encodeFunctionData(functionFragment: "locked", values?: undefined): string;
-  encodeFunctionData(
-    functionFragment: "managementContract",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "register",
-    values: [AddressLike]
-  ): string;
   encodeFunctionData(
     functionFragment: "setGasMaxNrDepositsPerDistribution",
     values: [BigNumberish]
@@ -167,24 +106,8 @@ export interface TestBridgeImplV2Interface extends Interface {
   ): string;
 
   decodeFunctionResult(functionFragment: "claim", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "claimableGas",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(functionFragment: "deposit", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "gasBridge", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "initialize", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "isRegistered",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(functionFragment: "lock", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "locked", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "managementContract",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(functionFragment: "register", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "setGasMaxNrDepositsPerDistribution",
     data: BytesLike
@@ -252,18 +175,6 @@ export namespace DepositEvent {
     nonce: bigint;
     amount: bigint;
     to: string;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
-export namespace InitializedEvent {
-  export type InputTuple = [version: BigNumberish];
-  export type OutputTuple = [version: bigint];
-  export interface OutputObject {
-    version: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -370,11 +281,11 @@ export namespace WithdrawalFeeChangedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export interface TestBridgeImplV2 extends BaseContract {
-  connect(runner?: ContractRunner | null): TestBridgeImplV2;
+export interface IBridge extends BaseContract {
+  connect(runner?: ContractRunner | null): IBridge;
   waitForDeployment(): Promise<this>;
 
-  interface: TestBridgeImplV2Interface;
+  interface: IBridgeInterface;
 
   queryFilter<TCEvent extends TypedContractEvent>(
     event: TCEvent,
@@ -415,56 +326,17 @@ export interface TestBridgeImplV2 extends BaseContract {
 
   claim: TypedContractMethod<[_nonce: BigNumberish], [void], "nonpayable">;
 
-  claimableGas: TypedContractMethod<
-    [arg0: BigNumberish],
-    [[string, bigint] & { to: string; amount: bigint }],
-    "view"
-  >;
-
   deposit: TypedContractMethod<
     [
       _depositRoot: BytesLike,
-      _signatures: TestBridgeImplV2.SignatureStruct[],
-      _deposits: TestBridgeImplV2.DepositDataStruct[]
+      _signatures: BridgeLib.SignatureStruct[],
+      _deposits: BridgeLib.DepositDataStruct[]
     ],
     [void],
     "nonpayable"
   >;
-
-  gasBridge: TypedContractMethod<
-    [],
-    [
-      [
-        TestBridgeStorageV1.StateStructOutput,
-        TestBridgeStorageV1.StateStructOutput,
-        TestBridgeStorageV1.ConfigStructOutput
-      ] & {
-        depositState: TestBridgeStorageV1.StateStructOutput;
-        withdrawalState: TestBridgeStorageV1.StateStructOutput;
-        config: TestBridgeStorageV1.ConfigStructOutput;
-      }
-    ],
-    "view"
-  >;
-
-  initialize: TypedContractMethod<
-    [
-      _managementContract: AddressLike,
-      config: TestBridgeStorageV1.ConfigStruct
-    ],
-    [void],
-    "nonpayable"
-  >;
-
-  isRegistered: TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
 
   lock: TypedContractMethod<[], [void], "nonpayable">;
-
-  locked: TypedContractMethod<[], [boolean], "view">;
-
-  managementContract: TypedContractMethod<[], [string], "view">;
-
-  register: TypedContractMethod<[_token: AddressLike], [void], "nonpayable">;
 
   setGasMaxNrDepositsPerDistribution: TypedContractMethod<
     [_maxNrDeposits: BigNumberish],
@@ -502,65 +374,19 @@ export interface TestBridgeImplV2 extends BaseContract {
     nameOrSignature: "claim"
   ): TypedContractMethod<[_nonce: BigNumberish], [void], "nonpayable">;
   getFunction(
-    nameOrSignature: "claimableGas"
-  ): TypedContractMethod<
-    [arg0: BigNumberish],
-    [[string, bigint] & { to: string; amount: bigint }],
-    "view"
-  >;
-  getFunction(
     nameOrSignature: "deposit"
   ): TypedContractMethod<
     [
       _depositRoot: BytesLike,
-      _signatures: TestBridgeImplV2.SignatureStruct[],
-      _deposits: TestBridgeImplV2.DepositDataStruct[]
+      _signatures: BridgeLib.SignatureStruct[],
+      _deposits: BridgeLib.DepositDataStruct[]
     ],
     [void],
     "nonpayable"
   >;
-  getFunction(
-    nameOrSignature: "gasBridge"
-  ): TypedContractMethod<
-    [],
-    [
-      [
-        TestBridgeStorageV1.StateStructOutput,
-        TestBridgeStorageV1.StateStructOutput,
-        TestBridgeStorageV1.ConfigStructOutput
-      ] & {
-        depositState: TestBridgeStorageV1.StateStructOutput;
-        withdrawalState: TestBridgeStorageV1.StateStructOutput;
-        config: TestBridgeStorageV1.ConfigStructOutput;
-      }
-    ],
-    "view"
-  >;
-  getFunction(
-    nameOrSignature: "initialize"
-  ): TypedContractMethod<
-    [
-      _managementContract: AddressLike,
-      config: TestBridgeStorageV1.ConfigStruct
-    ],
-    [void],
-    "nonpayable"
-  >;
-  getFunction(
-    nameOrSignature: "isRegistered"
-  ): TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
   getFunction(
     nameOrSignature: "lock"
   ): TypedContractMethod<[], [void], "nonpayable">;
-  getFunction(
-    nameOrSignature: "locked"
-  ): TypedContractMethod<[], [boolean], "view">;
-  getFunction(
-    nameOrSignature: "managementContract"
-  ): TypedContractMethod<[], [string], "view">;
-  getFunction(
-    nameOrSignature: "register"
-  ): TypedContractMethod<[_token: AddressLike], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "setGasMaxNrDepositsPerDistribution"
   ): TypedContractMethod<[_maxNrDeposits: BigNumberish], [void], "nonpayable">;
@@ -600,13 +426,6 @@ export interface TestBridgeImplV2 extends BaseContract {
     DepositEvent.InputTuple,
     DepositEvent.OutputTuple,
     DepositEvent.OutputObject
-  >;
-  getEvent(
-    key: "Initialized"
-  ): TypedContractEvent<
-    InitializedEvent.InputTuple,
-    InitializedEvent.OutputTuple,
-    InitializedEvent.OutputObject
   >;
   getEvent(
     key: "Locked"
@@ -690,17 +509,6 @@ export interface TestBridgeImplV2 extends BaseContract {
       DepositEvent.InputTuple,
       DepositEvent.OutputTuple,
       DepositEvent.OutputObject
-    >;
-
-    "Initialized(uint64)": TypedContractEvent<
-      InitializedEvent.InputTuple,
-      InitializedEvent.OutputTuple,
-      InitializedEvent.OutputObject
-    >;
-    Initialized: TypedContractEvent<
-      InitializedEvent.InputTuple,
-      InitializedEvent.OutputTuple,
-      InitializedEvent.OutputObject
     >;
 
     "Locked()": TypedContractEvent<
