@@ -1,7 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-import { getValidatorSignatures } from "../utils/signature-utils";
 import { ZeroAddress } from "ethers";
 
 describe("Bridge Management", function () {
@@ -20,15 +19,7 @@ describe("Bridge Management", function () {
             managementOwner
         ] = await ethers.getSigners();
         const BridgeManagementFactory = await ethers.getContractFactory("BridgeManagementContract");
-        const bridgeManagementContract = await BridgeManagementFactory.connect(managementOwner).deploy(managementOwner.address,
-            {
-                relayer: relayer.address,
-                validators: [validator1.address, validator2.address, validator3.address, validator4.address, validator5.address, validator6.address, validator7.address],
-                validatorThreshold: 5,
-                governor: governor.address,
-                securityGuard: securityGuard.address
-            });
-        // const bridgeManagementContract = await ethers.deployContract("BridgeManagementContract");
+        const bridgeManagementContract = await BridgeManagementFactory.connect(managementOwner).deploy();
         await bridgeManagementContract.waitForDeployment();
         return {
             bridgeManagementContract: bridgeManagementContract,
