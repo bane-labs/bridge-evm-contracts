@@ -50,16 +50,7 @@ contract BridgeStorage is UUPSUpgradeable {
         uint64 amount;
     }
 
-    modifier onlyAdmin() {
-        require(msg.sender == GOV_ADMIN, "Not admin");
-        _;
-    }
-
-    function _authorizeUpgrade(
-        address newImplementation
-    ) internal virtual override onlyAdmin {}
-
-    // Modifiers
+    // Modifiers for Role Restriction
 
     modifier onlyRelayer() {
         require(msg.sender == managementContract.relayer(), "Not relayer");
@@ -185,6 +176,17 @@ contract BridgeStorage is UUPSUpgradeable {
         require(_maxDeposits > 0, "Value must be greater than 0");
         gasBridge.config.maxDepositsPerDistribution = _maxDeposits;
     }
+
+    // Upgrade authorization
+
+    modifier onlyAdmin() {
+        require(msg.sender == GOV_ADMIN, "Not admin");
+        _;
+    }
+
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal virtual override onlyAdmin {}
 
     // UUPSUpgradeable-specific functions required for precompiled version.
 

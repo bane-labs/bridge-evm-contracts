@@ -30,17 +30,6 @@ contract BridgeManagementStorage is UUPSUpgradeable {
         address securityGuard;
     }
 
-    // Upgrade authorization
-
-    modifier onlyAdmin() {
-        require(msg.sender == GOV_ADMIN, "Not admin");
-        _;
-    }
-
-    function _authorizeUpgrade(
-        address newImplementation
-    ) internal virtual override onlyAdmin {}
-
     // Role Restriction Modifiers
 
     modifier onlyOwner() {
@@ -122,4 +111,15 @@ contract BridgeManagementStorage is UUPSUpgradeable {
     function _setSecurityGuard(address _securityGuard) internal {
         securityGuard = _securityGuard;
     }
+
+    // Upgrade authorization
+
+    modifier onlyAdmin() {
+        require(msg.sender == GOV_ADMIN, "Not admin");
+        _;
+    }
+
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal virtual override onlyAdmin {}
 }
