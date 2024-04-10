@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "./BridgeManagementContract.sol";
+import "./BridgeManagementImpl.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 contract BridgeStorage is UUPSUpgradeable {
@@ -9,8 +9,8 @@ contract BridgeStorage is UUPSUpgradeable {
     address public constant GOV_ADMIN =
         0x1212000000000000000000000000000000000000;
 
-    BridgeManagementContract public managementContract =
-        BridgeManagementContract(0x72bb9c7ffbE2Ed234e53bc64862DdA6d9fFF333b);
+    BridgeManagementImpl public managementContract =
+        BridgeManagementImpl(0x72bb9c7ffbE2Ed234e53bc64862DdA6d9fFF333b);
     GasBridge public gasBridge =
         GasBridge({
             depositState: State({nonce: 0, root: 0x0}),

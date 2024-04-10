@@ -30,10 +30,7 @@ interface IBridgeManagement {
  * When generating the bytecode for genesis script:
  * - set initial storage values in BridgeManagementStorage.sol
  */
-contract BridgeManagementContract is
-    IBridgeManagement,
-    BridgeManagementStorage
-{
+contract BridgeManagementImpl is IBridgeManagement, BridgeManagementStorage {
     function setOwner(address _owner) external onlyOwner {
         _setOwner(_owner);
         emit SetOwner(_owner);

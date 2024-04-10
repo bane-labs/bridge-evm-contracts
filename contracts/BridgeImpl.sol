@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "./BridgeLib.sol";
-import "./BridgeManagementContract.sol";
+import "./BridgeManagementImpl.sol";
 import "./BridgeStorage.sol";
 
 interface IBridge {

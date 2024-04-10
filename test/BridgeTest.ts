@@ -30,7 +30,7 @@ describe("Bridge Implementation", function () {
             funder
         ] = await ethers.getSigners();
 
-        const BridgeManagementFactory = await ethers.getContractFactory("BridgeManagementContract");
+        const BridgeManagementFactory = await ethers.getContractFactory("BridgeManagementImpl");
         const bridgeManagementContract = await BridgeManagementFactory.connect(deployer).deploy();
 
         const BridgeContract = await ethers.getContractFactory("BridgeImpl");
