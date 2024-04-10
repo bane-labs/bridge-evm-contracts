@@ -23,14 +23,6 @@ contract BridgeManagementStorage is UUPSUpgradeable {
     address public governor = 0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f;
     address public securityGuard = 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720;
 
-    struct InitData {
-        address relayer;
-        address[] validators;
-        uint8 validatorThreshold;
-        address governor;
-        address securityGuard;
-    }
-
     // Role Restriction Modifiers
 
     modifier onlyOwner() {
