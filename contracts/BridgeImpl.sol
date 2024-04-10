@@ -1,18 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import "./BridgeLib.sol";
 import "./BridgeManagementContract.sol";
 import "./BridgeStorage.sol";
 
-// Todo: Before compiling byte code for genesis script, make sure to remove the receive function as it is only used for testing purpose.
-
-contract BridgeImpl is BridgeStorage {
+interface IBridge {
     event Locked();
     event Unlocked();
     event Deposit(uint64 nonce, uint64 amount, address to);
     event Claimable(uint64 nonce, uint64 amount, address to);
     event Claimed(uint64 nonce, uint64 amount, address to);
-
     event Withdrawal(
         uint64 nonce,
         uint64 amount,
@@ -26,33 +24,38 @@ contract BridgeImpl is BridgeStorage {
     event MaxWithdrawalAmountChanged(uint256 amount);
     event MaxDepositsPerDistributionChanged(uint8 amount);
 
-    // This is only used for testing. Remove it before compiling byte code for genesis script.
-    receive() external payable onlyRelayer {}
-
-    //////////////////////////
-    // Deposit Verification //
-    //////////////////////////
-
-    struct DepositData {
-        address payable to;
-        uint64 amount;
-        uint64 nonce;
-    }
-
-    struct Signature {
-        uint8 v;
-        bytes32 r;
-        bytes32 s;
-    }
-
-    /////////////
-    // Deposit //
-    /////////////
-
     function deposit(
         bytes32 _depositRoot,
-        Signature[] calldata _signatures,
-        DepositData[] calldata _deposits
+        BridgeLib.Signature[] calldata _signatures,
+        BridgeLib.DepositData[] calldata _deposits
+    ) external;
+
+    function claim(uint64 _nonce) external;
+
+    function withdraw(address _to) external payable;
+
+    function lock() external;
+
+    function unlock() external;
+
+    function setGasWithdrawalFee(uint256 _fee) external;
+
+    function setGasWithdrawalMinAmount(uint256 _amount) external;
+
+    function setGasWithdrawalMaxAmount(uint256 _amount) external;
+
+    function setGasMaxNrDepositsPerDistribution(uint8 _maxNrDeposits) external;
+}
+
+/**
+ * When generating the bytecode for genesis script:
+ * - set initial storage values in BridgeStorage.sol
+ */
+contract BridgeImpl is IBridge, BridgeStorage {
+    function deposit(
+        bytes32 _depositRoot,
+        BridgeLib.Signature[] calldata _signatures,
+        BridgeLib.DepositData[] calldata _deposits
     ) external onlyRelayer unlocked {
         uint depositLength = _deposits.length;
         require(depositLength > 0, "At least 1 deposit is required.");
@@ -68,7 +71,7 @@ contract BridgeImpl is BridgeStorage {
             "Only the next nonce is allowed in the first proof."
         );
         require(
-            _subsequentNonces(_deposits, state.nonce),
+            BridgeLib._subsequentNonces(_deposits, state.nonce),
             "The nonces of the proofs must be subsequent."
         );
         require(
@@ -76,7 +79,7 @@ contract BridgeImpl is BridgeStorage {
             "Validator signature verification failed."
         );
         require(
-            _computeNewTopRoot(state.root, _deposits) == _depositRoot,
+            BridgeLib._computeNewTopRoot(state.root, _deposits) == _depositRoot,
             "Deposits do not match the provided root."
         );
         _setGasBridgeDepositState(
@@ -88,46 +91,17 @@ contract BridgeImpl is BridgeStorage {
         _executeTransfers(_deposits);
     }
 
-    // Private functions
-
-    // Makes sure the proofs have subsequent nonces.
-    function _subsequentNonces(
-        DepositData[] calldata _deposits,
-        uint64 startNonce
-    ) private pure returns (bool) {
-        for (uint8 i = 1; i <= _deposits.length; i++) {
-            if (_deposits[i - 1].nonce != startNonce + i) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    function _computeNewTopRoot(
-        bytes32 _previousRoot,
-        DepositData[] calldata _deposits
-    ) private pure returns (bytes32) {
-        bytes32 parent = _previousRoot;
-        uint depositsLength = _deposits.length;
-        for (uint i = 0; i < depositsLength; i++) {
-            DepositData calldata depositData = _deposits[i];
-            bytes32 depositHash = hashDepositOrWithdrawal(
-                depositData.nonce,
-                depositData.amount,
-                depositData.to
-            );
-            parent = computeNewRoot(parent, depositHash);
-        }
-        return parent;
-    }
-
-    function _executeTransfers(DepositData[] calldata _deposits) private {
+    function _executeTransfers(
+        BridgeLib.DepositData[] calldata _deposits
+    ) private {
         // Once this is reached, execute the deposits
         for (uint i = 0; i < _deposits.length; i++) {
-            DepositData calldata depositEntry = _deposits[i];
+            BridgeLib.DepositData calldata depositEntry = _deposits[i];
             address to = depositEntry.to;
-            if (!isContract(to)) {
-                uint256 sendValue = _addTenDecimals(depositEntry.amount);
+            if (!BridgeLib._isContract(to)) {
+                uint256 sendValue = BridgeLib._addTenDecimals(
+                    depositEntry.amount
+                );
                 // Todo: Verify that this call works as expected, i.e., the funds have not been sent if it returns false.
                 (bool success, ) = to.call{value: sendValue}("");
                 if (success) {
@@ -147,17 +121,10 @@ contract BridgeImpl is BridgeStorage {
         }
     }
 
-    function computeNewRoot(
-        bytes32 formerRoot,
-        bytes32 depositHash
-    ) private pure returns (bytes32) {
-        return sha256(abi.encodePacked(formerRoot, depositHash));
-    }
-
     // Todo: Move this to the management contract
     function _verifyValidatorSignatures(
         bytes32 _newDepositRoot,
-        Signature[] calldata _signatures
+        BridgeLib.Signature[] calldata _signatures
     ) private view returns (bool) {
         uint8 threshold = managementContract.validatorThreshold();
         if (_signatures.length != threshold) {
@@ -171,7 +138,7 @@ contract BridgeImpl is BridgeStorage {
         );
         address[] memory recovered = new address[](threshold);
         for (uint i = 0; i < threshold; i++) {
-            Signature calldata sig = _signatures[i];
+            BridgeLib.Signature calldata sig = _signatures[i];
             recovered[i] = ecrecover(signedRootMsg, sig.v, sig.r, sig.s);
         }
         // check if all recovered addresses are in the validator set
@@ -191,14 +158,6 @@ contract BridgeImpl is BridgeStorage {
         return covered == 5;
     }
 
-    function isContract(address _addr) private view returns (bool) {
-        return _addr.code.length > 0;
-    }
-
-    ///////////
-    // Claim //
-    ///////////
-
     // Anyone can execute a claim. The funds of a claimable will be sent to the defined address in the claimableTo mapping.
     function claim(uint64 _nonce) external unlocked {
         GasClaimable memory claimable = _getGasClaimable(_nonce);
@@ -208,17 +167,13 @@ contract BridgeImpl is BridgeStorage {
         require(to != address(0), "No claimable funds");
 
         _deleteGasClaimable(_nonce);
-        uint256 sendValue = _addTenDecimals(amount);
+        uint256 sendValue = BridgeLib._addTenDecimals(amount);
         (bool success, ) = to.call{value: sendValue}("");
         if (!success) {
             revert("Transfer failed");
         }
         emit Claimed(_nonce, uint64(amount), to);
     }
-
-    ////////////////
-    // Withdrawal //
-    ////////////////
 
     function withdraw(address _to) external payable unlocked {
         require(_to != address(0), "Address must not be the zero address");
@@ -239,14 +194,19 @@ contract BridgeImpl is BridgeStorage {
             "Withdrawal amount is too high"
         );
 
-        uint64 amountForHashing = _removeTenDecimals(actualWithdrawalAmount);
+        uint64 amountForHashing = BridgeLib._removeTenDecimals(
+            actualWithdrawalAmount
+        );
         uint64 newNonce = state.nonce + 1;
-        bytes32 withdrawalHash = hashDepositOrWithdrawal(
+        bytes32 withdrawalHash = BridgeLib._hashDepositOrWithdrawal(
             newNonce,
             amountForHashing,
             _to
         );
-        bytes32 newRoot = computeNewWithdrawalRoot(state.root, withdrawalHash);
+        bytes32 newRoot = BridgeLib._computeNewWithdrawalRoot(
+            state.root,
+            withdrawalHash
+        );
         _setGasBridgeWithdrawalState(State({nonce: newNonce, root: newRoot}));
         emit Withdrawal(
             newNonce,
@@ -256,34 +216,6 @@ contract BridgeImpl is BridgeStorage {
             withdrawalHash,
             newRoot
         );
-    }
-
-    function hashDepositOrWithdrawal(
-        uint64 _nonce,
-        uint64 _amount,
-        address _to
-    ) private pure returns (bytes32) {
-        return sha256(abi.encodePacked(_nonce, _amount, _to));
-    }
-
-    function computeNewWithdrawalRoot(
-        bytes32 _previousWithdrawalRoot,
-        bytes32 _newWithdrawalHash
-    ) private pure returns (bytes32) {
-        return
-            sha256(
-                abi.encodePacked(_previousWithdrawalRoot, _newWithdrawalHash)
-            );
-    }
-
-    // Adds 10 decimals to the amount. GasToken originally has 8 decimals and on this chain it has 18 decimals.
-    function _addTenDecimals(uint256 _value) private pure returns (uint256) {
-        return uint256(_value) * (10 ** 10);
-    }
-
-    // Removes 10 decimal points from the amount. GasToken originally has 8 decimals and on this chain it has 18 decimals.
-    function _removeTenDecimals(uint256 _value) private pure returns (uint64) {
-        return uint64(_value / (10 ** 10));
     }
 
     // Contract Locking

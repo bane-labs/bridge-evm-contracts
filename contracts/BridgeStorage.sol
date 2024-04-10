@@ -8,8 +8,20 @@ contract BridgeStorage is UUPSUpgradeable {
     address public constant GOV_ADMIN =
         0x1212000000000000000000000000000000000000;
 
-    BridgeManagementContract public managementContract;
-    GasBridge public gasBridge;
+    BridgeManagementContract public managementContract =
+        BridgeManagementContract(0x72bb9c7ffbE2Ed234e53bc64862DdA6d9fFF333b);
+    GasBridge public gasBridge =
+        GasBridge({
+            depositState: State({nonce: 0, root: 0x0}),
+            withdrawalState: State({nonce: 0, root: 0x0}),
+            config: Config({
+                fee: 10 ** 17,
+                minAmount: 10 ** 18,
+                maxAmount: 10 ** 22,
+                maxDepositsPerDistribution: 100,
+                gap: [uint256(0), uint256(0)]
+            })
+        });
     mapping(uint64 => GasClaimable) public claimableGas;
     bool public locked;
 
@@ -35,18 +47,6 @@ contract BridgeStorage is UUPSUpgradeable {
     struct GasClaimable {
         address to;
         uint64 amount;
-    }
-
-    function initialize(
-        address _managementContract,
-        Config calldata config
-    ) public initializer {
-        managementContract = BridgeManagementContract(_managementContract);
-        gasBridge = GasBridge({
-            depositState: State({nonce: 0, root: 0x0}),
-            withdrawalState: State({nonce: 0, root: 0x0}),
-            config: config
-        });
     }
 
     modifier onlyAdmin() {
