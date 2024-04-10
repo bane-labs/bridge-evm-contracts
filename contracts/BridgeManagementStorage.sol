@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "./BridgeLib.sol";
 
 contract BridgeManagementStorage is UUPSUpgradeable {
     address public constant SELF = 0x1212100000000000000000000000000000000005;
@@ -49,20 +50,6 @@ contract BridgeManagementStorage is UUPSUpgradeable {
         owner = _owner;
     }
 
-    // The validators array is not expected to be large, so we can use a simple O(n^2) algorithm to check for duplicates.
-    function _hasDuplicates(
-        address[] calldata addresses
-    ) private pure returns (bool) {
-        for (uint i = 0; i < addresses.length - 1; i++) {
-            for (uint j = i + 1; j < addresses.length; j++) {
-                if (addresses[i] == addresses[j]) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
     function _setValidators(
         address[] calldata _validators,
         uint threshold
@@ -83,7 +70,7 @@ contract BridgeManagementStorage is UUPSUpgradeable {
             );
         }
         require(
-            _hasDuplicates(_validators) == false,
+            BridgeLib._hasDuplicates(_validators) == false,
             "Duplicate validator addresses are not allowed"
         );
         delete validators;

@@ -83,4 +83,17 @@ library BridgeLib {
     function _isContract(address _addr) internal view returns (bool) {
         return _addr.code.length > 0;
     }
+
+    function _hasDuplicates(
+        address[] calldata addresses
+    ) internal pure returns (bool) {
+        for (uint i = 0; i < addresses.length - 1; i++) {
+            for (uint j = i + 1; j < addresses.length; j++) {
+                if (addresses[i] == addresses[j]) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 }
