@@ -9,8 +9,8 @@ contract BridgeStorage is UUPSUpgradeable {
     address public constant GOV_ADMIN =
         0x1212000000000000000000000000000000000000;
 
-    BridgeManagementImpl public managementContract =
-        BridgeManagementImpl(0x72bb9c7ffbE2Ed234e53bc64862DdA6d9fFF333b);
+    IBridgeManagement public management =
+        IBridgeManagement(0x72bb9c7ffbE2Ed234e53bc64862DdA6d9fFF333b);
     GasBridge public gasBridge =
         GasBridge({
             depositState: State({nonce: 0, root: 0x0}),
@@ -53,25 +53,25 @@ contract BridgeStorage is UUPSUpgradeable {
     // Modifiers for Role Restriction
 
     modifier onlyRelayer() {
-        require(msg.sender == managementContract.relayer(), "Not relayer");
+        require(msg.sender == management.getRelayer(), "Not relayer");
         _;
     }
 
     modifier onlyGovernor() {
-        require(msg.sender == managementContract.governor(), "Not governor");
+        require(msg.sender == management.getGovernor(), "Not governor");
         _;
     }
 
     modifier onlySecurityGuard() {
         require(
-            msg.sender == managementContract.securityGuard(),
+            msg.sender == management.getSecurityGuard(),
             "Not securityGuard"
         );
         _;
     }
 
     modifier onlyOwner() {
-        require(msg.sender == managementContract.owner(), "Not owner");
+        require(msg.sender == management.getOwner(), "Not owner");
         _;
     }
 
