@@ -200,12 +200,13 @@ describe("Bridge Implementation", function () {
             expect((await bridgeContract.gasBridge()).depositState.root).to.equal(hash123);
         });
 
-        it("Deposit with insufficient fund of Contract", async function () {
+        it("Bridge two deposits with insufficient funds for executing the first deposit", async function () {
             const { bridgeContract, relayer } = await loadFixture(deployBridgeFixture);
             const bridgeContractBalance = await ethers.provider.getBalance(bridgeContract.target);
 
             const depositData = { to: validator1, amount: 10000000001n, nonce: 1 };
             expect(toEthDecimals(depositData.amount)).to.be.greaterThan(bridgeContractBalance);
+            expect(toEthDecimals(Depositdata2.amount)).to.be.lessThanOrEqual(bridgeContractBalance);
 
             const hashDepositData1 = await hashDepositOrWithdrawal(depositData.nonce, depositData.amount, depositData.to);
             const hashDepositData2 = await hashDepositOrWithdrawal(Depositdata2.nonce, Depositdata2.amount, Depositdata2.to);
@@ -220,15 +221,63 @@ describe("Bridge Implementation", function () {
 
             expect((await bridgeContract.gasBridge()).depositState.nonce).to.equal(Depositdata2.nonce);
             expect((await bridgeContract.gasBridge()).depositState.root).to.equal(new_root);
+
             let claimable1 = await bridgeContract.claimableGas(depositData.nonce);
             // Deposit 1 was added to the claimable mapping
             expect(claimable1.to).to.equal(depositData.to);
             expect(claimable1.amount).to.equal(depositData.amount);
+
             let claimable2 = await bridgeContract.claimableGas(Depositdata2.nonce);
             // Deposit 2 could be paid and was not added to the claimable mapping
             expect(claimable2.to).to.equal("0x0000000000000000000000000000000000000000");
             expect(claimable2.amount).to.equal(0);
+
             await expect(tx).to.emit(bridgeContract, "Claimable").withArgs(depositData.nonce, depositData.amount, depositData.to);
+        });
+
+        it("Bridge three deposits with insufficient funds for executing the second deposit", async function () {
+            const { bridgeContract, relayer } = await loadFixture(deployBridgeFixture);
+            const bridgeContractBalance = await ethers.provider.getBalance(bridgeContract.target);
+
+            const depositData1 = { to: validator2, amount: 12n, nonce: 1 };
+            const depositData2 = { to: validator1, amount: 10000000001n, nonce: 2 };
+            const depositData3 = { to: validator3, amount: 13n, nonce: 3 };
+            expect(toEthDecimals(Depositdata1.amount)).to.be.lessThanOrEqual(bridgeContractBalance);
+            expect(toEthDecimals(depositData2.amount)).to.be.greaterThan(bridgeContractBalance);
+            expect(toEthDecimals(Depositdata3.amount)).to.be.lessThanOrEqual(bridgeContractBalance);
+
+            const hashDepositData1 = await hashDepositOrWithdrawal(depositData1.nonce, depositData1.amount, depositData1.to);
+            const hashDepositData2 = await hashDepositOrWithdrawal(depositData2.nonce, depositData2.amount, depositData2.to);
+            const hashDepositData3 = await hashDepositOrWithdrawal(depositData3.nonce, depositData3.amount, depositData3.to);
+            const root1 = await computeRoot(ethers.ZeroHash, hashDepositData1);
+            const root2 = await computeRoot(root1, hashDepositData2);
+            const new_root = await computeRoot(root2, hashDepositData3);
+            const new_encodeRoot = ethers.solidityPackedKeccak256(["bytes32"], [new_root]);
+            const signatures = await getValidatorSignatures(ethers.getBytes(new_encodeRoot), [1, 2, 3, 4, 5]);
+
+            const tx = await bridgeContract.connect(relayer).deposit(new_root, signatures, [depositData1, depositData2, depositData3]);
+            // check the balance is not change for the recipient address; but the root and depositNonce are both updated
+            await expect(tx).to.changeEtherBalances([bridgeContract, depositData1.to, depositData2.to, depositData3.to], [-toEthDecimals(depositData1.amount) - toEthDecimals(depositData3.amount), toEthDecimals(depositData1.amount), 0, toEthDecimals(depositData3.amount)]);
+
+            expect((await bridgeContract.gasBridge()).depositState.nonce).to.equal(depositData3.nonce);
+            expect((await bridgeContract.gasBridge()).depositState.root).to.equal(new_root);
+
+            let claimable1 = await bridgeContract.claimableGas(depositData1.nonce);
+            // Deposit 1 was added to the claimable mapping
+            expect(claimable1.to).to.equal("0x0000000000000000000000000000000000000000");
+            expect(claimable1.amount).to.equal(0);
+
+            let claimable2 = await bridgeContract.claimableGas(depositData2.nonce);
+            // Deposit 2 could be paid and was not added to the claimable mapping
+            expect(claimable2.to).to.equal(depositData2.to);
+            expect(claimable2.amount).to.equal(depositData2.amount);
+
+            let claimable3 = await bridgeContract.claimableGas(depositData3.nonce);
+            // Deposit 2 could be paid and was not added to the claimable mapping
+            expect(claimable3.to).to.equal("0x0000000000000000000000000000000000000000");
+            expect(claimable3.amount).to.equal(0);
+
+            await expect(tx).to.emit(bridgeContract, "Claimable").withArgs(depositData2.nonce, depositData2.amount, depositData2.to);
         });
 
         it("Deposit When Recipient is Contract", async function () {

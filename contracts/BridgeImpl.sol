@@ -97,7 +97,10 @@ contract BridgeImpl is IBridge, BridgeStorage {
         for (uint i = 0; i < _deposits.length; i++) {
             BridgeLib.DepositData calldata depositEntry = _deposits[i];
             address to = depositEntry.to;
-            if (!BridgeLib._isContract(to)) {
+            if (BridgeLib._isContract(to)) {
+                _addClaimableGas(depositEntry.nonce, depositEntry.amount, to);
+                emit Claimable(depositEntry.nonce, depositEntry.amount, to);
+            } else {
                 uint256 sendValue = BridgeLib._addTenDecimals(
                     depositEntry.amount
                 );
@@ -113,9 +116,6 @@ contract BridgeImpl is IBridge, BridgeStorage {
                     );
                     emit Claimable(depositEntry.nonce, depositEntry.amount, to);
                 }
-            } else {
-                _addClaimableGas(depositEntry.nonce, depositEntry.amount, to);
-                emit Claimable(depositEntry.nonce, depositEntry.amount, to);
             }
         }
     }
