@@ -7,6 +7,8 @@
     "test": "test"
   },
   "dependencies": {
+    "@openzeppelin/contracts": "^5.0.2",
+    "@openzeppelin/contracts-upgradeable": "^5.0.2",
     "abbrev": "^1.0.9",
     "abstract-level": "^1.0.3",
     "acorn": "^8.10.0",
@@ -150,6 +152,7 @@
     "graceful-fs": "^4.2.11",
     "handlebars": "^4.7.8",
     "hardhat-gas-reporter": "^1.0.9",
+    "hardhat-storage-layout": "^0.1.7",
     "has": "^1.0.4",
     "has-flag": "^3.0.0",
     "has-proto": "^1.0.1",
@@ -362,7 +365,9 @@
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.2",
     "@nomicfoundation/hardhat-toolbox": "^3.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.5",
     "@nomiclabs/hardhat-solhint": "^3.0.1",
+    "@openzeppelin/hardhat-upgrades": "^3.0.5",
     "chai": "^4.3.10",
     "ethers": "^6.8.0",
     "hardhat": "^2.18.2",
