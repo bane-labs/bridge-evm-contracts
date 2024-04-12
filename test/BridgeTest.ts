@@ -221,16 +221,17 @@ describe("Bridge Implementation", function () {
 
             expect((await bridgeContract.gasBridge()).depositState.nonce).to.equal(Depositdata2.nonce);
             expect((await bridgeContract.gasBridge()).depositState.root).to.equal(new_root);
+
             let claimable1 = await bridgeContract.claimableGas(depositData.nonce);
             // Deposit 1 was added to the claimable mapping
-            console.log(claimable1);
             expect(claimable1.to).to.equal(depositData.to);
             expect(claimable1.amount).to.equal(depositData.amount);
+
             let claimable2 = await bridgeContract.claimableGas(Depositdata2.nonce);
-            console.log(claimable2);
             // Deposit 2 could be paid and was not added to the claimable mapping
             expect(claimable2.to).to.equal("0x0000000000000000000000000000000000000000");
             expect(claimable2.amount).to.equal(0);
+
             await expect(tx).to.emit(bridgeContract, "Claimable").withArgs(depositData.nonce, depositData.amount, depositData.to);
         });
 
@@ -263,18 +264,15 @@ describe("Bridge Implementation", function () {
 
             let claimable1 = await bridgeContract.claimableGas(depositData1.nonce);
             // Deposit 1 was added to the claimable mapping
-            console.log(claimable1);
             expect(claimable1.to).to.equal("0x0000000000000000000000000000000000000000");
             expect(claimable1.amount).to.equal(0);
 
             let claimable2 = await bridgeContract.claimableGas(depositData2.nonce);
-            console.log(claimable2);
             // Deposit 2 could be paid and was not added to the claimable mapping
             expect(claimable2.to).to.equal(depositData2.to);
             expect(claimable2.amount).to.equal(depositData2.amount);
 
             let claimable3 = await bridgeContract.claimableGas(depositData3.nonce);
-            console.log(claimable3);
             // Deposit 2 could be paid and was not added to the claimable mapping
             expect(claimable3.to).to.equal("0x0000000000000000000000000000000000000000");
             expect(claimable3.amount).to.equal(0);
