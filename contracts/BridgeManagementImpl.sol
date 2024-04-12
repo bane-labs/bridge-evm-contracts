@@ -80,7 +80,7 @@ contract BridgeManagementImpl is IBridgeManagement, BridgeManagementStorage {
             }
             n = j + 1;
         }
-        return covered == 5;
+        return covered == threshold;
     }
 
     function setOwner(address _owner) external onlyOwner {
