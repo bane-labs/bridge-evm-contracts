@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "./BridgeLib.sol";
 import "./BridgeManagementImpl.sol";
 import "./BridgeStorage.sol";
 
@@ -75,12 +74,12 @@ contract BridgeImpl is IBridge, BridgeStorage {
             "The nonces of the proofs must be subsequent."
         );
         require(
-            _verifyValidatorSignatures(_depositRoot, _signatures),
-            "Validator signature verification failed."
-        );
-        require(
             BridgeLib._computeNewTopRoot(state.root, _deposits) == _depositRoot,
             "Deposits do not match the provided root."
+        );
+        require(
+            management.verifyValidatorSignatures(_depositRoot, _signatures),
+            "Validator signature verification failed."
         );
         _setGasBridgeDepositState(
             State({
@@ -119,43 +118,6 @@ contract BridgeImpl is IBridge, BridgeStorage {
                 }
             }
         }
-    }
-
-    // Todo: Move this to the management contract
-    function _verifyValidatorSignatures(
-        bytes32 _newDepositRoot,
-        BridgeLib.Signature[] calldata _signatures
-    ) private view returns (bool) {
-        uint8 threshold = managementContract.validatorThreshold();
-        if (_signatures.length != threshold) {
-            return false;
-        }
-        bytes32 signedRootMsg = keccak256(
-            abi.encodePacked(
-                "\x19Ethereum Signed Message:\n32",
-                keccak256(abi.encodePacked(_newDepositRoot))
-            )
-        );
-        address[] memory recovered = new address[](threshold);
-        for (uint i = 0; i < threshold; i++) {
-            BridgeLib.Signature calldata sig = _signatures[i];
-            recovered[i] = ecrecover(signedRootMsg, sig.v, sig.r, sig.s);
-        }
-        // check if all recovered addresses are in the validator set
-        uint covered = 0;
-        uint n = 0;
-        uint j;
-        address[] memory validators = managementContract.getValidators();
-        for (uint i = 0; i < threshold; i++) {
-            for (j = n; j < validators.length; j++) {
-                if (recovered[i] == validators[j]) {
-                    covered++;
-                    break;
-                }
-            }
-            n = j + 1;
-        }
-        return covered == 5;
     }
 
     // Anyone can execute a claim. The funds of a claimable will be sent to the defined address in the claimableTo mapping.
