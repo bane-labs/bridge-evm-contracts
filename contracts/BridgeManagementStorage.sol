@@ -11,6 +11,7 @@ contract BridgeManagementStorage is UUPSUpgradeable {
 
     address internal owner = 0xBcd4042DE499D14e55001CcbB24a551F3b954096;
     address internal relayer = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
+    uint8 internal validatorThreshold = 5;
     address[] internal validators = [
         0x70997970C51812dc3A010C7d01b50e0d17dc79C8,
         0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC,
@@ -20,7 +21,6 @@ contract BridgeManagementStorage is UUPSUpgradeable {
         0x976EA74026E726554dB657fA54763abd0C3a0aa9,
         0x14dC79964da2C08b23698B3D3cc7Ca32193d9955
     ];
-    uint8 internal validatorThreshold = 5;
     address internal governor = 0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f;
     address internal securityGuard = 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720;
 

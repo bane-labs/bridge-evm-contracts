@@ -11,6 +11,7 @@ contract BridgeStorage is UUPSUpgradeable {
 
     IBridgeManagement public management =
         IBridgeManagement(0x72bb9c7ffbE2Ed234e53bc64862DdA6d9fFF333b);
+    bool public locked;
     GasBridge public gasBridge =
         GasBridge({
             depositState: State({nonce: 0, root: 0x0}),
@@ -24,7 +25,6 @@ contract BridgeStorage is UUPSUpgradeable {
             })
         });
     mapping(uint64 => GasClaimable) public claimableGas;
-    bool public locked;
 
     struct GasBridge {
         State depositState;
