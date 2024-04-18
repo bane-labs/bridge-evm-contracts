@@ -57,7 +57,7 @@ describe("Bridge Implementation", function () {
             validator7,
             governor,
             securityGuard,
-            managementOwner
+            managementOwner,
         }
     }
 

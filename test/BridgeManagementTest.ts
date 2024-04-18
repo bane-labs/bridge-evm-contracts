@@ -16,10 +16,12 @@ describe("Bridge Management", function () {
             validator7,
             governor,
             securityGuard,
-            owner
+            owner,
+            deployer,
+            funder
         ] = await ethers.getSigners();
         const BridgeManagementFactory = await ethers.getContractFactory("BridgeManagementImpl");
-        const bridgeManagementImpl = await BridgeManagementFactory.connect(owner).deploy();
+        const bridgeManagementImpl = await BridgeManagementFactory.connect(deployer).deploy();
         await bridgeManagementImpl.waitForDeployment();
         return {
             bridgeManagementImpl: bridgeManagementImpl,
@@ -33,7 +35,8 @@ describe("Bridge Management", function () {
             validator7,
             governor,
             securityGuard,
-            owner
+            owner,
+            funder
         }
     }
 
@@ -70,6 +73,10 @@ describe("Bridge Management", function () {
             expect(await bridgeManagementImpl.getSecurityGuard()).to.equal(securityGuard.address);
         });
 
+        it("Should have the right funder", async function () {
+            const { bridgeManagementImpl, funder } = await loadFixture(deployBridgeFixture);
+            expect(await bridgeManagementImpl.getFunder()).to.equal(funder.address);
+        });
     });
 
     describe("Bridge role setting", function () {
@@ -155,6 +162,13 @@ describe("Bridge Management", function () {
             let tx = bridgeManagementImpl.connect(owner).setSecurityGuard(validator2.address);
             await expect(tx).to.emit(bridgeManagementImpl, "SetSecurityGuard").withArgs(validator2.address);
             await expect(await bridgeManagementImpl.getSecurityGuard()).to.be.equal(validator2.address);
+        });
+
+        it("Set funder", async function () {
+            const { bridgeManagementImpl, owner, validator2 } = await loadFixture(deployBridgeFixture);
+            let tx = bridgeManagementImpl.connect(owner).setFunder(validator2.address);
+            await expect(tx).to.emit(bridgeManagementImpl, "SetFunder").withArgs(validator2.address);
+            await expect(await bridgeManagementImpl.getFunder()).to.be.equal(validator2.address);
         });
 
         it("Non-owner fail to set owner", async function () {
