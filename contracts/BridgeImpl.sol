@@ -7,6 +7,7 @@ import "./BridgeStorage.sol";
 interface IBridge {
     event Locked();
     event Unlocked();
+    event Funded(uint256 amount);
     event Deposit(uint64 nonce, uint64 amount, address to);
     event Claimable(uint64 nonce, uint64 amount, address to);
     event Claimed(uint64 nonce, uint64 amount, address to);
@@ -51,6 +52,10 @@ interface IBridge {
  * - set initial storage values in BridgeStorage.sol
  */
 contract BridgeImpl is IBridge, BridgeStorage {
+    receive() external payable onlyFunder {
+        emit Funded(msg.value);
+    }
+
     function deposit(
         bytes32 _depositRoot,
         BridgeLib.Signature[] calldata _signatures,

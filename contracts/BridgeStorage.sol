@@ -75,6 +75,11 @@ contract BridgeStorage is UUPSUpgradeable {
         _;
     }
 
+    modifier onlyFunder() {
+        require(msg.sender == management.getFunder(), "Not funder");
+        _;
+    }
+
     modifier unlocked() {
         require(!locked, "Contract is locked");
         _;
