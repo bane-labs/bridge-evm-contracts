@@ -9,6 +9,7 @@ interface IBridgeManagement {
     event SetValidators(address[] validators, uint threshold);
     event SetGovernor(address governor);
     event SetSecurityGuard(address securityGuard);
+    event SetFunder(address funder);
 
     function setOwner(address _owner) external;
 
@@ -41,6 +42,10 @@ interface IBridgeManagement {
     function setSecurityGuard(address _securityGuard) external;
 
     function getSecurityGuard() external view returns (address);
+
+    function setFunder(address _funder) external;
+
+    function getFunder() external view returns (address);
 }
 
 /**
@@ -137,5 +142,14 @@ contract BridgeManagementImpl is IBridgeManagement, BridgeManagementStorage {
 
     function getSecurityGuard() external view override returns (address) {
         return securityGuard;
+    }
+
+    function setFunder(address _funder) external onlyOwner {
+        _setFunder(_funder);
+        emit SetFunder(_funder);
+    }
+
+    function getFunder() external view override returns (address) {
+        return funder;
     }
 }

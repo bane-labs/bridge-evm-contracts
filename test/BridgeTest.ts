@@ -39,7 +39,7 @@ describe("Bridge Implementation", function () {
             nonce: await deployer.getNonce(),
         });
         // Fund the bridge contract's address before deployment.
-        await funder.sendTransaction({ to: contractAddress, value: ethers.parseEther("100.0") });
+        await funder.sendTransaction({ to: contractAddress, value: ethers.parseEther("80.0") });
 
         const bridgeContract = await BridgeContract.connect(deployer).deploy();
         await bridgeContract.waitForDeployment();
@@ -57,7 +57,9 @@ describe("Bridge Implementation", function () {
             validator7,
             governor,
             securityGuard,
-            managementOwner
+            managementOwner,
+            deployer,
+            funder
         }
     }
 
@@ -138,6 +140,50 @@ describe("Bridge Implementation", function () {
 
             let tx = bridgeContract.connect(governor).setGasMaxNrDepositsPerDistribution(0);
             await expect(tx).to.be.revertedWith("Value must be greater than 0");
+        });
+    });
+
+    describe("Funding the bridge", function () {
+        it("Fund the bridge contract", async function () {
+            const { bridgeContract, funder } = await loadFixture(deployBridgeFixture);
+            const bridgeContractBalance = await ethers.provider.getBalance(bridgeContract.target);
+            const funderBalance = await ethers.provider.getBalance(funder.address);
+            expect(bridgeContractBalance).to.be.equal(ethers.parseEther("80.0"));
+            const tx = await funder.sendTransaction({ to: bridgeContract.target, value: ethers.parseEther("20.0") });
+            expect(tx).to.changeEtherBalances([funder, bridgeContract], [-ethers.parseEther("20.0"), ethers.parseEther("20.0")]);
+            expect(tx).to.emit(bridgeContract, "Funded").withArgs(ethers.parseEther("20.0"));
+        });
+
+        it("Not funder fails to fund the bridge contract", async function () {
+            const { bridgeContract, governor } = await loadFixture(deployBridgeFixture);
+            const bridgeContractBalance = await ethers.provider.getBalance(bridgeContract.target);
+            expect(bridgeContractBalance).to.be.equal(ethers.parseEther("80.0"));
+            let tx = governor.sendTransaction({ to: bridgeContract.target, value: ethers.parseEther("20.0") });
+            await expect(tx).to.be.revertedWith("Not funder");
+        });
+
+        it("Can fund after set as funder", async function () {
+            const { bridgeContract, bridgeManagementContract, validator1, managementOwner } = await loadFixture(deployBridgeFixture);
+            const bridgeContractBalance = await ethers.provider.getBalance(bridgeContract.target);
+            expect(bridgeContractBalance).to.be.equal(ethers.parseEther("80.0"));
+            const validator1Addr = await validator1.getAddress();
+            const deployerBalance = await ethers.provider.getBalance(validator1Addr);
+            expect(deployerBalance).to.be.greaterThan(ethers.parseEther("20.0"));
+
+            const fundAmount = ethers.parseEther("10.0");
+            const failTx = validator1.sendTransaction({ to: bridgeContract.target, value: fundAmount });
+            await expect(failTx).to.be.revertedWith("Not funder");
+
+            const funderBefore = await bridgeManagementContract.getFunder();
+            await expect(funderBefore).to.be.not.equal(validator1Addr);
+
+            const tx = await bridgeManagementContract.connect(managementOwner).setFunder(validator1Addr);
+            await expect(tx).to.emit(bridgeManagementContract, "SetFunder").withArgs(validator1Addr);
+
+            await expect(await bridgeManagementContract.getFunder()).to.be.equal(validator1Addr);
+            const fundTx = await validator1.sendTransaction({ to: bridgeContract.target, value: fundAmount });
+            expect(fundTx).to.changeEtherBalances([validator1, bridgeContract], [-ethers.parseEther("10.0"), ethers.parseEther("10.0")]);
+            expect(fundTx).to.emit(bridgeContract, "Funded").withArgs(ethers.parseEther("10.0"));
         });
     });
 
@@ -534,7 +580,8 @@ describe("Bridge Implementation", function () {
         it("Claim successful for EOA account", async function () {
             const { bridgeContract, relayer, validator1 } = await loadFixture(deployBridgeFixture);
 
-            const depositData = { to: validator1.address, amount: 10000000001n, nonce: 1 };
+            const depositData = { to: validator1.address, amount: 8000000001n, nonce: 1 };
+            expect(await ethers.provider.getBalance(bridgeContract.target)).to.be.lessThan(toEthDecimals(depositData.amount));
 
             const hashDepositData1 = await hashDepositOrWithdrawal(depositData.nonce, depositData.amount, depositData.to);
             const new_root = await computeRoot(ethers.ZeroHash, hashDepositData1);

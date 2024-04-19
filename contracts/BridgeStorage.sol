@@ -10,7 +10,7 @@ contract BridgeStorage is UUPSUpgradeable {
         0x1212000000000000000000000000000000000000;
 
     IBridgeManagement public management =
-        IBridgeManagement(0x72bb9c7ffbE2Ed234e53bc64862DdA6d9fFF333b);
+        IBridgeManagement(0xF1478f211F027EBA42ca369ea976F1eB43C6bB53);
     bool public locked;
     GasBridge public gasBridge =
         GasBridge({
@@ -72,6 +72,11 @@ contract BridgeStorage is UUPSUpgradeable {
 
     modifier onlyOwner() {
         require(msg.sender == management.getOwner(), "Not owner");
+        _;
+    }
+
+    modifier onlyFunder() {
+        require(msg.sender == management.getFunder(), "Not funder");
         _;
     }
 

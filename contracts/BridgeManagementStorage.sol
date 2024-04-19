@@ -23,6 +23,7 @@ contract BridgeManagementStorage is UUPSUpgradeable {
     ];
     address internal governor = 0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f;
     address internal securityGuard = 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720;
+    address internal funder = 0xFABB0ac9d68B0B445fB7357272Ff202C5651694a;
 
     // Role Restriction Modifiers
 
@@ -75,6 +76,10 @@ contract BridgeManagementStorage is UUPSUpgradeable {
 
     function _setSecurityGuard(address _securityGuard) internal {
         securityGuard = _securityGuard;
+    }
+
+    function _setFunder(address _funder) internal {
+        funder = _funder;
     }
 
     // Upgrade authorization
