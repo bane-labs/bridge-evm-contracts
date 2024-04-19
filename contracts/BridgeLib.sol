@@ -48,7 +48,7 @@ library BridgeLib {
     function _computeNewRoot(
         bytes32 formerRoot,
         bytes32 depositHash
-    ) private pure returns (bytes32) {
+    ) internal pure returns (bytes32) {
         return sha256(abi.encodePacked(formerRoot, depositHash));
     }
 
@@ -58,16 +58,6 @@ library BridgeLib {
         address _to
     ) internal pure returns (bytes32) {
         return sha256(abi.encodePacked(_nonce, _amount, _to));
-    }
-
-    function _computeNewWithdrawalRoot(
-        bytes32 _previousWithdrawalRoot,
-        bytes32 _newWithdrawalHash
-    ) internal pure returns (bytes32) {
-        return
-            sha256(
-                abi.encodePacked(_previousWithdrawalRoot, _newWithdrawalHash)
-            );
     }
 
     // Adds 10 decimals to the amount. GasToken originally has 8 decimals and on this chain it has 18 decimals.

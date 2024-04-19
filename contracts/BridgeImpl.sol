@@ -146,10 +146,7 @@ contract BridgeImpl is IBridge, BridgeStorage {
             amountForHashing,
             _to
         );
-        bytes32 newRoot = BridgeLib._computeNewWithdrawalRoot(
-            state.root,
-            withdrawalHash
-        );
+        bytes32 newRoot = BridgeLib._computeNewRoot(state.root, withdrawalHash);
         _setGasBridgeWithdrawalState(State({nonce: newNonce, root: newRoot}));
         emit Withdrawal(
             newNonce,
