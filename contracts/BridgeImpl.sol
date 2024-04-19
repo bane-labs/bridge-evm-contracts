@@ -71,12 +71,8 @@ contract BridgeImpl is IBridge, BridgeStorage {
             "Too many deposits provided."
         );
         require(
-            _deposits[0].nonce == state.nonce + 1,
-            "Only the next nonce is allowed in the first proof."
-        );
-        require(
             BridgeLib._subsequentNonces(_deposits, state.nonce),
-            "The nonces of the proofs must be subsequent."
+            "Incorrect sequence of nonces."
         );
         require(
             BridgeLib._computeNewTopRoot(state.root, _deposits) == _depositRoot,

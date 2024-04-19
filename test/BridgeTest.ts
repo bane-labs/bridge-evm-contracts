@@ -413,12 +413,12 @@ describe("Bridge Implementation", function () {
 
         it("Should revert with the wrong first nonce", async function () {
             const { bridgeContract, relayer } = await loadFixture(deployBridgeFixture);
-            await expect(bridgeContract.connect(relayer).deposit(ethers.ZeroHash, [], [Depositdata2])).to.be.revertedWith("Only the next nonce is allowed in the first proof.");
+            await expect(bridgeContract.connect(relayer).deposit(ethers.ZeroHash, [], [Depositdata2])).to.be.revertedWith("Incorrect sequence of nonces.");
         });
 
         it("Should revert when nonce is not subsequent", async function () {
             const { bridgeContract, relayer } = await loadFixture(deployBridgeFixture);
-            await expect(bridgeContract.connect(relayer).deposit(ethers.ZeroHash, [], [Depositdata1, Depositdata3])).to.be.revertedWith("The nonces of the proofs must be subsequent.");
+            await expect(bridgeContract.connect(relayer).deposit(ethers.ZeroHash, [], [Depositdata1, Depositdata3])).to.be.revertedWith("Incorrect sequence of nonces.");
         });
 
         it("Should revert when signature length less than 5", async function () {
