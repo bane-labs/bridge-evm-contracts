@@ -70,11 +70,6 @@ contract BridgeStorage is UUPSUpgradeable {
         _;
     }
 
-    modifier onlyOwner() {
-        require(msg.sender == management.getOwner(), "Not owner");
-        _;
-    }
-
     modifier onlyFunder() {
         require(msg.sender == management.getFunder(), "Not funder");
         _;
