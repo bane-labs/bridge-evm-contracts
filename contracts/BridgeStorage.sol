@@ -26,6 +26,16 @@ contract BridgeStorage is UUPSUpgradeable {
         });
     mapping(uint64 => GasClaimable) public claimableGas;
 
+    error InvalidAddress();
+    error InvalidAmount();
+    error InvalidDepositsLength();
+    error InvalidFee();
+    error InvalidNonceSequence();
+    error InvalidRoot();
+    error InvalidValidatorSignatures();
+    error NonexistentClaimable();
+    error TransferFailed();
+
     struct GasBridge {
         State depositState;
         State withdrawalState;
@@ -53,40 +63,40 @@ contract BridgeStorage is UUPSUpgradeable {
     // Modifiers for Role Restriction
 
     modifier onlyRelayer() {
-        require(msg.sender == management.getRelayer(), "Not relayer");
+        require(msg.sender == management.getRelayer(), "not relayer");
         _;
     }
 
     modifier onlyGovernor() {
-        require(msg.sender == management.getGovernor(), "Not governor");
+        require(msg.sender == management.getGovernor(), "not governor");
         _;
     }
 
     modifier onlySecurityGuard() {
         require(
             msg.sender == management.getSecurityGuard(),
-            "Not securityGuard"
+            "not securityGuard"
         );
         _;
     }
 
     modifier onlyFunder() {
-        require(msg.sender == management.getFunder(), "Not funder");
+        require(msg.sender == management.getFunder(), "not funder");
         _;
     }
 
     modifier unlocked() {
-        require(!locked, "Contract is locked");
+        require(!locked, "contract locked");
         _;
     }
 
     function _lock() internal {
-        require(!locked, "Contract is already locked.");
+        require(!locked, "already locked");
         locked = true;
     }
 
     function _unlock() internal {
-        require(locked, "Contract is already unlocked.");
+        require(locked, "already unlocked");
         locked = false;
     }
 
@@ -141,46 +151,31 @@ contract BridgeStorage is UUPSUpgradeable {
     }
 
     function _setGasWithdrawalFee(uint256 _fee) internal {
-        require(
-            (_fee % (10 ** 10)) == 0,
-            "Fee must have maximally 8 non-zero decimals"
-        );
+        if ((_fee % (10 ** 10)) != 0) revert InvalidFee();
         gasBridge.config.fee = _fee;
     }
 
     function _setGasWithdrawalMinAmount(uint256 _amount) internal {
-        require(
-            (_amount % (10 ** 10)) == 0,
-            "Amount must have maximally 8 non-zero decimals"
-        );
-        require(
-            _amount < gasBridge.config.maxAmount,
-            "Amount must be less than the maximal withdrawal amount"
-        );
+        if ((_amount % (10 ** 10)) != 0) revert InvalidAmount();
+        if (_amount >= gasBridge.config.maxAmount) revert InvalidAmount();
         gasBridge.config.minAmount = _amount;
     }
 
     function _setGasWithdrawalMaxAmount(uint256 _amount) internal {
-        require(
-            (_amount % (10 ** 10)) == 0,
-            "Amount must have maximally 8 non-zero decimals"
-        );
-        require(
-            _amount > gasBridge.config.minAmount,
-            "Amount must be greater than the minimal withdrawal amount"
-        );
+        if ((_amount % (10 ** 10)) != 0) revert InvalidAmount();
+        if (_amount <= gasBridge.config.minAmount) revert InvalidAmount();
         gasBridge.config.maxAmount = _amount;
     }
 
     function _setGasMaxNrDepositsPerDistribution(uint8 _maxDeposits) internal {
-        require(_maxDeposits > 0, "Value must be greater than 0");
+        if (_maxDeposits == 0) revert InvalidAmount();
         gasBridge.config.maxDepositsPerDistribution = _maxDeposits;
     }
 
     // Upgrade authorization
 
     modifier onlyAdmin() {
-        require(msg.sender == GOV_ADMIN, "Not admin");
+        require(msg.sender == GOV_ADMIN, "not admin");
         _;
     }
 
