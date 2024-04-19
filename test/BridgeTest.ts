@@ -181,7 +181,7 @@ describe("Bridge Implementation", function () {
             await expect(tx).to.emit(bridgeManagementContract, "SetFunder").withArgs(validator1Addr);
 
             await expect(await bridgeManagementContract.getFunder()).to.be.equal(validator1Addr);
-            const fundTx = await validator1.sendTransaction({ to: bridgeContract.target, value: fundAmount })
+            const fundTx = await validator1.sendTransaction({ to: bridgeContract.target, value: fundAmount });
             expect(fundTx).to.changeEtherBalances([validator1, bridgeContract], [-ethers.parseEther("10.0"), ethers.parseEther("10.0")]);
             expect(fundTx).to.emit(bridgeContract, "Funded").withArgs(ethers.parseEther("10.0"));
         });
