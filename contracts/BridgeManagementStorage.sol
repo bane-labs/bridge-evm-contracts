@@ -44,18 +44,18 @@ contract BridgeManagementStorage is UUPSUpgradeable {
         address[] calldata _validators,
         uint threshold
     ) internal {
-        uint256 nrValidators = _validators.length;
-        if (nrValidators == 0) revert InvalidValidatorArray();
-        if (threshold == 0 || threshold > nrValidators)
+        uint256 validatorsLength = _validators.length;
+        if (validatorsLength == 0) revert InvalidValidatorArray();
+        if (threshold == 0 || threshold > validatorsLength)
             revert InvalidValidatorThreshold();
-        for (uint256 i = 0; i < nrValidators; i++) {
+        for (uint256 i = 0; i < validatorsLength; i++) {
             if (_validators[i] == address(0)) revert InvalidAddress();
         }
         if (BridgeLib._hasDuplicates(_validators))
             revert InvalidValidatorArray();
 
         delete validators;
-        for (uint256 i = 0; i < nrValidators; i++) {
+        for (uint256 i = 0; i < validatorsLength; i++) {
             validators.push(_validators[i]);
         }
         validatorThreshold = uint8(threshold);

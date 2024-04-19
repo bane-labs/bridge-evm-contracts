@@ -87,7 +87,8 @@ contract BridgeImpl is IBridge, BridgeStorage {
         BridgeLib.DepositData[] calldata _deposits
     ) private {
         // Once this is reached, execute the deposits
-        for (uint i = 0; i < _deposits.length; i++) {
+        uint depositLength = _deposits.length;
+        for (uint i = 0; i < depositLength; i++) {
             BridgeLib.DepositData calldata depositEntry = _deposits[i];
             address to = depositEntry.to;
             if (BridgeLib._isContract(to)) {

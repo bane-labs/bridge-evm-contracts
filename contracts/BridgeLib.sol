@@ -19,7 +19,8 @@ library BridgeLib {
         DepositData[] calldata _deposits,
         uint64 _startNonce
     ) internal pure returns (bool) {
-        for (uint8 i = 1; i <= _deposits.length; i++) {
+        uint depositsLength = _deposits.length;
+        for (uint8 i = 1; i <= depositsLength; i++) {
             if (_deposits[i - 1].nonce != _startNonce + i) {
                 return false;
             }
@@ -77,8 +78,9 @@ library BridgeLib {
     function _hasDuplicates(
         address[] calldata _addresses
     ) internal pure returns (bool) {
-        for (uint i = 0; i < _addresses.length - 1; i++) {
-            for (uint j = i + 1; j < _addresses.length; j++) {
+        uint addressesLength = _addresses.length;
+        for (uint i = 0; i < addressesLength - 1; i++) {
+            for (uint j = i + 1; j < addressesLength; j++) {
                 if (_addresses[i] == _addresses[j]) {
                     return true;
                 }
