@@ -17,10 +17,10 @@ library BridgeLib {
     // Makes sure the proofs have subsequent nonces.
     function _subsequentNonces(
         DepositData[] calldata _deposits,
-        uint64 startNonce
+        uint64 _startNonce
     ) internal pure returns (bool) {
         for (uint8 i = 1; i <= _deposits.length; i++) {
-            if (_deposits[i - 1].nonce != startNonce + i) {
+            if (_deposits[i - 1].nonce != _startNonce + i) {
                 return false;
             }
         }
@@ -46,10 +46,10 @@ library BridgeLib {
     }
 
     function _computeNewRoot(
-        bytes32 formerRoot,
-        bytes32 depositHash
+        bytes32 _formerRoot,
+        bytes32 _depositHash
     ) internal pure returns (bytes32) {
-        return sha256(abi.encodePacked(formerRoot, depositHash));
+        return sha256(abi.encodePacked(_formerRoot, _depositHash));
     }
 
     function _hashDepositOrWithdrawal(
@@ -75,11 +75,11 @@ library BridgeLib {
     }
 
     function _hasDuplicates(
-        address[] calldata addresses
+        address[] calldata _addresses
     ) internal pure returns (bool) {
-        for (uint i = 0; i < addresses.length - 1; i++) {
-            for (uint j = i + 1; j < addresses.length; j++) {
-                if (addresses[i] == addresses[j]) {
+        for (uint i = 0; i < _addresses.length - 1; i++) {
+            for (uint j = i + 1; j < _addresses.length; j++) {
+                if (_addresses[i] == _addresses[j]) {
                     return true;
                 }
             }
