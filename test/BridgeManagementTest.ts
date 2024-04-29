@@ -121,26 +121,26 @@ describe("Bridge Management", function () {
             const { bridgeManagementImpl, validator1, validator2, owner } = await loadFixture(deployBridgeFixture);
             const new_validators = [validator1.address, validator1.address, validator2.address];
             const tx = bridgeManagementImpl.connect(owner).setValidators(new_validators, 2);
-            await expect(tx).to.be.revertedWith("Duplicate validator addresses are not allowed");
+            await expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "InvalidValidatorArray");
         });
 
         it("Set validators with threshold greater than validators length", async function () {
             const { bridgeManagementImpl, validator1, validator2, owner } = await loadFixture(deployBridgeFixture);
             const new_validators = [validator1.address, validator2.address];
             const tx = bridgeManagementImpl.connect(owner).setValidators(new_validators, 3);
-            await expect(tx).to.be.revertedWith("Threshold must be greater than 0 and less than or equal to the number of validators");
+            await expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "InvalidValidatorThreshold");
         });
 
         it("Set validators with empty validators", async function () {
             const { bridgeManagementImpl, owner } = await loadFixture(deployBridgeFixture);
             const tx = bridgeManagementImpl.connect(owner).setValidators([], 1);
-            await expect(tx).to.be.revertedWith("Validators array must contain at least one address");
+            await expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "InvalidValidatorArray");
         });
 
         it("Set validators with zero address validators", async function () {
             const { bridgeManagementImpl, validator1, owner } = await loadFixture(deployBridgeFixture);
             const tx = bridgeManagementImpl.connect(owner).setValidators([validator1.address, ZeroAddress], 1);
-            await expect(tx).to.be.revertedWith("Validator address cannot be 0x0");
+            await expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "InvalidAddress");
         });
 
         it("Set relayer", async function () {
@@ -174,19 +174,19 @@ describe("Bridge Management", function () {
         it("Non-owner fail to set owner", async function () {
             const { bridgeManagementImpl, validator2 } = await loadFixture(deployBridgeFixture);
             let tx = bridgeManagementImpl.connect(validator2).setOwner(validator2.address);
-            await expect(tx).to.be.revertedWith("Not owner");
+            await expect(tx).to.be.revertedWith("not owner");
         });
 
         it("Non-owner fail to set relayer", async function () {
             const { bridgeManagementImpl, validator2 } = await loadFixture(deployBridgeFixture);
             let tx = bridgeManagementImpl.connect(validator2).setRelayer(validator2.address);
-            await expect(tx).to.be.revertedWith("Not owner");
+            await expect(tx).to.be.revertedWith("not owner");
         });
 
         it("Non-owner fail to set governor", async function () {
             const { bridgeManagementImpl, validator2 } = await loadFixture(deployBridgeFixture);
             let tx = bridgeManagementImpl.connect(validator2).setGovernor(validator2.address);
-            await expect(tx).to.be.revertedWith("Not owner");
+            await expect(tx).to.be.revertedWith("not owner");
         });
     });
 

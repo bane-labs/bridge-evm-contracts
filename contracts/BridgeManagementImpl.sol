@@ -76,8 +76,9 @@ contract BridgeManagementImpl is IBridgeManagement, BridgeManagementStorage {
         uint covered = 0;
         uint n = 0;
         uint j;
+        uint validatorsLength = validators.length;
         for (uint i = 0; i < threshold; i++) {
-            for (j = n; j < validators.length; j++) {
+            for (j = n; j < validatorsLength; j++) {
                 if (recovered[i] == validators[j]) {
                     covered++;
                     break;

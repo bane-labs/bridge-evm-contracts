@@ -17,10 +17,11 @@ library BridgeLib {
     // Makes sure the proofs have subsequent nonces.
     function _subsequentNonces(
         DepositData[] calldata _deposits,
-        uint64 startNonce
+        uint64 _startNonce
     ) internal pure returns (bool) {
-        for (uint8 i = 1; i <= _deposits.length; i++) {
-            if (_deposits[i - 1].nonce != startNonce + i) {
+        uint depositsLength = _deposits.length;
+        for (uint8 i = 1; i <= depositsLength; i++) {
+            if (_deposits[i - 1].nonce != _startNonce + i) {
                 return false;
             }
         }
@@ -46,10 +47,10 @@ library BridgeLib {
     }
 
     function _computeNewRoot(
-        bytes32 formerRoot,
-        bytes32 depositHash
-    ) private pure returns (bytes32) {
-        return sha256(abi.encodePacked(formerRoot, depositHash));
+        bytes32 _formerRoot,
+        bytes32 _depositHash
+    ) internal pure returns (bytes32) {
+        return sha256(abi.encodePacked(_formerRoot, _depositHash));
     }
 
     function _hashDepositOrWithdrawal(
@@ -58,16 +59,6 @@ library BridgeLib {
         address _to
     ) internal pure returns (bytes32) {
         return sha256(abi.encodePacked(_nonce, _amount, _to));
-    }
-
-    function _computeNewWithdrawalRoot(
-        bytes32 _previousWithdrawalRoot,
-        bytes32 _newWithdrawalHash
-    ) internal pure returns (bytes32) {
-        return
-            sha256(
-                abi.encodePacked(_previousWithdrawalRoot, _newWithdrawalHash)
-            );
     }
 
     // Adds 10 decimals to the amount. GasToken originally has 8 decimals and on this chain it has 18 decimals.
@@ -85,11 +76,12 @@ library BridgeLib {
     }
 
     function _hasDuplicates(
-        address[] calldata addresses
+        address[] calldata _addresses
     ) internal pure returns (bool) {
-        for (uint i = 0; i < addresses.length - 1; i++) {
-            for (uint j = i + 1; j < addresses.length; j++) {
-                if (addresses[i] == addresses[j]) {
+        uint addressesLength = _addresses.length;
+        for (uint i = 0; i < addressesLength - 1; i++) {
+            for (uint j = i + 1; j < addressesLength; j++) {
+                if (_addresses[i] == _addresses[j]) {
                     return true;
                 }
             }

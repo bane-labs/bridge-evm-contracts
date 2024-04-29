@@ -61,31 +61,19 @@ contract BridgeImpl is IBridge, BridgeStorage {
         BridgeLib.Signature[] calldata _signatures,
         BridgeLib.DepositData[] calldata _deposits
     ) external onlyRelayer unlocked {
-        uint depositLength = _deposits.length;
-        require(depositLength > 0, "At least 1 deposit is required.");
-
         State memory state = _getGasBridgeDepositState();
         Config memory config = _getGasBridgeConfig();
-        require(
-            depositLength <= config.maxDepositsPerDistribution,
-            "Too many deposits provided."
-        );
-        require(
-            _deposits[0].nonce == state.nonce + 1,
-            "Only the next nonce is allowed in the first proof."
-        );
-        require(
-            BridgeLib._subsequentNonces(_deposits, state.nonce),
-            "The nonces of the proofs must be subsequent."
-        );
-        require(
-            BridgeLib._computeNewTopRoot(state.root, _deposits) == _depositRoot,
-            "Deposits do not match the provided root."
-        );
-        require(
-            management.verifyValidatorSignatures(_depositRoot, _signatures),
-            "Validator signature verification failed."
-        );
+        uint depositLength = _deposits.length;
+        if (depositLength == 0) revert InvalidDepositsLength();
+        if (depositLength > config.maxDepositsPerDistribution)
+            revert InvalidDepositsLength();
+        if (!BridgeLib._subsequentNonces(_deposits, state.nonce))
+            revert InvalidNonceSequence();
+        if (BridgeLib._computeNewTopRoot(state.root, _deposits) != _depositRoot)
+            revert InvalidRoot();
+        if (!management.verifyValidatorSignatures(_depositRoot, _signatures))
+            revert InvalidValidatorSignatures();
+
         _setGasBridgeDepositState(
             State({
                 nonce: _deposits[depositLength - 1].nonce,
@@ -99,7 +87,8 @@ contract BridgeImpl is IBridge, BridgeStorage {
         BridgeLib.DepositData[] calldata _deposits
     ) private {
         // Once this is reached, execute the deposits
-        for (uint i = 0; i < _deposits.length; i++) {
+        uint depositLength = _deposits.length;
+        for (uint i = 0; i < depositLength; i++) {
             BridgeLib.DepositData calldata depositEntry = _deposits[i];
             address to = depositEntry.to;
             if (BridgeLib._isContract(to)) {
@@ -130,36 +119,24 @@ contract BridgeImpl is IBridge, BridgeStorage {
         GasClaimable memory claimable = _getGasClaimable(_nonce);
         uint256 amount = claimable.amount;
         address to = claimable.to;
-        require(amount != 0, "No claimable funds");
-        require(to != address(0), "No claimable funds");
+        if (amount == 0) revert NonexistentClaimable();
+        if (to == address(0)) revert NonexistentClaimable();
 
         _deleteGasClaimable(_nonce);
         uint256 sendValue = BridgeLib._addTenDecimals(amount);
         (bool success, ) = to.call{value: sendValue}("");
-        if (!success) {
-            revert("Transfer failed");
-        }
+        if (!success) revert TransferFailed();
         emit Claimed(_nonce, uint64(amount), to);
     }
 
     function withdraw(address _to) external payable unlocked {
-        require(_to != address(0), "Address must not be the zero address");
-        require(
-            (msg.value % (10 ** 10)) == 0,
-            "Only amounts with maximally 8 non-zero decimals are allowed for withdrawals"
-        );
-
+        if (_to == address(0)) revert InvalidAddress();
+        if ((msg.value % (10 ** 10)) != 0) revert InvalidAmount();
         Config memory config = _getGasBridgeConfig();
         State memory state = _getGasBridgeWithdrawalState();
         uint256 actualWithdrawalAmount = msg.value - config.fee;
-        require(
-            actualWithdrawalAmount >= config.minAmount,
-            "Withdrawal amount is too low"
-        );
-        require(
-            actualWithdrawalAmount <= config.maxAmount,
-            "Withdrawal amount is too high"
-        );
+        if (actualWithdrawalAmount < config.minAmount) revert InvalidAmount();
+        if (actualWithdrawalAmount > config.maxAmount) revert InvalidAmount();
 
         uint64 amountForHashing = BridgeLib._removeTenDecimals(
             actualWithdrawalAmount
@@ -170,10 +147,7 @@ contract BridgeImpl is IBridge, BridgeStorage {
             amountForHashing,
             _to
         );
-        bytes32 newRoot = BridgeLib._computeNewWithdrawalRoot(
-            state.root,
-            withdrawalHash
-        );
+        bytes32 newRoot = BridgeLib._computeNewRoot(state.root, withdrawalHash);
         _setGasBridgeWithdrawalState(State({nonce: newNonce, root: newRoot}));
         emit Withdrawal(
             newNonce,

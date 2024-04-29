@@ -27,8 +27,12 @@ contract BridgeManagementStorage is UUPSUpgradeable {
 
     // Role Restriction Modifiers
 
+    error InvalidAddress();
+    error InvalidValidatorArray();
+    error InvalidValidatorThreshold();
+
     modifier onlyOwner() {
-        require(msg.sender == owner, "Not owner");
+        require(msg.sender == owner, "not owner");
         _;
     }
 
@@ -40,27 +44,18 @@ contract BridgeManagementStorage is UUPSUpgradeable {
         address[] calldata _validators,
         uint threshold
     ) internal {
-        uint256 nrValidators = _validators.length;
-        require(
-            nrValidators > 0,
-            "Validators array must contain at least one address"
-        );
-        require(
-            threshold > 0 && threshold <= nrValidators,
-            "Threshold must be greater than 0 and less than or equal to the number of validators"
-        );
-        for (uint256 i = 0; i < nrValidators; i++) {
-            require(
-                _validators[i] != address(0),
-                "Validator address cannot be 0x0"
-            );
+        uint256 validatorsLength = _validators.length;
+        if (validatorsLength == 0) revert InvalidValidatorArray();
+        if (threshold == 0 || threshold > validatorsLength)
+            revert InvalidValidatorThreshold();
+        for (uint256 i = 0; i < validatorsLength; i++) {
+            if (_validators[i] == address(0)) revert InvalidAddress();
         }
-        require(
-            BridgeLib._hasDuplicates(_validators) == false,
-            "Duplicate validator addresses are not allowed"
-        );
+        if (BridgeLib._hasDuplicates(_validators))
+            revert InvalidValidatorArray();
+
         delete validators;
-        for (uint256 i = 0; i < nrValidators; i++) {
+        for (uint256 i = 0; i < validatorsLength; i++) {
             validators.push(_validators[i]);
         }
         validatorThreshold = uint8(threshold);
@@ -85,7 +80,7 @@ contract BridgeManagementStorage is UUPSUpgradeable {
     // Upgrade authorization
 
     modifier onlyAdmin() {
-        require(msg.sender == GOV_ADMIN, "Not admin");
+        require(msg.sender == GOV_ADMIN, "not admin");
         _;
     }
 
