@@ -8,6 +8,30 @@ library BridgeLib {
         uint64 nonce;
     }
 
+    struct GasBridge {
+        BridgeLib.State depositState;
+        BridgeLib.State withdrawalState;
+        GasConfig config;
+    }
+
+    struct State {
+        uint64 nonce;
+        bytes32 root;
+    }
+
+    struct GasConfig {
+        uint256 fee;
+        uint256 minAmount;
+        uint256 maxAmount;
+        uint8 maxDepositsPerDistribution;
+        uint256[2] gap;
+    }
+
+    struct Claimable {
+        address to;
+        uint64 amount;
+    }
+
     struct Signature {
         uint8 v;
         bytes32 r;
@@ -36,12 +60,12 @@ library BridgeLib {
         uint depositsLength = _deposits.length;
         for (uint i = 0; i < depositsLength; i++) {
             DepositData calldata depositData = _deposits[i];
-            bytes32 depositHash = _hashDepositOrWithdrawal(
+            bytes32 depositHash = BridgeLib._hashDepositOrWithdrawal(
                 depositData.nonce,
                 depositData.amount,
                 depositData.to
             );
-            parent = _computeNewRoot(parent, depositHash);
+            parent = BridgeLib._computeNewRoot(parent, depositHash);
         }
         return parent;
     }
@@ -73,19 +97,5 @@ library BridgeLib {
 
     function _isContract(address _addr) internal view returns (bool) {
         return _addr.code.length > 0;
-    }
-
-    function _hasDuplicates(
-        address[] calldata _addresses
-    ) internal pure returns (bool) {
-        uint addressesLength = _addresses.length;
-        for (uint i = 0; i < addressesLength - 1; i++) {
-            for (uint j = i + 1; j < addressesLength; j++) {
-                if (_addresses[i] == _addresses[j]) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 }

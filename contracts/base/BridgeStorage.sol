@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "./BridgeManagementImpl.sol";
+import "../management/BridgeManagementImpl.sol";
+import "../library/BridgeLib.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 contract BridgeStorage is UUPSUpgradeable {
@@ -9,14 +10,15 @@ contract BridgeStorage is UUPSUpgradeable {
     address public constant GOV_ADMIN =
         0x1212000000000000000000000000000000000000;
 
+    // Begin Storage Slots
     IBridgeManagement public management =
         IBridgeManagement(0xF1478f211F027EBA42ca369ea976F1eB43C6bB53);
     bool public locked;
-    GasBridge public gasBridge =
-        GasBridge({
-            depositState: State({nonce: 0, root: 0x0}),
-            withdrawalState: State({nonce: 0, root: 0x0}),
-            config: Config({
+    BridgeLib.GasBridge public gasBridge =
+        BridgeLib.GasBridge({
+            depositState: BridgeLib.State({nonce: 0, root: 0x0}),
+            withdrawalState: BridgeLib.State({nonce: 0, root: 0x0}),
+            config: BridgeLib.GasConfig({
                 fee: 10 ** 17,
                 minAmount: 10 ** 18,
                 maxAmount: 10 ** 22,
@@ -24,7 +26,8 @@ contract BridgeStorage is UUPSUpgradeable {
                 gap: [uint256(0), uint256(0)]
             })
         });
-    mapping(uint64 => GasClaimable) public claimableGas;
+    mapping(uint64 => BridgeLib.Claimable) public claimableGas;
+    // End Storage Slots
 
     error InvalidAddress();
     error InvalidAmount();
@@ -35,30 +38,6 @@ contract BridgeStorage is UUPSUpgradeable {
     error InvalidValidatorSignatures();
     error NonexistentClaimable();
     error TransferFailed();
-
-    struct GasBridge {
-        State depositState;
-        State withdrawalState;
-        Config config;
-    }
-
-    struct State {
-        uint64 nonce;
-        bytes32 root;
-    }
-
-    struct Config {
-        uint256 fee;
-        uint256 minAmount;
-        uint256 maxAmount;
-        uint8 maxDepositsPerDistribution;
-        uint256[2] gap;
-    }
-
-    struct GasClaimable {
-        address to;
-        uint64 amount;
-    }
 
     // Modifiers for Role Restriction
 
@@ -105,12 +84,12 @@ contract BridgeStorage is UUPSUpgradeable {
         uint64 _amount,
         address _to
     ) internal {
-        claimableGas[_nonce] = GasClaimable({to: _to, amount: _amount});
+        claimableGas[_nonce] = BridgeLib.Claimable({to: _to, amount: _amount});
     }
 
     function _getGasClaimable(
         uint64 _nonce
-    ) internal view returns (GasClaimable memory) {
+    ) internal view returns (BridgeLib.Claimable memory) {
         return claimableGas[_nonce];
     }
 
@@ -121,7 +100,7 @@ contract BridgeStorage is UUPSUpgradeable {
     function _getGasBridgeConfig()
         internal
         view
-        returns (Config memory config)
+        returns (BridgeLib.GasConfig memory config)
     {
         return gasBridge.config;
     }
@@ -129,24 +108,26 @@ contract BridgeStorage is UUPSUpgradeable {
     function _getGasBridgeDepositState()
         internal
         view
-        returns (State memory state)
+        returns (BridgeLib.State memory state)
     {
         return gasBridge.depositState;
     }
 
-    function _setGasBridgeDepositState(State memory state) internal {
+    function _setGasBridgeDepositState(BridgeLib.State memory state) internal {
         gasBridge.depositState = state;
     }
 
     function _getGasBridgeWithdrawalState()
         internal
         view
-        returns (State memory state)
+        returns (BridgeLib.State memory state)
     {
         return gasBridge.withdrawalState;
     }
 
-    function _setGasBridgeWithdrawalState(State memory state) internal {
+    function _setGasBridgeWithdrawalState(
+        BridgeLib.State memory state
+    ) internal {
         gasBridge.withdrawalState = state;
     }
 

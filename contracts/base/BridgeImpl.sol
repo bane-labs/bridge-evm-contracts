@@ -1,57 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "./BridgeManagementImpl.sol";
+import "../management/BridgeManagementImpl.sol";
 import "./BridgeStorage.sol";
-
-interface IBridge {
-    event Locked();
-    event Unlocked();
-    event Funded(uint256 amount);
-    event Deposit(uint64 nonce, uint64 amount, address to);
-    event Claimable(uint64 nonce, uint64 amount, address to);
-    event Claimed(uint64 nonce, uint64 amount, address to);
-    event Withdrawal(
-        uint64 nonce,
-        uint64 amount,
-        address to,
-        address from,
-        bytes32 withdrawalHash,
-        bytes32 withdrawalRoot
-    );
-    event WithdrawalFeeChanged(uint256 newFee);
-    event MinWithdrawalAmountChanged(uint256 newAmount);
-    event MaxWithdrawalAmountChanged(uint256 amount);
-    event MaxDepositsPerDistributionChanged(uint8 amount);
-
-    function deposit(
-        bytes32 _depositRoot,
-        BridgeLib.Signature[] calldata _signatures,
-        BridgeLib.DepositData[] calldata _deposits
-    ) external;
-
-    function claim(uint64 _nonce) external;
-
-    function withdraw(address _to) external payable;
-
-    function lock() external;
-
-    function unlock() external;
-
-    function setGasWithdrawalFee(uint256 _fee) external;
-
-    function setGasWithdrawalMinAmount(uint256 _amount) external;
-
-    function setGasWithdrawalMaxAmount(uint256 _amount) external;
-
-    function setGasMaxNrDepositsPerDistribution(uint8 _maxNrDeposits) external;
-}
+import "./IBridge.sol";
+import "./IGasBridge.sol";
 
 /**
  * When generating the bytecode for genesis script:
  * - set initial storage values in BridgeStorage.sol
  */
-contract BridgeImpl is IBridge, BridgeStorage {
+contract BridgeImpl is IBridge, IGasBridge, BridgeStorage {
     receive() external payable onlyFunder {
         emit Funded(msg.value);
     }
@@ -61,8 +20,8 @@ contract BridgeImpl is IBridge, BridgeStorage {
         BridgeLib.Signature[] calldata _signatures,
         BridgeLib.DepositData[] calldata _deposits
     ) external onlyRelayer unlocked {
-        State memory state = _getGasBridgeDepositState();
-        Config memory config = _getGasBridgeConfig();
+        BridgeLib.State memory state = _getGasBridgeDepositState();
+        BridgeLib.GasConfig memory config = _getGasBridgeConfig();
         uint depositLength = _deposits.length;
         if (depositLength == 0) revert InvalidDepositsLength();
         if (depositLength > config.maxDepositsPerDistribution)
@@ -75,11 +34,12 @@ contract BridgeImpl is IBridge, BridgeStorage {
             revert InvalidValidatorSignatures();
 
         _setGasBridgeDepositState(
-            State({
+            BridgeLib.State({
                 nonce: _deposits[depositLength - 1].nonce,
                 root: _depositRoot
             })
         );
+        // Execution data interface
         _executeTransfers(_deposits);
     }
 
@@ -116,7 +76,7 @@ contract BridgeImpl is IBridge, BridgeStorage {
 
     // Anyone can execute a claim. The funds of a claimable will be sent to the defined address in the claimableTo mapping.
     function claim(uint64 _nonce) external unlocked {
-        GasClaimable memory claimable = _getGasClaimable(_nonce);
+        BridgeLib.Claimable memory claimable = _getGasClaimable(_nonce);
         uint256 amount = claimable.amount;
         address to = claimable.to;
         if (amount == 0) revert NonexistentClaimable();
@@ -132,8 +92,8 @@ contract BridgeImpl is IBridge, BridgeStorage {
     function withdraw(address _to) external payable unlocked {
         if (_to == address(0)) revert InvalidAddress();
         if ((msg.value % (10 ** 10)) != 0) revert InvalidAmount();
-        Config memory config = _getGasBridgeConfig();
-        State memory state = _getGasBridgeWithdrawalState();
+        BridgeLib.GasConfig memory config = _getGasBridgeConfig();
+        BridgeLib.State memory state = _getGasBridgeWithdrawalState();
         uint256 actualWithdrawalAmount = msg.value - config.fee;
         if (actualWithdrawalAmount < config.minAmount) revert InvalidAmount();
         if (actualWithdrawalAmount > config.maxAmount) revert InvalidAmount();
@@ -148,7 +108,9 @@ contract BridgeImpl is IBridge, BridgeStorage {
             _to
         );
         bytes32 newRoot = BridgeLib._computeNewRoot(state.root, withdrawalHash);
-        _setGasBridgeWithdrawalState(State({nonce: newNonce, root: newRoot}));
+        _setGasBridgeWithdrawalState(
+            BridgeLib.State({nonce: newNonce, root: newRoot})
+        );
         emit Withdrawal(
             newNonce,
             amountForHashing,

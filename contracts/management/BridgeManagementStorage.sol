@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "./BridgeLib.sol";
+import "../library/ManagementLib.sol";
 
 contract BridgeManagementStorage is UUPSUpgradeable {
     address public constant SELF = 0x1212100000000000000000000000000000000005;
@@ -51,7 +51,7 @@ contract BridgeManagementStorage is UUPSUpgradeable {
         for (uint256 i = 0; i < validatorsLength; i++) {
             if (_validators[i] == address(0)) revert InvalidAddress();
         }
-        if (BridgeLib._hasDuplicates(_validators))
+        if (ManagementLib._hasDuplicates(_validators))
             revert InvalidValidatorArray();
 
         delete validators;
