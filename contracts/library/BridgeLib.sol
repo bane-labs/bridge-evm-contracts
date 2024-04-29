@@ -2,12 +2,7 @@
 pragma solidity ^0.8.24;
 
 library BridgeLib {
-    struct DepositData {
-        address payable to;
-        uint64 amount;
-        uint64 nonce;
-    }
-
+    // Types used in storage layout
     struct GasBridge {
         BridgeLib.State depositState;
         BridgeLib.State withdrawalState;
@@ -15,7 +10,7 @@ library BridgeLib {
     }
 
     struct State {
-        uint64 nonce;
+        uint256 nonce;
         bytes32 root;
     }
 
@@ -29,7 +24,14 @@ library BridgeLib {
 
     struct Claimable {
         address to;
-        uint64 amount;
+        uint256 amount;
+    }
+
+    // Types NOT used in storage layout
+    struct DepositData {
+        address payable to;
+        uint256 amount;
+        uint256 nonce;
     }
 
     struct Signature {
@@ -41,7 +43,7 @@ library BridgeLib {
     // Makes sure the proofs have subsequent nonces.
     function _subsequentNonces(
         DepositData[] calldata _deposits,
-        uint64 _startNonce
+        uint256 _startNonce
     ) internal pure returns (bool) {
         uint depositsLength = _deposits.length;
         for (uint8 i = 1; i <= depositsLength; i++) {
@@ -78,8 +80,8 @@ library BridgeLib {
     }
 
     function _hashDepositOrWithdrawal(
-        uint64 _nonce,
-        uint64 _amount,
+        uint256 _nonce,
+        uint256 _amount,
         address _to
     ) internal pure returns (bytes32) {
         return sha256(abi.encodePacked(_nonce, _amount, _to));
@@ -91,8 +93,10 @@ library BridgeLib {
     }
 
     // Removes 10 decimal points from the amount. GasToken originally has 8 decimals and on this chain it has 18 decimals.
-    function _removeTenDecimals(uint256 _value) internal pure returns (uint64) {
-        return uint64(_value / (10 ** 10));
+    function _removeTenDecimals(
+        uint256 _value
+    ) internal pure returns (uint256) {
+        return uint256(_value / (10 ** 10));
     }
 
     function _isContract(address _addr) internal view returns (bool) {

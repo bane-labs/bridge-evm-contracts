@@ -26,7 +26,7 @@ contract BridgeStorage is UUPSUpgradeable {
                 gap: [uint256(0), uint256(0)]
             })
         });
-    mapping(uint64 => BridgeLib.Claimable) public claimableGas;
+    mapping(uint256 => BridgeLib.Claimable) public claimableGas;
     // End Storage Slots
 
     error InvalidAddress();
@@ -80,20 +80,20 @@ contract BridgeStorage is UUPSUpgradeable {
     }
 
     function _addClaimableGas(
-        uint64 _nonce,
-        uint64 _amount,
+        uint256 _nonce,
+        uint256 _amount,
         address _to
     ) internal {
         claimableGas[_nonce] = BridgeLib.Claimable({to: _to, amount: _amount});
     }
 
     function _getGasClaimable(
-        uint64 _nonce
+        uint256 _nonce
     ) internal view returns (BridgeLib.Claimable memory) {
         return claimableGas[_nonce];
     }
 
-    function _deleteGasClaimable(uint64 _nonce) internal {
+    function _deleteGasClaimable(uint256 _nonce) internal {
         delete claimableGas[_nonce];
     }
 

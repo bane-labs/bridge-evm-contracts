@@ -75,7 +75,7 @@ contract BridgeImpl is IBridge, IGasBridge, BridgeStorage {
     }
 
     // Anyone can execute a claim. The funds of a claimable will be sent to the defined address in the claimableTo mapping.
-    function claim(uint64 _nonce) external unlocked {
+    function claim(uint256 _nonce) external unlocked {
         BridgeLib.Claimable memory claimable = _getGasClaimable(_nonce);
         uint256 amount = claimable.amount;
         address to = claimable.to;
@@ -86,7 +86,7 @@ contract BridgeImpl is IBridge, IGasBridge, BridgeStorage {
         uint256 sendValue = BridgeLib._addTenDecimals(amount);
         (bool success, ) = to.call{value: sendValue}("");
         if (!success) revert TransferFailed();
-        emit Claimed(_nonce, uint64(amount), to);
+        emit Claimed(_nonce, amount, to);
     }
 
     function withdraw(address _to) external payable unlocked {
@@ -98,10 +98,10 @@ contract BridgeImpl is IBridge, IGasBridge, BridgeStorage {
         if (actualWithdrawalAmount < config.minAmount) revert InvalidAmount();
         if (actualWithdrawalAmount > config.maxAmount) revert InvalidAmount();
 
-        uint64 amountForHashing = BridgeLib._removeTenDecimals(
+        uint256 amountForHashing = BridgeLib._removeTenDecimals(
             actualWithdrawalAmount
         );
-        uint64 newNonce = state.nonce + 1;
+        uint256 newNonce = state.nonce + 1;
         bytes32 withdrawalHash = BridgeLib._hashDepositOrWithdrawal(
             newNonce,
             amountForHashing,

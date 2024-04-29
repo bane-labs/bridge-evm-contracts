@@ -5,12 +5,12 @@ import "../library/BridgeLib.sol";
 
 interface IGasBridge {
     // Gas-related events
-    event Deposit(uint64 nonce, uint64 amount, address to);
-    event Claimable(uint64 nonce, uint64 amount, address to);
-    event Claimed(uint64 nonce, uint64 amount, address to);
+    event Deposit(uint256 nonce, uint256 amount, address to);
+    event Claimable(uint256 nonce, uint256 amount, address to);
+    event Claimed(uint256 nonce, uint256 amount, address to);
     event Withdrawal(
-        uint64 nonce,
-        uint64 amount,
+        uint256 nonce,
+        uint256 amount,
         address to,
         address from,
         bytes32 withdrawalHash,
@@ -29,7 +29,7 @@ interface IGasBridge {
         BridgeLib.DepositData[] calldata _deposits
     ) external;
 
-    function claim(uint64 _nonce) external;
+    function claim(uint256 _nonce) external;
 
     function withdraw(address _to) external payable;
 
