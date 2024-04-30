@@ -2,32 +2,6 @@
 pragma solidity ^0.8.24;
 
 library BridgeLib {
-    // Types used in storage layout
-    struct GasBridge {
-        BridgeLib.State depositState;
-        BridgeLib.State withdrawalState;
-        GasConfig config;
-    }
-
-    struct State {
-        uint256 nonce;
-        bytes32 root;
-    }
-
-    struct GasConfig {
-        uint256 fee;
-        uint256 minAmount;
-        uint256 maxAmount;
-        uint8 maxDepositsPerDistribution;
-        uint256[2] gap;
-    }
-
-    struct Claimable {
-        address to;
-        uint256 amount;
-    }
-
-    // Types NOT used in storage layout
     struct DepositData {
         address payable to;
         uint256 amount;

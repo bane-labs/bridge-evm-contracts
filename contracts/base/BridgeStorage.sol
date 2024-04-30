@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "../management/BridgeManagementImpl.sol";
 import "../library/BridgeLib.sol";
+import "../library/BridgeStorageTypes.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 contract BridgeStorage is UUPSUpgradeable {
@@ -14,11 +15,11 @@ contract BridgeStorage is UUPSUpgradeable {
     IBridgeManagement public management =
         IBridgeManagement(0xF1478f211F027EBA42ca369ea976F1eB43C6bB53);
     bool public locked;
-    BridgeLib.GasBridge public gasBridge =
-        BridgeLib.GasBridge({
-            depositState: BridgeLib.State({nonce: 0, root: 0x0}),
-            withdrawalState: BridgeLib.State({nonce: 0, root: 0x0}),
-            config: BridgeLib.GasConfig({
+    BridgeStorageTypes.GasBridge public gasBridge =
+        BridgeStorageTypes.GasBridge({
+            depositState: BridgeStorageTypes.State({nonce: 0, root: 0x0}),
+            withdrawalState: BridgeStorageTypes.State({nonce: 0, root: 0x0}),
+            config: BridgeStorageTypes.GasConfig({
                 fee: 10 ** 17,
                 minAmount: 10 ** 18,
                 maxAmount: 10 ** 22,
@@ -26,7 +27,7 @@ contract BridgeStorage is UUPSUpgradeable {
                 gap: [uint256(0), uint256(0)]
             })
         });
-    mapping(uint256 => BridgeLib.Claimable) public claimableGas;
+    mapping(uint256 => BridgeStorageTypes.Claimable) public claimableGas;
     // End Storage Slots
 
     error InvalidAddress();
@@ -84,12 +85,15 @@ contract BridgeStorage is UUPSUpgradeable {
         uint256 _amount,
         address _to
     ) internal {
-        claimableGas[_nonce] = BridgeLib.Claimable({to: _to, amount: _amount});
+        claimableGas[_nonce] = BridgeStorageTypes.Claimable({
+            to: _to,
+            amount: _amount
+        });
     }
 
     function _getGasClaimable(
         uint256 _nonce
-    ) internal view returns (BridgeLib.Claimable memory) {
+    ) internal view returns (BridgeStorageTypes.Claimable memory) {
         return claimableGas[_nonce];
     }
 
@@ -100,7 +104,7 @@ contract BridgeStorage is UUPSUpgradeable {
     function _getGasBridgeConfig()
         internal
         view
-        returns (BridgeLib.GasConfig memory config)
+        returns (BridgeStorageTypes.GasConfig memory config)
     {
         return gasBridge.config;
     }
@@ -108,25 +112,27 @@ contract BridgeStorage is UUPSUpgradeable {
     function _getGasBridgeDepositState()
         internal
         view
-        returns (BridgeLib.State memory state)
+        returns (BridgeStorageTypes.State memory state)
     {
         return gasBridge.depositState;
     }
 
-    function _setGasBridgeDepositState(BridgeLib.State memory state) internal {
+    function _setGasBridgeDepositState(
+        BridgeStorageTypes.State memory state
+    ) internal {
         gasBridge.depositState = state;
     }
 
     function _getGasBridgeWithdrawalState()
         internal
         view
-        returns (BridgeLib.State memory state)
+        returns (BridgeStorageTypes.State memory state)
     {
         return gasBridge.withdrawalState;
     }
 
     function _setGasBridgeWithdrawalState(
-        BridgeLib.State memory state
+        BridgeStorageTypes.State memory state
     ) internal {
         gasBridge.withdrawalState = state;
     }

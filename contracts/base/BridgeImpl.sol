@@ -20,8 +20,8 @@ contract BridgeImpl is IBridge, IGasBridge, BridgeStorage {
         BridgeLib.Signature[] calldata _signatures,
         BridgeLib.DepositData[] calldata _deposits
     ) external onlyRelayer unlocked {
-        BridgeLib.State memory state = _getGasBridgeDepositState();
-        BridgeLib.GasConfig memory config = _getGasBridgeConfig();
+        BridgeStorageTypes.State memory state = _getGasBridgeDepositState();
+        BridgeStorageTypes.GasConfig memory config = _getGasBridgeConfig();
         uint depositLength = _deposits.length;
         if (depositLength == 0) revert InvalidDepositsLength();
         if (depositLength > config.maxDepositsPerDistribution)
@@ -34,7 +34,7 @@ contract BridgeImpl is IBridge, IGasBridge, BridgeStorage {
             revert InvalidValidatorSignatures();
 
         _setGasBridgeDepositState(
-            BridgeLib.State({
+            BridgeStorageTypes.State({
                 nonce: _deposits[depositLength - 1].nonce,
                 root: _depositRoot
             })
@@ -76,7 +76,9 @@ contract BridgeImpl is IBridge, IGasBridge, BridgeStorage {
 
     // Anyone can execute a claim. The funds of a claimable will be sent to the defined address in the claimableTo mapping.
     function claim(uint256 _nonce) external unlocked {
-        BridgeLib.Claimable memory claimable = _getGasClaimable(_nonce);
+        BridgeStorageTypes.Claimable memory claimable = _getGasClaimable(
+            _nonce
+        );
         uint256 amount = claimable.amount;
         address to = claimable.to;
         if (amount == 0) revert NonexistentClaimable();
@@ -92,8 +94,8 @@ contract BridgeImpl is IBridge, IGasBridge, BridgeStorage {
     function withdraw(address _to) external payable unlocked {
         if (_to == address(0)) revert InvalidAddress();
         if ((msg.value % (10 ** 10)) != 0) revert InvalidAmount();
-        BridgeLib.GasConfig memory config = _getGasBridgeConfig();
-        BridgeLib.State memory state = _getGasBridgeWithdrawalState();
+        BridgeStorageTypes.GasConfig memory config = _getGasBridgeConfig();
+        BridgeStorageTypes.State memory state = _getGasBridgeWithdrawalState();
         uint256 actualWithdrawalAmount = msg.value - config.fee;
         if (actualWithdrawalAmount < config.minAmount) revert InvalidAmount();
         if (actualWithdrawalAmount > config.maxAmount) revert InvalidAmount();
@@ -109,7 +111,7 @@ contract BridgeImpl is IBridge, IGasBridge, BridgeStorage {
         );
         bytes32 newRoot = BridgeLib._computeNewRoot(state.root, withdrawalHash);
         _setGasBridgeWithdrawalState(
-            BridgeLib.State({nonce: newNonce, root: newRoot})
+            BridgeStorageTypes.State({nonce: newNonce, root: newRoot})
         );
         emit Withdrawal(
             newNonce,
