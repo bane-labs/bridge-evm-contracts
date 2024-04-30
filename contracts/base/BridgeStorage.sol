@@ -12,11 +12,17 @@ contract BridgeStorage is UUPSUpgradeable {
         0x1212000000000000000000000000000000000000;
 
     // Begin Storage Slots
-    IBridgeManagement public management =
-        IBridgeManagement(0xF1478f211F027EBA42ca369ea976F1eB43C6bB53);
+
+    IBridgeManagement public management;
     bool public locked;
-    BridgeStorageTypes.GasBridge public gasBridge =
-        BridgeStorageTypes.GasBridge({
+    BridgeStorageTypes.GasBridge public gasBridge;
+    mapping(uint256 => BridgeStorageTypes.Claimable) public claimableGas;
+
+    // End Storage Slots
+
+    constructor(address _management) {
+        management = IBridgeManagement(_management);
+        gasBridge = BridgeStorageTypes.GasBridge({
             depositState: BridgeStorageTypes.State({nonce: 0, root: 0x0}),
             withdrawalState: BridgeStorageTypes.State({nonce: 0, root: 0x0}),
             config: BridgeStorageTypes.GasConfig({
@@ -27,8 +33,7 @@ contract BridgeStorage is UUPSUpgradeable {
                 gap: [uint256(0), uint256(0)]
             })
         });
-    mapping(uint256 => BridgeStorageTypes.Claimable) public claimableGas;
-    // End Storage Slots
+    }
 
     error InvalidAddress();
     error InvalidAmount();

@@ -41,7 +41,7 @@ describe("Bridge Implementation", function () {
         // Fund the bridge contract's address before deployment.
         await funder.sendTransaction({ to: contractAddress, value: ethers.parseEther("80.0") });
 
-        const bridgeContract = await BridgeContract.connect(deployer).deploy();
+        const bridgeContract = await BridgeContract.connect(deployer).deploy(bridgeManagementContract);
         await bridgeContract.waitForDeployment();
 
         return {

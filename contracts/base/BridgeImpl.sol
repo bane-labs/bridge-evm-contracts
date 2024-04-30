@@ -15,6 +15,8 @@ contract BridgeImpl is IBridge, IGasBridge, BridgeStorage {
         emit Funded(msg.value);
     }
 
+    constructor(address _management) BridgeStorage(_management) {}
+
     function deposit(
         bytes32 _depositRoot,
         BridgeLib.Signature[] calldata _signatures,
