@@ -41,17 +41,17 @@ interface ITokenBridge {
 
     // Token bridge functions
 
-    function registerTokenBridge(
+    function registerToken(
         uint256 identifier,
         BridgeStorageTypes.TokenType tokenType,
         BridgeStorageTypes.TokenConfig calldata tokenConfig
     ) external;
 
-    function unregisterTokenBridge(uint256 identifier) external;
+    function unregisterToken(uint256 identifier) external;
 
-    function lockTokenBridge(uint256 identifier) external;
+    function lockToken(uint256 identifier) external;
 
-    function unlockTokenBridge(uint256 identifier) external;
+    function unlockToken(uint256 identifier) external;
 
     function setTokenWithdrawalMinAmount(
         uint identifier,
@@ -63,21 +63,18 @@ interface ITokenBridge {
         uint256 maxAmount
     ) external;
 
-    function deposit(
+    function depositToken(
         uint256 identifier,
         BridgeLib.DepositData[] calldata deposits,
         bytes32 depositRoot,
         BridgeLib.Signature[] calldata signatures
     ) external;
 
-    function claim(
+    function withdrawToken(
         uint256 identifier,
-        uint256 nonce,
         uint256 amount,
         address to
     ) external;
 
-    function withdraw(uint256 identifier, uint256 amount, address to) external;
-
-    function claim(uint256 identifier, uint256 nonce) external;
+    function claimToken(uint256 identifier, uint256 nonce) external;
 }
