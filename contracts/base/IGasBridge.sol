@@ -39,6 +39,5 @@ interface IGasBridge {
 
     function setGasWithdrawalMaxAmount(uint256 _amount) external;
 
-    // should this be gas-unrelated, i.e., general?
     function setGasMaxNrDepositsPerDistribution(uint8 _maxNrDeposits) external;
 }

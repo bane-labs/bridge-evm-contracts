@@ -6,18 +6,21 @@ import "../library/BridgeStorageTypes.sol";
 
 interface ITokenBridge {
     // Token bridge events
-    event NewClaimable(
-        uint256 indexed nonce,
-        uint256 amount,
-        address indexed to
-    );
-    event Claim(uint256 indexed nonce, uint256 amount, address indexed to);
-    event TokenBridgeLock(uint256 indexed identifier);
-    event TokenBridgeUnlock(uint256 indexed identifier);
-    event TokenBridgeRegister(
+    event TokenRegister(
         uint256 indexed identifier,
         BridgeStorageTypes.TokenType tokenType,
         BridgeStorageTypes.TokenConfig tokenConfig
+    );
+    event TokenUnregister(uint256 indexed identifier);
+    event TokenLock(uint256 indexed identifier);
+    event TokenUnlock(uint256 indexed identifier);
+    event TokenWithdrawalMinAmountChanged(
+        uint256 indexed identifier,
+        uint256 minAmount
+    );
+    event TokenWithdrawalMaxAmountChanged(
+        uint256 indexed identifier,
+        uint256 maxAmount
     );
     event TokenDeposit(
         uint256 indexed identifier,
@@ -29,6 +32,12 @@ interface ITokenBridge {
         uint256 amount,
         address indexed to
     );
+    event TokenClaimable(
+        uint256 indexed nonce,
+        uint256 amount,
+        address indexed to
+    );
+    event TokenClaim(uint256 indexed nonce, uint256 amount, address indexed to);
 
     // Token bridge functions
 
@@ -43,6 +52,16 @@ interface ITokenBridge {
     function lockTokenBridge(uint256 identifier) external;
 
     function unlockTokenBridge(uint256 identifier) external;
+
+    function setTokenWithdrawalMinAmount(
+        uint identifier,
+        uint256 minAmount
+    ) external;
+
+    function setTokenWithdrawalMaxAmount(
+        uint256 identifier,
+        uint256 maxAmount
+    ) external;
 
     function deposit(
         uint256 identifier,
@@ -59,4 +78,6 @@ interface ITokenBridge {
     ) external;
 
     function withdraw(uint256 identifier, uint256 amount, address to) external;
+
+    function claim(uint256 identifier, uint256 nonce) external;
 }
