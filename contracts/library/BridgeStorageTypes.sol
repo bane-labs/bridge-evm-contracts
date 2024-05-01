@@ -15,13 +15,6 @@ interface IERC20Capped {
 // - ERC20Uncapped (mint(address to, uint256 amount), burn(uint256 value))
 // - (ERC721 (safeMint(address to, uint256 tokenId), burn(uint256 tokenId)))
 library BridgeStorageTypes {
-    // Generic Types
-
-    struct TypeConfig {
-        uint256 fee;
-        uint8 maxDepositsPerDistribution;
-    }
-
     struct Claimable {
         address to;
         uint256 amount;
@@ -45,21 +38,32 @@ library BridgeStorageTypes {
         uint256 minAmount;
         uint256 maxAmount;
         uint8 maxDepositsPerDistribution;
-        uint256[2] gap;
+        uint256[2] gap; // not needed
     }
 
-    // ERC20 Capped
+    // Token Bridges
 
-    struct ERC20CappedBridge {
+    enum TokenType {
+        ERC20Capped
+        // ERC20Uncapped
+        // ERC721
+    }
+
+    struct TokenTypeConfig {
+        uint256 fee;
+        uint8 maxDepositsPerDistribution;
+    }
+
+    struct TokenBridge {
+        bool registered; // used for simple existence check
         State depositState;
         State withdrawalState;
-        ERC20CappedConfig config;
+        TokenTypeConfig config;
     }
 
-    struct ERC20CappedConfig {
+    struct TokenConfig {
+        address contractAddress;
         uint256 minAmount;
         uint256 maxAmount;
-        IERC20Capped token;
-        uint256[2] gap;
     }
 }
