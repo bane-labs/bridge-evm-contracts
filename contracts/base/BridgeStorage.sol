@@ -203,6 +203,7 @@ contract BridgeStorage is UUPSUpgradeable {
         BridgeStorageTypes.TokenType _tokenType,
         BridgeStorageTypes.TokenConfig memory _tokenConfig
     ) internal {
+        if (_identifier == 0) revert InvalidIdentifier();
         // Check if token config contains valid values
         if (_tokenConfig.minAmount > _tokenConfig.maxAmount)
             revert InvalidAmount();
