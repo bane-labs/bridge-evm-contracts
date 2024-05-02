@@ -5,12 +5,13 @@ import "../management/BridgeManagementImpl.sol";
 import "./BridgeStorage.sol";
 import "./IBridge.sol";
 import "./IGasBridge.sol";
+import "./ITokenBridge.sol";
 
 /**
  * When generating the bytecode for genesis script:
  * - set initial storage values in BridgeStorage.sol
  */
-contract BridgeImpl is IBridge, IGasBridge, BridgeStorage {
+contract BridgeImpl is IBridge, IGasBridge, ITokenBridge, BridgeStorage {
     receive() external payable onlyFunder {
         emit Funded(msg.value);
     }
@@ -159,5 +160,90 @@ contract BridgeImpl is IBridge, IGasBridge, BridgeStorage {
     ) external onlyGovernor {
         _setGasMaxNrDepositsPerDistribution(_maxNrDeposits);
         emit MaxDepositsPerDistributionChanged(_maxNrDeposits);
+    }
+
+    // ITokenBridge Implementation
+
+    /**
+     * @notice Register a new token bridge.
+     * @param identifier an identifier that is unique to the token bridge.
+     * @param tokenType the type of token that is being registered.
+     * @param tokenConfig the configuration of the token bridge.
+     */
+    function registerToken(
+        uint256 identifier,
+        BridgeStorageTypes.TokenType tokenType,
+        BridgeStorageTypes.TokenConfig calldata tokenConfig
+    ) external override {
+        _registerToken(identifier, tokenType, tokenConfig);
+        emit TokenRegister(identifier, tokenType, tokenConfig);
+    }
+
+    /**
+     * @notice Unregister a token bridge.
+     * @param identifier the identifier of the token bridge.
+     */
+    function unregisterToken(
+        uint256 identifier
+    ) external override onlyGovernor tokenLocked(identifier) {
+        _unregisterToken(identifier);
+        emit TokenUnregister(identifier);
+    }
+
+    /**
+     * @notice Lock a token bridge. No deposits, withdrawals, or claims of a token bridge can be made while it is locked.
+     * @param _identifier the identifier of the token bridge.
+     */
+    function lockToken(
+        uint256 _identifier
+    ) external override tokenUnlocked(_identifier) onlyGovernor {
+        _lockToken(_identifier);
+        emit TokenLock(_identifier);
+    }
+
+    /**
+     * @notice Unlock a token bridge. Deposits, withdrawals, or claims of a token bridge can only be made while it is unlocked.
+     * @param _identifier the identifier of the token bridge.
+     */
+    function unlockToken(
+        uint256 _identifier
+    ) external override tokenLocked(_identifier) onlyGovernor {
+        _unlockToken(_identifier);
+        emit TokenUnlock(_identifier);
+    }
+
+    function setTokenWithdrawalMinAmount(
+        uint identifier,
+        uint256 minAmount
+    ) external override {
+        // TODO: Implement
+    }
+
+    function setTokenWithdrawalMaxAmount(
+        uint256 identifier,
+        uint256 maxAmount
+    ) external override {
+        // TODO: Implement
+    }
+
+    function depositToken(
+        uint256 identifier,
+        BridgeLib.DepositData[] calldata deposits,
+        bytes32 depositRoot,
+        BridgeLib.Signature[] calldata signatures
+    ) external override {
+        // TODO: Implement
+    }
+
+    function withdrawToken(
+        uint256 identifier,
+        uint256 amount,
+        address to
+    ) external override {
+        // TODO: Implement
+    }
+
+    function claimToken(uint256 identifier, uint256 nonce) external override {
+        // TODO: Implement
     }
 }

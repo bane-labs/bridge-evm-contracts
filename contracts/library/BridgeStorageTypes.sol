@@ -56,6 +56,7 @@ library BridgeStorageTypes {
 
     struct TokenBridge {
         bool registered; // used for simple existence check
+        bool locked;
         TokenType tokenType;
         State depositState;
         State withdrawalState;

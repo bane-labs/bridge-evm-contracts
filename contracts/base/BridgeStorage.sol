@@ -13,10 +13,14 @@ contract BridgeStorage is UUPSUpgradeable {
 
     // Begin Storage Slots
 
+    // General Bridge Parameters
     IBridgeManagement public management;
     bool public locked;
+    // Gas Bridge
     BridgeStorageTypes.GasBridge public gasBridge;
     mapping(uint256 => BridgeStorageTypes.Claimable) public claimableGas;
+    // Token Bridges
+    mapping(uint256 identifier => BridgeStorageTypes.TokenBridge) public tokens;
 
     // End Storage Slots
 
@@ -35,6 +39,8 @@ contract BridgeStorage is UUPSUpgradeable {
         });
     }
 
+    error TokenAlreadyRegistered(uint256 identifier);
+    error TokenNotRegistered(uint256 identifier);
     error InvalidAddress();
     error InvalidAmount();
     error InvalidDepositsLength();
@@ -72,6 +78,16 @@ contract BridgeStorage is UUPSUpgradeable {
 
     modifier unlocked() {
         require(!locked, "contract locked");
+        _;
+    }
+
+    modifier tokenUnlocked(uint256 _identifier) {
+        require(!tokens[_identifier].locked, "token locked");
+        _;
+    }
+
+    modifier tokenLocked(uint256 _identifier) {
+        require(tokens[_identifier].locked, "token unlocked");
         _;
     }
 
@@ -162,6 +178,50 @@ contract BridgeStorage is UUPSUpgradeable {
     function _setGasMaxNrDepositsPerDistribution(uint8 _maxDeposits) internal {
         if (_maxDeposits == 0) revert InvalidAmount();
         gasBridge.config.maxDepositsPerDistribution = _maxDeposits;
+    }
+
+    // Token Bridge functions
+
+    function _registerToken(
+        uint256 _identifier,
+        BridgeStorageTypes.TokenType _tokenType,
+        BridgeStorageTypes.TokenConfig memory _tokenConfig
+    ) internal {
+        // Check if token config contains valid values
+        if (_tokenConfig.minAmount > _tokenConfig.maxAmount)
+            revert InvalidAmount();
+        if (_tokenConfig.contractAddress == address(0)) revert InvalidAddress();
+
+        // Check if token bridge is already registered
+        BridgeStorageTypes.TokenBridge memory tokenBridge = tokens[_identifier];
+        if (tokenBridge.registered) revert TokenAlreadyRegistered(_identifier);
+        // Add token bridge to storage
+        tokens[_identifier] = BridgeStorageTypes.TokenBridge({
+            registered: true,
+            locked: false,
+            tokenType: _tokenType,
+            depositState: BridgeStorageTypes.State({nonce: 0, root: 0x0}),
+            withdrawalState: BridgeStorageTypes.State({nonce: 0, root: 0x0}),
+            config: _tokenConfig
+        });
+    }
+
+    function _unregisterToken(uint256 _identifier) internal {
+        if (!tokens[_identifier].registered)
+            revert TokenNotRegistered(_identifier);
+        delete tokens[_identifier];
+    }
+
+    function _lockToken(uint256 _identifier) internal {
+        if (!tokens[_identifier].registered)
+            revert TokenNotRegistered(_identifier);
+        tokens[_identifier].locked = true;
+    }
+
+    function _unlockToken(uint256 _identifier) internal {
+        if (!tokens[_identifier].registered)
+            revert TokenNotRegistered(_identifier);
+        tokens[_identifier].locked = false;
     }
 
     // Upgrade authorization
