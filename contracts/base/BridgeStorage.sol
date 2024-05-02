@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "../management/BridgeManagementImpl.sol";
 import "../library/BridgeLib.sol";
+import "../library/TokenBridgeLib.sol";
 import "../library/BridgeStorageTypes.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
@@ -20,6 +21,8 @@ contract BridgeStorage is UUPSUpgradeable {
     BridgeStorageTypes.GasBridge public gasBridge;
     mapping(uint256 => BridgeStorageTypes.Claimable) public claimableGas;
     // Token Bridges
+    mapping(BridgeStorageTypes.TokenType tokenType => BridgeStorageTypes.TokenTypeConfig)
+        public tokenTypeConfigs;
     mapping(uint256 identifier => BridgeStorageTypes.TokenBridge) public tokens;
 
     // End Storage Slots
@@ -240,6 +243,38 @@ contract BridgeStorage is UUPSUpgradeable {
         if (_amount < tokens[_identifier].config.minAmount)
             revert InvalidAmount();
         tokens[_identifier].config.maxAmount = _amount;
+    }
+
+    function _getTokenTypeConfig(
+        BridgeStorageTypes.TokenType _tokenType
+    ) internal view returns (BridgeStorageTypes.TokenTypeConfig memory) {
+        return tokenTypeConfigs[_tokenType];
+    }
+
+    function _getTokenConfig(
+        uint256 _identifier
+    ) internal view returns (BridgeStorageTypes.TokenConfig memory config) {
+        return tokens[_identifier].config;
+    }
+
+    function _getTokenType(
+        uint256 _identifier
+    ) internal view returns (BridgeStorageTypes.TokenType) {
+        return tokens[_identifier].tokenType;
+    }
+
+    function _getTokenDepositState(
+        uint256 _identifier
+    ) internal view returns (BridgeStorageTypes.State memory state) {
+        return tokens[_identifier].depositState;
+    }
+
+    function _setTokenDepositState(
+        uint256 _identifier,
+        BridgeStorageTypes.State memory _state
+    ) internal {
+        assert(tokens[_identifier].depositState.nonce < _state.nonce);
+        tokens[_identifier].depositState = _state;
     }
 
     // Upgrade authorization

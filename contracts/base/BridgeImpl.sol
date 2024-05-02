@@ -229,11 +229,59 @@ contract BridgeImpl is IBridge, IGasBridge, ITokenBridge, BridgeStorage {
     }
 
     function depositToken(
-        uint256 identifier,
-        BridgeLib.DepositData[] calldata deposits,
-        bytes32 depositRoot,
-        BridgeLib.Signature[] calldata signatures
-    ) external override {
+        uint256 _identifier,
+        BridgeLib.DepositData[] calldata _deposits,
+        bytes32 _tokenDepositRoot,
+        BridgeLib.Signature[] calldata _signatures
+    ) external override tokenUnlocked(_identifier) {
+        BridgeStorageTypes.State memory depositState = _getTokenDepositState(
+            _identifier
+        );
+        BridgeStorageTypes.TokenType tokenType = _getTokenType(_identifier);
+        BridgeStorageTypes.TokenTypeConfig
+            memory tokenTypeConfig = _getTokenTypeConfig(tokenType);
+
+        // Check parameter validity
+        uint depositLength = _deposits.length;
+        if (depositLength == 0) revert InvalidDepositsLength();
+        if (depositLength > tokenTypeConfig.maxDepositsPerDistribution)
+            revert InvalidDepositsLength();
+        // Check if provided deposit data's nonces are subsequent to the current nonce and each other.
+        if (!BridgeLib._subsequentNonces(_deposits, depositState.nonce))
+            revert InvalidNonceSequence();
+        // Validate that the provided token deposit root is equal to the new computed root based on the provided deposits.
+        if (
+            TokenBridgeLib._computeNewTopRootToken(
+                depositState.root,
+                _identifier,
+                _deposits
+            ) != _tokenDepositRoot
+        ) revert InvalidRoot();
+        // Verify that the provided signatures are valid given the provided deposit root and the current validators.
+        if (
+            !management.verifyValidatorSignatures(
+                _tokenDepositRoot,
+                _signatures
+            )
+        ) revert InvalidValidatorSignatures();
+
+        // Update the token's deposit state
+        _setTokenDepositState(
+            _identifier,
+            BridgeStorageTypes.State({
+                nonce: _deposits[depositLength - 1].nonce,
+                root: _tokenDepositRoot
+            })
+        );
+
+        // Execute the token distribution
+        _executeTokenDistribution(tokenType, _deposits);
+    }
+
+    function _executeTokenDistribution(
+        BridgeStorageTypes.TokenType tokenType,
+        BridgeLib.DepositData[] calldata _deposits
+    ) private {
         // TODO: Implement
     }
 
