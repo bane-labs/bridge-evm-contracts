@@ -24,20 +24,28 @@ interface ITokenBridge {
     );
     event TokenDeposit(
         uint256 indexed identifier,
+        uint256 indexed nonce,
         uint256 amount,
         address indexed to
     );
     event TokenWithdrawal(
         uint256 indexed identifier,
-        uint256 amount,
-        address indexed to
-    );
-    event TokenClaimable(
         uint256 indexed nonce,
         uint256 amount,
         address indexed to
     );
-    event TokenClaim(uint256 indexed nonce, uint256 amount, address indexed to);
+    event TokenClaimable(
+        uint256 indexed identifier,
+        uint256 indexed nonce,
+        uint256 amount,
+        address indexed to
+    );
+    event TokenClaim(
+        uint256 indexed identifier,
+        uint256 indexed nonce,
+        uint256 amount,
+        address indexed to
+    );
 
     // Token bridge functions
 
