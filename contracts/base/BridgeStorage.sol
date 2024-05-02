@@ -224,6 +224,24 @@ contract BridgeStorage is UUPSUpgradeable {
         tokens[_identifier].locked = false;
     }
 
+    function _setTokenMinWithdrawalAmount(
+        uint256 _identifier,
+        uint256 _amount
+    ) internal {
+        if (_amount > tokens[_identifier].config.maxAmount)
+            revert InvalidAmount();
+        tokens[_identifier].config.minAmount = _amount;
+    }
+
+    function _setTokenMaxWithdrawalAmount(
+        uint256 _identifier,
+        uint256 _amount
+    ) internal {
+        if (_amount < tokens[_identifier].config.minAmount)
+            revert InvalidAmount();
+        tokens[_identifier].config.maxAmount = _amount;
+    }
+
     // Upgrade authorization
 
     modifier onlyAdmin() {

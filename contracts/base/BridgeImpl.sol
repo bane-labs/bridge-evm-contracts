@@ -213,17 +213,19 @@ contract BridgeImpl is IBridge, IGasBridge, ITokenBridge, BridgeStorage {
     }
 
     function setTokenWithdrawalMinAmount(
-        uint identifier,
-        uint256 minAmount
-    ) external override {
-        // TODO: Implement
+        uint256 _identifier,
+        uint256 _minAmount
+    ) external override onlyGovernor {
+        _setTokenMinWithdrawalAmount(_identifier, _minAmount);
+        emit TokenMinWithdrawalAmountChanged(_identifier, _minAmount);
     }
 
     function setTokenWithdrawalMaxAmount(
-        uint256 identifier,
-        uint256 maxAmount
-    ) external override {
-        // TODO: Implement
+        uint256 _identifier,
+        uint256 _maxAmount
+    ) external override onlyGovernor {
+        _setTokenMaxWithdrawalAmount(_identifier, _maxAmount);
+        emit TokenMaxWithdrawalAmountChanged(_identifier, _maxAmount);
     }
 
     function depositToken(

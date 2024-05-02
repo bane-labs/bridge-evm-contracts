@@ -14,11 +14,11 @@ interface ITokenBridge {
     event TokenUnregister(uint256 indexed identifier);
     event TokenLock(uint256 indexed identifier);
     event TokenUnlock(uint256 indexed identifier);
-    event TokenWithdrawalMinAmountChanged(
+    event TokenMinWithdrawalAmountChanged(
         uint256 indexed identifier,
         uint256 minAmount
     );
-    event TokenWithdrawalMaxAmountChanged(
+    event TokenMaxWithdrawalAmountChanged(
         uint256 indexed identifier,
         uint256 maxAmount
     );
