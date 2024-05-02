@@ -290,37 +290,27 @@ contract BridgeImpl is IBridge, IGasBridge, ITokenBridge, BridgeStorage {
         for (uint i = 0; i < depositLength; i++) {
             BridgeLib.DepositData calldata depositEntry = _deposits[i];
             address to = depositEntry.to;
-
+            bool success = false;
             if (_tokenType == BridgeStorageTypes.TokenType.ERC20Capped) {
                 // Execute the token distribution for ERC20Capped tokens
                 IERC20Capped tokenContract = IERC20Capped(contractAddress);
-                bool success = tokenContract.transfer(to, depositEntry.amount);
-                if (success) {
-                    emit TokenDeposit(
-                        _identifier,
-                        depositEntry.nonce,
-                        depositEntry.amount,
-                        to
-                    );
-                } else {
-                    _addTokenClaimable(
-                        _identifier,
-                        depositEntry.nonce,
-                        depositEntry.amount,
-                        to
-                    );
-                    emit TokenClaimable(
-                        _identifier,
-                        depositEntry.nonce,
-                        depositEntry.amount,
-                        to
-                    );
-                }
+                success = _executeERC20CappedTransfer(
+                    tokenContract,
+                    depositEntry.amount,
+                    to
+                );
             }
             // For future token types add an else if block here
             else {
                 assert(false);
             }
+            _emitTransferEventOrAddNewTokenClaimable(
+                success,
+                _identifier,
+                depositEntry.nonce,
+                depositEntry.amount,
+                to
+            );
         }
     }
 
@@ -332,7 +322,53 @@ contract BridgeImpl is IBridge, IGasBridge, ITokenBridge, BridgeStorage {
         // TODO: Implement
     }
 
-    function claimToken(uint256 identifier, uint256 nonce) external override {
-        // TODO: Implement
+    function claimToken(uint256 _identifier, uint256 _nonce) external override {
+        BridgeStorageTypes.Claimable memory claimable = _getTokenClaimable(
+            _identifier,
+            _nonce
+        );
+        // Check if the claimable exists.
+        if (claimable.to == address(0)) revert NonexistentClaimable();
+        _deleteTokenClaimable(_identifier, _nonce);
+        BridgeStorageTypes.TokenConfig memory config = _getTokenConfig(
+            _identifier
+        );
+        address contractAddress = config.contractAddress;
+        if (
+            _getTokenType(_identifier) ==
+            BridgeStorageTypes.TokenType.ERC20Capped
+        ) {
+            IERC20Capped tokenContract = IERC20Capped(contractAddress);
+            _executeERC20CappedTransfer(
+                tokenContract,
+                claimable.amount,
+                claimable.to
+            );
+        } else {
+            assert(false);
+        }
+    }
+
+    function _emitTransferEventOrAddNewTokenClaimable(
+        bool _success,
+        uint256 _identifier,
+        uint256 _nonce,
+        uint256 _amount,
+        address _to
+    ) private {
+        if (_success) {
+            emit TokenDeposit(_identifier, _nonce, _amount, _to);
+        } else {
+            _addTokenClaimable(_identifier, _nonce, _amount, _to);
+            emit TokenClaimable(_identifier, _nonce, _amount, _to);
+        }
+    }
+
+    function _executeERC20CappedTransfer(
+        IERC20Capped _tokenContract,
+        uint256 _amount,
+        address _to
+    ) private returns (bool) {
+        return _tokenContract.transfer(_to, _amount);
     }
 }

@@ -279,6 +279,13 @@ contract BridgeStorage is UUPSUpgradeable {
         tokens[_identifier].depositState = _state;
     }
 
+    function _getTokenClaimable(
+        uint256 _identifier,
+        uint256 _nonce
+    ) internal view returns (BridgeStorageTypes.Claimable memory) {
+        return tokenClaimables[_identifier][_nonce];
+    }
+
     function _addTokenClaimable(
         uint256 _identifier,
         uint256 _nonce,
@@ -289,6 +296,13 @@ contract BridgeStorage is UUPSUpgradeable {
             to: _to,
             amount: _amount
         });
+    }
+
+    function _deleteTokenClaimable(
+        uint256 _identifier,
+        uint256 _nonce
+    ) internal {
+        delete tokenClaimables[_identifier][_nonce];
     }
 
     // Upgrade authorization
