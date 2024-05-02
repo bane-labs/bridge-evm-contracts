@@ -78,11 +78,7 @@ interface ITokenBridge {
         BridgeLib.Signature[] calldata signatures
     ) external;
 
-    function withdrawToken(
-        uint256 identifier,
-        uint256 amount,
-        address to
-    ) external;
-
     function claimToken(uint256 identifier, uint256 nonce) external;
+
+    function withdrawToken(uint256 amount, address to) external;
 }

@@ -314,14 +314,6 @@ contract BridgeImpl is IBridge, IGasBridge, ITokenBridge, BridgeStorage {
         }
     }
 
-    function withdrawToken(
-        uint256 identifier,
-        uint256 amount,
-        address to
-    ) external override {
-        // TODO: Implement
-    }
-
     function claimToken(uint256 _identifier, uint256 _nonce) external override {
         BridgeStorageTypes.Claimable memory claimable = _getTokenClaimable(
             _identifier,
@@ -370,5 +362,36 @@ contract BridgeImpl is IBridge, IGasBridge, ITokenBridge, BridgeStorage {
         address _to
     ) private returns (bool) {
         return _tokenContract.transfer(_to, _amount);
+    }
+
+    /**
+     * @notice Withdraw tokens to Neo N3.
+     * @dev This function must be called by the contract that is registered and thus is responsible for bridging the tokens. This can but need not be the token contract itself.
+     * @param _amount the amount of tokens to withdraw.
+     * @param _to the address to which the tokens should be sent.
+     */
+    function withdrawToken(uint256 _amount, address _to) external override {
+        // Get the token identifier based on the message sender.
+        uint256 id = _getTokenId(msg.sender);
+        BridgeStorageTypes.TokenConfig memory config = _getTokenConfig(id);
+        assert(config.contractAddress == msg.sender);
+        if (_amount < config.minAmount) revert InvalidAmount();
+        if (_amount > config.maxAmount) revert InvalidAmount();
+
+        // Compute the new root and update the token withdrawal state.
+        BridgeStorageTypes.State memory state = _getTokenWithdrawalState(id);
+        uint256 newNonce = state.nonce + 1;
+        bytes32 withdrawalHash = TokenBridgeLib._hashTokenBridgeOp(
+            id,
+            newNonce,
+            _amount,
+            _to
+        );
+        bytes32 newRoot = BridgeLib._computeNewRoot(state.root, withdrawalHash);
+        _setTokenWithdrawalState(
+            id,
+            BridgeStorageTypes.State({nonce: newNonce, root: newRoot})
+        );
+        emit TokenWithdrawal(id, state.nonce, _amount, _to);
     }
 }

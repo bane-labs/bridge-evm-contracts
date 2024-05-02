@@ -23,6 +23,7 @@ contract BridgeStorage is UUPSUpgradeable {
     // Token Bridges
     mapping(BridgeStorageTypes.TokenType tokenType => BridgeStorageTypes.TokenTypeConfig)
         public tokenTypeConfigs;
+    mapping(address tokenAddress => uint256 identifier) public tokenIds;
     mapping(uint256 identifier => BridgeStorageTypes.TokenBridge) public tokens;
     mapping(uint256 identifier => mapping(uint256 nonce => BridgeStorageTypes.Claimable))
         public tokenClaimables;
@@ -50,11 +51,13 @@ contract BridgeStorage is UUPSUpgradeable {
     error InvalidAmount();
     error InvalidDepositsLength();
     error InvalidFee();
+    error InvalidIdentifier();
     error InvalidNonceSequence();
     error InvalidRoot();
     error InvalidValidatorSignatures();
     error NonexistentClaimable();
     error TransferFailed();
+    error TokenWithdrawalFailed();
 
     // Modifiers for Role Restriction
 
@@ -187,6 +190,14 @@ contract BridgeStorage is UUPSUpgradeable {
 
     // Token Bridge functions
 
+    function _getTokenId(
+        address _tokenAddress
+    ) internal view returns (uint256) {
+        uint256 _identifier = tokenIds[_tokenAddress];
+        if (_identifier == 0) revert TokenNotRegistered(_identifier);
+        return _identifier;
+    }
+
     function _registerToken(
         uint256 _identifier,
         BridgeStorageTypes.TokenType _tokenType,
@@ -200,6 +211,9 @@ contract BridgeStorage is UUPSUpgradeable {
         // Check if token bridge is already registered
         BridgeStorageTypes.TokenBridge memory tokenBridge = tokens[_identifier];
         if (tokenBridge.registered) revert TokenAlreadyRegistered(_identifier);
+        assert(tokenIds[_tokenConfig.contractAddress] == 0);
+        // Map token address to identifier
+        tokenIds[_tokenConfig.contractAddress] = _identifier;
         // Add token bridge to storage
         tokens[_identifier] = BridgeStorageTypes.TokenBridge({
             registered: true,
@@ -277,6 +291,20 @@ contract BridgeStorage is UUPSUpgradeable {
     ) internal {
         assert(tokens[_identifier].depositState.nonce < _state.nonce);
         tokens[_identifier].depositState = _state;
+    }
+
+    function _getTokenWithdrawalState(
+        uint256 _identifier
+    ) internal view returns (BridgeStorageTypes.State memory state) {
+        return tokens[_identifier].withdrawalState;
+    }
+
+    function _setTokenWithdrawalState(
+        uint256 _identifier,
+        BridgeStorageTypes.State memory _state
+    ) internal {
+        assert(tokens[_identifier].withdrawalState.nonce < _state.nonce);
+        tokens[_identifier].withdrawalState = _state;
     }
 
     function _getTokenClaimable(
