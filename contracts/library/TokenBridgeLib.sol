@@ -6,7 +6,7 @@ import "./BridgeLib.sol";
 library TokenBridgeLib {
     function _computeNewTopRootToken(
         bytes32 _previousRoot,
-        uint256 _identifier,
+        uint256 _id,
         BridgeLib.DepositData[] calldata _deposits
     ) internal pure returns (bytes32) {
         bytes32 parent = _previousRoot;
@@ -14,7 +14,7 @@ library TokenBridgeLib {
         for (uint i = 0; i < depositsLength; i++) {
             BridgeLib.DepositData calldata depositData = _deposits[i];
             bytes32 depositHash = _hashTokenBridgeOp(
-                _identifier,
+                _id,
                 depositData.nonce,
                 depositData.amount,
                 depositData.to

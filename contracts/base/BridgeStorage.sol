@@ -23,9 +23,9 @@ contract BridgeStorage is UUPSUpgradeable {
     // Token Bridges
     mapping(BridgeStorageTypes.TokenType tokenType => BridgeStorageTypes.TokenTypeConfig)
         public tokenTypeConfigs;
-    mapping(address tokenAddress => uint256 identifier) public tokenIds;
-    mapping(uint256 identifier => BridgeStorageTypes.TokenBridge) public tokens;
-    mapping(uint256 identifier => mapping(uint256 nonce => BridgeStorageTypes.Claimable))
+    mapping(address tokenAddress => uint256 id) public tokenIds;
+    mapping(uint256 id => BridgeStorageTypes.TokenBridge) public tokens;
+    mapping(uint256 id => mapping(uint256 nonce => BridgeStorageTypes.Claimable))
         public tokenClaimables;
 
     // End Storage Slots
@@ -45,13 +45,13 @@ contract BridgeStorage is UUPSUpgradeable {
         });
     }
 
-    error TokenAlreadyRegistered(uint256 identifier);
-    error TokenNotRegistered(uint256 identifier);
+    error TokenAlreadyRegistered(uint256 id);
+    error TokenNotRegistered(uint256 id);
     error InvalidAddress();
     error InvalidAmount();
     error InvalidDepositsLength();
     error InvalidFee();
-    error InvalidIdentifier();
+    error InvalidTokenId();
     error InvalidNonceSequence();
     error InvalidRoot();
     error InvalidValidatorSignatures();
@@ -89,13 +89,13 @@ contract BridgeStorage is UUPSUpgradeable {
         _;
     }
 
-    modifier tokenUnlocked(uint256 _identifier) {
-        require(!tokens[_identifier].locked, "token locked");
+    modifier tokenUnlocked(uint256 _id) {
+        require(!tokens[_id].locked, "token locked");
         _;
     }
 
-    modifier tokenLocked(uint256 _identifier) {
-        require(tokens[_identifier].locked, "token unlocked");
+    modifier tokenLocked(uint256 _id) {
+        require(tokens[_id].locked, "token unlocked");
         _;
     }
 
@@ -193,30 +193,30 @@ contract BridgeStorage is UUPSUpgradeable {
     function _getTokenId(
         address _tokenAddress
     ) internal view returns (uint256) {
-        uint256 _identifier = tokenIds[_tokenAddress];
-        if (_identifier == 0) revert TokenNotRegistered(_identifier);
-        return _identifier;
+        uint256 _id = tokenIds[_tokenAddress];
+        if (_id == 0) revert TokenNotRegistered(_id);
+        return _id;
     }
 
     function _registerToken(
-        uint256 _identifier,
+        uint256 _id,
         BridgeStorageTypes.TokenType _tokenType,
         BridgeStorageTypes.TokenConfig memory _tokenConfig
     ) internal {
-        if (_identifier == 0) revert InvalidIdentifier();
+        if (_id == 0) revert InvalidTokenId();
         // Check if token config contains valid values
         if (_tokenConfig.minAmount > _tokenConfig.maxAmount)
             revert InvalidAmount();
         if (_tokenConfig.contractAddress == address(0)) revert InvalidAddress();
 
         // Check if token bridge is already registered
-        BridgeStorageTypes.TokenBridge memory tokenBridge = tokens[_identifier];
-        if (tokenBridge.registered) revert TokenAlreadyRegistered(_identifier);
+        BridgeStorageTypes.TokenBridge memory tokenBridge = tokens[_id];
+        if (tokenBridge.registered) revert TokenAlreadyRegistered(_id);
         assert(tokenIds[_tokenConfig.contractAddress] == 0);
         // Map token address to identifier
-        tokenIds[_tokenConfig.contractAddress] = _identifier;
+        tokenIds[_tokenConfig.contractAddress] = _id;
         // Add token bridge to storage
-        tokens[_identifier] = BridgeStorageTypes.TokenBridge({
+        tokens[_id] = BridgeStorageTypes.TokenBridge({
             registered: true,
             locked: false,
             tokenType: _tokenType,
@@ -226,40 +226,35 @@ contract BridgeStorage is UUPSUpgradeable {
         });
     }
 
-    function _unregisterToken(uint256 _identifier) internal {
-        if (!tokens[_identifier].registered)
-            revert TokenNotRegistered(_identifier);
-        delete tokens[_identifier];
+    function _unregisterToken(uint256 _id) internal {
+        if (!tokens[_id].registered) revert TokenNotRegistered(_id);
+        delete tokens[_id];
     }
 
-    function _lockToken(uint256 _identifier) internal {
-        if (!tokens[_identifier].registered)
-            revert TokenNotRegistered(_identifier);
-        tokens[_identifier].locked = true;
+    function _lockToken(uint256 _id) internal {
+        if (!tokens[_id].registered) revert TokenNotRegistered(_id);
+        tokens[_id].locked = true;
     }
 
-    function _unlockToken(uint256 _identifier) internal {
-        if (!tokens[_identifier].registered)
-            revert TokenNotRegistered(_identifier);
-        tokens[_identifier].locked = false;
+    function _unlockToken(uint256 _id) internal {
+        if (!tokens[_id].registered) revert TokenNotRegistered(_id);
+        tokens[_id].locked = false;
     }
 
     function _setTokenMinWithdrawalAmount(
-        uint256 _identifier,
+        uint256 _id,
         uint256 _amount
     ) internal {
-        if (_amount > tokens[_identifier].config.maxAmount)
-            revert InvalidAmount();
-        tokens[_identifier].config.minAmount = _amount;
+        if (_amount > tokens[_id].config.maxAmount) revert InvalidAmount();
+        tokens[_id].config.minAmount = _amount;
     }
 
     function _setTokenMaxWithdrawalAmount(
-        uint256 _identifier,
+        uint256 _id,
         uint256 _amount
     ) internal {
-        if (_amount < tokens[_identifier].config.minAmount)
-            revert InvalidAmount();
-        tokens[_identifier].config.maxAmount = _amount;
+        if (_amount < tokens[_id].config.minAmount) revert InvalidAmount();
+        tokens[_id].config.maxAmount = _amount;
     }
 
     function _getTokenTypeConfig(
@@ -269,69 +264,66 @@ contract BridgeStorage is UUPSUpgradeable {
     }
 
     function _getTokenConfig(
-        uint256 _identifier
+        uint256 _id
     ) internal view returns (BridgeStorageTypes.TokenConfig memory config) {
-        return tokens[_identifier].config;
+        return tokens[_id].config;
     }
 
     function _getTokenType(
-        uint256 _identifier
+        uint256 _id
     ) internal view returns (BridgeStorageTypes.TokenType) {
-        return tokens[_identifier].tokenType;
+        return tokens[_id].tokenType;
     }
 
     function _getTokenDepositState(
-        uint256 _identifier
+        uint256 _id
     ) internal view returns (BridgeStorageTypes.State memory state) {
-        return tokens[_identifier].depositState;
+        return tokens[_id].depositState;
     }
 
     function _setTokenDepositState(
-        uint256 _identifier,
+        uint256 _id,
         BridgeStorageTypes.State memory _state
     ) internal {
-        assert(tokens[_identifier].depositState.nonce < _state.nonce);
-        tokens[_identifier].depositState = _state;
+        assert(tokens[_id].depositState.nonce < _state.nonce);
+        tokens[_id].depositState = _state;
     }
 
     function _getTokenWithdrawalState(
-        uint256 _identifier
+        uint256 _id
     ) internal view returns (BridgeStorageTypes.State memory state) {
-        return tokens[_identifier].withdrawalState;
+        return tokens[_id].withdrawalState;
     }
 
     function _setTokenWithdrawalState(
-        uint256 _identifier,
+        uint256 _id,
         BridgeStorageTypes.State memory _state
     ) internal {
-        assert(tokens[_identifier].withdrawalState.nonce < _state.nonce);
-        tokens[_identifier].withdrawalState = _state;
+        assert(tokens[_id].withdrawalState.nonce < _state.nonce);
+        tokens[_id].withdrawalState = _state;
     }
 
     function _getTokenClaimable(
-        uint256 _identifier,
+        uint256 _id,
         uint256 _nonce
     ) internal view returns (BridgeStorageTypes.Claimable memory) {
-        return tokenClaimables[_identifier][_nonce];
+        return tokenClaimables[_id][_nonce];
     }
 
     function _addTokenClaimable(
-        uint256 _identifier,
+        uint256 _id,
         uint256 _nonce,
         uint256 _amount,
         address _to
     ) internal {
-        tokenClaimables[_identifier][_nonce] = BridgeStorageTypes.Claimable({
+        tokenClaimables[_id][_nonce] = BridgeStorageTypes.Claimable({
             to: _to,
             amount: _amount
         });
     }
 
-    function _deleteTokenClaimable(
-        uint256 _identifier,
-        uint256 _nonce
-    ) internal {
-        delete tokenClaimables[_identifier][_nonce];
+    function _deleteTokenClaimable(uint256 _id, uint256 _nonce) internal {
+        delete tokenClaimables[_id][_nonce];
     }
 
     // Upgrade authorization
