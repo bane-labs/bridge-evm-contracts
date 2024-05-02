@@ -6,6 +6,7 @@ import "./BridgeStorage.sol";
 import "./IBridge.sol";
 import "./IGasBridge.sol";
 import "./ITokenBridge.sol";
+import "../interfaces/IERC20Capped.sol";
 
 /**
  * When generating the bytecode for genesis script:
@@ -275,14 +276,52 @@ contract BridgeImpl is IBridge, IGasBridge, ITokenBridge, BridgeStorage {
         );
 
         // Execute the token distribution
-        _executeTokenDistribution(tokenType, _deposits);
+        _executeTokenDistribution(_identifier, tokenType, _deposits);
     }
 
     function _executeTokenDistribution(
-        BridgeStorageTypes.TokenType tokenType,
+        uint256 _identifier,
+        BridgeStorageTypes.TokenType _tokenType,
         BridgeLib.DepositData[] calldata _deposits
     ) private {
-        // TODO: Implement
+        uint depositLength = _deposits.length;
+        address contractAddress = _getTokenConfig(_identifier).contractAddress;
+        // Execute the token distribution for each deposit entry
+        for (uint i = 0; i < depositLength; i++) {
+            BridgeLib.DepositData calldata depositEntry = _deposits[i];
+            address to = depositEntry.to;
+
+            if (_tokenType == BridgeStorageTypes.TokenType.ERC20Capped) {
+                // Execute the token distribution for ERC20Capped tokens
+                IERC20Capped tokenContract = IERC20Capped(contractAddress);
+                bool success = tokenContract.transfer(to, depositEntry.amount);
+                if (success) {
+                    emit TokenDeposit(
+                        _identifier,
+                        depositEntry.nonce,
+                        depositEntry.amount,
+                        to
+                    );
+                } else {
+                    _addTokenClaimable(
+                        _identifier,
+                        depositEntry.nonce,
+                        depositEntry.amount,
+                        to
+                    );
+                    emit TokenClaimable(
+                        _identifier,
+                        depositEntry.nonce,
+                        depositEntry.amount,
+                        to
+                    );
+                }
+            }
+            // For future token types add an else if block here
+            else {
+                assert(false);
+            }
+        }
     }
 
     function withdrawToken(

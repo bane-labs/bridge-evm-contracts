@@ -24,6 +24,8 @@ contract BridgeStorage is UUPSUpgradeable {
     mapping(BridgeStorageTypes.TokenType tokenType => BridgeStorageTypes.TokenTypeConfig)
         public tokenTypeConfigs;
     mapping(uint256 identifier => BridgeStorageTypes.TokenBridge) public tokens;
+    mapping(uint256 identifier => mapping(uint256 nonce => BridgeStorageTypes.Claimable))
+        public tokenClaimables;
 
     // End Storage Slots
 
@@ -275,6 +277,18 @@ contract BridgeStorage is UUPSUpgradeable {
     ) internal {
         assert(tokens[_identifier].depositState.nonce < _state.nonce);
         tokens[_identifier].depositState = _state;
+    }
+
+    function _addTokenClaimable(
+        uint256 _identifier,
+        uint256 _nonce,
+        uint256 _amount,
+        address _to
+    ) internal {
+        tokenClaimables[_identifier][_nonce] = BridgeStorageTypes.Claimable({
+            to: _to,
+            amount: _amount
+        });
     }
 
     // Upgrade authorization
