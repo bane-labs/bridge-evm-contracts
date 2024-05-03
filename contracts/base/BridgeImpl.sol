@@ -14,7 +14,7 @@ import "../interfaces/IERC20Capped.sol";
  */
 contract BridgeImpl is IBridge, IGasBridge, ITokenBridge, BridgeStorage {
     receive() external payable onlyFunder {
-        emit Funded(msg.value);
+        emit Fund(msg.value);
     }
 
     constructor(address _management) BridgeStorage(_management) {}
@@ -92,7 +92,7 @@ contract BridgeImpl is IBridge, IGasBridge, ITokenBridge, BridgeStorage {
         uint256 sendValue = BridgeLib._addTenDecimals(amount);
         (bool success, ) = to.call{value: sendValue}("");
         if (!success) revert TransferFailed();
-        emit Claimed(_nonce, amount, to);
+        emit Claim(_nonce, amount, to);
     }
 
     function withdraw(address _to) external payable unlocked {
@@ -131,36 +131,36 @@ contract BridgeImpl is IBridge, IGasBridge, ITokenBridge, BridgeStorage {
 
     function lock() external onlySecurityGuard unlocked {
         _lock();
-        emit Unlocked();
+        emit Unlock();
     }
 
     function unlock() external onlyGovernor {
         _unlock();
-        emit Locked();
+        emit Lock();
     }
 
     // Bridge Parameter Setters
 
     function setGasWithdrawalFee(uint256 _fee) external onlyGovernor {
         _setGasWithdrawalFee(_fee);
-        emit WithdrawalFeeChanged(_fee);
+        emit WithdrawalFeeChange(_fee);
     }
 
     function setGasWithdrawalMinAmount(uint256 _amount) external onlyGovernor {
         _setGasWithdrawalMinAmount(_amount);
-        emit MinWithdrawalAmountChanged(_amount);
+        emit MinWithdrawalAmountChange(_amount);
     }
 
     function setGasWithdrawalMaxAmount(uint256 _amount) external onlyGovernor {
         _setGasWithdrawalMaxAmount(_amount);
-        emit MaxWithdrawalAmountChanged(_amount);
+        emit MaxWithdrawalAmountChange(_amount);
     }
 
     function setGasMaxNrDepositsPerDistribution(
         uint8 _maxNrDeposits
     ) external onlyGovernor {
         _setGasMaxNrDepositsPerDistribution(_maxNrDeposits);
-        emit MaxDepositsPerDistributionChanged(_maxNrDeposits);
+        emit MaxDepositsPerDistributionChange(_maxNrDeposits);
     }
 
     // ITokenBridge Implementation
@@ -218,7 +218,7 @@ contract BridgeImpl is IBridge, IGasBridge, ITokenBridge, BridgeStorage {
         uint256 _minAmount
     ) external override onlyGovernor {
         _setTokenMinWithdrawalAmount(_id, _minAmount);
-        emit TokenMinWithdrawalAmountChanged(_id, _minAmount);
+        emit TokenMinWithdrawalAmountChange(_id, _minAmount);
     }
 
     function setTokenWithdrawalMaxAmount(
@@ -226,7 +226,7 @@ contract BridgeImpl is IBridge, IGasBridge, ITokenBridge, BridgeStorage {
         uint256 _maxAmount
     ) external override onlyGovernor {
         _setTokenMaxWithdrawalAmount(_id, _maxAmount);
-        emit TokenMaxWithdrawalAmountChanged(_id, _maxAmount);
+        emit TokenMaxWithdrawalAmountChange(_id, _maxAmount);
     }
 
     function depositToken(

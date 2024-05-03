@@ -6,9 +6,9 @@ import "../library/BridgeLib.sol";
 interface IBridge {
     // General bridge events
 
-    event Locked();
-    event Unlocked();
-    event Funded(uint256 amount);
+    event Lock();
+    event Unlock();
+    event Fund(uint256 amount);
 
     // General bridge functions
 

@@ -7,7 +7,7 @@ interface IGasBridge {
     // Gas-related events
     event Deposit(uint256 nonce, uint256 amount, address to);
     event Claimable(uint256 nonce, uint256 amount, address to);
-    event Claimed(uint256 nonce, uint256 amount, address to);
+    event Claim(uint256 nonce, uint256 amount, address to);
     event Withdrawal(
         uint256 nonce,
         uint256 amount,
@@ -16,10 +16,10 @@ interface IGasBridge {
         bytes32 withdrawalHash,
         bytes32 withdrawalRoot
     );
-    event WithdrawalFeeChanged(uint256 newFee);
-    event MinWithdrawalAmountChanged(uint256 newAmount);
-    event MaxWithdrawalAmountChanged(uint256 amount);
-    event MaxDepositsPerDistributionChanged(uint8 amount);
+    event WithdrawalFeeChange(uint256 newFee);
+    event MinWithdrawalAmountChange(uint256 newAmount);
+    event MaxWithdrawalAmountChange(uint256 amount);
+    event MaxDepositsPerDistributionChange(uint8 amount);
 
     // Gas-related functions
 
