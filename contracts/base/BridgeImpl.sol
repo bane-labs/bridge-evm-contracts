@@ -19,6 +19,19 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
 
     constructor(address _management) BridgeStorage(_management) {}
 
+    /**
+     * @notice Distributes Gas that has been locked on Neo N3.
+     * @dev The deposit function is used to deposit funds to the bridge.
+     *      The deposits data need to be provided ordered based on their nonces.
+     *      Before the deposits are distributed, the following steps are executed:
+     *      - Check if the provided deposits are subsequent to the current nonce in storage and each other.
+     *      - Check if the computed root based on the provided deposits matches the provided root.
+     *      - Check if the provided signatures are valid given the provided root and the current validators.
+     *      Once these checks are passed, the storage state is updated with the new nonce and root, and the deposits are distributed.
+     * @param _depositRoot the new deposit root.
+     * @param _signatures the signatures of the validators.
+     * @param _deposits the deposit data.
+     */
     function deposit(
         bytes32 _depositRoot,
         BridgeLib.Signature[] calldata _signatures,
