@@ -3,8 +3,8 @@ pragma solidity ^0.8.24;
 
 import "../interfaces/IBridgeManagement.sol";
 import "../library/BridgeLib.sol";
+import "../library/StorageTypes.sol";
 import "../library/TokenBridgeLib.sol";
-import "../library/BridgeStorageTypes.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
@@ -19,24 +19,24 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
     IBridgeManagement public management;
     bool public locked;
     // Gas Bridge
-    BridgeStorageTypes.GasBridge public gasBridge;
-    mapping(uint256 => BridgeStorageTypes.Claimable) public claimableGas;
+    StorageTypes.GasBridge public gasBridge;
+    mapping(uint256 => StorageTypes.Claimable) public claimableGas;
     // Token Bridges
-    mapping(BridgeStorageTypes.TokenType tokenType => BridgeStorageTypes.TokenTypeConfig)
+    mapping(StorageTypes.TokenType tokenType => StorageTypes.TokenTypeConfig)
         public tokenTypeConfigs;
     mapping(address tokenAddress => uint256 id) public tokenIds;
-    mapping(uint256 id => BridgeStorageTypes.TokenBridge) public tokens;
-    mapping(uint256 id => mapping(uint256 nonce => BridgeStorageTypes.Claimable))
+    mapping(uint256 id => StorageTypes.TokenBridge) public tokens;
+    mapping(uint256 id => mapping(uint256 nonce => StorageTypes.Claimable))
         public tokenClaimables;
 
     // End Storage Slots
 
     constructor(address _management) {
         management = IBridgeManagement(_management);
-        gasBridge = BridgeStorageTypes.GasBridge({
-            depositState: BridgeStorageTypes.State({nonce: 0, root: 0x0}),
-            withdrawalState: BridgeStorageTypes.State({nonce: 0, root: 0x0}),
-            config: BridgeStorageTypes.GasConfig({
+        gasBridge = StorageTypes.GasBridge({
+            depositState: StorageTypes.State({nonce: 0, root: 0x0}),
+            withdrawalState: StorageTypes.State({nonce: 0, root: 0x0}),
+            config: StorageTypes.GasConfig({
                 fee: 1e17,
                 minAmount: 1e18,
                 maxAmount: 1e22,
@@ -115,7 +115,7 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
         uint256 _amount,
         address _to
     ) internal {
-        claimableGas[_nonce] = BridgeStorageTypes.Claimable({
+        claimableGas[_nonce] = StorageTypes.Claimable({
             to: _to,
             amount: _amount
         });
@@ -123,7 +123,7 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
 
     function _getGasClaimable(
         uint256 _nonce
-    ) internal view returns (BridgeStorageTypes.Claimable memory) {
+    ) internal view returns (StorageTypes.Claimable memory) {
         return claimableGas[_nonce];
     }
 
@@ -134,7 +134,7 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
     function _getGasBridgeConfig()
         internal
         view
-        returns (BridgeStorageTypes.GasConfig memory config)
+        returns (StorageTypes.GasConfig memory config)
     {
         return gasBridge.config;
     }
@@ -142,13 +142,13 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
     function _getGasBridgeDepositState()
         internal
         view
-        returns (BridgeStorageTypes.State memory state)
+        returns (StorageTypes.State memory state)
     {
         return gasBridge.depositState;
     }
 
     function _setGasBridgeDepositState(
-        BridgeStorageTypes.State memory state
+        StorageTypes.State memory state
     ) internal {
         gasBridge.depositState = state;
     }
@@ -156,13 +156,13 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
     function _getGasBridgeWithdrawalState()
         internal
         view
-        returns (BridgeStorageTypes.State memory state)
+        returns (StorageTypes.State memory state)
     {
         return gasBridge.withdrawalState;
     }
 
     function _setGasBridgeWithdrawalState(
-        BridgeStorageTypes.State memory state
+        StorageTypes.State memory state
     ) internal {
         gasBridge.withdrawalState = state;
     }
@@ -201,8 +201,8 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
 
     function _registerToken(
         uint256 _id,
-        BridgeStorageTypes.TokenType _tokenType,
-        BridgeStorageTypes.TokenConfig memory _tokenConfig
+        StorageTypes.TokenType _tokenType,
+        StorageTypes.TokenConfig memory _tokenConfig
     ) internal {
         if (_id == 0) revert InvalidTokenId();
         // Check if token config contains valid values
@@ -211,24 +211,24 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
         if (_tokenConfig.contractAddress == address(0)) revert InvalidAddress();
 
         // Check if token bridge is already registered
-        BridgeStorageTypes.TokenBridge memory tokenBridge = tokens[_id];
+        StorageTypes.TokenBridge memory tokenBridge = tokens[_id];
         if (tokenBridge.config.contractAddress == address(0))
             revert TokenAlreadyRegistered(_id);
         assert(tokenIds[_tokenConfig.contractAddress] == 0);
         // Map token address to identifier
         tokenIds[_tokenConfig.contractAddress] = _id;
         // Add token bridge to storage
-        tokens[_id] = BridgeStorageTypes.TokenBridge({
+        tokens[_id] = StorageTypes.TokenBridge({
             locked: false,
             tokenType: _tokenType,
-            depositState: BridgeStorageTypes.State({nonce: 0, root: 0x0}),
-            withdrawalState: BridgeStorageTypes.State({nonce: 0, root: 0x0}),
+            depositState: StorageTypes.State({nonce: 0, root: 0x0}),
+            withdrawalState: StorageTypes.State({nonce: 0, root: 0x0}),
             config: _tokenConfig
         });
     }
 
     function _isRegisteredToken(
-        BridgeStorageTypes.TokenBridge storage tokenBridge
+        StorageTypes.TokenBridge storage tokenBridge
     ) internal view returns (bool) {
         return tokenBridge.config.contractAddress != address(0);
     }
@@ -265,39 +265,39 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
     }
 
     function _getTokenTypeConfig(
-        BridgeStorageTypes.TokenType _tokenType
-    ) internal view returns (BridgeStorageTypes.TokenTypeConfig memory) {
+        StorageTypes.TokenType _tokenType
+    ) internal view returns (StorageTypes.TokenTypeConfig memory) {
         return tokenTypeConfigs[_tokenType];
     }
 
     function _setTokenTypeConfig(
-        BridgeStorageTypes.TokenType _tokenType,
-        BridgeStorageTypes.TokenTypeConfig memory _config
+        StorageTypes.TokenType _tokenType,
+        StorageTypes.TokenTypeConfig memory _config
     ) internal {
         tokenTypeConfigs[_tokenType] = _config;
     }
 
     function _getTokenConfig(
         uint256 _id
-    ) internal view returns (BridgeStorageTypes.TokenConfig memory config) {
+    ) internal view returns (StorageTypes.TokenConfig memory config) {
         return tokens[_id].config;
     }
 
     function _getTokenType(
         uint256 _id
-    ) internal view returns (BridgeStorageTypes.TokenType) {
+    ) internal view returns (StorageTypes.TokenType) {
         return tokens[_id].tokenType;
     }
 
     function _getTokenDepositState(
         uint256 _id
-    ) internal view returns (BridgeStorageTypes.State memory state) {
+    ) internal view returns (StorageTypes.State memory state) {
         return tokens[_id].depositState;
     }
 
     function _setTokenDepositState(
         uint256 _id,
-        BridgeStorageTypes.State memory _state
+        StorageTypes.State memory _state
     ) internal {
         assert(tokens[_id].depositState.nonce < _state.nonce);
         tokens[_id].depositState = _state;
@@ -305,13 +305,13 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
 
     function _getTokenWithdrawalState(
         uint256 _id
-    ) internal view returns (BridgeStorageTypes.State memory state) {
+    ) internal view returns (StorageTypes.State memory state) {
         return tokens[_id].withdrawalState;
     }
 
     function _setTokenWithdrawalState(
         uint256 _id,
-        BridgeStorageTypes.State memory _state
+        StorageTypes.State memory _state
     ) internal {
         assert(tokens[_id].withdrawalState.nonce < _state.nonce);
         tokens[_id].withdrawalState = _state;
@@ -320,7 +320,7 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
     function _getTokenClaimable(
         uint256 _id,
         uint256 _nonce
-    ) internal view returns (BridgeStorageTypes.Claimable memory) {
+    ) internal view returns (StorageTypes.Claimable memory) {
         return tokenClaimables[_id][_nonce];
     }
 
@@ -330,7 +330,7 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
         uint256 _amount,
         address _to
     ) internal {
-        tokenClaimables[_id][_nonce] = BridgeStorageTypes.Claimable({
+        tokenClaimables[_id][_nonce] = StorageTypes.Claimable({
             to: _to,
             amount: _amount
         });

@@ -36,8 +36,8 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         BridgeLib.Signature[] calldata _signatures,
         BridgeLib.DepositData[] calldata _deposits
     ) external onlyRelayer unlocked nonReentrant {
-        BridgeStorageTypes.State memory state = _getGasBridgeDepositState();
-        BridgeStorageTypes.GasConfig memory config = _getGasBridgeConfig();
+        StorageTypes.State memory state = _getGasBridgeDepositState();
+        StorageTypes.GasConfig memory config = _getGasBridgeConfig();
         uint depositLength = _deposits.length;
         if (depositLength == 0) revert InvalidDepositsLength();
         if (depositLength > config.maxDepositsPerDistribution)
@@ -50,7 +50,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
             revert InvalidValidatorSignatures();
 
         _setGasBridgeDepositState(
-            BridgeStorageTypes.State({
+            StorageTypes.State({
                 nonce: _deposits[depositLength - 1].nonce,
                 root: _depositRoot
             })
@@ -92,9 +92,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
 
     // Anyone can execute a claim. The funds of a claimable will be sent to the defined address in the claimableTo mapping.
     function claim(uint256 _nonce) external unlocked nonReentrant {
-        BridgeStorageTypes.Claimable memory claimable = _getGasClaimable(
-            _nonce
-        );
+        StorageTypes.Claimable memory claimable = _getGasClaimable(_nonce);
         uint256 amount = claimable.amount;
         address to = claimable.to;
         if (amount == 0) revert NonexistentClaimable();
@@ -110,8 +108,8 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     function withdraw(address _to) external payable unlocked {
         if (_to == address(0)) revert InvalidAddress();
         if ((msg.value % 1e10) != 0) revert InvalidAmount();
-        BridgeStorageTypes.GasConfig memory config = _getGasBridgeConfig();
-        BridgeStorageTypes.State memory state = _getGasBridgeWithdrawalState();
+        StorageTypes.GasConfig memory config = _getGasBridgeConfig();
+        StorageTypes.State memory state = _getGasBridgeWithdrawalState();
         uint256 actualWithdrawalAmount = msg.value - config.fee;
         if (actualWithdrawalAmount < config.minAmount) revert InvalidAmount();
         if (actualWithdrawalAmount > config.maxAmount) revert InvalidAmount();
@@ -127,7 +125,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         );
         bytes32 newRoot = BridgeLib._computeNewRoot(state.root, withdrawalHash);
         _setGasBridgeWithdrawalState(
-            BridgeStorageTypes.State({nonce: newNonce, root: newRoot})
+            StorageTypes.State({nonce: newNonce, root: newRoot})
         );
         emit Withdrawal(
             newNonce,
@@ -185,8 +183,8 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
      */
     function registerToken(
         uint256 _id,
-        BridgeStorageTypes.TokenType _tokenType,
-        BridgeStorageTypes.TokenConfig calldata _tokenConfig
+        StorageTypes.TokenType _tokenType,
+        StorageTypes.TokenConfig calldata _tokenConfig
     ) external override {
         _registerToken(_id, _tokenType, _tokenConfig);
         emit TokenRegister(_id, _tokenType, _tokenConfig);
@@ -242,8 +240,8 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     }
 
     function setTokenTypeConfig(
-        BridgeStorageTypes.TokenType _tokenType,
-        BridgeStorageTypes.TokenTypeConfig calldata _tokenTypeConfig
+        StorageTypes.TokenType _tokenType,
+        StorageTypes.TokenTypeConfig calldata _tokenTypeConfig
     ) external override onlyGovernor {
         _setTokenTypeConfig(_tokenType, _tokenTypeConfig);
         emit TokenTypeConfigChange(_tokenType, _tokenTypeConfig);
@@ -255,11 +253,9 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         bytes32 _tokenDepositRoot,
         BridgeLib.Signature[] calldata _signatures
     ) external override tokenUnlocked(_id) nonReentrant {
-        BridgeStorageTypes.State memory depositState = _getTokenDepositState(
-            _id
-        );
-        BridgeStorageTypes.TokenType tokenType = _getTokenType(_id);
-        BridgeStorageTypes.TokenTypeConfig
+        StorageTypes.State memory depositState = _getTokenDepositState(_id);
+        StorageTypes.TokenType tokenType = _getTokenType(_id);
+        StorageTypes.TokenTypeConfig
             memory tokenTypeConfig = _getTokenTypeConfig(tokenType);
 
         // Check parameter validity
@@ -289,7 +285,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         // Update the token's deposit state
         _setTokenDepositState(
             _id,
-            BridgeStorageTypes.State({
+            StorageTypes.State({
                 nonce: _deposits[depositLength - 1].nonce,
                 root: _tokenDepositRoot
             })
@@ -301,7 +297,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
 
     function _executeTokenDistribution(
         uint256 _id,
-        BridgeStorageTypes.TokenType _tokenType,
+        StorageTypes.TokenType _tokenType,
         BridgeLib.DepositData[] calldata _deposits
     ) private {
         uint depositLength = _deposits.length;
@@ -311,7 +307,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
             BridgeLib.DepositData calldata depositEntry = _deposits[i];
             address to = depositEntry.to;
             bool success = false;
-            if (_tokenType == BridgeStorageTypes.TokenType.ERC20Capped) {
+            if (_tokenType == StorageTypes.TokenType.ERC20Capped) {
                 // Execute the token distribution for ERC20Capped tokens
                 IERC20 tokenContract = IERC20(contractAddress);
                 success = _executeERC20CappedTransfer(
@@ -338,16 +334,16 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         uint256 _id,
         uint256 _nonce
     ) external override nonReentrant {
-        BridgeStorageTypes.Claimable memory claimable = _getTokenClaimable(
+        StorageTypes.Claimable memory claimable = _getTokenClaimable(
             _id,
             _nonce
         );
         // Check if the claimable exists.
         if (claimable.to == address(0)) revert NonexistentClaimable();
         _deleteTokenClaimable(_id, _nonce);
-        BridgeStorageTypes.TokenConfig memory config = _getTokenConfig(_id);
+        StorageTypes.TokenConfig memory config = _getTokenConfig(_id);
         address contractAddress = config.contractAddress;
-        if (_getTokenType(_id) == BridgeStorageTypes.TokenType.ERC20Capped) {
+        if (_getTokenType(_id) == StorageTypes.TokenType.ERC20Capped) {
             IERC20 tokenContract = IERC20(contractAddress);
             _executeERC20CappedTransfer(
                 tokenContract,
@@ -391,13 +387,13 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     function withdrawToken(uint256 _amount, address _to) external override {
         // Get the token identifier based on the message sender.
         uint256 id = _getTokenId(msg.sender);
-        BridgeStorageTypes.TokenConfig memory config = _getTokenConfig(id);
+        StorageTypes.TokenConfig memory config = _getTokenConfig(id);
         assert(config.contractAddress == msg.sender);
         if (_amount < config.minAmount) revert InvalidAmount();
         if (_amount > config.maxAmount) revert InvalidAmount();
 
         // Compute the new root and update the token withdrawal state.
-        BridgeStorageTypes.State memory state = _getTokenWithdrawalState(id);
+        StorageTypes.State memory state = _getTokenWithdrawalState(id);
         uint256 newNonce = state.nonce + 1;
         bytes32 withdrawalHash = TokenBridgeLib._hashTokenBridgeOp(
             id,
@@ -408,7 +404,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         bytes32 newRoot = BridgeLib._computeNewRoot(state.root, withdrawalHash);
         _setTokenWithdrawalState(
             id,
-            BridgeStorageTypes.State({nonce: newNonce, root: newRoot})
+            StorageTypes.State({nonce: newNonce, root: newRoot})
         );
         emit TokenWithdrawal(id, state.nonce, _amount, _to);
     }

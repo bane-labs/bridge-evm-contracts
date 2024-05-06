@@ -2,14 +2,14 @@
 pragma solidity ^0.8.24;
 
 import "../library/BridgeLib.sol";
-import "../library/BridgeStorageTypes.sol";
+import "../library/StorageTypes.sol";
 
 interface ITokenBridge {
     // Token bridge events
     event TokenRegister(
         uint256 indexed id,
-        BridgeStorageTypes.TokenType tokenType,
-        BridgeStorageTypes.TokenConfig tokenConfig
+        StorageTypes.TokenType tokenType,
+        StorageTypes.TokenConfig tokenConfig
     );
     event TokenUnregister(uint256 indexed id);
     event TokenLock(uint256 indexed id);
@@ -17,8 +17,8 @@ interface ITokenBridge {
     event TokenMinWithdrawalAmountChange(uint256 indexed id, uint256 minAmount);
     event TokenMaxWithdrawalAmountChange(uint256 indexed id, uint256 maxAmount);
     event TokenTypeConfigChange(
-        BridgeStorageTypes.TokenType tokenType,
-        BridgeStorageTypes.TokenTypeConfig tokenTypeConfig
+        StorageTypes.TokenType tokenType,
+        StorageTypes.TokenTypeConfig tokenTypeConfig
     );
     event TokenDeposit(
         uint256 indexed id,
@@ -49,8 +49,8 @@ interface ITokenBridge {
 
     function registerToken(
         uint256 id,
-        BridgeStorageTypes.TokenType tokenType,
-        BridgeStorageTypes.TokenConfig calldata tokenConfig
+        StorageTypes.TokenType tokenType,
+        StorageTypes.TokenConfig calldata tokenConfig
     ) external;
 
     function unregisterToken(uint256 id) external;
@@ -67,8 +67,8 @@ interface ITokenBridge {
     ) external;
 
     function setTokenTypeConfig(
-        BridgeStorageTypes.TokenType tokenType,
-        BridgeStorageTypes.TokenTypeConfig calldata tokenTypeConfig
+        StorageTypes.TokenType tokenType,
+        StorageTypes.TokenTypeConfig calldata tokenTypeConfig
     ) external;
 
     function depositToken(

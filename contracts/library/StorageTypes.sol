@@ -7,7 +7,7 @@ pragma solidity ^0.8.24;
 // - ERC20Capped (transfer(address to, uint256 value))
 // - ERC20Uncapped (mint(address to, uint256 amount), burn(uint256 value))
 // - (ERC721 (safeMint(address to, uint256 tokenId), burn(uint256 tokenId)))
-library BridgeStorageTypes {
+library StorageTypes {
     struct Claimable {
         address to;
         uint256 amount;
