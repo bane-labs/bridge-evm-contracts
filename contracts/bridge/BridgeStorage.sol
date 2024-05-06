@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "../management/BridgeManagementImpl.sol";
+import "../interfaces/IBridgeManagement.sol";
 import "../library/BridgeLib.sol";
 import "../library/TokenBridgeLib.sol";
 import "../library/BridgeStorageTypes.sol";

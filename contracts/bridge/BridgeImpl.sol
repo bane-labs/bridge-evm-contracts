@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "../management/BridgeManagementImpl.sol";
 import "./BridgeStorage.sol";
-import "./IBridge.sol";
-import "./IGasBridge.sol";
-import "./ITokenBridge.sol";
+import "../interfaces/IBridge.sol";
+import "../interfaces/IGasBridge.sol";
+import "../interfaces/ITokenBridge.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**

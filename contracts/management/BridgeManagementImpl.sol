@@ -2,14 +2,14 @@
 pragma solidity ^0.8.24;
 
 import "./BridgeManagementStorage.sol";
-import "./IBridgeManagement.sol";
+import "../interfaces/IBridgeManagement.sol";
 import "../library/BridgeLib.sol";
 
 /**
  * When generating the bytecode for genesis script:
  * - set initial storage values in BridgeManagementStorage.sol
  */
-contract BridgeManagementImpl is IBridgeManagement, BridgeManagementStorage {
+contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
     function verifyValidatorSignatures(
         bytes32 _newDepositRoot,
         BridgeLib.Signature[] calldata _signatures
