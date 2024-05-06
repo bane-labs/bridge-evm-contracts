@@ -80,5 +80,5 @@ interface ITokenBridge {
 
     function claimToken(uint256 id, uint256 nonce) external;
 
-    function withdrawToken(uint256 amount, address to) external;
+    function withdrawToken(uint256 amount, address to) external payable;
 }

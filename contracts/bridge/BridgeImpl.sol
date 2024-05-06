@@ -20,7 +20,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
 
     /**
      * @notice Distributes Gas that has been locked on Neo N3.
-     * @dev The deposit function is used to deposit funds to the bridge.
+     * @dev The depositGas function is used to deposit funds to the bridge.
      *      The deposits data need to be provided ordered based on their nonces.
      *      Before the deposits are distributed, the following steps are executed:
      *      - Check if the provided deposits are subsequent to the current nonce in storage and each other.
@@ -384,13 +384,19 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
      * @param _amount the amount of tokens to withdraw.
      * @param _to the address to which the tokens should be sent.
      */
-    function withdrawToken(uint256 _amount, address _to) external override {
+    function withdrawToken(
+        uint256 _amount,
+        address _to
+    ) external payable override {
         // Get the token identifier based on the message sender.
         uint256 id = _getTokenId(msg.sender);
         StorageTypes.TokenConfig memory config = _getTokenConfig(id);
         assert(config.contractAddress == msg.sender);
         if (_amount < config.minAmount) revert InvalidAmount();
         if (_amount > config.maxAmount) revert InvalidAmount();
+
+        uint256 fee = _getWithdrawalFee(id);
+        if (msg.value < fee) revert InsufficientFee(msg.value, fee);
 
         // Compute the new root and update the token withdrawal state.
         StorageTypes.State memory state = _getTokenWithdrawalState(id);

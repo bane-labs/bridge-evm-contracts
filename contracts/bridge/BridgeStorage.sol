@@ -24,8 +24,9 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
     // Token Bridges
     mapping(StorageTypes.TokenType tokenType => StorageTypes.TokenTypeConfig)
         public tokenTypeConfigs;
-    mapping(address tokenAddress => uint256 id) public tokenIds;
-    mapping(uint256 id => StorageTypes.TokenBridge) public tokens;
+    // This mapping is intended for quick lookup of tokens by their address
+    mapping(address tokenAddress => uint256 id) public tokenBridgeIds;
+    mapping(uint256 id => StorageTypes.TokenBridge) public tokenBridges;
     mapping(uint256 id => mapping(uint256 nonce => StorageTypes.Claimable))
         public tokenClaimables;
 
@@ -46,8 +47,8 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
         });
     }
 
-    error TokenAlreadyRegistered(uint256 id);
-    error TokenNotRegistered(uint256 id);
+    error AddressAlreadyRegistered(address contractAddress);
+    error InsufficientFee(uint256 provided, uint256 minExpected);
     error InvalidAddress();
     error InvalidAmount();
     error InvalidDepositsLength();
@@ -57,8 +58,10 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
     error InvalidRoot();
     error InvalidValidatorSignatures();
     error NonexistentClaimable();
-    error TransferFailed();
+    error TokenAlreadyRegistered(uint256 id);
+    error TokenIdNotRegistered(uint256 id);
     error TokenWithdrawalFailed();
+    error TransferFailed();
 
     // Modifiers for Role Restriction
 
@@ -91,12 +94,12 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
     }
 
     modifier tokenUnlocked(uint256 _id) {
-        require(!tokens[_id].locked, "token locked");
+        require(!tokenBridges[_id].locked, "token locked");
         _;
     }
 
     modifier tokenLocked(uint256 _id) {
-        require(tokens[_id].locked, "token unlocked");
+        require(tokenBridges[_id].locked, "token unlocked");
         _;
     }
 
@@ -194,8 +197,8 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
     function _getTokenId(
         address _tokenAddress
     ) internal view returns (uint256) {
-        uint256 _id = tokenIds[_tokenAddress];
-        if (_id == 0) revert TokenNotRegistered(_id);
+        uint256 _id = tokenBridgeIds[_tokenAddress];
+        if (_id == 0) revert TokenIdNotRegistered(_id);
         return _id;
     }
 
@@ -211,20 +214,29 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
         if (_tokenConfig.contractAddress == address(0)) revert InvalidAddress();
 
         // Check if token bridge is already registered
-        StorageTypes.TokenBridge memory tokenBridge = tokens[_id];
-        if (tokenBridge.config.contractAddress == address(0))
-            revert TokenAlreadyRegistered(_id);
-        assert(tokenIds[_tokenConfig.contractAddress] == 0);
+        if (_isRegisteredToken(_id)) revert TokenAlreadyRegistered(_id);
+        if (_isRegisteredToken(_tokenConfig.contractAddress))
+            revert AddressAlreadyRegistered(_tokenConfig.contractAddress);
         // Map token address to identifier
-        tokenIds[_tokenConfig.contractAddress] = _id;
+        tokenBridgeIds[_tokenConfig.contractAddress] = _id;
         // Add token bridge to storage
-        tokens[_id] = StorageTypes.TokenBridge({
+        tokenBridges[_id] = StorageTypes.TokenBridge({
             locked: false,
             tokenType: _tokenType,
             depositState: StorageTypes.State({nonce: 0, root: 0x0}),
             withdrawalState: StorageTypes.State({nonce: 0, root: 0x0}),
             config: _tokenConfig
         });
+    }
+
+    function _isRegisteredToken(uint256 _id) internal view returns (bool) {
+        return tokenBridges[_id].config.contractAddress != address(0);
+    }
+
+    function _isRegisteredToken(
+        address _contractAddress
+    ) internal view returns (bool) {
+        return tokenBridgeIds[_contractAddress] != 0;
     }
 
     function _isRegisteredToken(
@@ -234,40 +246,50 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
     }
 
     function _unregisterToken(uint256 _id) internal {
-        if (!_isRegisteredToken(tokens[_id])) revert TokenNotRegistered(_id);
-        delete tokens[_id];
+        if (!_isRegisteredToken(tokenBridges[_id]))
+            revert TokenIdNotRegistered(_id);
+        delete tokenBridgeIds[tokenBridges[_id].config.contractAddress];
+        delete tokenBridges[_id];
     }
 
     function _lockToken(uint256 _id) internal {
-        if ((!_isRegisteredToken(tokens[_id]))) revert TokenNotRegistered(_id);
-        tokens[_id].locked = true;
+        if ((!_isRegisteredToken(tokenBridges[_id])))
+            revert TokenIdNotRegistered(_id);
+        tokenBridges[_id].locked = true;
     }
 
     function _unlockToken(uint256 _id) internal {
-        if ((!_isRegisteredToken(tokens[_id]))) revert TokenNotRegistered(_id);
-        tokens[_id].locked = false;
+        if ((!_isRegisteredToken(tokenBridges[_id])))
+            revert TokenIdNotRegistered(_id);
+        tokenBridges[_id].locked = false;
     }
 
     function _setTokenMinWithdrawalAmount(
         uint256 _id,
         uint256 _amount
     ) internal {
-        if (_amount > tokens[_id].config.maxAmount) revert InvalidAmount();
-        tokens[_id].config.minAmount = _amount;
+        if (_amount > tokenBridges[_id].config.maxAmount)
+            revert InvalidAmount();
+        tokenBridges[_id].config.minAmount = _amount;
     }
 
     function _setTokenMaxWithdrawalAmount(
         uint256 _id,
         uint256 _amount
     ) internal {
-        if (_amount < tokens[_id].config.minAmount) revert InvalidAmount();
-        tokens[_id].config.maxAmount = _amount;
+        if (_amount < tokenBridges[_id].config.minAmount)
+            revert InvalidAmount();
+        tokenBridges[_id].config.maxAmount = _amount;
     }
 
     function _getTokenTypeConfig(
         StorageTypes.TokenType _tokenType
     ) internal view returns (StorageTypes.TokenTypeConfig memory) {
         return tokenTypeConfigs[_tokenType];
+    }
+
+    function _getWithdrawalFee(uint256 _id) internal view returns (uint256) {
+        return tokenTypeConfigs[_getTokenType(_id)].fee;
     }
 
     function _setTokenTypeConfig(
@@ -280,41 +302,41 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
     function _getTokenConfig(
         uint256 _id
     ) internal view returns (StorageTypes.TokenConfig memory config) {
-        return tokens[_id].config;
+        return tokenBridges[_id].config;
     }
 
     function _getTokenType(
         uint256 _id
     ) internal view returns (StorageTypes.TokenType) {
-        return tokens[_id].tokenType;
+        return tokenBridges[_id].tokenType;
     }
 
     function _getTokenDepositState(
         uint256 _id
     ) internal view returns (StorageTypes.State memory state) {
-        return tokens[_id].depositState;
+        return tokenBridges[_id].depositState;
     }
 
     function _setTokenDepositState(
         uint256 _id,
         StorageTypes.State memory _state
     ) internal {
-        assert(tokens[_id].depositState.nonce < _state.nonce);
-        tokens[_id].depositState = _state;
+        assert(tokenBridges[_id].depositState.nonce < _state.nonce);
+        tokenBridges[_id].depositState = _state;
     }
 
     function _getTokenWithdrawalState(
         uint256 _id
     ) internal view returns (StorageTypes.State memory state) {
-        return tokens[_id].withdrawalState;
+        return tokenBridges[_id].withdrawalState;
     }
 
     function _setTokenWithdrawalState(
         uint256 _id,
         StorageTypes.State memory _state
     ) internal {
-        assert(tokens[_id].withdrawalState.nonce < _state.nonce);
-        tokens[_id].withdrawalState = _state;
+        assert(tokenBridges[_id].withdrawalState.nonce < _state.nonce);
+        tokenBridges[_id].withdrawalState = _state;
     }
 
     function _getTokenClaimable(
