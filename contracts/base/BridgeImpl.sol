@@ -6,13 +6,13 @@ import "./BridgeStorage.sol";
 import "./IBridge.sol";
 import "./IGasBridge.sol";
 import "./ITokenBridge.sol";
-import "../interfaces/IERC20Capped.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * When generating the bytecode for genesis script:
  * - set initial storage values in BridgeStorage.sol
  */
-contract BridgeImpl is IBridge, IGasBridge, ITokenBridge, BridgeStorage {
+contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     receive() external payable onlyFunder {
         emit Fund(msg.value);
     }
@@ -23,7 +23,7 @@ contract BridgeImpl is IBridge, IGasBridge, ITokenBridge, BridgeStorage {
         bytes32 _depositRoot,
         BridgeLib.Signature[] calldata _signatures,
         BridgeLib.DepositData[] calldata _deposits
-    ) external onlyRelayer unlocked {
+    ) external onlyRelayer unlocked nonReentrant {
         BridgeStorageTypes.State memory state = _getGasBridgeDepositState();
         BridgeStorageTypes.GasConfig memory config = _getGasBridgeConfig();
         uint depositLength = _deposits.length;
@@ -79,7 +79,7 @@ contract BridgeImpl is IBridge, IGasBridge, ITokenBridge, BridgeStorage {
     }
 
     // Anyone can execute a claim. The funds of a claimable will be sent to the defined address in the claimableTo mapping.
-    function claim(uint256 _nonce) external unlocked {
+    function claim(uint256 _nonce) external unlocked nonReentrant {
         BridgeStorageTypes.Claimable memory claimable = _getGasClaimable(
             _nonce
         );
@@ -234,7 +234,7 @@ contract BridgeImpl is IBridge, IGasBridge, ITokenBridge, BridgeStorage {
         BridgeLib.DepositData[] calldata _deposits,
         bytes32 _tokenDepositRoot,
         BridgeLib.Signature[] calldata _signatures
-    ) external override tokenUnlocked(_id) {
+    ) external override tokenUnlocked(_id) nonReentrant {
         BridgeStorageTypes.State memory depositState = _getTokenDepositState(
             _id
         );
@@ -293,7 +293,7 @@ contract BridgeImpl is IBridge, IGasBridge, ITokenBridge, BridgeStorage {
             bool success = false;
             if (_tokenType == BridgeStorageTypes.TokenType.ERC20Capped) {
                 // Execute the token distribution for ERC20Capped tokens
-                IERC20Capped tokenContract = IERC20Capped(contractAddress);
+                IERC20 tokenContract = IERC20(contractAddress);
                 success = _executeERC20CappedTransfer(
                     tokenContract,
                     depositEntry.amount,
@@ -314,7 +314,10 @@ contract BridgeImpl is IBridge, IGasBridge, ITokenBridge, BridgeStorage {
         }
     }
 
-    function claimToken(uint256 _id, uint256 _nonce) external override {
+    function claimToken(
+        uint256 _id,
+        uint256 _nonce
+    ) external override nonReentrant {
         BridgeStorageTypes.Claimable memory claimable = _getTokenClaimable(
             _id,
             _nonce
@@ -325,7 +328,7 @@ contract BridgeImpl is IBridge, IGasBridge, ITokenBridge, BridgeStorage {
         BridgeStorageTypes.TokenConfig memory config = _getTokenConfig(_id);
         address contractAddress = config.contractAddress;
         if (_getTokenType(_id) == BridgeStorageTypes.TokenType.ERC20Capped) {
-            IERC20Capped tokenContract = IERC20Capped(contractAddress);
+            IERC20 tokenContract = IERC20(contractAddress);
             _executeERC20CappedTransfer(
                 tokenContract,
                 claimable.amount,
@@ -352,7 +355,7 @@ contract BridgeImpl is IBridge, IGasBridge, ITokenBridge, BridgeStorage {
     }
 
     function _executeERC20CappedTransfer(
-        IERC20Capped _tokenContract,
+        IERC20 _tokenContract,
         uint256 _amount,
         address _to
     ) private returns (bool) {
