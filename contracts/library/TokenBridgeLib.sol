@@ -4,7 +4,16 @@ pragma solidity ^0.8.24;
 import "./BridgeLib.sol";
 
 library TokenBridgeLib {
-    function _computeNewTopRootToken(
+    /**
+     * @dev Hashes every deposit operation and chains it to the previous root. Each deposit data is prepended the
+     * token's identifier before it is hashed, such that each hash chain remains exclusive to its corresponding chain
+     * and to restrict any replay attack vectors. The final top root is returned.
+     *
+     * @param _previousRoot the previous top root.
+     * @param _id the token identifier.
+     * @param _deposits the deposits' data to be hashed and chained.
+     */
+    function _computeNewTopRoot(
         bytes32 _previousRoot,
         uint256 _id,
         BridgeLib.DepositData[] calldata _deposits

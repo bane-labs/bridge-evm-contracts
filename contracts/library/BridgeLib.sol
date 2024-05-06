@@ -28,49 +28,11 @@ library BridgeLib {
         return true;
     }
 
-    function _computeNewTopRoot(
-        bytes32 _previousRoot,
-        DepositData[] calldata _deposits
-    ) internal pure returns (bytes32) {
-        bytes32 parent = _previousRoot;
-        uint depositsLength = _deposits.length;
-        for (uint i = 0; i < depositsLength; i++) {
-            DepositData calldata depositData = _deposits[i];
-            bytes32 depositHash = BridgeLib._hashDepositOrWithdrawal(
-                depositData.nonce,
-                depositData.amount,
-                depositData.to
-            );
-            parent = BridgeLib._computeNewRoot(parent, depositHash);
-        }
-        return parent;
-    }
-
     function _computeNewRoot(
         bytes32 _formerRoot,
         bytes32 _depositHash
     ) internal pure returns (bytes32) {
         return sha256(abi.encodePacked(_formerRoot, _depositHash));
-    }
-
-    function _hashDepositOrWithdrawal(
-        uint256 _nonce,
-        uint256 _amount,
-        address _to
-    ) internal pure returns (bytes32) {
-        return sha256(abi.encodePacked(_nonce, _amount, _to));
-    }
-
-    // Adds 10 decimals to the amount. GasToken originally has 8 decimals and on this chain it has 18 decimals.
-    function _addTenDecimals(uint256 _value) internal pure returns (uint256) {
-        return _value * 1e10;
-    }
-
-    // Removes 10 decimal points from the amount. GasToken originally has 8 decimals and on this chain it has 18 decimals.
-    function _removeTenDecimals(
-        uint256 _value
-    ) internal pure returns (uint256) {
-        return _value / 1e10;
     }
 
     function _isContract(address _addr) internal view returns (bool) {

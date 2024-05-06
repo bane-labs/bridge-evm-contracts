@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "../interfaces/IBridgeManagement.sol";
 import "../library/BridgeLib.sol";
+import "../library/GasBridgeLib.sol";
 import "../library/StorageTypes.sol";
 import "../library/TokenBridgeLib.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -248,7 +249,8 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
     function _unregisterToken(uint256 _id) internal {
         if (!_isRegisteredToken(tokenBridges[_id]))
             revert TokenIdNotRegistered(_id);
-        delete tokenBridgeIds[tokenBridges[_id].config.contractAddress];
+        // By choice the tokenBridgeIds entry is not deleted in order to restrict from re-registering an identifier.
+        // Re-registering an identifier could open up to replay attack vectors since signatures are publicly known for previous bridge operations.
         delete tokenBridges[_id];
     }
 

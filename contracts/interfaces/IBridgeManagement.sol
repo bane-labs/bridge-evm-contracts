@@ -4,12 +4,12 @@ pragma solidity ^0.8.24;
 import "../library/BridgeLib.sol";
 
 interface IBridgeManagement {
-    event SetOwner(address owner);
-    event SetRelayer(address relayer);
-    event SetValidators(address[] validators, uint threshold);
-    event SetGovernor(address governor);
-    event SetSecurityGuard(address securityGuard);
-    event SetFunder(address funder);
+    event OwnerChange(address owner);
+    event RelayerChange(address relayer);
+    event ValidatorsChange(address[] validators, uint threshold);
+    event GovernorChange(address governor);
+    event SecurityGuardChange(address securityGuard);
+    event FunderChange(address funder);
 
     function setOwner(address _owner) external;
 

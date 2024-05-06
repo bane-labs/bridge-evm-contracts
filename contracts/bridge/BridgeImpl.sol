@@ -31,7 +31,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
      * @param _signatures the signatures of the validators.
      * @param _deposits the deposit data.
      */
-    function deposit(
+    function depositGas(
         bytes32 _depositRoot,
         BridgeLib.Signature[] calldata _signatures,
         BridgeLib.DepositData[] calldata _deposits
@@ -44,8 +44,10 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
             revert InvalidDepositsLength();
         if (!BridgeLib._subsequentNonces(_deposits, state.nonce))
             revert InvalidNonceSequence();
-        if (BridgeLib._computeNewTopRoot(state.root, _deposits) != _depositRoot)
-            revert InvalidRoot();
+        if (
+            GasBridgeLib._computeNewTopRoot(state.root, _deposits) !=
+            _depositRoot
+        ) revert InvalidRoot();
         if (!management.verifyValidatorSignatures(_depositRoot, _signatures))
             revert InvalidValidatorSignatures();
 
@@ -56,10 +58,10 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
             })
         );
         // Execution data interface
-        _executeTransfers(_deposits);
+        _executeGasTransfers(_deposits);
     }
 
-    function _executeTransfers(
+    function _executeGasTransfers(
         BridgeLib.DepositData[] calldata _deposits
     ) private {
         // Once this is reached, execute the deposits
@@ -69,29 +71,37 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
             address to = depositEntry.to;
             if (BridgeLib._isContract(to)) {
                 _addClaimableGas(depositEntry.nonce, depositEntry.amount, to);
-                emit Claimable(depositEntry.nonce, depositEntry.amount, to);
+                emit GasClaimable(depositEntry.nonce, depositEntry.amount, to);
             } else {
-                uint256 sendValue = BridgeLib._addTenDecimals(
+                uint256 sendValue = GasBridgeLib._addTenDecimals(
                     depositEntry.amount
                 );
                 // Todo: Verify that this call works as expected, i.e., the funds have not been sent if it returns false.
                 (bool success, ) = to.call{value: sendValue}("");
                 if (success) {
-                    emit Deposit(depositEntry.nonce, depositEntry.amount, to);
+                    emit GasDeposit(
+                        depositEntry.nonce,
+                        depositEntry.amount,
+                        to
+                    );
                 } else {
                     _addClaimableGas(
                         depositEntry.nonce,
                         depositEntry.amount,
                         to
                     );
-                    emit Claimable(depositEntry.nonce, depositEntry.amount, to);
+                    emit GasClaimable(
+                        depositEntry.nonce,
+                        depositEntry.amount,
+                        to
+                    );
                 }
             }
         }
     }
 
     // Anyone can execute a claim. The funds of a claimable will be sent to the defined address in the claimableTo mapping.
-    function claim(uint256 _nonce) external unlocked nonReentrant {
+    function claimGas(uint256 _nonce) external unlocked nonReentrant {
         StorageTypes.Claimable memory claimable = _getGasClaimable(_nonce);
         uint256 amount = claimable.amount;
         address to = claimable.to;
@@ -99,13 +109,13 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         if (to == address(0)) revert NonexistentClaimable();
 
         _deleteGasClaimable(_nonce);
-        uint256 sendValue = BridgeLib._addTenDecimals(amount);
+        uint256 sendValue = GasBridgeLib._addTenDecimals(amount);
         (bool success, ) = to.call{value: sendValue}("");
         if (!success) revert TransferFailed();
-        emit Claim(_nonce, amount, to);
+        emit GasClaim(_nonce, amount, to);
     }
 
-    function withdraw(address _to) external payable unlocked {
+    function withdrawGas(address _to) external payable unlocked {
         if (_to == address(0)) revert InvalidAddress();
         if ((msg.value % 1e10) != 0) revert InvalidAmount();
         StorageTypes.GasConfig memory config = _getGasBridgeConfig();
@@ -114,11 +124,11 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         if (actualWithdrawalAmount < config.minAmount) revert InvalidAmount();
         if (actualWithdrawalAmount > config.maxAmount) revert InvalidAmount();
 
-        uint256 amountForHashing = BridgeLib._removeTenDecimals(
+        uint256 amountForHashing = GasBridgeLib._removeTenDecimals(
             actualWithdrawalAmount
         );
         uint256 newNonce = state.nonce + 1;
-        bytes32 withdrawalHash = BridgeLib._hashDepositOrWithdrawal(
+        bytes32 withdrawalHash = GasBridgeLib._hashGasBrideOp(
             newNonce,
             amountForHashing,
             _to
@@ -127,7 +137,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         _setGasBridgeWithdrawalState(
             StorageTypes.State({nonce: newNonce, root: newRoot})
         );
-        emit Withdrawal(
+        emit GasWithdrawal(
             newNonce,
             amountForHashing,
             _to,
@@ -153,24 +163,24 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
 
     function setGasWithdrawalFee(uint256 _fee) external onlyGovernor {
         _setGasWithdrawalFee(_fee);
-        emit WithdrawalFeeChange(_fee);
+        emit GasWithdrawalFeeChange(_fee);
     }
 
     function setGasWithdrawalMinAmount(uint256 _amount) external onlyGovernor {
         _setGasWithdrawalMinAmount(_amount);
-        emit MinWithdrawalAmountChange(_amount);
+        emit MinGasWithdrawalChange(_amount);
     }
 
     function setGasWithdrawalMaxAmount(uint256 _amount) external onlyGovernor {
         _setGasWithdrawalMaxAmount(_amount);
-        emit MaxWithdrawalAmountChange(_amount);
+        emit MaxGasWithdrawalChange(_amount);
     }
 
     function setGasMaxNrDepositsPerDistribution(
         uint8 _maxNrDeposits
     ) external onlyGovernor {
         _setGasMaxNrDepositsPerDistribution(_maxNrDeposits);
-        emit MaxDepositsPerDistributionChange(_maxNrDeposits);
+        emit MaxGasDepositsPerDistributionChange(_maxNrDeposits);
     }
 
     // ITokenBridge Implementation
@@ -268,7 +278,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
             revert InvalidNonceSequence();
         // Validate that the provided token deposit root is equal to the new computed root based on the provided deposits.
         if (
-            TokenBridgeLib._computeNewTopRootToken(
+            TokenBridgeLib._computeNewTopRoot(
                 depositState.root,
                 _id,
                 _deposits

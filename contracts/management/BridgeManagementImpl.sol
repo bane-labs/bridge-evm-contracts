@@ -48,7 +48,7 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
 
     function setOwner(address _owner) external onlyOwner {
         _setOwner(_owner);
-        emit SetOwner(_owner);
+        emit OwnerChange(_owner);
     }
 
     function getOwner() external view override returns (address) {
@@ -57,7 +57,7 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
 
     function setRelayer(address _relayer) external onlyOwner {
         _setRelayer(_relayer);
-        emit SetRelayer(_relayer);
+        emit RelayerChange(_relayer);
     }
 
     function getRelayer() external view override returns (address) {
@@ -69,7 +69,7 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
         uint threshold
     ) external onlyOwner {
         _setValidators(_validators, threshold);
-        emit SetValidators(_validators, threshold);
+        emit ValidatorsChange(_validators, threshold);
     }
 
     function getValidators() external view returns (address[] memory) {
@@ -86,7 +86,7 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
 
     function setGovernor(address _governor) external onlyOwner {
         _setGovernor(_governor);
-        emit SetGovernor(_governor);
+        emit GovernorChange(_governor);
     }
 
     function getGovernor() external view override returns (address) {
@@ -95,7 +95,7 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
 
     function setSecurityGuard(address _securityGuard) external onlyOwner {
         _setSecurityGuard(_securityGuard);
-        emit SetSecurityGuard(_securityGuard);
+        emit SecurityGuardChange(_securityGuard);
     }
 
     function getSecurityGuard() external view override returns (address) {
@@ -104,7 +104,7 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
 
     function setFunder(address _funder) external onlyOwner {
         _setFunder(_funder);
-        emit SetFunder(_funder);
+        emit FunderChange(_funder);
     }
 
     function getFunder() external view override returns (address) {
