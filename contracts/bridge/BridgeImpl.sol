@@ -241,6 +241,14 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         emit TokenMaxWithdrawalAmountChange(_id, _maxAmount);
     }
 
+    function setTokenTypeConfig(
+        BridgeStorageTypes.TokenType _tokenType,
+        BridgeStorageTypes.TokenTypeConfig calldata _tokenTypeConfig
+    ) external override onlyGovernor {
+        _setTokenTypeConfig(_tokenType, _tokenTypeConfig);
+        emit TokenTypeConfigChange(_tokenType, _tokenTypeConfig);
+    }
+
     function depositToken(
         uint256 _id,
         BridgeLib.DepositData[] calldata _deposits,

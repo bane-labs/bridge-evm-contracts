@@ -270,6 +270,13 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
         return tokenTypeConfigs[_tokenType];
     }
 
+    function _setTokenTypeConfig(
+        BridgeStorageTypes.TokenType _tokenType,
+        BridgeStorageTypes.TokenTypeConfig memory _config
+    ) internal {
+        tokenTypeConfigs[_tokenType] = _config;
+    }
+
     function _getTokenConfig(
         uint256 _id
     ) internal view returns (BridgeStorageTypes.TokenConfig memory config) {

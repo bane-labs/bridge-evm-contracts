@@ -16,6 +16,10 @@ interface ITokenBridge {
     event TokenUnlock(uint256 indexed id);
     event TokenMinWithdrawalAmountChange(uint256 indexed id, uint256 minAmount);
     event TokenMaxWithdrawalAmountChange(uint256 indexed id, uint256 maxAmount);
+    event TokenTypeConfigChange(
+        BridgeStorageTypes.TokenType tokenType,
+        BridgeStorageTypes.TokenTypeConfig tokenTypeConfig
+    );
     event TokenDeposit(
         uint256 indexed id,
         uint256 indexed nonce,
@@ -60,6 +64,11 @@ interface ITokenBridge {
     function setTokenWithdrawalMaxAmount(
         uint256 id,
         uint256 maxAmount
+    ) external;
+
+    function setTokenTypeConfig(
+        BridgeStorageTypes.TokenType tokenType,
+        BridgeStorageTypes.TokenTypeConfig calldata tokenTypeConfig
     ) external;
 
     function depositToken(
