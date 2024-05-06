@@ -71,7 +71,7 @@ describe("Bridge Implementation", function () {
             expect(gasBridge.config.fee).to.be.equal(oldFee);
             const newFee = ethers.parseEther("0.2");
             const tx = await bridgeContract.connect(governor).setGasWithdrawalFee(newFee);
-            await expect(tx).to.emit(bridgeContract, "WithdrawalFeeChanged").withArgs(newFee);
+            await expect(tx).to.emit(bridgeContract, "WithdrawalFeeChange").withArgs(newFee);
             gasBridge = await bridgeContract.gasBridge()
             expect(gasBridge.config.fee).to.be.equal(newFee);
         });
@@ -82,7 +82,7 @@ describe("Bridge Implementation", function () {
             expect((await bridgeContract.gasBridge()).config.minAmount).to.be.equal(oldMinAmount);
             const newMinAmount = ethers.parseEther("0.2");
             const tx = await bridgeContract.connect(governor).setGasWithdrawalMinAmount(newMinAmount);
-            await expect(tx).to.emit(bridgeContract, "MinWithdrawalAmountChanged").withArgs(newMinAmount);
+            await expect(tx).to.emit(bridgeContract, "MinWithdrawalAmountChange").withArgs(newMinAmount);
             expect((await bridgeContract.gasBridge()).config.minAmount).to.be.equal(newMinAmount);
         });
 
@@ -92,11 +92,11 @@ describe("Bridge Implementation", function () {
             expect((await bridgeContract.gasBridge()).config.maxAmount).to.be.equal(oldMaxAmount);
             const newMaxAmount = ethers.parseEther("5000");
             let tx = await bridgeContract.connect(governor).setGasWithdrawalMaxAmount(newMaxAmount);
-            await expect(tx).to.emit(bridgeContract, "MaxWithdrawalAmountChanged").withArgs(newMaxAmount);
+            await expect(tx).to.emit(bridgeContract, "MaxWithdrawalAmountChange").withArgs(newMaxAmount);
             expect((await bridgeContract.gasBridge()).config.maxAmount).to.be.equal(newMaxAmount);
             const newMaxAount2 = ethers.parseEther("10000");
             tx = await bridgeContract.connect(governor).setGasWithdrawalMaxAmount(newMaxAount2);
-            await expect(tx).to.emit(bridgeContract, "MaxWithdrawalAmountChanged").withArgs(newMaxAount2);
+            await expect(tx).to.emit(bridgeContract, "MaxWithdrawalAmountChange").withArgs(newMaxAount2);
             expect((await bridgeContract.gasBridge()).config.maxAmount).to.be.equal(newMaxAount2);
         });
 
@@ -135,7 +135,7 @@ describe("Bridge Implementation", function () {
             const newMaxDepositsPerDistribution = 10;
             expect(maxDepositsPerDistribution).not.to.be.equal(newMaxDepositsPerDistribution);
             const tx = bridgeContract.connect(governor).setGasMaxNrDepositsPerDistribution(newMaxDepositsPerDistribution);
-            await expect(tx).to.emit(bridgeContract, "MaxDepositsPerDistributionChanged").withArgs(newMaxDepositsPerDistribution);
+            await expect(tx).to.emit(bridgeContract, "MaxDepositsPerDistributionChange").withArgs(newMaxDepositsPerDistribution);
             expect((await bridgeContract.gasBridge()).config.maxDepositsPerDistribution).to.be.equal(newMaxDepositsPerDistribution);
         });
 
@@ -157,7 +157,7 @@ describe("Bridge Implementation", function () {
             expect(bridgeContractBalance).to.be.equal(ethers.parseEther("80.0"));
             const tx = await funder.sendTransaction({ to: bridgeContract.target, value: ethers.parseEther("20.0") });
             expect(tx).to.changeEtherBalances([funder, bridgeContract], [-ethers.parseEther("20.0"), ethers.parseEther("20.0")]);
-            expect(tx).to.emit(bridgeContract, "Funded").withArgs(ethers.parseEther("20.0"));
+            expect(tx).to.emit(bridgeContract, "Fund").withArgs(ethers.parseEther("20.0"));
         });
 
         it("Not funder fails to fund the bridge contract", async function () {
@@ -189,7 +189,7 @@ describe("Bridge Implementation", function () {
             await expect(await bridgeManagementContract.getFunder()).to.be.equal(validator1Addr);
             const fundTx = await validator1.sendTransaction({ to: bridgeContract.target, value: fundAmount });
             expect(fundTx).to.changeEtherBalances([validator1, bridgeContract], [-ethers.parseEther("10.0"), ethers.parseEther("10.0")]);
-            expect(fundTx).to.emit(bridgeContract, "Funded").withArgs(ethers.parseEther("10.0"));
+            expect(fundTx).to.emit(bridgeContract, "Fund").withArgs(ethers.parseEther("10.0"));
         });
     });
 
@@ -619,7 +619,7 @@ describe("Bridge Implementation", function () {
             claimable = await bridgeContract.claimableGas(depositData.nonce);
             expect(claimable.to).to.equal(ethers.ZeroAddress);
             expect(claimable.amount).to.equal(0);
-            await expect(claim_tx1).to.emit(bridgeContract, "Claimed").withArgs(depositData.nonce, depositData.amount, depositData.to);
+            await expect(claim_tx1).to.emit(bridgeContract, "Claim").withArgs(depositData.nonce, depositData.amount, depositData.to);
             await expect(claim_tx1).to.changeEtherBalances([bridgeContract, depositData.to], [-toEthDecimals(depositData.amount), toEthDecimals(depositData.amount)]);
         });
 
@@ -652,7 +652,7 @@ describe("Bridge Implementation", function () {
             claimable = await bridgeContract.claimableGas(data1.nonce);
             expect(claimable.to).to.equal(ethers.ZeroAddress);
             expect(claimable.amount).to.equal(0);
-            await expect(tx2).to.emit(bridgeContract, "Claimed").withArgs(data1.nonce, data1.amount, data1.to);
+            await expect(tx2).to.emit(bridgeContract, "Claim").withArgs(data1.nonce, data1.amount, data1.to);
             await expect(tx2).to.changeEtherBalances([bridgeContract, data1.to], [-toEthDecimals(data1.amount), toEthDecimals(data1.amount)]);
 
             await expect(bridgeContract.connect(relayer).claim(data1.nonce)).to.be.revertedWithCustomError(bridgeContract, "NonexistentClaimable")
