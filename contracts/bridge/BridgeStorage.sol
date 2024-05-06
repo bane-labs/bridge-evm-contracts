@@ -212,13 +212,13 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
 
         // Check if token bridge is already registered
         BridgeStorageTypes.TokenBridge memory tokenBridge = tokens[_id];
-        if (tokenBridge.registered) revert TokenAlreadyRegistered(_id);
+        if (tokenBridge.config.contractAddress == address(0))
+            revert TokenAlreadyRegistered(_id);
         assert(tokenIds[_tokenConfig.contractAddress] == 0);
         // Map token address to identifier
         tokenIds[_tokenConfig.contractAddress] = _id;
         // Add token bridge to storage
         tokens[_id] = BridgeStorageTypes.TokenBridge({
-            registered: true,
             locked: false,
             tokenType: _tokenType,
             depositState: BridgeStorageTypes.State({nonce: 0, root: 0x0}),
@@ -227,18 +227,24 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
         });
     }
 
+    function _isRegisteredToken(
+        BridgeStorageTypes.TokenBridge storage tokenBridge
+    ) internal view returns (bool) {
+        return tokenBridge.config.contractAddress != address(0);
+    }
+
     function _unregisterToken(uint256 _id) internal {
-        if (!tokens[_id].registered) revert TokenNotRegistered(_id);
+        if (!_isRegisteredToken(tokens[_id])) revert TokenNotRegistered(_id);
         delete tokens[_id];
     }
 
     function _lockToken(uint256 _id) internal {
-        if (!tokens[_id].registered) revert TokenNotRegistered(_id);
+        if ((!_isRegisteredToken(tokens[_id]))) revert TokenNotRegistered(_id);
         tokens[_id].locked = true;
     }
 
     function _unlockToken(uint256 _id) internal {
-        if (!tokens[_id].registered) revert TokenNotRegistered(_id);
+        if ((!_isRegisteredToken(tokens[_id]))) revert TokenNotRegistered(_id);
         tokens[_id].locked = false;
     }
 
