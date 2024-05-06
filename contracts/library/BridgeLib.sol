@@ -63,14 +63,14 @@ library BridgeLib {
 
     // Adds 10 decimals to the amount. GasToken originally has 8 decimals and on this chain it has 18 decimals.
     function _addTenDecimals(uint256 _value) internal pure returns (uint256) {
-        return uint256(_value) * (10 ** 10);
+        return _value * 1e10;
     }
 
     // Removes 10 decimal points from the amount. GasToken originally has 8 decimals and on this chain it has 18 decimals.
     function _removeTenDecimals(
         uint256 _value
     ) internal pure returns (uint256) {
-        return uint256(_value / (10 ** 10));
+        return _value / 1e10;
     }
 
     function _isContract(address _addr) internal view returns (bool) {

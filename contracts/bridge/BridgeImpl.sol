@@ -109,7 +109,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
 
     function withdraw(address _to) external payable unlocked {
         if (_to == address(0)) revert InvalidAddress();
-        if ((msg.value % (10 ** 10)) != 0) revert InvalidAmount();
+        if ((msg.value % 1e10) != 0) revert InvalidAmount();
         BridgeStorageTypes.GasConfig memory config = _getGasBridgeConfig();
         BridgeStorageTypes.State memory state = _getGasBridgeWithdrawalState();
         uint256 actualWithdrawalAmount = msg.value - config.fee;

@@ -37,9 +37,9 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
             depositState: BridgeStorageTypes.State({nonce: 0, root: 0x0}),
             withdrawalState: BridgeStorageTypes.State({nonce: 0, root: 0x0}),
             config: BridgeStorageTypes.GasConfig({
-                fee: 10 ** 17,
-                minAmount: 10 ** 18,
-                maxAmount: 10 ** 22,
+                fee: 1e17,
+                minAmount: 1e18,
+                maxAmount: 1e22,
                 maxDepositsPerDistribution: 100,
                 gap: [uint256(0), uint256(0)]
             })
@@ -168,18 +168,18 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
     }
 
     function _setGasWithdrawalFee(uint256 _fee) internal {
-        if ((_fee % (10 ** 10)) != 0) revert InvalidFee();
+        if ((_fee % 1e10) != 0) revert InvalidFee();
         gasBridge.config.fee = _fee;
     }
 
     function _setGasWithdrawalMinAmount(uint256 _amount) internal {
-        if ((_amount % (10 ** 10)) != 0) revert InvalidAmount();
+        if ((_amount % 1e10) != 0) revert InvalidAmount();
         if (_amount >= gasBridge.config.maxAmount) revert InvalidAmount();
         gasBridge.config.minAmount = _amount;
     }
 
     function _setGasWithdrawalMaxAmount(uint256 _amount) internal {
-        if ((_amount % (10 ** 10)) != 0) revert InvalidAmount();
+        if ((_amount % 1e10) != 0) revert InvalidAmount();
         if (_amount <= gasBridge.config.minAmount) revert InvalidAmount();
         gasBridge.config.maxAmount = _amount;
     }
