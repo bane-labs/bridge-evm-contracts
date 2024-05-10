@@ -25,10 +25,9 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
     // Token Bridges
     mapping(StorageTypes.TokenType tokenType => StorageTypes.TokenTypeConfig)
         public tokenTypeConfigs;
-    // This mapping is intended for quick lookup of tokens by their address
-    mapping(address tokenAddress => uint256 id) public tokenBridgeIds;
-    mapping(uint256 id => StorageTypes.TokenBridge) public tokenBridges;
-    mapping(uint256 id => mapping(uint256 nonce => StorageTypes.Claimable))
+    mapping(address tokenAddress => StorageTypes.TokenBridge)
+        public tokenBridges;
+    mapping(address tokenAddress => mapping(uint256 nonce => StorageTypes.Claimable))
         public tokenClaimables;
 
     // End Storage Slots
@@ -48,19 +47,18 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
         });
     }
 
-    error AddressAlreadyRegistered(address contractAddress);
     error InsufficientFee(uint256 provided, uint256 minExpected);
     error InvalidAddress();
     error InvalidAmount();
     error InvalidDepositsLength();
     error InvalidFee();
-    error InvalidTokenId();
+    error InvalidTokenAddress();
     error InvalidNonceSequence();
     error InvalidRoot();
     error InvalidValidatorSignatures();
     error NonexistentClaimable();
-    error TokenAlreadyRegistered(uint256 id);
-    error TokenIdNotRegistered(uint256 id);
+    error TokenBridgeAlreadyRegistered(address neoXTokenAddress);
+    error TokenBridgeNotRegistered(address neoXTokenAddress);
     error TokenWithdrawalFailed();
     error TransferFailed();
 
@@ -94,13 +92,13 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
         _;
     }
 
-    modifier tokenUnlocked(uint256 _id) {
-        require(!tokenBridges[_id].locked, "token locked");
+    modifier tokenUnlocked(address _neoXTokenAddress) {
+        require(!tokenBridges[_neoXTokenAddress].locked, "token locked");
         _;
     }
 
-    modifier tokenLocked(uint256 _id) {
-        require(tokenBridges[_id].locked, "token unlocked");
+    modifier tokenLocked(address _neoXTokenAddress) {
+        require(tokenBridges[_neoXTokenAddress].locked, "token unlocked");
         _;
     }
 
@@ -195,33 +193,16 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
 
     // Token Bridge functions
 
-    function _getTokenId(
-        address _tokenAddress
-    ) internal view returns (uint256) {
-        uint256 _id = tokenBridgeIds[_tokenAddress];
-        if (_id == 0) revert TokenIdNotRegistered(_id);
-        return _id;
-    }
-
     function _registerToken(
-        uint256 _id,
+        address _neoXTokenAddress,
         StorageTypes.TokenType _tokenType,
         StorageTypes.TokenConfig memory _tokenConfig
     ) internal {
-        if (_id == 0) revert InvalidTokenId();
-        // Check if token config contains valid values
-        if (_tokenConfig.minAmount > _tokenConfig.maxAmount)
-            revert InvalidAmount();
-        if (_tokenConfig.contractAddress == address(0)) revert InvalidAddress();
-
         // Check if token bridge is already registered
-        if (_isRegisteredToken(_id)) revert TokenAlreadyRegistered(_id);
-        if (_isRegisteredToken(_tokenConfig.contractAddress))
-            revert AddressAlreadyRegistered(_tokenConfig.contractAddress);
-        // Map token address to identifier
-        tokenBridgeIds[_tokenConfig.contractAddress] = _id;
+        if (_isRegisteredToken(_neoXTokenAddress))
+            revert TokenBridgeAlreadyRegistered(_neoXTokenAddress);
         // Add token bridge to storage
-        tokenBridges[_id] = StorageTypes.TokenBridge({
+        tokenBridges[_neoXTokenAddress] = StorageTypes.TokenBridge({
             locked: false,
             tokenType: _tokenType,
             depositState: StorageTypes.State({nonce: 0, root: 0x0}),
@@ -230,58 +211,50 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
         });
     }
 
-    function _isRegisteredToken(uint256 _id) internal view returns (bool) {
-        return tokenBridges[_id].config.contractAddress != address(0);
-    }
-
     function _isRegisteredToken(
-        address _contractAddress
+        address _neoXTokenAddress
     ) internal view returns (bool) {
-        return tokenBridgeIds[_contractAddress] != 0;
+        return
+            tokenBridges[_neoXTokenAddress].config.neoN3TokenAddress !=
+            address(0);
     }
 
-    function _isRegisteredToken(
-        StorageTypes.TokenBridge storage tokenBridge
-    ) internal view returns (bool) {
-        return tokenBridge.config.contractAddress != address(0);
+    function _unregisterToken(address _neoXTokenAddress) internal {
+        if (!_isRegisteredToken(_neoXTokenAddress))
+            revert TokenBridgeNotRegistered(_neoXTokenAddress);
+        delete tokenBridges[_neoXTokenAddress];
+        // If a token is unregistered, the claimables remain in storage.
+        // This means, that they are locked, and can only ever be retrieved again if there's a new token bridge registration with the same Neo X token address.
     }
 
-    function _unregisterToken(uint256 _id) internal {
-        if (!_isRegisteredToken(tokenBridges[_id]))
-            revert TokenIdNotRegistered(_id);
-        // By choice the tokenBridgeIds entry is not deleted in order to restrict from re-registering an identifier.
-        // Re-registering an identifier could open up to replay attack vectors since signatures are publicly known for previous bridge operations.
-        delete tokenBridges[_id];
+    function _lockToken(address _neoXTokenAddress) internal {
+        if ((!_isRegisteredToken(_neoXTokenAddress)))
+            revert TokenBridgeNotRegistered(_neoXTokenAddress);
+        tokenBridges[_neoXTokenAddress].locked = true;
     }
 
-    function _lockToken(uint256 _id) internal {
-        if ((!_isRegisteredToken(tokenBridges[_id])))
-            revert TokenIdNotRegistered(_id);
-        tokenBridges[_id].locked = true;
-    }
-
-    function _unlockToken(uint256 _id) internal {
-        if ((!_isRegisteredToken(tokenBridges[_id])))
-            revert TokenIdNotRegistered(_id);
-        tokenBridges[_id].locked = false;
+    function _unlockToken(address _neoXTokenAddress) internal {
+        if ((!_isRegisteredToken(_neoXTokenAddress)))
+            revert TokenBridgeNotRegistered(_neoXTokenAddress);
+        tokenBridges[_neoXTokenAddress].locked = false;
     }
 
     function _setTokenMinWithdrawalAmount(
-        uint256 _id,
+        address _neoXTokenAddress,
         uint256 _amount
     ) internal {
-        if (_amount > tokenBridges[_id].config.maxAmount)
+        if (_amount > tokenBridges[_neoXTokenAddress].config.maxAmount)
             revert InvalidAmount();
-        tokenBridges[_id].config.minAmount = _amount;
+        tokenBridges[_neoXTokenAddress].config.minAmount = _amount;
     }
 
     function _setTokenMaxWithdrawalAmount(
-        uint256 _id,
+        address _neoXTokenAddress,
         uint256 _amount
     ) internal {
-        if (_amount < tokenBridges[_id].config.minAmount)
+        if (_amount < tokenBridges[_neoXTokenAddress].config.minAmount)
             revert InvalidAmount();
-        tokenBridges[_id].config.maxAmount = _amount;
+        tokenBridges[_neoXTokenAddress].config.maxAmount = _amount;
     }
 
     function _getTokenTypeConfig(
@@ -290,8 +263,16 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
         return tokenTypeConfigs[_tokenType];
     }
 
-    function _getWithdrawalFee(uint256 _id) internal view returns (uint256) {
-        return tokenTypeConfigs[_getTokenType(_id)].fee;
+    function _getNeoN3TokenAddress(
+        address _neoXTokenAddress
+    ) internal view returns (address) {
+        return tokenBridges[_neoXTokenAddress].config.neoN3TokenAddress;
+    }
+
+    function _getWithdrawalFee(
+        address _neoXTokenAddress
+    ) internal view returns (uint256) {
+        return tokenTypeConfigs[_getTokenType(_neoXTokenAddress)].fee;
     }
 
     function _setTokenTypeConfig(
@@ -302,66 +283,73 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
     }
 
     function _getTokenConfig(
-        uint256 _id
+        address _neoXTokenAddress
     ) internal view returns (StorageTypes.TokenConfig memory config) {
-        return tokenBridges[_id].config;
+        return tokenBridges[_neoXTokenAddress].config;
     }
 
     function _getTokenType(
-        uint256 _id
+        address _neoXTokenAddress
     ) internal view returns (StorageTypes.TokenType) {
-        return tokenBridges[_id].tokenType;
+        return tokenBridges[_neoXTokenAddress].tokenType;
     }
 
     function _getTokenDepositState(
-        uint256 _id
+        address _neoXTokenAddress
     ) internal view returns (StorageTypes.State memory state) {
-        return tokenBridges[_id].depositState;
+        return tokenBridges[_neoXTokenAddress].depositState;
     }
 
     function _setTokenDepositState(
-        uint256 _id,
+        address _neoXTokenAddress,
         StorageTypes.State memory _state
     ) internal {
-        assert(tokenBridges[_id].depositState.nonce < _state.nonce);
-        tokenBridges[_id].depositState = _state;
+        assert(
+            tokenBridges[_neoXTokenAddress].depositState.nonce < _state.nonce
+        );
+        tokenBridges[_neoXTokenAddress].depositState = _state;
     }
 
     function _getTokenWithdrawalState(
-        uint256 _id
+        address _neoXTokenAddress
     ) internal view returns (StorageTypes.State memory state) {
-        return tokenBridges[_id].withdrawalState;
+        return tokenBridges[_neoXTokenAddress].withdrawalState;
     }
 
     function _setTokenWithdrawalState(
-        uint256 _id,
+        address _neoXTokenAddress,
         StorageTypes.State memory _state
     ) internal {
-        assert(tokenBridges[_id].withdrawalState.nonce < _state.nonce);
-        tokenBridges[_id].withdrawalState = _state;
+        assert(
+            tokenBridges[_neoXTokenAddress].withdrawalState.nonce < _state.nonce
+        );
+        tokenBridges[_neoXTokenAddress].withdrawalState = _state;
     }
 
     function _getTokenClaimable(
-        uint256 _id,
+        address _neoXTokenAddress,
         uint256 _nonce
     ) internal view returns (StorageTypes.Claimable memory) {
-        return tokenClaimables[_id][_nonce];
+        return tokenClaimables[_neoXTokenAddress][_nonce];
     }
 
     function _addTokenClaimable(
-        uint256 _id,
+        address _neoXTokenAddress,
         uint256 _nonce,
         uint256 _amount,
         address _to
     ) internal {
-        tokenClaimables[_id][_nonce] = StorageTypes.Claimable({
+        tokenClaimables[_neoXTokenAddress][_nonce] = StorageTypes.Claimable({
             to: _to,
             amount: _amount
         });
     }
 
-    function _deleteTokenClaimable(uint256 _id, uint256 _nonce) internal {
-        delete tokenClaimables[_id][_nonce];
+    function _deleteTokenClaimable(
+        address _neoXTokenAddress,
+        uint256 _nonce
+    ) internal {
+        delete tokenClaimables[_neoXTokenAddress][_nonce];
     }
 
     // Upgrade authorization

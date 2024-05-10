@@ -56,7 +56,7 @@ library StorageTypes {
     }
 
     struct TokenConfig {
-        address contractAddress;
+        address neoN3TokenAddress;
         uint256 minAmount;
         uint256 maxAmount;
     }

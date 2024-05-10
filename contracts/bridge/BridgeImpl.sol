@@ -187,66 +187,81 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
 
     /**
      * @notice Register a new token bridge.
-     * @param _id an identifier that is unique to the token bridge.
+     * @param _neoXTokenAddress the address of the token on the Neo X network.
      * @param _tokenType the type of token that is being registered.
      * @param _tokenConfig the configuration of the token bridge.
      */
     function registerToken(
-        uint256 _id,
+        address _neoXTokenAddress,
         StorageTypes.TokenType _tokenType,
         StorageTypes.TokenConfig calldata _tokenConfig
     ) external override {
-        _registerToken(_id, _tokenType, _tokenConfig);
-        emit TokenRegister(_id, _tokenType, _tokenConfig);
+        if (_neoXTokenAddress == address(0)) revert InvalidTokenAddress();
+        if (_tokenConfig.minAmount > _tokenConfig.maxAmount)
+            revert InvalidAmount();
+        if (_tokenConfig.neoN3TokenAddress == address(0))
+            revert InvalidAddress();
+
+        _registerToken(_neoXTokenAddress, _tokenType, _tokenConfig);
+        emit TokenRegister(_neoXTokenAddress, _tokenType, _tokenConfig);
     }
 
     /**
      * @notice Unregister a token bridge.
-     * @param _id the identifier of the token bridge.
+     * @param _neoXTokenAddress the address of the token on the Neo X network.
      */
     function unregisterToken(
-        uint256 _id
-    ) external override onlyGovernor tokenLocked(_id) {
-        _unregisterToken(_id);
-        emit TokenUnregister(_id);
+        address _neoXTokenAddress
+    ) external override onlyGovernor tokenLocked(_neoXTokenAddress) {
+        _unregisterToken(_neoXTokenAddress);
+        emit TokenUnregister(
+            _neoXTokenAddress,
+            _getNeoN3TokenAddress(_neoXTokenAddress)
+        );
     }
 
     /**
      * @notice Lock a token bridge. No deposits, withdrawals, or claims of a token bridge can be made while it is locked.
-     * @param _id the identifier of the token bridge.
+     * @param _neoXTokenAddress the address of the token on the Neo X network.
      */
     function lockToken(
-        uint256 _id
-    ) external override tokenUnlocked(_id) onlyGovernor {
-        _lockToken(_id);
-        emit TokenLock(_id);
+        address _neoXTokenAddress
+    ) external override tokenUnlocked(_neoXTokenAddress) onlyGovernor {
+        _lockToken(_neoXTokenAddress);
+        emit TokenLock(
+            _neoXTokenAddress,
+            _getNeoN3TokenAddress(_neoXTokenAddress)
+        );
     }
 
     /**
      * @notice Unlock a token bridge. Deposits, withdrawals, or claims of a token bridge can only be made while it is unlocked.
-     * @param _id the identifier of the token bridge.
+     * @param _neoXTokenAddress the address of the token on the Neo X network.
      */
     function unlockToken(
-        uint256 _id
-    ) external override tokenLocked(_id) onlyGovernor {
-        _unlockToken(_id);
-        emit TokenUnlock(_id);
+        address _neoXTokenAddress
+    ) external override tokenLocked(_neoXTokenAddress) onlyGovernor {
+        _unlockToken(_neoXTokenAddress);
+        emit TokenUnlock(
+            _neoXTokenAddress,
+            _getNeoN3TokenAddress(_neoXTokenAddress)
+        );
     }
 
     function setTokenWithdrawalMinAmount(
-        uint256 _id,
+        address _neoXTokenAddress,
         uint256 _minAmount
     ) external override onlyGovernor {
-        _setTokenMinWithdrawalAmount(_id, _minAmount);
-        emit TokenMinWithdrawalAmountChange(_id, _minAmount);
+        _setTokenMinWithdrawalAmount(_neoXTokenAddress, _minAmount);
+        emit TokenMinWithdrawalAmountChange(_neoXTokenAddress, _minAmount);
     }
 
     function setTokenWithdrawalMaxAmount(
-        uint256 _id,
+        address _neoXTokenAddress,
         uint256 _maxAmount
     ) external override onlyGovernor {
-        _setTokenMaxWithdrawalAmount(_id, _maxAmount);
-        emit TokenMaxWithdrawalAmountChange(_id, _maxAmount);
+        _setTokenMaxWithdrawalAmount(_neoXTokenAddress, _maxAmount);
+        emit TokenMaxWithdrawalAmountChange(_neoXTokenAddress, _maxAmount);
     }
 
     function setTokenTypeConfig(
@@ -258,13 +273,15 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     }
 
     function depositToken(
-        uint256 _id,
+        address _neoXTokenAddress,
         BridgeLib.DepositData[] calldata _deposits,
         bytes32 _tokenDepositRoot,
         BridgeLib.Signature[] calldata _signatures
-    ) external override tokenUnlocked(_id) nonReentrant {
-        StorageTypes.State memory depositState = _getTokenDepositState(_id);
-        StorageTypes.TokenType tokenType = _getTokenType(_id);
+    ) external override tokenUnlocked(_neoXTokenAddress) nonReentrant {
+        StorageTypes.State memory depositState = _getTokenDepositState(
+            _neoXTokenAddress
+        );
+        StorageTypes.TokenType tokenType = _getTokenType(_neoXTokenAddress);
         StorageTypes.TokenTypeConfig
             memory tokenTypeConfig = _getTokenTypeConfig(tokenType);
 
@@ -280,7 +297,8 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         if (
             TokenBridgeLib._computeNewTopRoot(
                 depositState.root,
-                _id,
+                _getNeoN3TokenAddress(_neoXTokenAddress),
+                _neoXTokenAddress,
                 _deposits
             ) != _tokenDepositRoot
         ) revert InvalidRoot();
@@ -294,7 +312,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
 
         // Update the token's deposit state
         _setTokenDepositState(
-            _id,
+            _neoXTokenAddress,
             StorageTypes.State({
                 nonce: _deposits[depositLength - 1].nonce,
                 root: _tokenDepositRoot
@@ -302,16 +320,15 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         );
 
         // Execute the token distribution
-        _executeTokenDistribution(_id, tokenType, _deposits);
+        _executeTokenDistribution(_neoXTokenAddress, tokenType, _deposits);
     }
 
     function _executeTokenDistribution(
-        uint256 _id,
+        address _neoXTokenAddress,
         StorageTypes.TokenType _tokenType,
         BridgeLib.DepositData[] calldata _deposits
     ) private {
         uint depositLength = _deposits.length;
-        address contractAddress = _getTokenConfig(_id).contractAddress;
         // Execute the token distribution for each deposit entry
         for (uint i = 0; i < depositLength; i++) {
             BridgeLib.DepositData calldata depositEntry = _deposits[i];
@@ -319,7 +336,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
             bool success = false;
             if (_tokenType == StorageTypes.TokenType.ERC20Capped) {
                 // Execute the token distribution for ERC20Capped tokens
-                IERC20 tokenContract = IERC20(contractAddress);
+                IERC20 tokenContract = IERC20(_neoXTokenAddress);
                 success = _executeERC20CappedTransfer(
                     tokenContract,
                     depositEntry.amount,
@@ -332,7 +349,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
             }
             _emitTransferEventOrAddNewTokenClaimable(
                 success,
-                _id,
+                _neoXTokenAddress,
                 depositEntry.nonce,
                 depositEntry.amount,
                 to
@@ -341,20 +358,21 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     }
 
     function claimToken(
-        uint256 _id,
+        address _neoXTokenAddress,
         uint256 _nonce
     ) external override nonReentrant {
         StorageTypes.Claimable memory claimable = _getTokenClaimable(
-            _id,
+            _neoXTokenAddress,
             _nonce
         );
         // Check if the claimable exists.
         if (claimable.to == address(0)) revert NonexistentClaimable();
-        _deleteTokenClaimable(_id, _nonce);
-        StorageTypes.TokenConfig memory config = _getTokenConfig(_id);
-        address contractAddress = config.contractAddress;
-        if (_getTokenType(_id) == StorageTypes.TokenType.ERC20Capped) {
-            IERC20 tokenContract = IERC20(contractAddress);
+        _deleteTokenClaimable(_neoXTokenAddress, _nonce);
+        if (
+            _getTokenType(_neoXTokenAddress) ==
+            StorageTypes.TokenType.ERC20Capped
+        ) {
+            IERC20 tokenContract = IERC20(_neoXTokenAddress);
             _executeERC20CappedTransfer(
                 tokenContract,
                 claimable.amount,
@@ -367,16 +385,16 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
 
     function _emitTransferEventOrAddNewTokenClaimable(
         bool _success,
-        uint256 _id,
+        address _neoXTokenAddress,
         uint256 _nonce,
         uint256 _amount,
         address _to
     ) private {
         if (_success) {
-            emit TokenDeposit(_id, _nonce, _amount, _to);
+            emit TokenDeposit(_neoXTokenAddress, _nonce, _amount, _to);
         } else {
-            _addTokenClaimable(_id, _nonce, _amount, _to);
-            emit TokenClaimable(_id, _nonce, _amount, _to);
+            _addTokenClaimable(_neoXTokenAddress, _nonce, _amount, _to);
+            emit TokenClaimable(_neoXTokenAddress, _nonce, _amount, _to);
         }
     }
 
@@ -398,30 +416,33 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         uint256 _amount,
         address _to
     ) external payable override {
-        // Get the token identifier based on the message sender.
-        uint256 id = _getTokenId(msg.sender);
-        StorageTypes.TokenConfig memory config = _getTokenConfig(id);
-        assert(config.contractAddress == msg.sender);
+        address tokenAddress = msg.sender;
+        if (_isRegisteredToken(tokenAddress))
+            revert TokenBridgeNotRegistered(tokenAddress);
+        StorageTypes.TokenConfig memory config = _getTokenConfig(tokenAddress);
         if (_amount < config.minAmount) revert InvalidAmount();
         if (_amount > config.maxAmount) revert InvalidAmount();
 
-        uint256 fee = _getWithdrawalFee(id);
+        uint256 fee = _getWithdrawalFee(tokenAddress);
         if (msg.value < fee) revert InsufficientFee(msg.value, fee);
 
         // Compute the new root and update the token withdrawal state.
-        StorageTypes.State memory state = _getTokenWithdrawalState(id);
+        StorageTypes.State memory state = _getTokenWithdrawalState(
+            tokenAddress
+        );
         uint256 newNonce = state.nonce + 1;
         bytes32 withdrawalHash = TokenBridgeLib._hashTokenBridgeOp(
-            id,
+            config.neoN3TokenAddress,
+            tokenAddress,
             newNonce,
             _amount,
             _to
         );
         bytes32 newRoot = BridgeLib._computeNewRoot(state.root, withdrawalHash);
         _setTokenWithdrawalState(
-            id,
+            tokenAddress,
             StorageTypes.State({nonce: newNonce, root: newRoot})
         );
-        emit TokenWithdrawal(id, state.nonce, _amount, _to);
+        emit TokenWithdrawal(tokenAddress, state.nonce, _amount, _to);
     }
 }
