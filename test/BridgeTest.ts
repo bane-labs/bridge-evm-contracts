@@ -692,33 +692,39 @@ describe("Bridge Implementation", function () {
         it("Lock with SecurityGuard Account and Unlock with Governor", async function () {
             const { bridgeContract, validator1, governor, securityGuard } = await loadFixture(deployBridgeFixture);
 
-            await bridgeContract.connect(securityGuard).lock();
-            expect(await bridgeContract.locked()).to.equal(true);
+            await bridgeContract.connect(securityGuard).lockBridge();
+            expect(await bridgeContract.bridgeLocked()).to.equal(true);
 
             // unlock with the governor
-            await expect(bridgeContract.connect(validator1).unlock()).to.be.revertedWith("not governor");
-            await bridgeContract.connect(governor).unlock();
-            expect(await bridgeContract.locked()).to.equal(false);
+            await expect(bridgeContract.connect(validator1).unlockBridge()).to.be.revertedWith("not governor");
+            await bridgeContract.connect(governor).unlockBridge();
+            expect(await bridgeContract.bridgeLocked()).to.equal(false);
         });
 
-        it("Cannot unlock if already unlocked", async function () {
+        it("Cannot unlock contract if it's already unlocked", async function () {
             const { bridgeContract, governor } = await loadFixture(deployBridgeFixture);
-            await expect(bridgeContract.connect(governor).unlock()).to.be.revertedWith("already unlocked");
+            await expect(bridgeContract.connect(governor).unlockBridge()).to.be.revertedWithCustomError(bridgeContract, "BridgeUnlocked");
         });
 
-        it("Cannot deposit, claim, withdraw or lock if contract is locked", async function () {
+        it("Cannot lock contract if it's locked", async function () {
+            const { bridgeContract, securityGuard } = await loadFixture(deployBridgeFixture);
+            await expect(bridgeContract.connect(securityGuard).lockBridge()).to.emit(bridgeContract, "BridgeLock");
+            await expect(bridgeContract.connect(securityGuard).lockBridge()).to.be.revertedWithCustomError(bridgeContract, "BridgeLocked");
+        });
+
+        it("Cannot deposit, claim or withdraw Gas if contract is locked", async function () {
             const { bridgeContract, relayer, securityGuard } = await loadFixture(deployBridgeFixture);
-            await bridgeContract.connect(securityGuard).lock()
+            await bridgeContract.connect(securityGuard).lockBridge()
 
             const hashDepositData1 = await hashDepositOrWithdrawal(Depositdata1.nonce, Depositdata1.amount, Depositdata1.to);
             const root1 = await computeRoot(ethers.ZeroHash, hashDepositData1);
             const encodeRoot1 = ethers.solidityPackedKeccak256(["bytes32"], [root1]);
             const signatures = await getValidatorSignatures(ethers.getBytes(encodeRoot1), [1, 2, 3, 4, 5]);
-            await expect(bridgeContract.connect(relayer).depositGas(root1, signatures, [Depositdata1])).to.be.revertedWith("contract locked");
-            await expect(bridgeContract.connect(relayer).claimGas(Depositdata1.nonce)).to.be.revertedWith("contract locked");
+            await expect(bridgeContract.connect(relayer).depositGas(root1, signatures, [Depositdata1])).to.be.revertedWithCustomError(bridgeContract, "BridgeLocked");
+            await expect(bridgeContract.connect(relayer).claimGas(Depositdata1.nonce)).to.be.revertedWithCustomError(bridgeContract, "BridgeLocked");
             const withdrawData = { nonce: 1, amount: ethers.parseEther("1"), to: relayer.address };
-            await expect(bridgeContract.connect(relayer).withdrawGas(withdrawData.to, { value: withdrawData.amount })).to.be.revertedWith("contract locked");
-            await expect(bridgeContract.connect(securityGuard).lock()).to.be.revertedWith("contract locked");
+            await expect(bridgeContract.connect(relayer).withdrawGas(withdrawData.to, { value: withdrawData.amount })).to.be.revertedWithCustomError(bridgeContract, "BridgeLocked");
+            await expect(bridgeContract.connect(securityGuard).lockBridge()).to.be.revertedWithCustomError(bridgeContract, "BridgeLocked");
         });
     });
 });

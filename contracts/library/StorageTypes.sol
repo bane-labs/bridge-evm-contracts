@@ -31,6 +31,7 @@ library StorageTypes {
         uint256 minAmount;
         uint256 maxAmount;
         uint8 maxDepositsPerDistribution;
+        bool locked;
         uint256[2] gap; // not needed
     }
 

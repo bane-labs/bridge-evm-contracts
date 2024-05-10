@@ -18,7 +18,7 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
 
     // General Bridge Parameters
     IBridgeManagement public management;
-    bool public locked;
+    bool public bridgeLocked;
     // Gas Bridge
     StorageTypes.GasBridge public gasBridge;
     mapping(uint256 => StorageTypes.Claimable) public claimableGas;
@@ -42,11 +42,16 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
                 minAmount: 1e18,
                 maxAmount: 1e22,
                 maxDepositsPerDistribution: 100,
+                locked: false,
                 gap: [uint256(0), uint256(0)]
             })
         });
     }
 
+    error BridgeLocked();
+    error BridgeUnlocked();
+    error GasBridgeLocked();
+    error GasBridgeUnlocked();
     error InsufficientFee(uint256 provided, uint256 minExpected);
     error InvalidAddress();
     error InvalidAmount();
@@ -58,6 +63,8 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
     error InvalidValidatorSignatures();
     error NonexistentClaimable();
     error TokenBridgeAlreadyRegistered(address neoXTokenAddress);
+    error TokenBridgeLocked(address neoXTokenAddress);
+    error TokenBridgeUnlocked(address neoXTokenAddress);
     error TokenBridgeNotRegistered(address neoXTokenAddress);
     error TokenWithdrawalFailed();
     error TransferFailed();
@@ -87,29 +94,44 @@ contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
         _;
     }
 
-    modifier unlocked() {
-        require(!locked, "contract locked");
+    modifier onlyBridgeUnlocked() {
+        if (bridgeLocked) revert BridgeLocked();
         _;
     }
 
-    modifier tokenUnlocked(address _neoXTokenAddress) {
-        require(!tokenBridges[_neoXTokenAddress].locked, "token locked");
+    modifier onlyBridgeLocked() {
+        if (!bridgeLocked) revert BridgeUnlocked();
         _;
     }
 
-    modifier tokenLocked(address _neoXTokenAddress) {
-        require(tokenBridges[_neoXTokenAddress].locked, "token unlocked");
+    modifier onlyGasBridgeUnlocked() {
+        if (gasBridge.config.locked) revert GasBridgeLocked();
         _;
     }
 
-    function _lock() internal {
-        require(!locked, "already locked");
-        locked = true;
+    modifier onlyGasBridgeLocked() {
+        if (!gasBridge.config.locked) revert GasBridgeUnlocked();
+        _;
     }
 
-    function _unlock() internal {
-        require(locked, "already unlocked");
-        locked = false;
+    modifier onlyTokenBridgeUnlocked(address _neoXTokenAddress) {
+        if (tokenBridges[_neoXTokenAddress].locked)
+            revert TokenBridgeLocked(_neoXTokenAddress);
+        _;
+    }
+
+    modifier onlyTokenBridgeLocked(address _neoXTokenAddress) {
+        if (!tokenBridges[_neoXTokenAddress].locked)
+            revert TokenBridgeUnlocked(_neoXTokenAddress);
+        _;
+    }
+
+    function _lockBridge() internal {
+        bridgeLocked = true;
+    }
+
+    function _unlockBridge() internal {
+        bridgeLocked = false;
     }
 
     function _addClaimableGas(

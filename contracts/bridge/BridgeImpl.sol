@@ -35,7 +35,13 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         bytes32 _depositRoot,
         BridgeLib.Signature[] calldata _signatures,
         BridgeLib.DepositData[] calldata _deposits
-    ) external onlyRelayer unlocked nonReentrant {
+    )
+        external
+        onlyRelayer
+        onlyBridgeUnlocked
+        onlyGasBridgeUnlocked
+        nonReentrant
+    {
         StorageTypes.State memory state = _getGasBridgeDepositState();
         StorageTypes.GasConfig memory config = _getGasBridgeConfig();
         uint depositLength = _deposits.length;
@@ -101,7 +107,9 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     }
 
     // Anyone can execute a claim. The funds of a claimable will be sent to the defined address in the claimableTo mapping.
-    function claimGas(uint256 _nonce) external unlocked nonReentrant {
+    function claimGas(
+        uint256 _nonce
+    ) external onlyBridgeUnlocked onlyGasBridgeUnlocked nonReentrant {
         StorageTypes.Claimable memory claimable = _getGasClaimable(_nonce);
         uint256 amount = claimable.amount;
         address to = claimable.to;
@@ -115,7 +123,9 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         emit GasClaim(_nonce, amount, to);
     }
 
-    function withdrawGas(address _to) external payable unlocked {
+    function withdrawGas(
+        address _to
+    ) external payable onlyBridgeUnlocked onlyGasBridgeUnlocked {
         if (_to == address(0)) revert InvalidAddress();
         if ((msg.value % 1e10) != 0) revert InvalidAmount();
         StorageTypes.GasConfig memory config = _getGasBridgeConfig();
@@ -149,14 +159,14 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
 
     // Contract Locking
 
-    function lock() external onlySecurityGuard unlocked {
-        _lock();
-        emit Unlock();
+    function lockBridge() external onlySecurityGuard onlyBridgeUnlocked {
+        _lockBridge();
+        emit BridgeLock();
     }
 
-    function unlock() external onlyGovernor {
-        _unlock();
-        emit Lock();
+    function unlockBridge() external onlyGovernor onlyBridgeLocked {
+        _unlockBridge();
+        emit BridgeUnlock();
     }
 
     // Bridge Parameter Setters
@@ -212,7 +222,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
      */
     function unregisterToken(
         address _neoXTokenAddress
-    ) external override onlyGovernor tokenLocked(_neoXTokenAddress) {
+    ) external override onlyGovernor onlyTokenBridgeLocked(_neoXTokenAddress) {
         _unregisterToken(_neoXTokenAddress);
         emit TokenUnregister(
             _neoXTokenAddress,
@@ -226,7 +236,12 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
      */
     function lockToken(
         address _neoXTokenAddress
-    ) external override tokenUnlocked(_neoXTokenAddress) onlyGovernor {
+    )
+        external
+        override
+        onlyTokenBridgeUnlocked(_neoXTokenAddress)
+        onlyGovernor
+    {
         _lockToken(_neoXTokenAddress);
         emit TokenLock(
             _neoXTokenAddress,
@@ -240,7 +255,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
      */
     function unlockToken(
         address _neoXTokenAddress
-    ) external override tokenLocked(_neoXTokenAddress) onlyGovernor {
+    ) external override onlyTokenBridgeLocked(_neoXTokenAddress) onlyGovernor {
         _unlockToken(_neoXTokenAddress);
         emit TokenUnlock(
             _neoXTokenAddress,
@@ -277,7 +292,13 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         BridgeLib.DepositData[] calldata _deposits,
         bytes32 _tokenDepositRoot,
         BridgeLib.Signature[] calldata _signatures
-    ) external override tokenUnlocked(_neoXTokenAddress) nonReentrant {
+    )
+        external
+        override
+        onlyBridgeUnlocked
+        onlyTokenBridgeUnlocked(_neoXTokenAddress)
+        nonReentrant
+    {
         StorageTypes.State memory depositState = _getTokenDepositState(
             _neoXTokenAddress
         );
@@ -360,7 +381,13 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     function claimToken(
         address _neoXTokenAddress,
         uint256 _nonce
-    ) external override nonReentrant {
+    )
+        external
+        override
+        onlyBridgeUnlocked
+        onlyTokenBridgeUnlocked(_neoXTokenAddress)
+        nonReentrant
+    {
         StorageTypes.Claimable memory claimable = _getTokenClaimable(
             _neoXTokenAddress,
             _nonce
@@ -415,7 +442,13 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     function withdrawToken(
         uint256 _amount,
         address _to
-    ) external payable override {
+    )
+        external
+        payable
+        override
+        onlyBridgeUnlocked
+        onlyTokenBridgeUnlocked(msg.sender)
+    {
         address tokenAddress = msg.sender;
         if (_isRegisteredToken(tokenAddress))
             revert TokenBridgeNotRegistered(tokenAddress);
