@@ -6,12 +6,19 @@ import "../interfaces/IBridge.sol";
 import "../interfaces/IGasBridge.sol";
 import "../interfaces/ITokenBridge.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * When generating the bytecode for genesis script:
  * - set initial storage values in BridgeStorage.sol
  */
-contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
+contract BridgeImpl is
+    BridgeStorage,
+    ReentrancyGuard,
+    IBridge,
+    IGasBridge,
+    ITokenBridge
+{
     receive() external payable onlyFunder {
         emit Fund(msg.value);
     }

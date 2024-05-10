@@ -6,10 +6,9 @@ import "../library/BridgeLib.sol";
 import "../library/GasBridgeLib.sol";
 import "../library/StorageTypes.sol";
 import "../library/TokenBridgeLib.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract BridgeStorage is UUPSUpgradeable, ReentrancyGuard {
+contract BridgeStorage is UUPSUpgradeable {
     address public constant SELF = 0x1212100000000000000000000000000000000004;
     address public constant GOV_ADMIN =
         0x1212000000000000000000000000000000000000;
