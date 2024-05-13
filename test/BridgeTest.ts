@@ -380,7 +380,7 @@ describe("Bridge Implementation", function () {
             }
         });
 
-        //TODO: This needs to be discussed whether revert or not
+        // Depositing to the zero address is disallowed on the source chain, but the bridge contract should handle it as a normal deposit if it were to be allowed.
         it("Deposit When Recipient Address is Zero Address", async function () {
             const { bridgeContract, relayer } = await loadFixture(deployBridgeFixture);
 

@@ -106,7 +106,6 @@ contract BridgeImpl is
     function _executeGasTransfers(
         BridgeLib.DepositData[] calldata _deposits
     ) private {
-        // Once this is reached, execute the deposits
         uint depositLength = _deposits.length;
         for (uint i = 0; i < depositLength; i++) {
             BridgeLib.DepositData calldata depositEntry = _deposits[i];
@@ -118,7 +117,6 @@ contract BridgeImpl is
                 uint256 sendValue = GasBridgeLib._addTenDecimals(
                     depositEntry.amount
                 );
-                // Todo: Verify that this call works as expected, i.e., the funds have not been sent if it returns false.
                 (bool success, ) = to.call{value: sendValue}("");
                 if (success) {
                     emit GasDeposit(
