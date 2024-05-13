@@ -90,10 +90,10 @@ interface ITokenBridge {
     ) external;
 
     function depositToken(
-        address neoXToken,
-        BridgeLib.DepositData[] calldata deposits,
-        bytes32 depositRoot,
-        BridgeLib.Signature[] calldata signatures
+        address _neoXToken,
+        bytes32 _tokenDepositRoot,
+        BridgeLib.Signature[] calldata _signatures,
+        BridgeLib.DepositData[] calldata _deposits
     ) external;
 
     function claimToken(address neoXToken, uint256 nonce) external;

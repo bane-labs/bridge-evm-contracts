@@ -290,9 +290,9 @@ contract BridgeImpl is
 
     function depositToken(
         address _neoXToken,
-        BridgeLib.DepositData[] calldata _deposits,
         bytes32 _tokenDepositRoot,
-        BridgeLib.Signature[] calldata _signatures
+        BridgeLib.Signature[] calldata _signatures,
+        BridgeLib.DepositData[] calldata _deposits
     )
         external
         override
