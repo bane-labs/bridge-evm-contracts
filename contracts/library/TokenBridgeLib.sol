@@ -10,14 +10,14 @@ library TokenBridgeLib {
      * to its corresponding chain and to restrict any replay attack vectors. The final top root is returned.
      *
      * @param _previousRoot the previous top root.
-     * @param _neoN3TokenAddress the address of the token on the Neo N3 network.
-     * @param _neoXTokenAddress the address of the token on the Neo X network.
+     * @param _neoN3Token the address of the token on the Neo N3 network.
+     * @param _neoXToken the address of the token on the Neo X network.
      * @param _deposits the deposits' data to be hashed and chained.
      */
     function _computeNewTopRoot(
         bytes32 _previousRoot,
-        address _neoN3TokenAddress,
-        address _neoXTokenAddress,
+        address _neoN3Token,
+        address _neoXToken,
         BridgeLib.DepositData[] calldata _deposits
     ) internal pure returns (bytes32) {
         bytes32 parent = _previousRoot;
@@ -25,8 +25,8 @@ library TokenBridgeLib {
         for (uint i = 0; i < depositsLength; i++) {
             BridgeLib.DepositData calldata depositData = _deposits[i];
             bytes32 depositHash = _hashTokenBridgeOp(
-                _neoN3TokenAddress,
-                _neoXTokenAddress,
+                _neoN3Token,
+                _neoXToken,
                 depositData.nonce,
                 depositData.amount,
                 depositData.to
@@ -39,28 +39,22 @@ library TokenBridgeLib {
     /**
      * @dev Hashes the token bridge operation.
      *
-     * @param _neoN3TokenAddress The address of the token on the Neo N3 network.
-     * @param _neoXTokenAddress The address of the token on the Neo X network.
+     * @param _neoN3Token The address of the token on the Neo N3 network.
+     * @param _neoXToken The address of the token on the Neo X network.
      * @param _nonce The nonce of the operation.
      * @param _value The value of the operation.
      * @param _to The address of the recipient.
      */
     function _hashTokenBridgeOp(
-        address _neoN3TokenAddress,
-        address _neoXTokenAddress,
+        address _neoN3Token,
+        address _neoXToken,
         uint256 _nonce,
         uint256 _value,
         address _to
     ) internal pure returns (bytes32) {
         return
             sha256(
-                abi.encodePacked(
-                    _neoN3TokenAddress,
-                    _neoXTokenAddress,
-                    _nonce,
-                    _value,
-                    _to
-                )
+                abi.encodePacked(_neoN3Token, _neoXToken, _nonce, _value, _to)
             );
     }
 }
