@@ -17,7 +17,7 @@ contract BridgeStorage is UUPSUpgradeable {
 
     // General Bridge Parameters
     IBridgeManagement public management;
-    bool public bridgeLocked;
+    bool public bridgePaused;
     // Gas Bridge
     StorageTypes.GasBridge public gasBridge;
     mapping(uint256 => StorageTypes.Claimable) public claimableGas;
@@ -39,16 +39,16 @@ contract BridgeStorage is UUPSUpgradeable {
                 minAmount: 1e18,
                 maxAmount: 1e22,
                 maxDeposits: 100,
-                locked: false,
+                paused: false,
                 gap: [uint256(0), uint256(0)]
             })
         });
     }
 
-    error BridgeLocked();
-    error BridgeUnlocked();
-    error GasBridgeLocked();
-    error GasBridgeUnlocked();
+    error BridgePaused();
+    error BridgeUnpaused();
+    error GasBridgePaused();
+    error GasBridgeUnpaused();
     error InsufficientFee(uint256 provided, uint256 minExpected);
     error InvalidAddress();
     error InvalidAmount();
@@ -59,11 +59,12 @@ contract BridgeStorage is UUPSUpgradeable {
     error InvalidNonceSequence();
     error InvalidRoot();
     error InvalidValidatorSignatures();
+    error LengthMismatch();
     error NonexistentClaimable();
-    error TokenBridgeAlreadyRegistered(address neoXTokenAddress);
-    error TokenBridgeLocked(address neoXTokenAddress);
-    error TokenBridgeUnlocked(address neoXTokenAddress);
-    error TokenBridgeNotRegistered(address neoXTokenAddress);
+    error TokenBridgeAlreadyRegistered(address neoXToken);
+    error TokenBridgePaused(address neoXToken);
+    error TokenBridgeUnpaused(address neoXToken);
+    error TokenBridgeNotRegistered(address neoXToken);
     error TokenWithdrawalFailed();
     error TransferFailed();
 
@@ -92,44 +93,52 @@ contract BridgeStorage is UUPSUpgradeable {
         _;
     }
 
-    modifier onlyBridgeUnlocked() {
-        if (bridgeLocked) revert BridgeLocked();
+    modifier onlyBridgeUnpaused() {
+        if (bridgePaused) revert BridgePaused();
         _;
     }
 
-    modifier onlyBridgeLocked() {
-        if (!bridgeLocked) revert BridgeUnlocked();
+    modifier onlyBridgePaused() {
+        if (!bridgePaused) revert BridgeUnpaused();
         _;
     }
 
-    modifier onlyGasBridgeUnlocked() {
-        if (gasBridge.config.locked) revert GasBridgeLocked();
+    modifier onlyGasBridgeUnpaused() {
+        if (gasBridge.config.paused) revert GasBridgePaused();
         _;
     }
 
-    modifier onlyGasBridgeLocked() {
-        if (!gasBridge.config.locked) revert GasBridgeUnlocked();
+    modifier onlyGasBridgePaused() {
+        if (!gasBridge.config.paused) revert GasBridgeUnpaused();
         _;
     }
 
-    modifier onlyTokenBridgeUnlocked(address _neoXToken) {
-        if (tokenBridges[_neoXToken].locked)
-            revert TokenBridgeLocked(_neoXToken);
+    modifier onlyTokenBridgeUnpaused(address _neoXToken) {
+        if (tokenBridges[_neoXToken].paused)
+            revert TokenBridgePaused(_neoXToken);
         _;
     }
 
-    modifier onlyTokenBridgeLocked(address _neoXToken) {
-        if (!tokenBridges[_neoXToken].locked)
-            revert TokenBridgeUnlocked(_neoXToken);
+    modifier onlyTokenBridgePaused(address _neoXToken) {
+        if (!tokenBridges[_neoXToken].paused)
+            revert TokenBridgeUnpaused(_neoXToken);
         _;
     }
 
-    function _lockBridge() internal {
-        bridgeLocked = true;
+    function _pauseBridge() internal {
+        bridgePaused = true;
     }
 
-    function _unlockBridge() internal {
-        bridgeLocked = false;
+    function _unpauseBridge() internal {
+        bridgePaused = false;
+    }
+
+    function _pauseGasBridge() internal {
+        gasBridge.config.paused = true;
+    }
+
+    function _unpauseGasBridge() internal {
+        gasBridge.config.paused = false;
     }
 
     function _addClaimableGas(
@@ -225,7 +234,7 @@ contract BridgeStorage is UUPSUpgradeable {
 
         // Add token bridge to storage
         tokenBridges[_neoXToken] = StorageTypes.TokenBridge({
-            locked: false,
+            paused: false,
             depositState: StorageTypes.State({nonce: 0, root: 0x0}),
             withdrawalState: StorageTypes.State({nonce: 0, root: 0x0}),
             config: _tokenConfig
@@ -246,16 +255,16 @@ contract BridgeStorage is UUPSUpgradeable {
         // This means, that they are locked, and can only ever be retrieved again if there's a new token bridge registration with the same Neo X token address.
     }
 
-    function _lockToken(address _neoXToken) internal {
+    function _pauseToken(address _neoXToken) internal {
         if ((!_isRegisteredToken(_neoXToken)))
             revert TokenBridgeNotRegistered(_neoXToken);
-        tokenBridges[_neoXToken].locked = true;
+        tokenBridges[_neoXToken].paused = true;
     }
 
-    function _unlockToken(address _neoXToken) internal {
+    function _unpauseToken(address _neoXToken) internal {
         if ((!_isRegisteredToken(_neoXToken)))
             revert TokenBridgeNotRegistered(_neoXToken);
-        tokenBridges[_neoXToken].locked = false;
+        tokenBridges[_neoXToken].paused = false;
     }
 
     function _setTokenMinWithdrawalAmount(

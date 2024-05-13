@@ -4,7 +4,8 @@ pragma solidity ^0.8.24;
 import "../library/BridgeLib.sol";
 
 interface IGasBridge {
-    // Gas-related events
+    event GasBridgePause();
+    event GasBridgeUnpause();
     event GasDeposit(uint256 nonce, uint256 amount, address to);
     event GasClaimable(uint256 nonce, uint256 amount, address to);
     event GasClaim(uint256 nonce, uint256 amount, address to);
@@ -21,7 +22,9 @@ interface IGasBridge {
     event MaxGasWithdrawalChange(uint256 amount);
     event MaxGasDepositsChange(uint8 amount);
 
-    // Gas-related functions
+    function pauseGasBridge() external;
+
+    function unpauseGasBridge() external;
 
     function depositGas(
         bytes32 _depositRoot,

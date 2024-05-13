@@ -6,13 +6,13 @@ import "../library/BridgeLib.sol";
 interface IBridge {
     // General bridge events
 
-    event BridgeLock();
-    event BridgeUnlock();
+    event BridgePause();
+    event BridgeUnpause();
     event Fund(uint256 amount);
 
     // General bridge functions
 
-    function lockBridge() external;
+    function pauseBridge() external;
 
-    function unlockBridge() external;
+    function unpauseBridge() external;
 }

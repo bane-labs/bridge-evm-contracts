@@ -5,7 +5,6 @@ import "../library/BridgeLib.sol";
 import "../library/StorageTypes.sol";
 
 interface ITokenBridge {
-    // Token bridge events
     event TokenRegister(
         address indexed neoXToken,
         StorageTypes.TokenConfig tokenConfig
@@ -14,24 +13,9 @@ interface ITokenBridge {
         address indexed neoXToken,
         address indexed neoN3Token
     );
-    event TokenLock(address indexed neoXToken, address indexed neoN3Token);
-    event TokenUnlock(address indexed neoXToken, address indexed neoN3Token);
-    event MinTokenWithdrawalAmountChange(
-        address indexed neoXToken,
-        uint256 minAmount
-    );
-    event MaxTokenWithdrawalAmountChange(
-        address indexed neoXToken,
-        uint256 maxAmount
-    );
-    event TokenWithdrawalFeeChange(address indexed neoXToken, uint256 fee);
+    event TokenPause(address indexed neoXToken, address indexed neoN3Token);
+    event TokenUnpause(address indexed neoXToken, address indexed neoN3Token);
     event TokenDeposit(
-        address indexed neoXToken,
-        uint256 indexed nonce,
-        uint256 amount,
-        address indexed to
-    );
-    event TokenWithdrawal(
         address indexed neoXToken,
         uint256 indexed nonce,
         uint256 amount,
@@ -49,8 +33,21 @@ interface ITokenBridge {
         uint256 amount,
         address indexed to
     );
-
-    // Token bridge functions
+    event TokenWithdrawal(
+        address indexed neoXToken,
+        uint256 indexed nonce,
+        uint256 amount,
+        address indexed to
+    );
+    event MinTokenWithdrawalAmountChange(
+        address indexed neoXToken,
+        uint256 minAmount
+    );
+    event MaxTokenWithdrawalAmountChange(
+        address indexed neoXToken,
+        uint256 maxAmount
+    );
+    event TokenWithdrawalFeeChange(address indexed neoXToken, uint256 fee);
 
     function registerToken(
         address _neoXToken,
@@ -59,9 +56,20 @@ interface ITokenBridge {
 
     function unregisterToken(address neoXToken) external;
 
-    function lockToken(address neoXToken) external;
+    function pauseTokenBridge(address neoXToken) external;
 
-    function unlockToken(address neoXToken) external;
+    function unpauseTokenBridge(address neoXToken) external;
+
+    function depositToken(
+        address _neoXToken,
+        bytes32 _tokenDepositRoot,
+        BridgeLib.Signature[] calldata _signatures,
+        BridgeLib.DepositData[] calldata _deposits
+    ) external;
+
+    function claimToken(address neoXToken, uint256 nonce) external;
+
+    function withdrawToken(uint256 amount, address to) external payable;
 
     function setMinTokenWithdrawalAmount(
         address[] calldata neoXTokens,
@@ -77,15 +85,4 @@ interface ITokenBridge {
         address[] calldata neoXTokens,
         uint256[] calldata fees
     ) external;
-
-    function depositToken(
-        address _neoXToken,
-        bytes32 _tokenDepositRoot,
-        BridgeLib.Signature[] calldata _signatures,
-        BridgeLib.DepositData[] calldata _deposits
-    ) external;
-
-    function claimToken(address neoXToken, uint256 nonce) external;
-
-    function withdrawToken(uint256 amount, address to) external payable;
 }

@@ -8,10 +8,6 @@ import "../interfaces/ITokenBridge.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-/**
- * When generating the bytecode for genesis script:
- * - set initial storage values in BridgeStorage.sol
- */
 contract BridgeImpl is
     BridgeStorage,
     ReentrancyGuard,
@@ -24,6 +20,40 @@ contract BridgeImpl is
     }
 
     constructor(address _management) BridgeStorage(_management) {}
+
+    // Contract Pausing
+
+    function pauseBridge() external onlySecurityGuard onlyBridgeUnpaused {
+        _pauseBridge();
+        emit BridgePause();
+    }
+
+    function unpauseBridge() external onlyGovernor onlyBridgePaused {
+        _unpauseBridge();
+        emit BridgeUnpause();
+    }
+
+    // IGasBridge Implementation
+
+    function pauseGasBridge()
+        external
+        override
+        onlySecurityGuard
+        onlyGasBridgeUnpaused
+    {
+        _pauseGasBridge();
+        emit GasBridgePause();
+    }
+
+    function unpauseGasBridge()
+        external
+        override
+        onlyGovernor
+        onlyGasBridgePaused
+    {
+        _unpauseGasBridge();
+        emit GasBridgeUnpause();
+    }
 
     /**
      * @notice Distributes Gas that has been locked on Neo N3.
@@ -45,8 +75,8 @@ contract BridgeImpl is
     )
         external
         onlyRelayer
-        onlyBridgeUnlocked
-        onlyGasBridgeUnlocked
+        onlyBridgeUnpaused
+        onlyGasBridgeUnpaused
         nonReentrant
     {
         StorageTypes.State memory state = _getGasBridgeDepositState();
@@ -115,7 +145,7 @@ contract BridgeImpl is
     // Anyone can execute a claim. The funds of a claimable will be sent to the defined address in the claimableTo mapping.
     function claimGas(
         uint256 _nonce
-    ) external onlyBridgeUnlocked onlyGasBridgeUnlocked nonReentrant {
+    ) external onlyBridgeUnpaused onlyGasBridgeUnpaused nonReentrant {
         StorageTypes.Claimable memory claimable = _getGasClaimable(_nonce);
         uint256 amount = claimable.amount;
         address to = claimable.to;
@@ -131,7 +161,7 @@ contract BridgeImpl is
 
     function withdrawGas(
         address _to
-    ) external payable onlyBridgeUnlocked onlyGasBridgeUnlocked {
+    ) external payable onlyBridgeUnpaused onlyGasBridgeUnpaused {
         if (_to == address(0)) revert InvalidAddress();
         if ((msg.value % 1e10) != 0) revert InvalidAmount();
         StorageTypes.GasConfig memory config = _getGasBridgeConfig();
@@ -162,20 +192,6 @@ contract BridgeImpl is
             newRoot
         );
     }
-
-    // Contract Locking
-
-    function lockBridge() external onlySecurityGuard onlyBridgeUnlocked {
-        _lockBridge();
-        emit BridgeLock();
-    }
-
-    function unlockBridge() external onlyGovernor onlyBridgeLocked {
-        _unlockBridge();
-        emit BridgeUnlock();
-    }
-
-    // Bridge Parameter Setters
 
     function setGasWithdrawalFee(uint256 _fee) external onlyGovernor {
         _setGasWithdrawalFee(_fee);
@@ -223,73 +239,31 @@ contract BridgeImpl is
      */
     function unregisterToken(
         address _neoXToken
-    ) external override onlyGovernor onlyTokenBridgeLocked(_neoXToken) {
+    ) external override onlyGovernor onlyTokenBridgePaused(_neoXToken) {
         _unregisterToken(_neoXToken);
         emit TokenUnregister(_neoXToken, _getNeoN3Token(_neoXToken));
     }
 
     /**
-     * @notice Lock a token bridge. No deposits, withdrawals, or claims of a token bridge can be made while it is locked.
+     * @notice Pause a token bridge. No deposits, withdrawals, or claims of a token bridge can be made while it is locked.
      * @param _neoXToken the address of the token on the Neo X network.
      */
-    function lockToken(
+    function pauseTokenBridge(
         address _neoXToken
-    ) external override onlyTokenBridgeUnlocked(_neoXToken) onlyGovernor {
-        _lockToken(_neoXToken);
-        emit TokenLock(_neoXToken, _getNeoN3Token(_neoXToken));
+    ) external override onlyTokenBridgeUnpaused(_neoXToken) onlyGovernor {
+        _pauseToken(_neoXToken);
+        emit TokenPause(_neoXToken, _getNeoN3Token(_neoXToken));
     }
 
     /**
-     * @notice Unlock a token bridge. Deposits, withdrawals, or claims of a token bridge can only be made while it is unlocked.
+     * @notice Unpause a token bridge. Deposits, withdrawals, or claims of a token bridge can only be made while it is unlocked.
      * @param _neoXToken the address of the token on the Neo X network.
      */
-    function unlockToken(
+    function unpauseTokenBridge(
         address _neoXToken
-    ) external override onlyTokenBridgeLocked(_neoXToken) onlyGovernor {
-        _unlockToken(_neoXToken);
-        emit TokenUnlock(_neoXToken, _getNeoN3Token(_neoXToken));
-    }
-
-    function setMinTokenWithdrawalAmount(
-        address[] calldata _neoXTokens,
-        uint256[] calldata _minAmounts
-    ) external override onlyGovernor {
-        uint len = _neoXTokens.length;
-        require(len == _minAmounts.length, "length mismatch");
-        for (uint i = 0; i < len; i++) {
-            address token = _neoXTokens[i];
-            uint256 minAmount = _minAmounts[i];
-            _setTokenMinWithdrawalAmount(token, minAmount);
-            emit MinTokenWithdrawalAmountChange(token, minAmount);
-        }
-    }
-
-    function setMaxTokenWithdrawalAmount(
-        address[] calldata _neoXTokens,
-        uint256[] calldata _maxAmounts
-    ) external override onlyGovernor {
-        uint len = _neoXTokens.length;
-        require(len == _maxAmounts.length, "length mismatch");
-        for (uint i = 0; i < len; i++) {
-            address token = _neoXTokens[i];
-            uint256 maxAmount = _maxAmounts[i];
-            _setTokenMaxWithdrawalAmount(token, maxAmount);
-            emit MaxTokenWithdrawalAmountChange(token, maxAmount);
-        }
-    }
-
-    function setTokenWithdrawalFee(
-        address[] calldata neoXTokens,
-        uint256[] calldata fees
-    ) external override onlyGovernor {
-        uint len = neoXTokens.length;
-        require(len == fees.length, "length mismatch");
-        for (uint i = 0; i < len; i++) {
-            address token = neoXTokens[i];
-            uint256 fee = fees[i];
-            _setTokenWithdrawalFee(token, fee);
-            emit TokenWithdrawalFeeChange(token, fee);
-        }
+    ) external override onlyTokenBridgePaused(_neoXToken) onlyGovernor {
+        _unpauseToken(_neoXToken);
+        emit TokenPause(_neoXToken, _getNeoN3Token(_neoXToken));
     }
 
     function depositToken(
@@ -300,8 +274,8 @@ contract BridgeImpl is
     )
         external
         override
-        onlyBridgeUnlocked
-        onlyTokenBridgeUnlocked(_neoXToken)
+        onlyBridgeUnpaused
+        onlyTokenBridgeUnpaused(_neoXToken)
         nonReentrant
     {
         StorageTypes.State memory depositState = _getTokenDepositState(
@@ -386,8 +360,8 @@ contract BridgeImpl is
     )
         external
         override
-        onlyBridgeUnlocked
-        onlyTokenBridgeUnlocked(_neoXToken)
+        onlyBridgeUnpaused
+        onlyTokenBridgeUnpaused(_neoXToken)
         nonReentrant
     {
         StorageTypes.Claimable memory claimable = _getTokenClaimable(
@@ -445,8 +419,8 @@ contract BridgeImpl is
         external
         payable
         override
-        onlyBridgeUnlocked
-        onlyTokenBridgeUnlocked(msg.sender)
+        onlyBridgeUnpaused
+        onlyTokenBridgeUnpaused(msg.sender)
     {
         address tokenAddress = msg.sender;
         if (_isRegisteredToken(tokenAddress))
@@ -476,5 +450,47 @@ contract BridgeImpl is
             StorageTypes.State({nonce: newNonce, root: newRoot})
         );
         emit TokenWithdrawal(tokenAddress, state.nonce, _amount, _to);
+    }
+
+    function setMinTokenWithdrawalAmount(
+        address[] calldata _neoXTokens,
+        uint256[] calldata _minAmounts
+    ) external override onlyGovernor {
+        uint len = _neoXTokens.length;
+        if (len != _minAmounts.length) revert LengthMismatch();
+        for (uint i = 0; i < len; i++) {
+            address token = _neoXTokens[i];
+            uint256 minAmount = _minAmounts[i];
+            _setTokenMinWithdrawalAmount(token, minAmount);
+            emit MinTokenWithdrawalAmountChange(token, minAmount);
+        }
+    }
+
+    function setMaxTokenWithdrawalAmount(
+        address[] calldata _neoXTokens,
+        uint256[] calldata _maxAmounts
+    ) external override onlyGovernor {
+        uint len = _neoXTokens.length;
+        if (len != _maxAmounts.length) revert LengthMismatch();
+        for (uint i = 0; i < len; i++) {
+            address token = _neoXTokens[i];
+            uint256 maxAmount = _maxAmounts[i];
+            _setTokenMaxWithdrawalAmount(token, maxAmount);
+            emit MaxTokenWithdrawalAmountChange(token, maxAmount);
+        }
+    }
+
+    function setTokenWithdrawalFee(
+        address[] calldata _neoXTokens,
+        uint256[] calldata _fees
+    ) external override onlyGovernor {
+        uint len = _neoXTokens.length;
+        if (len != _fees.length) revert LengthMismatch();
+        for (uint i = 0; i < len; i++) {
+            address token = _neoXTokens[i];
+            uint256 fee = _fees[i];
+            _setTokenWithdrawalFee(token, fee);
+            emit TokenWithdrawalFeeChange(token, fee);
+        }
     }
 }
