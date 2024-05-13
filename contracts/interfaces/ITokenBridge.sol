@@ -7,54 +7,44 @@ import "../library/StorageTypes.sol";
 interface ITokenBridge {
     // Token bridge events
     event TokenRegister(
-        address indexed neoXTokenAddress,
-        StorageTypes.TokenType tokenType,
+        address indexed neoXToken,
         StorageTypes.TokenConfig tokenConfig
     );
     event TokenUnregister(
-        address indexed neoXTokenAddress,
-        address indexed neoN3TokenAddress
+        address indexed neoXToken,
+        address indexed neoN3Token
     );
-    event TokenLock(
-        address indexed neoXTokenAddress,
-        address indexed neoN3TokenAddress
-    );
-    event TokenUnlock(
-        address indexed neoXTokenAddress,
-        address indexed neoN3TokenAddress
-    );
-    event TokenMinWithdrawalAmountChange(
-        address indexed neoXTokenAddress,
+    event TokenLock(address indexed neoXToken, address indexed neoN3Token);
+    event TokenUnlock(address indexed neoXToken, address indexed neoN3Token);
+    event MinTokenWithdrawalAmountChange(
+        address indexed neoXToken,
         uint256 minAmount
     );
-    event TokenMaxWithdrawalAmountChange(
-        address indexed neoXTokenAddress,
+    event MaxTokenWithdrawalAmountChange(
+        address indexed neoXToken,
         uint256 maxAmount
     );
-    event TokenTypeConfigChange(
-        StorageTypes.TokenType tokenType,
-        StorageTypes.TokenTypeConfig tokenTypeConfig
-    );
+    event TokenWithdrawalFeeChange(address indexed neoXToken, uint256 fee);
     event TokenDeposit(
-        address indexed neoXTokenAddress,
+        address indexed neoXToken,
         uint256 indexed nonce,
         uint256 amount,
         address indexed to
     );
     event TokenWithdrawal(
-        address indexed neoXTokenAddress,
+        address indexed neoXToken,
         uint256 indexed nonce,
         uint256 amount,
         address indexed to
     );
     event TokenClaimable(
-        address indexed neoXTokenAddress,
+        address indexed neoXToken,
         uint256 indexed nonce,
         uint256 amount,
         address indexed to
     );
     event TokenClaim(
-        address indexed neoXTokenAddress,
+        address indexed neoXToken,
         uint256 indexed nonce,
         uint256 amount,
         address indexed to
@@ -63,30 +53,29 @@ interface ITokenBridge {
     // Token bridge functions
 
     function registerToken(
-        address neoXTokenAddress,
-        StorageTypes.TokenType tokenType,
-        StorageTypes.TokenConfig calldata tokenConfig
+        address _neoXToken,
+        StorageTypes.TokenConfig calldata _tokenConfig
     ) external;
 
-    function unregisterToken(address neoXTokenAddress) external;
+    function unregisterToken(address neoXToken) external;
 
-    function lockToken(address neoXTokenAddress) external;
+    function lockToken(address neoXToken) external;
 
-    function unlockToken(address neoXTokenAddress) external;
+    function unlockToken(address neoXToken) external;
 
-    function setTokenWithdrawalMinAmount(
+    function setMinTokenWithdrawalAmount(
         address[] calldata neoXTokens,
         uint256[] calldata minAmounts
     ) external;
 
-    function setTokenWithdrawalMaxAmount(
+    function setMaxTokenWithdrawalAmount(
         address[] calldata neoXTokens,
         uint256[] calldata maxAmounts
     ) external;
 
-    function setTokenTypeConfig(
-        StorageTypes.TokenType tokenType,
-        StorageTypes.TokenTypeConfig calldata tokenTypeConfig
+    function setTokenWithdrawalFee(
+        address[] calldata neoXTokens,
+        uint256[] calldata fees
     ) external;
 
     function depositToken(

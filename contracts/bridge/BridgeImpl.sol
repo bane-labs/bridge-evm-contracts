@@ -53,8 +53,7 @@ contract BridgeImpl is
         StorageTypes.GasConfig memory config = _getGasBridgeConfig();
         uint depositLength = _deposits.length;
         if (depositLength == 0) revert InvalidDepositsLength();
-        if (depositLength > config.maxDepositsPerDistribution)
-            revert InvalidDepositsLength();
+        if (depositLength > config.maxDeposits) revert InvalidDepositsLength();
         if (!BridgeLib._subsequentNonces(_deposits, state.nonce))
             revert InvalidNonceSequence();
         if (
@@ -183,21 +182,19 @@ contract BridgeImpl is
         emit GasWithdrawalFeeChange(_fee);
     }
 
-    function setGasWithdrawalMinAmount(uint256 _amount) external onlyGovernor {
+    function setMinGasWithdrawalAmount(uint256 _amount) external onlyGovernor {
         _setGasWithdrawalMinAmount(_amount);
         emit MinGasWithdrawalChange(_amount);
     }
 
-    function setGasWithdrawalMaxAmount(uint256 _amount) external onlyGovernor {
+    function setMaxGasWithdrawalAmount(uint256 _amount) external onlyGovernor {
         _setGasWithdrawalMaxAmount(_amount);
         emit MaxGasWithdrawalChange(_amount);
     }
 
-    function setGasMaxNrDepositsPerDistribution(
-        uint8 _maxNrDeposits
-    ) external onlyGovernor {
-        _setGasMaxNrDepositsPerDistribution(_maxNrDeposits);
-        emit MaxGasDepositsPerDistributionChange(_maxNrDeposits);
+    function setMaxGasDeposits(uint8 _maxNrDeposits) external onlyGovernor {
+        _setMaxGasDeposits(_maxNrDeposits);
+        emit MaxGasDepositsChange(_maxNrDeposits);
     }
 
     // ITokenBridge Implementation
@@ -205,22 +202,19 @@ contract BridgeImpl is
     /**
      * @notice Register a new token bridge.
      * @param _neoXToken the address of the token on the Neo X network.
-     * @param _tokenType the type of token that is being registered.
      * @param _tokenConfig the configuration of the token bridge.
      */
     function registerToken(
         address _neoXToken,
-        StorageTypes.TokenType _tokenType,
         StorageTypes.TokenConfig calldata _tokenConfig
     ) external override {
         if (_neoXToken == address(0)) revert InvalidTokenAddress();
         if (_tokenConfig.minAmount > _tokenConfig.maxAmount)
             revert InvalidAmount();
-        if (_tokenConfig.neoN3TokenAddress == address(0))
-            revert InvalidAddress();
+        if (_tokenConfig.neoN3Token == address(0)) revert InvalidAddress();
 
-        _registerToken(_neoXToken, _tokenType, _tokenConfig);
-        emit TokenRegister(_neoXToken, _tokenType, _tokenConfig);
+        _registerToken(_neoXToken, _tokenConfig);
+        emit TokenRegister(_neoXToken, _tokenConfig);
     }
 
     /**
@@ -231,7 +225,7 @@ contract BridgeImpl is
         address _neoXToken
     ) external override onlyGovernor onlyTokenBridgeLocked(_neoXToken) {
         _unregisterToken(_neoXToken);
-        emit TokenUnregister(_neoXToken, _getNeoN3TokenAddress(_neoXToken));
+        emit TokenUnregister(_neoXToken, _getNeoN3Token(_neoXToken));
     }
 
     /**
@@ -242,7 +236,7 @@ contract BridgeImpl is
         address _neoXToken
     ) external override onlyTokenBridgeUnlocked(_neoXToken) onlyGovernor {
         _lockToken(_neoXToken);
-        emit TokenLock(_neoXToken, _getNeoN3TokenAddress(_neoXToken));
+        emit TokenLock(_neoXToken, _getNeoN3Token(_neoXToken));
     }
 
     /**
@@ -253,39 +247,49 @@ contract BridgeImpl is
         address _neoXToken
     ) external override onlyTokenBridgeLocked(_neoXToken) onlyGovernor {
         _unlockToken(_neoXToken);
-        emit TokenUnlock(_neoXToken, _getNeoN3TokenAddress(_neoXToken));
+        emit TokenUnlock(_neoXToken, _getNeoN3Token(_neoXToken));
     }
 
-    function setTokenWithdrawalMinAmount(
+    function setMinTokenWithdrawalAmount(
         address[] calldata _neoXTokens,
         uint256[] calldata _minAmounts
     ) external override onlyGovernor {
         uint len = _neoXTokens.length;
         require(len == _minAmounts.length, "length mismatch");
         for (uint i = 0; i < len; i++) {
-            _setTokenMinWithdrawalAmount(_neoXTokens[i], _minAmounts[i]);
-            emit TokenMinWithdrawalAmountChange(_neoXTokens[i], _minAmounts[i]);
+            address token = _neoXTokens[i];
+            uint256 minAmount = _minAmounts[i];
+            _setTokenMinWithdrawalAmount(token, minAmount);
+            emit MinTokenWithdrawalAmountChange(token, minAmount);
         }
     }
 
-    function setTokenWithdrawalMaxAmount(
+    function setMaxTokenWithdrawalAmount(
         address[] calldata _neoXTokens,
         uint256[] calldata _maxAmounts
     ) external override onlyGovernor {
         uint len = _neoXTokens.length;
         require(len == _maxAmounts.length, "length mismatch");
         for (uint i = 0; i < len; i++) {
-            _setTokenMaxWithdrawalAmount(_neoXTokens[i], _maxAmounts[i]);
-            emit TokenMaxWithdrawalAmountChange(_neoXTokens[i], _maxAmounts[i]);
+            address token = _neoXTokens[i];
+            uint256 maxAmount = _maxAmounts[i];
+            _setTokenMaxWithdrawalAmount(token, maxAmount);
+            emit MaxTokenWithdrawalAmountChange(token, maxAmount);
         }
     }
 
-    function setTokenTypeConfig(
-        StorageTypes.TokenType _tokenType,
-        StorageTypes.TokenTypeConfig calldata _tokenTypeConfig
+    function setTokenWithdrawalFee(
+        address[] calldata neoXTokens,
+        uint256[] calldata fees
     ) external override onlyGovernor {
-        _setTokenTypeConfig(_tokenType, _tokenTypeConfig);
-        emit TokenTypeConfigChange(_tokenType, _tokenTypeConfig);
+        uint len = neoXTokens.length;
+        require(len == fees.length, "length mismatch");
+        for (uint i = 0; i < len; i++) {
+            address token = neoXTokens[i];
+            uint256 fee = fees[i];
+            _setTokenWithdrawalFee(token, fee);
+            emit TokenWithdrawalFeeChange(token, fee);
+        }
     }
 
     function depositToken(
@@ -303,15 +307,12 @@ contract BridgeImpl is
         StorageTypes.State memory depositState = _getTokenDepositState(
             _neoXToken
         );
-        StorageTypes.TokenType tokenType = _getTokenType(_neoXToken);
-        StorageTypes.TokenTypeConfig
-            memory tokenTypeConfig = _getTokenTypeConfig(tokenType);
+        StorageTypes.TokenConfig memory config = _getTokenConfig(_neoXToken);
 
         // Check parameter validity
         uint depositLength = _deposits.length;
         if (depositLength == 0) revert InvalidDepositsLength();
-        if (depositLength > tokenTypeConfig.maxDepositsPerDistribution)
-            revert InvalidDepositsLength();
+        if (depositLength > config.maxDeposits) revert InvalidDepositsLength();
         // Check if provided deposit data's nonces are subsequent to the current nonce and each other.
         if (!BridgeLib._subsequentNonces(_deposits, depositState.nonce))
             revert InvalidNonceSequence();
@@ -319,7 +320,7 @@ contract BridgeImpl is
         if (
             TokenBridgeLib._computeNewTopRoot(
                 depositState.root,
-                _getNeoN3TokenAddress(_neoXToken),
+                _getNeoN3Token(_neoXToken),
                 _neoXToken,
                 _deposits
             ) != _tokenDepositRoot
@@ -342,7 +343,7 @@ contract BridgeImpl is
         );
 
         // Execute the token distribution
-        _executeTokenDistribution(_neoXToken, tokenType, _deposits);
+        _executeTokenDistribution(_neoXToken, config.tokenType, _deposits);
     }
 
     function _executeTokenDistribution(
@@ -454,8 +455,8 @@ contract BridgeImpl is
         if (_amount < config.minAmount) revert InvalidAmount();
         if (_amount > config.maxAmount) revert InvalidAmount();
 
-        uint256 fee = _getWithdrawalFee(tokenAddress);
-        if (msg.value < fee) revert InsufficientFee(msg.value, fee);
+        if (msg.value < config.fee)
+            revert InsufficientFee(msg.value, config.fee);
 
         // Compute the new root and update the token withdrawal state.
         StorageTypes.State memory state = _getTokenWithdrawalState(
@@ -463,7 +464,7 @@ contract BridgeImpl is
         );
         uint256 newNonce = state.nonce + 1;
         bytes32 withdrawalHash = TokenBridgeLib._hashTokenBridgeOp(
-            config.neoN3TokenAddress,
+            config.neoN3Token,
             tokenAddress,
             newNonce,
             _amount,

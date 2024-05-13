@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import "./BridgeLib.sol";
+import "./StorageTypes.sol";
 
 library TokenBridgeLib {
     /**
@@ -56,5 +57,15 @@ library TokenBridgeLib {
             sha256(
                 abi.encodePacked(_neoN3Token, _neoXToken, _nonce, _value, _to)
             );
+    }
+
+    function _isValidConfig(
+        StorageTypes.TokenConfig memory _config
+    ) internal pure returns (bool) {
+        return
+            _config.fee > 0 &&
+            _config.minAmount > 0 &&
+            _config.maxAmount > _config.minAmount &&
+            _config.maxDeposits > 0;
     }
 }

@@ -81,7 +81,7 @@ describe("Bridge Implementation", function () {
             const oldMinAmount = ethers.parseEther("1");
             expect((await bridgeContract.gasBridge()).config.minAmount).to.be.equal(oldMinAmount);
             const newMinAmount = ethers.parseEther("0.2");
-            const tx = await bridgeContract.connect(governor).setGasWithdrawalMinAmount(newMinAmount);
+            const tx = await bridgeContract.connect(governor).setMinGasWithdrawalAmount(newMinAmount);
             await expect(tx).to.emit(bridgeContract, "MinGasWithdrawalChange").withArgs(newMinAmount);
             expect((await bridgeContract.gasBridge()).config.minAmount).to.be.equal(newMinAmount);
         });
@@ -91,11 +91,11 @@ describe("Bridge Implementation", function () {
             const oldMaxAmount = ethers.parseEther("10000");
             expect((await bridgeContract.gasBridge()).config.maxAmount).to.be.equal(oldMaxAmount);
             const newMaxAmount = ethers.parseEther("5000");
-            let tx = await bridgeContract.connect(governor).setGasWithdrawalMaxAmount(newMaxAmount);
+            let tx = await bridgeContract.connect(governor).setMaxGasWithdrawalAmount(newMaxAmount);
             await expect(tx).to.emit(bridgeContract, "MaxGasWithdrawalChange").withArgs(newMaxAmount);
             expect((await bridgeContract.gasBridge()).config.maxAmount).to.be.equal(newMaxAmount);
             const newMaxAount2 = ethers.parseEther("10000");
-            tx = await bridgeContract.connect(governor).setGasWithdrawalMaxAmount(newMaxAount2);
+            tx = await bridgeContract.connect(governor).setMaxGasWithdrawalAmount(newMaxAount2);
             await expect(tx).to.emit(bridgeContract, "MaxGasWithdrawalChange").withArgs(newMaxAount2);
             expect((await bridgeContract.gasBridge()).config.maxAmount).to.be.equal(newMaxAount2);
         });
@@ -109,42 +109,42 @@ describe("Bridge Implementation", function () {
             const higherThanMaxWithdrawalAmount = maxWithdrawalAmount + fraction;
 
             // min amount must not be greater than max amount
-            let tx = bridgeContract.connect(governor).setGasWithdrawalMinAmount(higherThanMaxWithdrawalAmount);
+            let tx = bridgeContract.connect(governor).setMinGasWithdrawalAmount(higherThanMaxWithdrawalAmount);
             await expect(tx).to.be.revertedWithCustomError(bridgeContract, "InvalidAmount");
             // min amount must not be greater than or equal to max amount
-            tx = bridgeContract.connect(governor).setGasWithdrawalMinAmount(maxWithdrawalAmount);
+            tx = bridgeContract.connect(governor).setMinGasWithdrawalAmount(maxWithdrawalAmount);
             await expect(tx).to.be.revertedWithCustomError(bridgeContract, "InvalidAmount");
             // min amount must have maximal 8 non-zero digits
-            tx = bridgeContract.connect(governor).setGasWithdrawalMinAmount(1000000000n);
+            tx = bridgeContract.connect(governor).setMinGasWithdrawalAmount(1000000000n);
             await expect(tx).to.be.revertedWithCustomError(bridgeContract, "InvalidAmount");
 
             // max amount must not be less than min amount
-            tx = bridgeContract.connect(governor).setGasWithdrawalMaxAmount(lowerThanMinWithdrawalAmount);
+            tx = bridgeContract.connect(governor).setMaxGasWithdrawalAmount(lowerThanMinWithdrawalAmount);
             await expect(tx).to.be.revertedWithCustomError(bridgeContract, "InvalidAmount");
             // max amount must not be less than or equal to min amount
-            tx = bridgeContract.connect(governor).setGasWithdrawalMaxAmount(minWithdrawalAmount);
+            tx = bridgeContract.connect(governor).setMaxGasWithdrawalAmount(minWithdrawalAmount);
             await expect(tx).to.be.revertedWithCustomError(bridgeContract, "InvalidAmount");
             // max amount must have maximal 8 non-zero digits
-            tx = bridgeContract.connect(governor).setGasWithdrawalMaxAmount(1000000000n);
+            tx = bridgeContract.connect(governor).setMaxGasWithdrawalAmount(1000000000n);
             await expect(tx).to.be.revertedWithCustomError(bridgeContract, "InvalidAmount");
         });
 
         it("Set max deposits per distribution", async function () {
             const { bridgeContract, governor } = await loadFixture(deployBridgeFixture);
-            const maxDepositsPerDistribution = (await bridgeContract.gasBridge()).config.maxDepositsPerDistribution;
-            const newMaxDepositsPerDistribution = 10;
-            expect(maxDepositsPerDistribution).not.to.be.equal(newMaxDepositsPerDistribution);
-            const tx = bridgeContract.connect(governor).setGasMaxNrDepositsPerDistribution(newMaxDepositsPerDistribution);
-            await expect(tx).to.emit(bridgeContract, "MaxGasDepositsPerDistributionChange").withArgs(newMaxDepositsPerDistribution);
-            expect((await bridgeContract.gasBridge()).config.maxDepositsPerDistribution).to.be.equal(newMaxDepositsPerDistribution);
+            const maxDepositsPerDistribution = (await bridgeContract.gasBridge()).config.maxDeposits;
+            const newMaxDeposits = 10;
+            expect(maxDepositsPerDistribution).not.to.be.equal(newMaxDeposits);
+            const tx = bridgeContract.connect(governor).setMaxGasDeposits(newMaxDeposits);
+            await expect(tx).to.emit(bridgeContract, "MaxGasDepositsChange").withArgs(newMaxDeposits);
+            expect((await bridgeContract.gasBridge()).config.maxDeposits).to.be.equal(newMaxDeposits);
         });
 
         it("Fail setting max deposits per distribution to zero", async function () {
             const { bridgeContract, governor } = await loadFixture(deployBridgeFixture);
-            const maxDepositsPerDistribution = (await bridgeContract.gasBridge()).config.maxDepositsPerDistribution;
+            const maxDepositsPerDistribution = (await bridgeContract.gasBridge()).config.maxDeposits;
             await expect(maxDepositsPerDistribution).to.be.greaterThan(0);
 
-            let tx = bridgeContract.connect(governor).setGasMaxNrDepositsPerDistribution(0);
+            let tx = bridgeContract.connect(governor).setMaxGasDeposits(0);
             await expect(tx).to.be.revertedWithCustomError(bridgeContract, "InvalidAmount");
         });
     });

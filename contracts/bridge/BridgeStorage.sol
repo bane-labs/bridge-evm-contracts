@@ -22,8 +22,6 @@ contract BridgeStorage is UUPSUpgradeable {
     StorageTypes.GasBridge public gasBridge;
     mapping(uint256 => StorageTypes.Claimable) public claimableGas;
     // Token Bridges
-    mapping(StorageTypes.TokenType tokenType => StorageTypes.TokenTypeConfig)
-        public tokenTypeConfigs;
     mapping(address tokenAddress => StorageTypes.TokenBridge)
         public tokenBridges;
     mapping(address tokenAddress => mapping(uint256 nonce => StorageTypes.Claimable))
@@ -40,7 +38,7 @@ contract BridgeStorage is UUPSUpgradeable {
                 fee: 1e17,
                 minAmount: 1e18,
                 maxAmount: 1e22,
-                maxDepositsPerDistribution: 100,
+                maxDeposits: 100,
                 locked: false,
                 gap: [uint256(0), uint256(0)]
             })
@@ -57,6 +55,7 @@ contract BridgeStorage is UUPSUpgradeable {
     error InvalidDepositsLength();
     error InvalidFee();
     error InvalidTokenAddress();
+    error InvalidTokenConfig();
     error InvalidNonceSequence();
     error InvalidRoot();
     error InvalidValidatorSignatures();
@@ -207,25 +206,26 @@ contract BridgeStorage is UUPSUpgradeable {
         gasBridge.config.maxAmount = _amount;
     }
 
-    function _setGasMaxNrDepositsPerDistribution(uint8 _maxDeposits) internal {
+    function _setMaxGasDeposits(uint8 _maxDeposits) internal {
         if (_maxDeposits == 0) revert InvalidAmount();
-        gasBridge.config.maxDepositsPerDistribution = _maxDeposits;
+        gasBridge.config.maxDeposits = _maxDeposits;
     }
 
     // Token Bridge functions
 
     function _registerToken(
         address _neoXToken,
-        StorageTypes.TokenType _tokenType,
         StorageTypes.TokenConfig memory _tokenConfig
     ) internal {
         // Check if token bridge is already registered
         if (_isRegisteredToken(_neoXToken))
             revert TokenBridgeAlreadyRegistered(_neoXToken);
+        if (TokenBridgeLib._isValidConfig(_tokenConfig))
+            revert InvalidTokenConfig();
+
         // Add token bridge to storage
         tokenBridges[_neoXToken] = StorageTypes.TokenBridge({
             locked: false,
-            tokenType: _tokenType,
             depositState: StorageTypes.State({nonce: 0, root: 0x0}),
             withdrawalState: StorageTypes.State({nonce: 0, root: 0x0}),
             config: _tokenConfig
@@ -235,7 +235,7 @@ contract BridgeStorage is UUPSUpgradeable {
     function _isRegisteredToken(
         address _neoXToken
     ) internal view returns (bool) {
-        return tokenBridges[_neoXToken].config.neoN3TokenAddress != address(0);
+        return tokenBridges[_neoXToken].config.neoN3Token != address(0);
     }
 
     function _unregisterToken(address _neoXToken) internal {
@@ -276,29 +276,14 @@ contract BridgeStorage is UUPSUpgradeable {
         tokenBridges[_neoXToken].config.maxAmount = _amount;
     }
 
-    function _getTokenTypeConfig(
-        StorageTypes.TokenType _tokenType
-    ) internal view returns (StorageTypes.TokenTypeConfig memory) {
-        return tokenTypeConfigs[_tokenType];
+    function _setTokenWithdrawalFee(address _neoXToken, uint256 _fee) internal {
+        tokenBridges[_neoXToken].config.fee = _fee;
     }
 
-    function _getNeoN3TokenAddress(
+    function _getNeoN3Token(
         address _neoXToken
     ) internal view returns (address) {
-        return tokenBridges[_neoXToken].config.neoN3TokenAddress;
-    }
-
-    function _getWithdrawalFee(
-        address _neoXToken
-    ) internal view returns (uint256) {
-        return tokenTypeConfigs[_getTokenType(_neoXToken)].fee;
-    }
-
-    function _setTokenTypeConfig(
-        StorageTypes.TokenType _tokenType,
-        StorageTypes.TokenTypeConfig memory _config
-    ) internal {
-        tokenTypeConfigs[_tokenType] = _config;
+        return tokenBridges[_neoXToken].config.neoN3Token;
     }
 
     function _getTokenConfig(
@@ -310,7 +295,7 @@ contract BridgeStorage is UUPSUpgradeable {
     function _getTokenType(
         address _neoXToken
     ) internal view returns (StorageTypes.TokenType) {
-        return tokenBridges[_neoXToken].tokenType;
+        return tokenBridges[_neoXToken].config.tokenType;
     }
 
     function _getTokenDepositState(
