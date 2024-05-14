@@ -416,8 +416,8 @@ contract BridgeImpl is
      * @param _to the address to which the tokens should be sent.
      */
     function withdrawToken(
-        uint256 _amount,
-        address _to
+        address _to,
+        uint256 _amount
     )
         external
         payable
@@ -465,13 +465,27 @@ contract BridgeImpl is
         emit TokenWithdrawal(tokenAddress, newNonce, tokenValue, _to);
     }
 
+    function setTokenWithdrawalFee(
+        address[] calldata _neoXTokens,
+        uint256[] calldata _fees
+    ) external override onlyGovernor {
+        uint nrTokens = _neoXTokens.length;
+        if (nrTokens != _fees.length) revert LengthMismatch();
+        for (uint i = 0; i < nrTokens; i++) {
+            address token = _neoXTokens[i];
+            uint256 fee = _fees[i];
+            _setTokenWithdrawalFee(token, fee);
+            emit TokenWithdrawalFeeChange(token, fee);
+        }
+    }
+
     function setMinTokenWithdrawalAmount(
         address[] calldata _neoXTokens,
         uint256[] calldata _minAmounts
     ) external override onlyGovernor {
-        uint len = _neoXTokens.length;
-        if (len != _minAmounts.length) revert LengthMismatch();
-        for (uint i = 0; i < len; i++) {
+        uint nrTokens = _neoXTokens.length;
+        if (nrTokens != _minAmounts.length) revert LengthMismatch();
+        for (uint i = 0; i < nrTokens; i++) {
             address token = _neoXTokens[i];
             uint256 minAmount = _minAmounts[i];
             _setTokenMinWithdrawalAmount(token, minAmount);
@@ -483,9 +497,9 @@ contract BridgeImpl is
         address[] calldata _neoXTokens,
         uint256[] calldata _maxAmounts
     ) external override onlyGovernor {
-        uint len = _neoXTokens.length;
-        if (len != _maxAmounts.length) revert LengthMismatch();
-        for (uint i = 0; i < len; i++) {
+        uint nrTokens = _neoXTokens.length;
+        if (nrTokens != _maxAmounts.length) revert LengthMismatch();
+        for (uint i = 0; i < nrTokens; i++) {
             address token = _neoXTokens[i];
             uint256 maxAmount = _maxAmounts[i];
             _setTokenMaxWithdrawalAmount(token, maxAmount);
@@ -493,17 +507,17 @@ contract BridgeImpl is
         }
     }
 
-    function setTokenWithdrawalFee(
+    function setMaxTokenDeposits(
         address[] calldata _neoXTokens,
-        uint256[] calldata _fees
+        uint256[] calldata _maxDeposits
     ) external override onlyGovernor {
-        uint len = _neoXTokens.length;
-        if (len != _fees.length) revert LengthMismatch();
-        for (uint i = 0; i < len; i++) {
+        uint nrTokens = _neoXTokens.length;
+        if (nrTokens != _maxDeposits.length) revert LengthMismatch();
+        for (uint i = 0; i < nrTokens; i++) {
             address token = _neoXTokens[i];
-            uint256 fee = _fees[i];
-            _setTokenWithdrawalFee(token, fee);
-            emit TokenWithdrawalFeeChange(token, fee);
+            uint256 maxDeposits = _maxDeposits[i];
+            _setMaxTokenDeposits(token, maxDeposits);
+            emit MaxTokenDepositsChange(token, maxDeposits);
         }
     }
 }

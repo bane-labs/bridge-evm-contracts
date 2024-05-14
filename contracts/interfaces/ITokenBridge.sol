@@ -48,6 +48,10 @@ interface ITokenBridge {
         address indexed neoXToken,
         uint256 maxAmount
     );
+    event MaxTokenDepositsChange(
+        address indexed neoXToken,
+        uint256 maxDeposits
+    );
 
     function registerToken(
         address _neoXToken,
@@ -69,7 +73,12 @@ interface ITokenBridge {
 
     function claimToken(address neoXToken, uint256 nonce) external;
 
-    function withdrawToken(uint256 amount, address to) external payable;
+    function withdrawToken(address to, uint256 amount) external payable;
+
+    function setTokenWithdrawalFee(
+        address[] calldata neoXTokens,
+        uint256[] calldata fees
+    ) external;
 
     function setMinTokenWithdrawalAmount(
         address[] calldata neoXTokens,
@@ -81,8 +90,8 @@ interface ITokenBridge {
         uint256[] calldata maxAmounts
     ) external;
 
-    function setTokenWithdrawalFee(
+    function setMaxTokenDeposits(
         address[] calldata neoXTokens,
-        uint256[] calldata fees
+        uint256[] calldata maxWithdrawals
     ) external;
 }

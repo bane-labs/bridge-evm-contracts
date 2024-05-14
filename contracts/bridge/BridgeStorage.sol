@@ -267,6 +267,10 @@ contract BridgeStorage is UUPSUpgradeable {
         tokenBridges[_neoXToken].paused = false;
     }
 
+    function _setTokenWithdrawalFee(address _neoXToken, uint256 _fee) internal {
+        tokenBridges[_neoXToken].config.fee = _fee;
+    }
+
     function _setTokenMinWithdrawalAmount(
         address _neoXToken,
         uint256 _amount
@@ -285,8 +289,11 @@ contract BridgeStorage is UUPSUpgradeable {
         tokenBridges[_neoXToken].config.maxAmount = _amount;
     }
 
-    function _setTokenWithdrawalFee(address _neoXToken, uint256 _fee) internal {
-        tokenBridges[_neoXToken].config.fee = _fee;
+    function _setMaxTokenDeposits(
+        address _neoXToken,
+        uint256 _maxDeposits
+    ) internal {
+        tokenBridges[_neoXToken].config.maxDeposits = _maxDeposits;
     }
 
     function _getNeoN3Token(
