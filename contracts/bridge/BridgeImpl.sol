@@ -221,7 +221,7 @@ contract BridgeImpl is
     function registerToken(
         address _neoXToken,
         StorageTypes.TokenConfig calldata _tokenConfig
-    ) external override {
+    ) external override onlyGovernor {
         if (_neoXToken == address(0)) revert InvalidTokenAddress();
         if (_tokenConfig.minAmount > _tokenConfig.maxAmount)
             revert InvalidAmount();
