@@ -3,8 +3,24 @@ pragma solidity ^0.8.24;
 
 import "./BridgeLib.sol";
 import "./StorageTypes.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 library TokenBridgeLib {
+    /**
+     * @dev Executes the transfer of the token on the Neo N3 network.
+     * @param _neoXToken The address of the token on the Neo X network.
+     * @param _amount The amount to transfer.
+     * @param _to The address of the recipient.
+     */
+    function _executeERC20Transfer(
+        address _neoXToken,
+        uint256 _amount,
+        address _to
+    ) internal returns (bool) {
+        IERC20 neoXToken = IERC20(_neoXToken);
+        return neoXToken.transfer(_to, _amount);
+    }
+
     /**
      * @dev Hashes every deposit operation and chains it to the previous root. Each deposit data is prepended the
      * token's Neo N3 and Neo X address before it is hashed, such that each token-pair's hash chain remains exclusive
@@ -59,6 +75,10 @@ library TokenBridgeLib {
             );
     }
 
+    /**
+     * @dev Validates the token configuration.
+     * @param _config The token configuration.
+     */
     function _isValidConfig(
         StorageTypes.TokenConfig memory _config
     ) internal pure returns (bool) {

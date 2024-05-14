@@ -329,22 +329,19 @@ contract BridgeImpl is
             BridgeLib.DepositData calldata depositEntry = _deposits[i];
             address to = depositEntry.to;
             uint256 transferAmount = depositEntry.amount;
-            bool success = false;
-            if (_tokenType == StorageTypes.TokenType.ERC20Capped) {
-                // Execute the token distribution for ERC20Capped tokens
-                IERC20 neoXToken = IERC20(_neoXToken);
-                success = _executeERC20Transfer(neoXToken, transferAmount, to);
-            } else if (_tokenType == StorageTypes.TokenType.NEO) {
-                // Execute the token distribution for NEO tokens
+            if (_tokenType == StorageTypes.TokenType.NEO) {
                 // For NEO tokens, the transfer value needs to be extended with 18 decimals, since it's nondivisible on Neo N3 and it has 18 decimals on Neo X.
                 transferAmount *= 1e18;
-                IERC20 neoXToken = IERC20(_neoXToken);
-                success = _executeERC20Transfer(neoXToken, transferAmount, to);
             }
-            // For future token types add an else if block here
-            else {
-                assert(false);
-            }
+            assert(
+                _tokenType == StorageTypes.TokenType.NEO ||
+                    _tokenType == StorageTypes.TokenType.ERC20Capped
+            );
+            bool success = TokenBridgeLib._executeERC20Transfer(
+                _neoXToken,
+                transferAmount,
+                to
+            );
             _emitTransferEventOrAddNewTokenClaimable(
                 success,
                 _neoXToken,
@@ -374,16 +371,12 @@ contract BridgeImpl is
         if (to == address(0)) revert NonexistentClaimable();
         _deleteTokenClaimable(_neoXToken, _nonce);
         StorageTypes.TokenType tokenType = _getTokenType(_neoXToken);
-        if (
+        assert(
             tokenType == StorageTypes.TokenType.NEO ||
-            tokenType == StorageTypes.TokenType.ERC20Capped
-        ) {
-            // Note: For NEO tokens, the transfer value has already been extended with 18 decimals in the deposit function.
-            IERC20 neoXToken = IERC20(_neoXToken);
-            _executeERC20Transfer(neoXToken, claimable.amount, to);
-        } else {
-            assert(false);
-        }
+                tokenType == StorageTypes.TokenType.ERC20Capped
+        );
+        // Note: For NEO tokens, the transfer value has already been extended with 18 decimals in the deposit function.
+        TokenBridgeLib._executeERC20Transfer(_neoXToken, claimable.amount, to);
     }
 
     function _emitTransferEventOrAddNewTokenClaimable(
@@ -399,14 +392,6 @@ contract BridgeImpl is
             _addTokenClaimable(_neoXToken, _nonce, _amount, _to);
             emit TokenClaimable(_neoXToken, _nonce, _amount, _to);
         }
-    }
-
-    function _executeERC20Transfer(
-        IERC20 _neoXToken,
-        uint256 _amount,
-        address _to
-    ) private returns (bool) {
-        return _neoXToken.transfer(_to, _amount);
     }
 
     /**
