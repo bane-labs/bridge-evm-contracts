@@ -416,30 +416,36 @@ contract BridgeImpl is
      * @param _to the address to which the tokens should be sent.
      */
     function withdrawToken(
+        address _neoXToken,
         address _to,
         uint256 _amount
     )
         external
         payable
         override
+        nonReentrant
         onlyBridgeUnpaused
         onlyTokenBridgeUnpaused(msg.sender)
     {
-        address tokenAddress = msg.sender;
-        if (_isRegisteredToken(tokenAddress))
-            revert TokenBridgeNotRegistered(tokenAddress);
-        StorageTypes.TokenConfig memory config = _getTokenConfig(tokenAddress);
+        if (_isRegisteredToken(_neoXToken))
+            revert TokenBridgeNotRegistered(_neoXToken);
+        StorageTypes.TokenConfig memory config = _getTokenConfig(_neoXToken);
         uint256 tokenValue = _amount;
         if (tokenValue < config.minAmount) revert InvalidAmount();
         if (tokenValue > config.maxAmount) revert InvalidAmount();
-
         if (msg.value < config.fee)
             revert InsufficientFee(msg.value, config.fee);
 
-        // Compute the new root and update the token withdrawal state.
-        StorageTypes.State memory state = _getTokenWithdrawalState(
-            tokenAddress
+        // Execute the transfer of the tokens from the sender to the bridge contract.
+        bool success = IERC20(_neoXToken).transferFrom(
+            msg.sender,
+            address(this),
+            _amount
         );
+        if (!success) revert TransferFailed();
+
+        // Compute the new root and update the token withdrawal state.
+        StorageTypes.State memory state = _getTokenWithdrawalState(_neoXToken);
         uint256 newNonce = state.nonce + 1;
 
         if (config.tokenType == StorageTypes.TokenType.NEO) {
@@ -452,17 +458,17 @@ contract BridgeImpl is
 
         bytes32 withdrawalHash = TokenBridgeLib._hashTokenBridgeOp(
             config.neoN3Token,
-            tokenAddress,
+            _neoXToken,
             newNonce,
             tokenValue,
             _to
         );
         bytes32 newRoot = BridgeLib._computeNewRoot(state.root, withdrawalHash);
         _setTokenWithdrawalState(
-            tokenAddress,
+            _neoXToken,
             StorageTypes.State({nonce: newNonce, root: newRoot})
         );
-        emit TokenWithdrawal(tokenAddress, newNonce, tokenValue, _to);
+        emit TokenWithdrawal(_neoXToken, newNonce, tokenValue, _to);
     }
 
     function setTokenWithdrawalFee(

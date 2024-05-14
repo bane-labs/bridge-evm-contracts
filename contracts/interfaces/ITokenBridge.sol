@@ -54,8 +54,8 @@ interface ITokenBridge {
     );
 
     function registerToken(
-        address _neoXToken,
-        StorageTypes.TokenConfig calldata _tokenConfig
+        address neoXToken,
+        StorageTypes.TokenConfig calldata tokenConfig
     ) external;
 
     function unregisterToken(address neoXToken) external;
@@ -65,15 +65,19 @@ interface ITokenBridge {
     function unpauseTokenBridge(address neoXToken) external;
 
     function depositToken(
-        address _neoXToken,
-        bytes32 _tokenDepositRoot,
-        BridgeLib.Signature[] calldata _signatures,
-        BridgeLib.DepositData[] calldata _deposits
+        address neoXToken,
+        bytes32 tokenDepositRoot,
+        BridgeLib.Signature[] calldata signatures,
+        BridgeLib.DepositData[] calldata deposits
     ) external;
 
     function claimToken(address neoXToken, uint256 nonce) external;
 
-    function withdrawToken(address to, uint256 amount) external payable;
+    function withdrawToken(
+        address neoXToken,
+        address to,
+        uint256 amount
+    ) external payable;
 
     function setTokenWithdrawalFee(
         address[] calldata neoXTokens,
