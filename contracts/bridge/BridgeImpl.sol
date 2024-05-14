@@ -328,15 +328,18 @@ contract BridgeImpl is
         for (uint i = 0; i < depositLength; i++) {
             BridgeLib.DepositData calldata depositEntry = _deposits[i];
             address to = depositEntry.to;
+            uint256 transferAmount = depositEntry.amount;
             bool success = false;
             if (_tokenType == StorageTypes.TokenType.ERC20Capped) {
                 // Execute the token distribution for ERC20Capped tokens
                 IERC20 neoXToken = IERC20(_neoXToken);
-                success = _executeERC20CappedTransfer(
-                    neoXToken,
-                    depositEntry.amount,
-                    to
-                );
+                success = _executeERC20Transfer(neoXToken, transferAmount, to);
+            } else if (_tokenType == StorageTypes.TokenType.NEO) {
+                // Execute the token distribution for NEO tokens
+                // For NEO tokens, the transfer value needs to be extended with 18 decimals, since it's nondivisible on Neo N3 and it has 18 decimals on Neo X.
+                transferAmount *= 1e18;
+                IERC20 neoXToken = IERC20(_neoXToken);
+                success = _executeERC20Transfer(neoXToken, transferAmount, to);
             }
             // For future token types add an else if block here
             else {
@@ -346,7 +349,7 @@ contract BridgeImpl is
                 success,
                 _neoXToken,
                 depositEntry.nonce,
-                depositEntry.amount,
+                transferAmount,
                 to
             );
         }
@@ -367,15 +370,17 @@ contract BridgeImpl is
             _nonce
         );
         // Check if the claimable exists.
-        if (claimable.to == address(0)) revert NonexistentClaimable();
+        address to = claimable.to;
+        if (to == address(0)) revert NonexistentClaimable();
         _deleteTokenClaimable(_neoXToken, _nonce);
-        if (_getTokenType(_neoXToken) == StorageTypes.TokenType.ERC20Capped) {
+        StorageTypes.TokenType tokenType = _getTokenType(_neoXToken);
+        if (
+            tokenType == StorageTypes.TokenType.NEO ||
+            tokenType == StorageTypes.TokenType.ERC20Capped
+        ) {
+            // Note: For NEO tokens, the transfer value has already been extended with 18 decimals in the deposit function.
             IERC20 neoXToken = IERC20(_neoXToken);
-            _executeERC20CappedTransfer(
-                neoXToken,
-                claimable.amount,
-                claimable.to
-            );
+            _executeERC20Transfer(neoXToken, claimable.amount, to);
         } else {
             assert(false);
         }
@@ -396,7 +401,7 @@ contract BridgeImpl is
         }
     }
 
-    function _executeERC20CappedTransfer(
+    function _executeERC20Transfer(
         IERC20 _neoXToken,
         uint256 _amount,
         address _to
@@ -424,8 +429,9 @@ contract BridgeImpl is
         if (_isRegisteredToken(tokenAddress))
             revert TokenBridgeNotRegistered(tokenAddress);
         StorageTypes.TokenConfig memory config = _getTokenConfig(tokenAddress);
-        if (_amount < config.minAmount) revert InvalidAmount();
-        if (_amount > config.maxAmount) revert InvalidAmount();
+        uint256 tokenValue = _amount;
+        if (tokenValue < config.minAmount) revert InvalidAmount();
+        if (tokenValue > config.maxAmount) revert InvalidAmount();
 
         if (msg.value < config.fee)
             revert InsufficientFee(msg.value, config.fee);
@@ -435,11 +441,20 @@ contract BridgeImpl is
             tokenAddress
         );
         uint256 newNonce = state.nonce + 1;
+
+        if (config.tokenType == StorageTypes.TokenType.NEO) {
+            if (tokenValue % 1e18 != 0) {
+                revert InvalidAmount();
+            } else {
+                tokenValue /= 1e18;
+            }
+        }
+
         bytes32 withdrawalHash = TokenBridgeLib._hashTokenBridgeOp(
             config.neoN3Token,
             tokenAddress,
             newNonce,
-            _amount,
+            tokenValue,
             _to
         );
         bytes32 newRoot = BridgeLib._computeNewRoot(state.root, withdrawalHash);
@@ -447,7 +462,7 @@ contract BridgeImpl is
             tokenAddress,
             StorageTypes.State({nonce: newNonce, root: newRoot})
         );
-        emit TokenWithdrawal(tokenAddress, state.nonce, _amount, _to);
+        emit TokenWithdrawal(tokenAddress, newNonce, tokenValue, _to);
     }
 
     function setMinTokenWithdrawalAmount(

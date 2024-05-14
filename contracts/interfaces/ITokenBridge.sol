@@ -39,6 +39,7 @@ interface ITokenBridge {
         uint256 amount,
         address indexed to
     );
+    event TokenWithdrawalFeeChange(address indexed neoXToken, uint256 fee);
     event MinTokenWithdrawalAmountChange(
         address indexed neoXToken,
         uint256 minAmount
@@ -47,7 +48,6 @@ interface ITokenBridge {
         address indexed neoXToken,
         uint256 maxAmount
     );
-    event TokenWithdrawalFeeChange(address indexed neoXToken, uint256 fee);
 
     function registerToken(
         address _neoXToken,
