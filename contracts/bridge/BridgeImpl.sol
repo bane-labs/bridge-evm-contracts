@@ -410,7 +410,7 @@ contract BridgeImpl is
         override
         nonReentrant
         onlyBridgeUnpaused
-        onlyTokenBridgeUnpaused(msg.sender)
+        onlyTokenBridgeUnpaused(_neoXToken)
     {
         if (_isRegisteredToken(_neoXToken))
             revert TokenBridgeNotRegistered(_neoXToken);
