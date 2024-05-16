@@ -395,10 +395,10 @@ contract BridgeImpl is
     }
 
     /**
-     * @notice Withdraw tokens to Neo N3.
-     * @dev This function must be called by the contract that is registered and thus is responsible for bridging the tokens. This can but need not be the token contract itself.
-     * @param _amount the amount of tokens to withdraw.
-     * @param _to the address to which the tokens should be sent.
+     * @notice Withdraw tokens to Neo N3. Requires that the sender has approved the provided amount to the bridge contract.
+     * @dev This function transfers the provided amount of the provided token from the msg.sender to this contract. It requires that the msg.sender has previously approved at least the provided amount to this contract. Further, it computes the new root and updates the token withdrawal state.
+     * @param _amount the amount of tokens to withdraw to Neo N3.
+     * @param _to the address to which the tokens should be sent on Neo N3.
      */
     function withdrawToken(
         address _neoXToken,
