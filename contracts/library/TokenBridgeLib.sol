@@ -17,8 +17,7 @@ library TokenBridgeLib {
         uint256 _amount,
         address _to
     ) internal returns (bool) {
-        IERC20 neoXToken = IERC20(_neoXToken);
-        return neoXToken.transfer(_to, _amount);
+        return IERC20(_neoXToken).transfer(_to, _amount);
     }
 
     /**
