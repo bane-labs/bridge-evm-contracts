@@ -248,7 +248,7 @@ contract BridgeImpl is
      */
     function pauseTokenBridge(
         address _neoXToken
-    ) external override onlyTokenBridgeUnpaused(_neoXToken) onlyGovernor {
+    ) external override onlyTokenBridgeUnpaused(_neoXToken) onlySecurityGuard {
         _pauseToken(_neoXToken);
         emit TokenPause(_neoXToken, _getNeoN3Token(_neoXToken));
     }
