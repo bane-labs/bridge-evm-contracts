@@ -30,6 +30,7 @@ contract BridgeStorage is UUPSUpgradeable {
     // End Storage Slots
 
     constructor(address _management) {
+        _disableInitializers();
         management = IBridgeManagement(_management);
         gasBridge = StorageTypes.GasBridge({
             depositState: StorageTypes.State({nonce: 0, root: 0x0}),
