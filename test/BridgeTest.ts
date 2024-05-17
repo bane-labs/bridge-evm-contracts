@@ -41,7 +41,7 @@ describe("Bridge Implementation", function () {
         // Fund the bridge contract's address before deployment.
         await funder.sendTransaction({ to: contractAddress, value: ethers.parseEther("80.0") });
 
-        const bridgeContract = await BridgeContract.connect(deployer).deploy();
+        const bridgeContract = await BridgeContract.connect(deployer).deploy(bridgeManagementContract);
         await bridgeContract.waitForDeployment();
 
         return {
@@ -71,7 +71,7 @@ describe("Bridge Implementation", function () {
             expect(gasBridge.config.fee).to.be.equal(oldFee);
             const newFee = ethers.parseEther("0.2");
             const tx = await bridgeContract.connect(governor).setGasWithdrawalFee(newFee);
-            await expect(tx).to.emit(bridgeContract, "WithdrawalFeeChanged").withArgs(newFee);
+            await expect(tx).to.emit(bridgeContract, "GasWithdrawalFeeChange").withArgs(newFee);
             gasBridge = await bridgeContract.gasBridge()
             expect(gasBridge.config.fee).to.be.equal(newFee);
         });
@@ -81,8 +81,8 @@ describe("Bridge Implementation", function () {
             const oldMinAmount = ethers.parseEther("1");
             expect((await bridgeContract.gasBridge()).config.minAmount).to.be.equal(oldMinAmount);
             const newMinAmount = ethers.parseEther("0.2");
-            const tx = await bridgeContract.connect(governor).setGasWithdrawalMinAmount(newMinAmount);
-            await expect(tx).to.emit(bridgeContract, "MinWithdrawalAmountChanged").withArgs(newMinAmount);
+            const tx = await bridgeContract.connect(governor).setMinGasWithdrawalAmount(newMinAmount);
+            await expect(tx).to.emit(bridgeContract, "MinGasWithdrawalChange").withArgs(newMinAmount);
             expect((await bridgeContract.gasBridge()).config.minAmount).to.be.equal(newMinAmount);
         });
 
@@ -91,12 +91,12 @@ describe("Bridge Implementation", function () {
             const oldMaxAmount = ethers.parseEther("10000");
             expect((await bridgeContract.gasBridge()).config.maxAmount).to.be.equal(oldMaxAmount);
             const newMaxAmount = ethers.parseEther("5000");
-            let tx = await bridgeContract.connect(governor).setGasWithdrawalMaxAmount(newMaxAmount);
-            await expect(tx).to.emit(bridgeContract, "MaxWithdrawalAmountChanged").withArgs(newMaxAmount);
+            let tx = await bridgeContract.connect(governor).setMaxGasWithdrawalAmount(newMaxAmount);
+            await expect(tx).to.emit(bridgeContract, "MaxGasWithdrawalChange").withArgs(newMaxAmount);
             expect((await bridgeContract.gasBridge()).config.maxAmount).to.be.equal(newMaxAmount);
             const newMaxAount2 = ethers.parseEther("10000");
-            tx = await bridgeContract.connect(governor).setGasWithdrawalMaxAmount(newMaxAount2);
-            await expect(tx).to.emit(bridgeContract, "MaxWithdrawalAmountChanged").withArgs(newMaxAount2);
+            tx = await bridgeContract.connect(governor).setMaxGasWithdrawalAmount(newMaxAount2);
+            await expect(tx).to.emit(bridgeContract, "MaxGasWithdrawalChange").withArgs(newMaxAount2);
             expect((await bridgeContract.gasBridge()).config.maxAmount).to.be.equal(newMaxAount2);
         });
 
@@ -109,42 +109,42 @@ describe("Bridge Implementation", function () {
             const higherThanMaxWithdrawalAmount = maxWithdrawalAmount + fraction;
 
             // min amount must not be greater than max amount
-            let tx = bridgeContract.connect(governor).setGasWithdrawalMinAmount(higherThanMaxWithdrawalAmount);
+            let tx = bridgeContract.connect(governor).setMinGasWithdrawalAmount(higherThanMaxWithdrawalAmount);
             await expect(tx).to.be.revertedWithCustomError(bridgeContract, "InvalidAmount");
             // min amount must not be greater than or equal to max amount
-            tx = bridgeContract.connect(governor).setGasWithdrawalMinAmount(maxWithdrawalAmount);
+            tx = bridgeContract.connect(governor).setMinGasWithdrawalAmount(maxWithdrawalAmount);
             await expect(tx).to.be.revertedWithCustomError(bridgeContract, "InvalidAmount");
             // min amount must have maximal 8 non-zero digits
-            tx = bridgeContract.connect(governor).setGasWithdrawalMinAmount(1000000000n);
+            tx = bridgeContract.connect(governor).setMinGasWithdrawalAmount(1000000000n);
             await expect(tx).to.be.revertedWithCustomError(bridgeContract, "InvalidAmount");
 
             // max amount must not be less than min amount
-            tx = bridgeContract.connect(governor).setGasWithdrawalMaxAmount(lowerThanMinWithdrawalAmount);
+            tx = bridgeContract.connect(governor).setMaxGasWithdrawalAmount(lowerThanMinWithdrawalAmount);
             await expect(tx).to.be.revertedWithCustomError(bridgeContract, "InvalidAmount");
             // max amount must not be less than or equal to min amount
-            tx = bridgeContract.connect(governor).setGasWithdrawalMaxAmount(minWithdrawalAmount);
+            tx = bridgeContract.connect(governor).setMaxGasWithdrawalAmount(minWithdrawalAmount);
             await expect(tx).to.be.revertedWithCustomError(bridgeContract, "InvalidAmount");
             // max amount must have maximal 8 non-zero digits
-            tx = bridgeContract.connect(governor).setGasWithdrawalMaxAmount(1000000000n);
+            tx = bridgeContract.connect(governor).setMaxGasWithdrawalAmount(1000000000n);
             await expect(tx).to.be.revertedWithCustomError(bridgeContract, "InvalidAmount");
         });
 
         it("Set max deposits per distribution", async function () {
             const { bridgeContract, governor } = await loadFixture(deployBridgeFixture);
-            const maxDepositsPerDistribution = (await bridgeContract.gasBridge()).config.maxDepositsPerDistribution;
-            const newMaxDepositsPerDistribution = 10;
-            expect(maxDepositsPerDistribution).not.to.be.equal(newMaxDepositsPerDistribution);
-            const tx = bridgeContract.connect(governor).setGasMaxNrDepositsPerDistribution(newMaxDepositsPerDistribution);
-            await expect(tx).to.emit(bridgeContract, "MaxDepositsPerDistributionChanged").withArgs(newMaxDepositsPerDistribution);
-            expect((await bridgeContract.gasBridge()).config.maxDepositsPerDistribution).to.be.equal(newMaxDepositsPerDistribution);
+            const maxDepositsPerDistribution = (await bridgeContract.gasBridge()).config.maxDeposits;
+            const newMaxDeposits = 10;
+            expect(maxDepositsPerDistribution).not.to.be.equal(newMaxDeposits);
+            const tx = bridgeContract.connect(governor).setMaxGasDeposits(newMaxDeposits);
+            await expect(tx).to.emit(bridgeContract, "MaxGasDepositsChange").withArgs(newMaxDeposits);
+            expect((await bridgeContract.gasBridge()).config.maxDeposits).to.be.equal(newMaxDeposits);
         });
 
         it("Fail setting max deposits per distribution to zero", async function () {
             const { bridgeContract, governor } = await loadFixture(deployBridgeFixture);
-            const maxDepositsPerDistribution = (await bridgeContract.gasBridge()).config.maxDepositsPerDistribution;
+            const maxDepositsPerDistribution = (await bridgeContract.gasBridge()).config.maxDeposits;
             await expect(maxDepositsPerDistribution).to.be.greaterThan(0);
 
-            let tx = bridgeContract.connect(governor).setGasMaxNrDepositsPerDistribution(0);
+            let tx = bridgeContract.connect(governor).setMaxGasDeposits(0);
             await expect(tx).to.be.revertedWithCustomError(bridgeContract, "InvalidAmount");
         });
     });
@@ -157,7 +157,7 @@ describe("Bridge Implementation", function () {
             expect(bridgeContractBalance).to.be.equal(ethers.parseEther("80.0"));
             const tx = await funder.sendTransaction({ to: bridgeContract.target, value: ethers.parseEther("20.0") });
             expect(tx).to.changeEtherBalances([funder, bridgeContract], [-ethers.parseEther("20.0"), ethers.parseEther("20.0")]);
-            expect(tx).to.emit(bridgeContract, "Funded").withArgs(ethers.parseEther("20.0"));
+            expect(tx).to.emit(bridgeContract, "Fund").withArgs(ethers.parseEther("20.0"));
         });
 
         it("Not funder fails to fund the bridge contract", async function () {
@@ -184,12 +184,12 @@ describe("Bridge Implementation", function () {
             await expect(funderBefore).to.be.not.equal(validator1Addr);
 
             const tx = await bridgeManagementContract.connect(managementOwner).setFunder(validator1Addr);
-            await expect(tx).to.emit(bridgeManagementContract, "SetFunder").withArgs(validator1Addr);
+            await expect(tx).to.emit(bridgeManagementContract, "FunderChange").withArgs(validator1Addr);
 
             await expect(await bridgeManagementContract.getFunder()).to.be.equal(validator1Addr);
             const fundTx = await validator1.sendTransaction({ to: bridgeContract.target, value: fundAmount });
             expect(fundTx).to.changeEtherBalances([validator1, bridgeContract], [-ethers.parseEther("10.0"), ethers.parseEther("10.0")]);
-            expect(fundTx).to.emit(bridgeContract, "Funded").withArgs(ethers.parseEther("10.0"));
+            expect(fundTx).to.emit(bridgeContract, "Fund").withArgs(ethers.parseEther("10.0"));
         });
     });
 
@@ -201,7 +201,7 @@ describe("Bridge Implementation", function () {
             const encodeRoot1 = ethers.solidityPackedKeccak256(["bytes32"], [root1]);
             const signatures = await getValidatorSignatures(ethers.getBytes(encodeRoot1), [1, 2, 3, 4, 5]);
 
-            const tx = await bridgeContract.connect(relayer).deposit(root1, signatures, [Depositdata1]);
+            const tx = await bridgeContract.connect(relayer).depositGas(root1, signatures, [Depositdata1]);
             await expect(tx).to.changeEtherBalances([bridgeContract, Depositdata1.to], [-toEthDecimals(Depositdata1.amount), toEthDecimals(Depositdata1.amount)]);
         });
 
@@ -215,11 +215,11 @@ describe("Bridge Implementation", function () {
             const new_encodeRoot = ethers.solidityPackedKeccak256(["bytes32"], [new_root]);
             const signatures = await getValidatorSignatures(ethers.getBytes(new_encodeRoot), [1, 2, 3, 4, 5]);
 
-            const tx = await bridgeContract.connect(relayer).deposit(new_root, signatures, [Depositdata1, Depositdata2]);
+            const tx = await bridgeContract.connect(relayer).depositGas(new_root, signatures, [Depositdata1, Depositdata2]);
 
             await expect(tx).to.changeEtherBalances([bridgeContract, Depositdata1.to, Depositdata2.to], [-toEthDecimals(Depositdata1.amount + Depositdata2.amount), toEthDecimals(Depositdata1.amount), toEthDecimals(Depositdata2.amount)]);
-            await expect(tx).to.emit(bridgeContract, "Deposit").withArgs(Depositdata1.nonce, Depositdata1.amount, Depositdata1.to);
-            await expect(tx).to.emit(bridgeContract, "Deposit").withArgs(Depositdata2.nonce, Depositdata2.amount, Depositdata2.to);
+            await expect(tx).to.emit(bridgeContract, "GasDeposit").withArgs(Depositdata1.nonce, Depositdata1.amount, Depositdata1.to);
+            await expect(tx).to.emit(bridgeContract, "GasDeposit").withArgs(Depositdata2.nonce, Depositdata2.amount, Depositdata2.to);
 
             expect((await bridgeContract.gasBridge()).depositState.nonce).to.equal(Depositdata2.nonce);
             expect((await bridgeContract.gasBridge()).depositState.root).to.equal(new_root);
@@ -232,7 +232,7 @@ describe("Bridge Implementation", function () {
             const root1 = await computeRoot(ethers.ZeroHash, hashDepositData1);
             const encodeRoot1 = ethers.solidityPackedKeccak256(["bytes32"], [root1]);
             const signatures_first = await getValidatorSignatures(ethers.getBytes(encodeRoot1), [1, 2, 3, 4, 5]);
-            await bridgeContract.connect(relayer).deposit(root1, signatures_first, [Depositdata1]);
+            await bridgeContract.connect(relayer).depositGas(root1, signatures_first, [Depositdata1]);
 
             //calculate the root and signatures for the second deposit
             const hashDepositData2 = await hashDepositOrWithdrawal(Depositdata2.nonce, Depositdata2.amount, Depositdata2.to);
@@ -242,11 +242,11 @@ describe("Bridge Implementation", function () {
             const new_encodeRoot = ethers.solidityPackedKeccak256(["bytes32"], [hash123]);
             const signatures = await getValidatorSignatures(ethers.getBytes(new_encodeRoot), [1, 2, 3, 4, 5]);
 
-            const tx = await bridgeContract.connect(relayer).deposit(hash123, signatures, [Depositdata2, Depositdata3]);
+            const tx = await bridgeContract.connect(relayer).depositGas(hash123, signatures, [Depositdata2, Depositdata3]);
 
             await expect(tx).to.changeEtherBalances([bridgeContract, Depositdata2.to, Depositdata3.to], [-toEthDecimals(Depositdata2.amount + Depositdata3.amount), toEthDecimals(Depositdata2.amount), toEthDecimals(Depositdata3.amount)]);
-            await expect(tx).to.emit(bridgeContract, "Deposit").withArgs(Depositdata2.nonce, Depositdata2.amount, Depositdata2.to);
-            await expect(tx).to.emit(bridgeContract, "Deposit").withArgs(Depositdata3.nonce, Depositdata3.amount, Depositdata3.to);
+            await expect(tx).to.emit(bridgeContract, "GasDeposit").withArgs(Depositdata2.nonce, Depositdata2.amount, Depositdata2.to);
+            await expect(tx).to.emit(bridgeContract, "GasDeposit").withArgs(Depositdata3.nonce, Depositdata3.amount, Depositdata3.to);
 
             expect((await bridgeContract.gasBridge()).depositState.nonce).to.equal(Depositdata3.nonce);
             expect((await bridgeContract.gasBridge()).depositState.root).to.equal(hash123);
@@ -267,7 +267,7 @@ describe("Bridge Implementation", function () {
             const new_encodeRoot = ethers.solidityPackedKeccak256(["bytes32"], [new_root]);
             const signatures = await getValidatorSignatures(ethers.getBytes(new_encodeRoot), [1, 2, 3, 4, 5]);
 
-            const tx = await bridgeContract.connect(relayer).deposit(new_root, signatures, [depositData, Depositdata2]);
+            const tx = await bridgeContract.connect(relayer).depositGas(new_root, signatures, [depositData, Depositdata2]);
             // check the balance is not change for the recipient address; but the root and depositNonce are both updated
             await expect(tx).to.changeEtherBalances([bridgeContract, depositData.to, Depositdata2.to], [-toEthDecimals(Depositdata2.amount), 0, toEthDecimals(Depositdata2.amount)]);
 
@@ -284,7 +284,7 @@ describe("Bridge Implementation", function () {
             expect(claimable2.to).to.equal("0x0000000000000000000000000000000000000000");
             expect(claimable2.amount).to.equal(0);
 
-            await expect(tx).to.emit(bridgeContract, "Claimable").withArgs(depositData.nonce, depositData.amount, depositData.to);
+            await expect(tx).to.emit(bridgeContract, "GasClaimable").withArgs(depositData.nonce, depositData.amount, depositData.to);
         });
 
         it("Bridge three deposits with insufficient funds for executing the second deposit", async function () {
@@ -307,7 +307,7 @@ describe("Bridge Implementation", function () {
             const new_encodeRoot = ethers.solidityPackedKeccak256(["bytes32"], [new_root]);
             const signatures = await getValidatorSignatures(ethers.getBytes(new_encodeRoot), [1, 2, 3, 4, 5]);
 
-            const tx = await bridgeContract.connect(relayer).deposit(new_root, signatures, [depositData1, depositData2, depositData3]);
+            const tx = await bridgeContract.connect(relayer).depositGas(new_root, signatures, [depositData1, depositData2, depositData3]);
             // check the balance is not change for the recipient address; but the root and depositNonce are both updated
             await expect(tx).to.changeEtherBalances([bridgeContract, depositData1.to, depositData2.to, depositData3.to], [-toEthDecimals(depositData1.amount) - toEthDecimals(depositData3.amount), toEthDecimals(depositData1.amount), 0, toEthDecimals(depositData3.amount)]);
 
@@ -329,7 +329,7 @@ describe("Bridge Implementation", function () {
             expect(claimable3.to).to.equal("0x0000000000000000000000000000000000000000");
             expect(claimable3.amount).to.equal(0);
 
-            await expect(tx).to.emit(bridgeContract, "Claimable").withArgs(depositData2.nonce, depositData2.amount, depositData2.to);
+            await expect(tx).to.emit(bridgeContract, "GasClaimable").withArgs(depositData2.nonce, depositData2.amount, depositData2.to);
         });
 
         it("Deposit When Recipient is Contract", async function () {
@@ -344,7 +344,7 @@ describe("Bridge Implementation", function () {
             const new_encodeRoot = ethers.solidityPackedKeccak256(["bytes32"], [new_root]);
             const signatures = await getValidatorSignatures(ethers.getBytes(new_encodeRoot), [1, 2, 3, 4, 5]);
 
-            const tx = await bridgeContract.connect(relayer).deposit(new_root, signatures, [Depositdata1, data2]);
+            const tx = await bridgeContract.connect(relayer).depositGas(new_root, signatures, [Depositdata1, data2]);
 
             await expect(tx).to.changeEtherBalances([bridgeContract, Depositdata1.to], [-toEthDecimals(Depositdata1.amount), toEthDecimals(Depositdata1.amount)]);
             expect((await bridgeContract.gasBridge()).depositState.nonce).to.equal(data2.nonce);
@@ -370,17 +370,17 @@ describe("Bridge Implementation", function () {
             const new_encodeRoot = ethers.solidityPackedKeccak256(["bytes32"], [hashResult]);
             const signatures = await getValidatorSignatures(ethers.getBytes(new_encodeRoot), [1, 2, 3, 4, 5]);
 
-            const tx = await bridgeContract.connect(relayer).deposit(hashResult, signatures, dataArray);
+            const tx = await bridgeContract.connect(relayer).depositGas(hashResult, signatures, dataArray);
             await expect(tx).to.changeEtherBalances([bridgeContract, relayer.address], [-toEthDecimals(dataArray[0].amount * 10n), toEthDecimals(dataArray[0].amount * 10n)]);
             let depositState = (await bridgeContract.gasBridge()).depositState;
             expect(depositState.nonce).to.equal(10);
             expect(depositState.root).to.equal(hashResult);
             for (let i = 0; i < 10; i++) {
-                await expect(tx).to.emit(bridgeContract, "Deposit").withArgs(dataArray[i].nonce, dataArray[i].amount, dataArray[i].to);
+                await expect(tx).to.emit(bridgeContract, "GasDeposit").withArgs(dataArray[i].nonce, dataArray[i].amount, dataArray[i].to);
             }
         });
 
-        //TODO: This needs to be discussed whether revert or not
+        // Depositing to the zero address is disallowed on the source chain, but the bridge contract should handle it as a normal deposit if it were to be allowed.
         it("Deposit When Recipient Address is Zero Address", async function () {
             const { bridgeContract, relayer } = await loadFixture(deployBridgeFixture);
 
@@ -390,17 +390,17 @@ describe("Bridge Implementation", function () {
             const new_encodeRoot = ethers.solidityPackedKeccak256(["bytes32"], [root]);
             const signatures = await getValidatorSignatures(ethers.getBytes(new_encodeRoot), [1, 2, 3, 4, 5]);
 
-            const tx = await bridgeContract.connect(relayer).deposit(root, signatures, [data_withZeroAddress]);
+            const tx = await bridgeContract.connect(relayer).depositGas(root, signatures, [data_withZeroAddress]);
             await expect(tx).to.changeEtherBalances([bridgeContract, ethers.ZeroAddress], [-toEthDecimals(data_withZeroAddress.amount), toEthDecimals(data_withZeroAddress.amount)]);
             let depositState = (await bridgeContract.gasBridge()).depositState;
             expect(depositState.nonce).to.equal(1);
             expect(depositState.root).to.equal(root);
-            await expect(tx).to.emit(bridgeContract, "Deposit").withArgs(data_withZeroAddress.nonce, data_withZeroAddress.amount, data_withZeroAddress.to);
+            await expect(tx).to.emit(bridgeContract, "GasDeposit").withArgs(data_withZeroAddress.nonce, data_withZeroAddress.amount, data_withZeroAddress.to);
         });
 
         it("Should revert with no deposits", async function () {
             const { bridgeContract, relayer } = await loadFixture(deployBridgeFixture);
-            await expect(bridgeContract.connect(relayer).deposit(ethers.ZeroHash, [], [])).to.be.revertedWithCustomError(bridgeContract, "InvalidDepositsLength");
+            await expect(bridgeContract.connect(relayer).depositGas(ethers.ZeroHash, [], [])).to.be.revertedWithCustomError(bridgeContract, "InvalidDepositsLength");
         });
 
         it("Should revert when providing too many deposits in single transaction", async function () {
@@ -414,17 +414,17 @@ describe("Bridge Implementation", function () {
             const new_encodeRoot = ethers.solidityPackedKeccak256(["bytes32"], [hashResult]);
             const signatures = await getValidatorSignatures(ethers.getBytes(new_encodeRoot), [1, 2, 3, 4, 5]);
 
-            await expect(bridgeContract.connect(relayer).deposit(hashResult, signatures, dataArray)).to.be.revertedWithCustomError(bridgeContract, "InvalidDepositsLength");
+            await expect(bridgeContract.connect(relayer).depositGas(hashResult, signatures, dataArray)).to.be.revertedWithCustomError(bridgeContract, "InvalidDepositsLength");
         });
 
         it("Should revert with the wrong first nonce", async function () {
             const { bridgeContract, relayer } = await loadFixture(deployBridgeFixture);
-            await expect(bridgeContract.connect(relayer).deposit(ethers.ZeroHash, [], [Depositdata2])).to.be.revertedWithCustomError(bridgeContract, "InvalidNonceSequence");
+            await expect(bridgeContract.connect(relayer).depositGas(ethers.ZeroHash, [], [Depositdata2])).to.be.revertedWithCustomError(bridgeContract, "InvalidNonceSequence");
         });
 
         it("Should revert when nonce is not subsequent", async function () {
             const { bridgeContract, relayer } = await loadFixture(deployBridgeFixture);
-            await expect(bridgeContract.connect(relayer).deposit(ethers.ZeroHash, [], [Depositdata1, Depositdata3])).to.be.revertedWithCustomError(bridgeContract, "InvalidNonceSequence");
+            await expect(bridgeContract.connect(relayer).depositGas(ethers.ZeroHash, [], [Depositdata1, Depositdata3])).to.be.revertedWithCustomError(bridgeContract, "InvalidNonceSequence");
         });
 
         it("Should revert when signature length less than 5", async function () {
@@ -435,7 +435,7 @@ describe("Bridge Implementation", function () {
             const encodeRoot1 = ethers.solidityPackedKeccak256(["bytes32"], [root1]);
             const signatures = await getValidatorSignatures(ethers.getBytes(encodeRoot1), [0, 2, 3, 4]);
 
-            await expect(bridgeContract.connect(relayer).deposit(root1, signatures, [Depositdata1])).to.be.revertedWithCustomError(bridgeContract, "InvalidValidatorSignatures");
+            await expect(bridgeContract.connect(relayer).depositGas(root1, signatures, [Depositdata1])).to.be.revertedWithCustomError(bridgeContract, "InvalidValidatorSignatures");
         });
 
         it("Should revert when signature length is 5 but with two duplicate signature", async function () {
@@ -446,7 +446,7 @@ describe("Bridge Implementation", function () {
             const encodeRoot1 = ethers.solidityPackedKeccak256(["bytes32"], [root1]);
             const signatures = await getValidatorSignatures(ethers.getBytes(encodeRoot1), [1, 1, 3, 4, 5]);
 
-            await expect(bridgeContract.connect(relayer).deposit(root1, signatures, [Depositdata1])).to.be.revertedWithCustomError(bridgeContract, "InvalidValidatorSignatures")
+            await expect(bridgeContract.connect(relayer).depositGas(root1, signatures, [Depositdata1])).to.be.revertedWithCustomError(bridgeContract, "InvalidValidatorSignatures")
         });
 
         it("Should revert when signature length is 5 but not with order", async function () {
@@ -457,7 +457,7 @@ describe("Bridge Implementation", function () {
             const encodeRoot1 = ethers.solidityPackedKeccak256(["bytes32"], [root1]);
             const signatures = await getValidatorSignatures(ethers.getBytes(encodeRoot1), [1, 2, 3, 6, 5]);
 
-            await expect(bridgeContract.connect(relayer).deposit(root1, signatures, [Depositdata1])).to.be.revertedWithCustomError(bridgeContract, "InvalidValidatorSignatures");
+            await expect(bridgeContract.connect(relayer).depositGas(root1, signatures, [Depositdata1])).to.be.revertedWithCustomError(bridgeContract, "InvalidValidatorSignatures");
         });
 
         it("Should revert when signature verify failed", async function () {
@@ -469,7 +469,7 @@ describe("Bridge Implementation", function () {
             //index 0 refers to relayer signer in the method getValidatorSignatures, thus there are only 4 validator signatures and the signature verification should fail.
             const signatures = await getValidatorSignatures(ethers.getBytes(encodeRoot1), [0, 2, 3, 4, 5]);
 
-            await expect(bridgeContract.connect(relayer).deposit(root1, signatures, [Depositdata1])).to.be.revertedWithCustomError(bridgeContract, "InvalidValidatorSignatures");
+            await expect(bridgeContract.connect(relayer).depositGas(root1, signatures, [Depositdata1])).to.be.revertedWithCustomError(bridgeContract, "InvalidValidatorSignatures");
         });
 
         it("Should revert when root is invalid", async function () {
@@ -480,7 +480,7 @@ describe("Bridge Implementation", function () {
             const encodeRoot1 = ethers.solidityPackedKeccak256(["bytes32"], [root1]);
             const signatures = await getValidatorSignatures(ethers.getBytes(encodeRoot1), [1, 2, 3, 4, 5]);
 
-            await expect(bridgeContract.connect(relayer).deposit(root1, signatures, [Depositdata1])).to.be.revertedWithCustomError(bridgeContract, "InvalidRoot")
+            await expect(bridgeContract.connect(relayer).depositGas(root1, signatures, [Depositdata1])).to.be.revertedWithCustomError(bridgeContract, "InvalidRoot")
         });
     });
 
@@ -492,7 +492,7 @@ describe("Bridge Implementation", function () {
             const withdrawalFee = (await bridgeContract.gasBridge()).config.fee;
 
             const withdrawData = { nonce: 1, amount: withdrawalAmount + withdrawalFee, to: relayer.address };
-            const tx = await bridgeContract.connect(relayer).withdraw(withdrawData.to, { value: withdrawData.amount });
+            const tx = await bridgeContract.connect(relayer).withdrawGas(withdrawData.to, { value: withdrawData.amount });
 
             const hashWithdrawData1 = await hashDepositOrWithdrawal(withdrawData.nonce, toNeoDecimals(withdrawalAmount), relayer.address);
             const new_withdrawRoot = await computeRoot(ethers.ZeroHash, hashWithdrawData1);
@@ -500,7 +500,7 @@ describe("Bridge Implementation", function () {
             let withdrawalState = (await bridgeContract.gasBridge()).withdrawalState;
             expect(withdrawalState.nonce).to.be.equal(1);
             expect(withdrawalState.root).to.be.equal(new_withdrawRoot);
-            await expect(tx).to.emit(bridgeContract, "Withdrawal").withArgs(1, toNeoDecimals(withdrawalAmount), relayer.address, relayer.address, hashWithdrawData1, new_withdrawRoot);
+            await expect(tx).to.emit(bridgeContract, "GasWithdrawal").withArgs(1, toNeoDecimals(withdrawalAmount), relayer.address, relayer.address, hashWithdrawData1, new_withdrawRoot);
         });
 
         it("withdraw multiple times", async function () {
@@ -511,9 +511,9 @@ describe("Bridge Implementation", function () {
             let withdrawalFee = (await bridgeContract.gasBridge()).config.fee;
 
             const withdrawData1 = { nonce: 1, amount: withdrawalAmount_1, to: relayer.address };
-            await bridgeContract.connect(relayer).withdraw(withdrawData1.to, { value: withdrawalAmount_1 + withdrawalFee });
+            await bridgeContract.connect(relayer).withdrawGas(withdrawData1.to, { value: withdrawalAmount_1 + withdrawalFee });
             const withdrawData2 = { nonce: 2, amount: withdrawalAmount_2, to: validator1.address };
-            const tx2 = await bridgeContract.connect(relayer).withdraw(withdrawData2.to, { value: withdrawalAmount_2 + withdrawalFee });
+            const tx2 = await bridgeContract.connect(relayer).withdrawGas(withdrawData2.to, { value: withdrawalAmount_2 + withdrawalFee });
 
             const hashWithdrawData1 = await hashDepositOrWithdrawal(withdrawData1.nonce, toNeoDecimals(withdrawData1.amount), relayer.address);
             const hash1 = await computeRoot(ethers.ZeroHash, hashWithdrawData1);
@@ -523,7 +523,7 @@ describe("Bridge Implementation", function () {
             let withdrawalState = (await bridgeContract.gasBridge()).withdrawalState;
             expect(withdrawalState.nonce).to.be.equal(2);
             expect(withdrawalState.root).to.be.equal(hash12);
-            await expect(tx2).to.emit(bridgeContract, "Withdrawal").withArgs(2, toNeoDecimals(withdrawData2.amount), validator1.address, relayer.address, hashWithdrawData2, hash12);
+            await expect(tx2).to.emit(bridgeContract, "GasWithdrawal").withArgs(2, toNeoDecimals(withdrawData2.amount), validator1.address, relayer.address, hashWithdrawData2, hash12);
         });
 
         it("withdraw with amount edge case", async function () {
@@ -535,7 +535,7 @@ describe("Bridge Implementation", function () {
             const withdrawalAmountWithFee = withdrawalAmount + withdrawalFee;
 
             const withdrawData = { nonce: 1, amount: withdrawalAmount, to: relayer.address };
-            const tx = await bridgeContract.connect(relayer).withdraw(withdrawData.to, { value: withdrawalAmountWithFee });
+            const tx = await bridgeContract.connect(relayer).withdrawGas(withdrawData.to, { value: withdrawalAmountWithFee });
 
             const hashWithdrawData1 = await hashDepositOrWithdrawal(withdrawData.nonce, toNeoDecimals(withdrawalAmount), relayer.address);
             const new_withdrawRoot = await computeRoot(ethers.ZeroHash, hashWithdrawData1);
@@ -543,7 +543,7 @@ describe("Bridge Implementation", function () {
             let withdrawalState = (await bridgeContract.gasBridge()).withdrawalState;
             expect(withdrawalState.nonce).to.be.equal(1);
             expect(withdrawalState.root).to.be.equal(new_withdrawRoot);
-            await expect(tx).to.emit(bridgeContract, "Withdrawal").withArgs(1, toNeoDecimals(withdrawData.amount), relayer.address, relayer.address, hashWithdrawData1, new_withdrawRoot);
+            await expect(tx).to.emit(bridgeContract, "GasWithdrawal").withArgs(1, toNeoDecimals(withdrawData.amount), relayer.address, relayer.address, hashWithdrawData1, new_withdrawRoot);
             await expect(tx).to.changeEtherBalances([bridgeContract, relayer], [withdrawalAmountWithFee, -withdrawalAmountWithFee]);
         });
 
@@ -556,7 +556,7 @@ describe("Bridge Implementation", function () {
             const withdrawlFee = config.fee;
             await expect(invalidAmount).to.be.greaterThanOrEqual(minWithdrawalAmount + withdrawlFee);
             await expect(invalidAmount).to.be.lessThanOrEqual(maxWithdrawalAmount + withdrawlFee);
-            await expect(bridgeContract.connect(relayer).withdraw(relayer, { value: invalidAmount })).to.be.revertedWithCustomError(bridgeContract, "InvalidAmount");
+            await expect(bridgeContract.connect(relayer).withdrawGas(relayer, { value: invalidAmount })).to.be.revertedWithCustomError(bridgeContract, "InvalidAmount");
         });
 
         it("withdraw is too low", async function () {
@@ -566,7 +566,7 @@ describe("Bridge Implementation", function () {
             const minWithdrawalAmount = config.minAmount;
             const withdrawlFee = config.fee;
             const tooLowWithdrawalAmount = minWithdrawalAmount + withdrawlFee - minFraction;
-            await expect(bridgeContract.connect(relayer).withdraw(relayer, { value: tooLowWithdrawalAmount })).to.be.revertedWithCustomError(bridgeContract, "InvalidAmount");
+            await expect(bridgeContract.connect(relayer).withdrawGas(relayer, { value: tooLowWithdrawalAmount })).to.be.revertedWithCustomError(bridgeContract, "InvalidAmount");
         });
 
         it("withdraw is too high", async function () {
@@ -577,7 +577,7 @@ describe("Bridge Implementation", function () {
             const maxWithdrawalAmount = config.maxAmount;
             const withdrawlFee = config.fee;
             const tooHighWithdrawalAmount = maxWithdrawalAmount + withdrawlFee + minFraction;
-            await expect(bridgeContract.connect(validator7).withdraw(validator6, { value: tooHighWithdrawalAmount })).to.be.revertedWithCustomError(bridgeContract, "InvalidAmount");
+            await expect(bridgeContract.connect(validator7).withdrawGas(validator6, { value: tooHighWithdrawalAmount })).to.be.revertedWithCustomError(bridgeContract, "InvalidAmount");
             validator7.sendTransaction({ to: validator6, value: ethers.parseEther("1000") });
         });
     });
@@ -594,7 +594,7 @@ describe("Bridge Implementation", function () {
             const new_encodeRoot = ethers.solidityPackedKeccak256(["bytes32"], [new_root]);
             const signatures = await getValidatorSignatures(ethers.getBytes(new_encodeRoot), [1, 2, 3, 4, 5]);
 
-            const depositTx = await bridgeContract.connect(relayer).deposit(new_root, signatures, [depositData]);
+            const depositTx = await bridgeContract.connect(relayer).depositGas(new_root, signatures, [depositData]);
 
             await expect(depositTx).to.changeEtherBalances([bridgeContract, Depositdata1.to], [0, 0]);
 
@@ -605,21 +605,21 @@ describe("Bridge Implementation", function () {
             let claimable = await bridgeContract.claimableGas(depositData.nonce);
             expect(claimable.to).to.equal(depositData.to);
             expect(claimable.amount).to.equal(depositData.amount);
-            await expect(depositTx).to.emit(bridgeContract, "Claimable").withArgs(depositData.nonce, depositData.amount, depositData.to);
+            await expect(depositTx).to.emit(bridgeContract, "GasClaimable").withArgs(depositData.nonce, depositData.amount, depositData.to);
 
             // Let's withdraw some eth to increase the contract's balance and make the claim possible.
             const amount = ethers.parseEther("10");
-            const withdrawTx = await bridgeContract.connect(relayer).withdraw(relayer.address, { value: amount });
+            const withdrawTx = await bridgeContract.connect(relayer).withdrawGas(relayer.address, { value: amount });
             await expect(withdrawTx).to.changeEtherBalances([bridgeContract, relayer.address], [amount, -amount]);
             const bridgeContractBalance = await ethers.provider.getBalance(bridgeContract.target);
             expect(bridgeContractBalance).to.be.greaterThanOrEqual((await bridgeContract.claimableGas(depositData.nonce)).amount);
 
-            const claim_tx1 = await bridgeContract.connect(validator1).claim(depositData.nonce);
+            const claim_tx1 = await bridgeContract.connect(validator1).claimGas(depositData.nonce);
 
             claimable = await bridgeContract.claimableGas(depositData.nonce);
             expect(claimable.to).to.equal(ethers.ZeroAddress);
             expect(claimable.amount).to.equal(0);
-            await expect(claim_tx1).to.emit(bridgeContract, "Claimed").withArgs(depositData.nonce, depositData.amount, depositData.to);
+            await expect(claim_tx1).to.emit(bridgeContract, "GasClaim").withArgs(depositData.nonce, depositData.amount, depositData.to);
             await expect(claim_tx1).to.changeEtherBalances([bridgeContract, depositData.to], [-toEthDecimals(depositData.amount), toEthDecimals(depositData.amount)]);
         });
 
@@ -635,7 +635,7 @@ describe("Bridge Implementation", function () {
             const new_encodeRoot = ethers.solidityPackedKeccak256(["bytes32"], [new_root]);
             const signatures = await getValidatorSignatures(ethers.getBytes(new_encodeRoot), [1, 2, 3, 4, 5]);
 
-            const tx = await bridgeContract.connect(relayer).deposit(new_root, signatures, [data1]);
+            const tx = await bridgeContract.connect(relayer).depositGas(new_root, signatures, [data1]);
 
             await expect(tx).to.changeEtherBalances([bridgeContract, data1.to], [0, 0, 0]);
             let depositState = (await bridgeContract.gasBridge()).depositState;
@@ -645,17 +645,17 @@ describe("Bridge Implementation", function () {
             let claimable = await bridgeContract.claimableGas(data1.nonce);
             expect(claimable.to).to.equal(data1.to);
             expect(claimable.amount).to.equal(data1.amount);
-            await expect(tx).to.emit(bridgeContract, "Claimable").withArgs(data1.nonce, data1.amount, data1.to);
+            await expect(tx).to.emit(bridgeContract, "GasClaimable").withArgs(data1.nonce, data1.amount, data1.to);
 
-            const tx2 = await bridgeContract.connect(validator1).claim(data1.nonce);
+            const tx2 = await bridgeContract.connect(validator1).claimGas(data1.nonce);
 
             claimable = await bridgeContract.claimableGas(data1.nonce);
             expect(claimable.to).to.equal(ethers.ZeroAddress);
             expect(claimable.amount).to.equal(0);
-            await expect(tx2).to.emit(bridgeContract, "Claimed").withArgs(data1.nonce, data1.amount, data1.to);
+            await expect(tx2).to.emit(bridgeContract, "GasClaim").withArgs(data1.nonce, data1.amount, data1.to);
             await expect(tx2).to.changeEtherBalances([bridgeContract, data1.to], [-toEthDecimals(data1.amount), toEthDecimals(data1.amount)]);
 
-            await expect(bridgeContract.connect(relayer).claim(data1.nonce)).to.be.revertedWithCustomError(bridgeContract, "NonexistentClaimable")
+            await expect(bridgeContract.connect(relayer).claimGas(data1.nonce)).to.be.revertedWithCustomError(bridgeContract, "NonexistentClaimable")
         });
 
         it("Fail to claim due to Contract not payable", async function () {
@@ -667,7 +667,7 @@ describe("Bridge Implementation", function () {
             const new_encodeRoot = ethers.solidityPackedKeccak256(["bytes32"], [new_root]);
             const signatures = await getValidatorSignatures(ethers.getBytes(new_encodeRoot), [1, 2, 3, 4, 5]);
 
-            const tx = await bridgeContract.connect(relayer).deposit(new_root, signatures, [data1]);
+            const tx = await bridgeContract.connect(relayer).depositGas(new_root, signatures, [data1]);
 
             await expect(tx).to.changeEtherBalances([bridgeContract, data1.to], [0, 0, 0]);
             let depositState = (await bridgeContract.gasBridge()).depositState;
@@ -677,14 +677,14 @@ describe("Bridge Implementation", function () {
             let claimable = await bridgeContract.claimableGas(Depositdata1.nonce);
             expect(claimable.to).to.equal(data1.to);
             expect(claimable.amount).to.equal(data1.amount);
-            await expect(tx).to.emit(bridgeContract, "Claimable").withArgs(data1.nonce, data1.amount, data1.to);
+            await expect(tx).to.emit(bridgeContract, "GasClaimable").withArgs(data1.nonce, data1.amount, data1.to);
 
-            await expect(bridgeContract.connect(validator1).claim(data1.nonce)).to.be.revertedWithCustomError(bridgeContract, "TransferFailed");
+            await expect(bridgeContract.connect(validator1).claimGas(data1.nonce)).to.be.revertedWithCustomError(bridgeContract, "TransferFailed");
         });
 
         it("Fail to claim for not existed nonce in the claim table", async function () {
             const { bridgeContract, validator1 } = await loadFixture(deployBridgeFixture);
-            await expect(bridgeContract.connect(validator1).claim(3)).to.be.revertedWithCustomError(bridgeContract, "NonexistentClaimable");
+            await expect(bridgeContract.connect(validator1).claimGas(3)).to.be.revertedWithCustomError(bridgeContract, "NonexistentClaimable");
         });
     });
 
@@ -692,33 +692,39 @@ describe("Bridge Implementation", function () {
         it("Lock with SecurityGuard Account and Unlock with Governor", async function () {
             const { bridgeContract, validator1, governor, securityGuard } = await loadFixture(deployBridgeFixture);
 
-            await bridgeContract.connect(securityGuard).lock();
-            expect(await bridgeContract.locked()).to.equal(true);
+            await bridgeContract.connect(securityGuard).pauseBridge();
+            expect(await bridgeContract.bridgePaused()).to.equal(true);
 
             // unlock with the governor
-            await expect(bridgeContract.connect(validator1).unlock()).to.be.revertedWith("not governor");
-            await bridgeContract.connect(governor).unlock();
-            expect(await bridgeContract.locked()).to.equal(false);
+            await expect(bridgeContract.connect(validator1).unpauseBridge()).to.be.revertedWith("not governor");
+            await bridgeContract.connect(governor).unpauseBridge();
+            expect(await bridgeContract.bridgePaused()).to.equal(false);
         });
 
-        it("Cannot unlock if already unlocked", async function () {
+        it("Cannot unlock contract if it's already unlocked", async function () {
             const { bridgeContract, governor } = await loadFixture(deployBridgeFixture);
-            await expect(bridgeContract.connect(governor).unlock()).to.be.revertedWith("already unlocked");
+            await expect(bridgeContract.connect(governor).unpauseBridge()).to.be.revertedWithCustomError(bridgeContract, "BridgeUnpaused");
         });
 
-        it("Cannot deposit, claim, withdraw or lock if contract is locked", async function () {
+        it("Cannot lock contract if it's locked", async function () {
+            const { bridgeContract, securityGuard } = await loadFixture(deployBridgeFixture);
+            await expect(bridgeContract.connect(securityGuard).pauseBridge()).to.emit(bridgeContract, "BridgePause");
+            await expect(bridgeContract.connect(securityGuard).pauseBridge()).to.be.revertedWithCustomError(bridgeContract, "BridgePaused");
+        });
+
+        it("Cannot deposit, claim or withdraw Gas if contract is locked", async function () {
             const { bridgeContract, relayer, securityGuard } = await loadFixture(deployBridgeFixture);
-            await bridgeContract.connect(securityGuard).lock()
+            await bridgeContract.connect(securityGuard).pauseBridge()
 
             const hashDepositData1 = await hashDepositOrWithdrawal(Depositdata1.nonce, Depositdata1.amount, Depositdata1.to);
             const root1 = await computeRoot(ethers.ZeroHash, hashDepositData1);
             const encodeRoot1 = ethers.solidityPackedKeccak256(["bytes32"], [root1]);
             const signatures = await getValidatorSignatures(ethers.getBytes(encodeRoot1), [1, 2, 3, 4, 5]);
-            await expect(bridgeContract.connect(relayer).deposit(root1, signatures, [Depositdata1])).to.be.revertedWith("contract locked");
-            await expect(bridgeContract.connect(relayer).claim(Depositdata1.nonce)).to.be.revertedWith("contract locked");
+            await expect(bridgeContract.connect(relayer).depositGas(root1, signatures, [Depositdata1])).to.be.revertedWithCustomError(bridgeContract, "BridgePaused");
+            await expect(bridgeContract.connect(relayer).claimGas(Depositdata1.nonce)).to.be.revertedWithCustomError(bridgeContract, "BridgePaused");
             const withdrawData = { nonce: 1, amount: ethers.parseEther("1"), to: relayer.address };
-            await expect(bridgeContract.connect(relayer).withdraw(withdrawData.to, { value: withdrawData.amount })).to.be.revertedWith("contract locked");
-            await expect(bridgeContract.connect(securityGuard).lock()).to.be.revertedWith("contract locked");
+            await expect(bridgeContract.connect(relayer).withdrawGas(withdrawData.to, { value: withdrawData.amount })).to.be.revertedWithCustomError(bridgeContract, "BridgePaused");
+            await expect(bridgeContract.connect(securityGuard).pauseBridge()).to.be.revertedWithCustomError(bridgeContract, "BridgePaused");
         });
     });
 });
