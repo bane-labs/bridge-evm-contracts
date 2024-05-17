@@ -20,11 +20,12 @@ contract BridgeStorage is UUPSUpgradeable {
     bool public bridgePaused;
     // Gas Bridge
     StorageTypes.GasBridge public gasBridge;
-    mapping(uint256 => StorageTypes.Claimable) public claimableGas;
+    mapping(uint256 nonce => StorageTypes.Claimable claimable)
+        public claimableGas;
     // Token Bridges
-    mapping(address tokenAddress => StorageTypes.TokenBridge)
+    mapping(address tokenAddress => StorageTypes.TokenBridge tokenBridge)
         public tokenBridges;
-    mapping(address tokenAddress => mapping(uint256 nonce => StorageTypes.Claimable))
+    mapping(address tokenAddress => mapping(uint256 nonce => StorageTypes.Claimable claimable) claimableTokens)
         public tokenClaimables;
 
     // End Storage Slots
