@@ -44,8 +44,8 @@ library TokenBridgeLib {
                 _neoN3Token,
                 _neoXToken,
                 depositData.nonce,
-                depositData.amount,
-                depositData.to
+                depositData.to,
+                depositData.amount
             );
             parent = BridgeLib._computeNewRoot(parent, depositHash);
         }
@@ -65,12 +65,12 @@ library TokenBridgeLib {
         address _neoN3Token,
         address _neoXToken,
         uint256 _nonce,
-        uint256 _value,
-        address _to
+        address _to,
+        uint256 _value
     ) internal pure returns (bytes32) {
         return
             sha256(
-                abi.encodePacked(_neoN3Token, _neoXToken, _nonce, _value, _to)
+                abi.encodePacked(_neoN3Token, _neoXToken, _nonce, _to, _value)
             );
     }
 
