@@ -31,7 +31,15 @@ describe("Bridge Implementation", function () {
         ] = await ethers.getSigners();
 
         const BridgeManagementFactory = await ethers.getContractFactory("BridgeManagementImpl");
-        const bridgeManagementContract = await BridgeManagementFactory.connect(deployer).deploy();
+        const bridgeManagementContract = await BridgeManagementFactory.connect(deployer).deploy(
+            managementOwner.address,
+            relayer.address,
+            5,
+            [validator1.address, validator2.address, validator3.address, validator4.address, validator5.address, validator6.address, validator7.address],
+            governor.address,
+            securityGuard.address,
+            funder.address
+        );
 
         const BridgeContract = await ethers.getContractFactory("BridgeImpl");
         const contractAddress = getContractAddress({

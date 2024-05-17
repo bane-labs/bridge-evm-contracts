@@ -10,6 +10,26 @@ import "../library/BridgeLib.sol";
  * - set initial storage values in BridgeManagementStorage.sol
  */
 contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
+    constructor(
+        address _owner,
+        address _relayer,
+        uint8 _validatorThreshold,
+        address[] memory _validators,
+        address _governor,
+        address _securityGuard,
+        address _funder
+    )
+        BridgeManagementStorage(
+            _owner,
+            _relayer,
+            _validatorThreshold,
+            _validators,
+            _governor,
+            _securityGuard,
+            _funder
+        )
+    {}
+
     function verifyValidatorSignatures(
         bytes32 _newDepositRoot,
         BridgeLib.Signature[] calldata _signatures
