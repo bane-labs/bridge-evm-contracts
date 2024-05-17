@@ -81,6 +81,7 @@ library TokenBridgeLib {
     function _isValidConfig(
         StorageTypes.TokenConfig memory _config
     ) internal pure returns (bool) {
+        // The fee must always be greater than 0.
         return
             _config.fee > 0 &&
             _config.minAmount > 0 &&

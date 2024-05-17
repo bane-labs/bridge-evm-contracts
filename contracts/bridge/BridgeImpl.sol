@@ -57,7 +57,7 @@ contract BridgeImpl is
 
     /**
      * @notice Distributes Gas that has been locked on Neo N3.
-     * @dev The depositGas function is used to deposit funds to the bridge.
+     * @dev The depositGas function is used to distribute Gas that has been locked on Neo N3.
      *      The deposits data need to be provided ordered based on their nonces.
      *      Before the deposits are distributed, the following steps are executed:
      *      - Check if the provided deposits are subsequent to the current nonce in storage and each other.
@@ -65,7 +65,7 @@ contract BridgeImpl is
      *      - Check if the provided signatures are valid given the provided root and the current validators.
      *      Once these checks are passed, the storage state is updated with the new nonce and root, and the deposits are distributed.
      * @param _depositRoot the new deposit root.
-     * @param _signatures the signatures of the validators.
+     * @param _signatures the signatures of the validators. The signatures need to be ordered based on the order they have been stored in storage.
      * @param _deposits the deposit data.
      */
     function depositGas(
@@ -140,7 +140,10 @@ contract BridgeImpl is
         }
     }
 
-    // Anyone can execute a claim. The funds of a claimable will be sent to the defined address in the claimableTo mapping.
+    /**
+     * @notice Claim Gas that has been deposited to Neo X and was not distributed. Anyone can execute a claim. The funds of a claimable will be sent to the defined address in storage regardless of who claims it.
+     * @param _nonce the nonce of the claimable.
+     */
     function claimGas(
         uint256 _nonce
     ) external onlyBridgeUnpaused onlyGasBridgeUnpaused nonReentrant {
@@ -157,6 +160,11 @@ contract BridgeImpl is
         emit GasClaim(_nonce, amount, to);
     }
 
+    /**
+     * @notice Withdraw Gas to provided address on Neo N3. The provided amount of Gas must have a precision of maximal 8 decimal points due to the GAS token on Neo N3 having 8 decimals.
+     * @dev When invoking this function provide the amount of Gas to withdraw to Neo N3 as msg.value.
+     * @param _to the address to which the Gas should be sent on Neo N3.
+     */
     function withdrawGas(
         address _to
     ) external payable onlyBridgeUnpaused onlyGasBridgeUnpaused {
@@ -216,7 +224,7 @@ contract BridgeImpl is
     /**
      * @notice Register a new token bridge.
      * @param _neoXToken the address of the token on the Neo X network.
-     * @param _tokenConfig the configuration of the token bridge.
+     * @param _tokenConfig the configuration of the token bridge. Make sure the provided fee, minAmount and maxDeposits is not zero and the maxAmount is greater than the minAmount.
      */
     function registerToken(
         address _neoXToken,
@@ -264,6 +272,20 @@ contract BridgeImpl is
         emit TokenPause(_neoXToken, _getNeoN3Token(_neoXToken));
     }
 
+    /**
+     * @notice Distributes the provided Token that has been locked on Neo N3.
+     * @dev The depositToken function is used to distribute tokens that have been locked on Neo N3.
+     *      The deposits data need to be provided ordered based on their nonces.
+     *      Before the deposits are distributed, the following steps are executed:
+     *      - Check if the provided deposits are subsequent to the current nonce in storage and each other.
+     *      - Check if the computed root based on the provided deposits matches the provided root.
+     *      - Check if the provided signatures are valid given the provided root and the current validators.
+     *      Once these checks are passed, the storage state is updated with the new nonce and root, and the deposits are distributed.
+     * @param _neoXToken the address of the token on the Neo X network.
+     * @param _tokenDepositRoot the new deposit root. The root must be the root that resulted from the last provided deposit.
+     * @param _signatures the signatures of the validators. The signatures need to be ordered based on the order they have been stored in storage.
+     * @param _deposits the deposit data. Each deposit's nonce, recipient address and the amount.
+     */
     function depositToken(
         address _neoXToken,
         bytes32 _tokenDepositRoot,
@@ -352,6 +374,11 @@ contract BridgeImpl is
         }
     }
 
+    /**
+     * @notice Claim tokens that have been deposited to Neo X and were not distributed. Anyone can execute a claim. The funds of a claimable will be sent to the defined address in storage regardless of who claims it.
+     * @param _neoXToken the address of the token on the Neo X network.
+     * @param _nonce the nonce of the claimable.
+     */
     function claimToken(
         address _neoXToken,
         uint256 _nonce
