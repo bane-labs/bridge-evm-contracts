@@ -18,26 +18,26 @@ interface ITokenBridge {
     event TokenDeposit(
         address indexed neoXToken,
         uint256 indexed nonce,
-        uint256 amount,
-        address indexed to
+        address indexed to,
+        uint256 amount
     );
     event TokenClaimable(
         address indexed neoXToken,
         uint256 indexed nonce,
-        uint256 amount,
-        address indexed to
+        address indexed to,
+        uint256 amount
     );
     event TokenClaim(
         address indexed neoXToken,
         uint256 indexed nonce,
-        uint256 amount,
-        address indexed to
+        address indexed to,
+        uint256 amount
     );
     event TokenWithdrawal(
         address indexed neoXToken,
         uint256 indexed nonce,
-        uint256 amount,
-        address indexed to
+        address indexed to,
+        uint256 amount
     );
     event TokenWithdrawalFeeChange(address indexed neoXToken, uint256 fee);
     event MinTokenWithdrawalAmountChange(
