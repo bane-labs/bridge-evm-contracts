@@ -14,8 +14,8 @@ library GasBridgeLib {
             BridgeLib.DepositData calldata depositData = _deposits[i];
             bytes32 depositHash = _hashGasBrideOp(
                 depositData.nonce,
-                depositData.amount,
-                depositData.to
+                depositData.to,
+                depositData.amount
             );
             parent = BridgeLib._computeNewRoot(parent, depositHash);
         }
@@ -24,10 +24,10 @@ library GasBridgeLib {
 
     function _hashGasBrideOp(
         uint256 _nonce,
-        uint256 _amount,
-        address _to
+        address _to,
+        uint256 _amount
     ) internal pure returns (bytes32) {
-        return sha256(abi.encodePacked(_nonce, _amount, _to));
+        return sha256(abi.encodePacked(_nonce, _to, _amount));
     }
 
     // Adds 10 decimals to the amount. GasToken originally has 8 decimals and on this chain it has 18 decimals.

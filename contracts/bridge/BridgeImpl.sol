@@ -182,8 +182,8 @@ contract BridgeImpl is
         uint256 newNonce = state.nonce + 1;
         bytes32 withdrawalHash = GasBridgeLib._hashGasBrideOp(
             newNonce,
-            amountForHashing,
-            _to
+            _to,
+            amountForHashing
         );
         bytes32 newRoot = BridgeLib._computeNewRoot(state.root, withdrawalHash);
         _setGasBridgeWithdrawalState(
@@ -472,8 +472,8 @@ contract BridgeImpl is
             config.neoN3Token,
             _neoXToken,
             newNonce,
-            tokenValue,
-            _to
+            _to,
+            tokenValue
         );
         bytes32 newRoot = BridgeLib._computeNewRoot(state.root, withdrawalHash);
         _setTokenWithdrawalState(

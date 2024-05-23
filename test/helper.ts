@@ -44,8 +44,8 @@ export async function fundContract(contract: any, funder: HardhatEthersSigner) {
     await funder.sendTransaction({ to, value: amount });
 }
 
-export async function hashDepositOrWithdrawal(nonce: number, amount: bigint, to: string): Promise<string> {
-    const packData = ethers.solidityPacked(["uint256", "uint256", "address"], [nonce, amount, to]);
+export async function hashDepositOrWithdrawal(nonce: number, to: string, amount: bigint): Promise<string> {
+    const packData = ethers.solidityPacked(["uint256", "address", "uint256"], [nonce, to, amount]);
     const hashData = ethers.sha256(packData);
     return hashData;
 }
