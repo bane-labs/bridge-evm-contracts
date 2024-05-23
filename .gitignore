@@ -120,3 +120,8 @@ lint/tmp/
 
 node_modules
 typechain-types/
+
+#foundry
+
+lib/
+cache_forge/

@@ -7,6 +7,7 @@
     "test": "test"
   },
   "dependencies": {
+    "@nomicfoundation/hardhat-foundry": "^1.1.2",
     "@openzeppelin/contracts": "^5.0.2",
     "@openzeppelin/contracts-upgradeable": "^5.0.2",
     "abbrev": "^1.0.9",
@@ -364,7 +365,7 @@
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.2",
-    "@nomicfoundation/hardhat-toolbox": "^3.0.0",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@nomicfoundation/hardhat-verify": "^2.0.5",
     "@nomiclabs/hardhat-solhint": "^3.0.1",
     "@openzeppelin/hardhat-upgrades": "^3.0.5",
