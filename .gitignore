@@ -125,3 +125,4 @@ typechain-types/
 
 lib/
 cache_forge/
+crytic-export
