@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 library ManagementLib {
     function _hasDuplicates(
-        address[] calldata _addresses
+        address[] memory _addresses
     ) internal pure returns (bool) {
         uint addressesLength = _addresses.length;
         for (uint i = 0; i < addressesLength - 1; i++) {
