@@ -245,8 +245,6 @@ describe("Bridge Implementation", function () {
                 [{ nonce: nonce1, to: to1, amount: amount1 }, { nonce: nonce2, to: to2, amount: amount2 }]);
 
             await expect(tx).to.changeEtherBalances([bridgeContract, to1, to2], [-toEthDecimals(amount1 + amount2), toEthDecimals(amount1), toEthDecimals(amount2)]);
-            const events = await bridgeContract.queryFilter(bridgeContract.filters.GasDeposit(), tx.blockNumber);
-            console.log(events);
             await expect(tx).to.emit(bridgeContract, "GasDeposit").withArgs(nonce1, to1, amount1);
             await expect(tx).to.emit(bridgeContract, "GasDeposit").withArgs(nonce2, to2, amount2);
 

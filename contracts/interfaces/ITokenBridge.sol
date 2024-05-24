@@ -35,9 +35,13 @@ interface ITokenBridge {
     );
     event TokenWithdrawal(
         address indexed neoXToken,
+        address neoN3Token,
         uint256 indexed nonce,
         address indexed to,
-        uint256 amount
+        uint256 amount,
+        address from,
+        bytes32 withdrawalHash,
+        bytes32 withdrawalRoot
     );
     event TokenWithdrawalFeeChange(address indexed neoXToken, uint256 fee);
     event MinTokenWithdrawalAmountChange(
