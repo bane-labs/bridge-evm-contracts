@@ -247,6 +247,7 @@ describe("Bridge Implementation", function () {
             await expect(tx).to.changeEtherBalances([bridgeContract, to1, to2], [-toEthDecimals(amount1 + amount2), toEthDecimals(amount1), toEthDecimals(amount2)]);
             await expect(tx).to.emit(bridgeContract, "GasDeposit").withArgs(nonce1, to1, amount1);
             await expect(tx).to.emit(bridgeContract, "GasDeposit").withArgs(nonce2, to2, amount2);
+            await expect(tx).to.emit(bridgeContract, "GasDepositRootUpdate").withArgs(nonce2, new_root);
 
             expect((await bridgeContract.gasBridge()).depositState.nonce).to.equal(nonce2);
             expect((await bridgeContract.gasBridge()).depositState.root).to.equal(new_root);
@@ -274,6 +275,7 @@ describe("Bridge Implementation", function () {
             await expect(tx).to.changeEtherBalances([bridgeContract, Depositdata2.to, Depositdata3.to], [-toEthDecimals(Depositdata2.amount + Depositdata3.amount), toEthDecimals(Depositdata2.amount), toEthDecimals(Depositdata3.amount)]);
             await expect(tx).to.emit(bridgeContract, "GasDeposit").withArgs(Depositdata2.nonce, Depositdata2.to, Depositdata2.amount);
             await expect(tx).to.emit(bridgeContract, "GasDeposit").withArgs(Depositdata3.nonce, Depositdata3.to, Depositdata3.amount);
+            await expect(tx).to.emit(bridgeContract, "GasDepositRootUpdate").withArgs(Depositdata3.nonce, hash123);
 
             expect((await bridgeContract.gasBridge()).depositState.nonce).to.equal(Depositdata3.nonce);
             expect((await bridgeContract.gasBridge()).depositState.root).to.equal(hash123);
@@ -389,8 +391,9 @@ describe("Bridge Implementation", function () {
             const { bridgeContract, relayer } = await loadFixture(deployBridgeFixture);
 
             const dataArray = [];
+            const nrDeposits = 10;
             let hashResult = ethers.ZeroHash;
-            for (let i = 0; i < 10; i++) {
+            for (let i = 0; i < nrDeposits; i++) {
                 dataArray.push({ nonce: i + 1, amount: 100000000n, to: relayer.address });
                 hashResult = await computeRoot(hashResult, await hashDepositOrWithdrawal(dataArray[i].nonce, dataArray[i].to, dataArray[i].amount));
             }
@@ -398,13 +401,14 @@ describe("Bridge Implementation", function () {
             const signatures = await getValidatorSignatures(ethers.getBytes(new_encodeRoot), [1, 2, 3, 4, 5]);
 
             const tx = await bridgeContract.connect(relayer).depositGas(hashResult, signatures, dataArray);
-            await expect(tx).to.changeEtherBalances([bridgeContract, relayer.address], [-toEthDecimals(dataArray[0].amount * 10n), toEthDecimals(dataArray[0].amount * 10n)]);
+            await expect(tx).to.changeEtherBalances([bridgeContract, relayer.address], [-toEthDecimals(dataArray[0].amount * BigInt(nrDeposits)), toEthDecimals(dataArray[0].amount * BigInt(nrDeposits))]);
             let depositState = (await bridgeContract.gasBridge()).depositState;
             expect(depositState.nonce).to.equal(10);
             expect(depositState.root).to.equal(hashResult);
-            for (let i = 0; i < 10; i++) {
+            for (let i = 0; i < nrDeposits; i++) {
                 await expect(tx).to.emit(bridgeContract, "GasDeposit").withArgs(dataArray[i].nonce, dataArray[i].to, dataArray[i].amount);
             }
+            await expect(tx).to.emit(bridgeContract, "GasDepositRootUpdate").withArgs(dataArray[nrDeposits - 1].nonce, hashResult);
         });
 
         // Depositing to the zero address is disallowed on the source chain, but the bridge contract should handle it as a normal deposit if it were to be allowed.
@@ -423,6 +427,7 @@ describe("Bridge Implementation", function () {
             expect(depositState.nonce).to.equal(1);
             expect(depositState.root).to.equal(root);
             await expect(tx).to.emit(bridgeContract, "GasDeposit").withArgs(data_withZeroAddress.nonce, data_withZeroAddress.to, data_withZeroAddress.amount);
+            await expect(tx).to.emit(bridgeContract, "GasDepositRootUpdate").withArgs(data_withZeroAddress.nonce, root);
         });
 
         it("Should revert with no deposits", async function () {

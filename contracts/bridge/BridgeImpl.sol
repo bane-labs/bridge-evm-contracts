@@ -99,6 +99,11 @@ contract BridgeImpl is
                 root: _depositRoot
             })
         );
+        emit GasDepositRootUpdate(
+            _deposits[depositLength - 1].nonce,
+            _depositRoot
+        );
+
         // Execution data interface
         _executeGasTransfers(_deposits);
     }

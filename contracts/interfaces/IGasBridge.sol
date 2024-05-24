@@ -7,6 +7,7 @@ interface IGasBridge {
     event GasBridgePause();
     event GasBridgeUnpause();
     event GasDeposit(uint256 nonce, address to, uint256 amount);
+    event GasDepositRootUpdate(uint256 nonce, bytes32 depositRoot);
     event GasClaimable(uint256 nonce, address to, uint256 amount);
     event GasClaim(uint256 nonce, address to, uint256 amount);
     event GasWithdrawal(
