@@ -51,7 +51,7 @@ contract BridgeManagementImplTest is Test, SigUtils {
 
     function testSetOwner() public {
         assertEq(bridgeManagementImpl.getOwner(), owner);
-        vm.expectRevert(bytes("Not owner"));
+        vm.expectRevert(bytes("not owner"));
         bridgeManagementImpl.setOwner(user);
         vm.prank(owner);
         bridgeManagementImpl.setOwner(user);
