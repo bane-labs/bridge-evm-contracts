@@ -22,6 +22,8 @@ contract BridgeStorage is UUPSUpgradeable {
     StorageTypes.GasBridge public gasBridge;
     mapping(uint256 nonce => StorageTypes.Claimable claimable)
         public claimableGas;
+    // Unclaimed Fee Rewards
+    uint256 public unclaimedRewards;
     // Token Bridges
     mapping(address tokenAddress => StorageTypes.TokenBridge tokenBridge)
         public tokenBridges;
@@ -127,6 +129,8 @@ contract BridgeStorage is UUPSUpgradeable {
         _;
     }
 
+    // Pause Bridge functions
+
     function _pauseBridge() internal {
         bridgePaused = true;
     }
@@ -134,6 +138,14 @@ contract BridgeStorage is UUPSUpgradeable {
     function _unpauseBridge() internal {
         bridgePaused = false;
     }
+
+    // Unclaimed Rewards functions
+
+    function _addUnclaimedRewards(uint256 _amount) internal {
+        unclaimedRewards += _amount;
+    }
+
+    // Gas Bridge functions
 
     function _pauseGasBridge() internal {
         gasBridge.config.paused = true;
