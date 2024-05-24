@@ -99,6 +99,11 @@ contract BridgeImpl is
                 root: _depositRoot
             })
         );
+        emit GasDepositRootUpdate(
+            _deposits[depositLength - 1].nonce,
+            _depositRoot
+        );
+
         // Execution data interface
         _executeGasTransfers(_deposits);
     }
@@ -335,6 +340,12 @@ contract BridgeImpl is
                 root: _tokenDepositRoot
             })
         );
+        emit TokenDepositRootUpdate(
+            _neoXToken,
+            config.neoN3Token,
+            _deposits[depositLength - 1].nonce,
+            _tokenDepositRoot
+        );
 
         // Execute the token distribution
         _executeTokenDistribution(_neoXToken, config.tokenType, _deposits);
@@ -424,8 +435,8 @@ contract BridgeImpl is
     /**
      * @notice Withdraw tokens to Neo N3. Requires that the sender has approved the provided amount to the bridge contract.
      * @dev This function transfers the provided amount of the provided token from the msg.sender to this contract. It requires that the msg.sender has previously approved at least the provided amount to this contract. Further, it computes the new root and updates the token withdrawal state.
-     * @param _amount the amount of tokens to withdraw to Neo N3.
      * @param _to the address to which the tokens should be sent on Neo N3.
+     * @param _amount the amount of tokens to withdraw to Neo N3.
      */
     function withdrawToken(
         address _neoXToken,
@@ -480,7 +491,16 @@ contract BridgeImpl is
             _neoXToken,
             StorageTypes.State({nonce: newNonce, root: newRoot})
         );
-        emit TokenWithdrawal(_neoXToken, newNonce, _to, tokenValue);
+        emit TokenWithdrawal(
+            _neoXToken,
+            config.neoN3Token,
+            newNonce,
+            _to,
+            tokenValue,
+            msg.sender,
+            withdrawalHash,
+            newRoot
+        );
     }
 
     function setTokenWithdrawalFee(
@@ -490,10 +510,9 @@ contract BridgeImpl is
         uint nrTokens = _neoXTokens.length;
         if (nrTokens != _fees.length) revert LengthMismatch();
         for (uint i = 0; i < nrTokens; i++) {
-            address token = _neoXTokens[i];
             uint256 fee = _fees[i];
-            _setTokenWithdrawalFee(token, fee);
-            emit TokenWithdrawalFeeChange(token, fee);
+            _setTokenWithdrawalFee(_neoXTokens[i], fee);
+            emit TokenWithdrawalFeeChange(_neoXTokens[i], fee);
         }
     }
 
@@ -504,10 +523,9 @@ contract BridgeImpl is
         uint nrTokens = _neoXTokens.length;
         if (nrTokens != _minAmounts.length) revert LengthMismatch();
         for (uint i = 0; i < nrTokens; i++) {
-            address token = _neoXTokens[i];
             uint256 minAmount = _minAmounts[i];
-            _setTokenMinWithdrawalAmount(token, minAmount);
-            emit MinTokenWithdrawalAmountChange(token, minAmount);
+            _setTokenMinWithdrawalAmount(_neoXTokens[i], minAmount);
+            emit MinTokenWithdrawalAmountChange(_neoXTokens[i], minAmount);
         }
     }
 
@@ -518,10 +536,9 @@ contract BridgeImpl is
         uint nrTokens = _neoXTokens.length;
         if (nrTokens != _maxAmounts.length) revert LengthMismatch();
         for (uint i = 0; i < nrTokens; i++) {
-            address token = _neoXTokens[i];
             uint256 maxAmount = _maxAmounts[i];
-            _setTokenMaxWithdrawalAmount(token, maxAmount);
-            emit MaxTokenWithdrawalAmountChange(token, maxAmount);
+            _setTokenMaxWithdrawalAmount(_neoXTokens[i], maxAmount);
+            emit MaxTokenWithdrawalAmountChange(_neoXTokens[i], maxAmount);
         }
     }
 
@@ -532,10 +549,9 @@ contract BridgeImpl is
         uint nrTokens = _neoXTokens.length;
         if (nrTokens != _maxDeposits.length) revert LengthMismatch();
         for (uint i = 0; i < nrTokens; i++) {
-            address token = _neoXTokens[i];
             uint256 maxDeposits = _maxDeposits[i];
-            _setMaxTokenDeposits(token, maxDeposits);
-            emit MaxTokenDepositsChange(token, maxDeposits);
+            _setMaxTokenDeposits(_neoXTokens[i], maxDeposits);
+            emit MaxTokenDepositsChange(_neoXTokens[i], maxDeposits);
         }
     }
 }
