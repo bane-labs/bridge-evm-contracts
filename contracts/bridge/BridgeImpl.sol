@@ -111,8 +111,8 @@ contract BridgeImpl is
             BridgeLib.DepositData calldata depositEntry = _deposits[i];
             address to = depositEntry.to;
             if (BridgeLib._isContract(to)) {
-                _addClaimableGas(depositEntry.nonce, depositEntry.amount, to);
-                emit GasClaimable(depositEntry.nonce, depositEntry.amount, to);
+                _addClaimableGas(depositEntry.nonce, to, depositEntry.amount);
+                emit GasClaimable(depositEntry.nonce, to, depositEntry.amount);
             } else {
                 uint256 sendValue = GasBridgeLib._addTenDecimals(
                     depositEntry.amount
@@ -121,19 +121,19 @@ contract BridgeImpl is
                 if (success) {
                     emit GasDeposit(
                         depositEntry.nonce,
-                        depositEntry.amount,
-                        to
+                        to,
+                        depositEntry.amount
                     );
                 } else {
                     _addClaimableGas(
                         depositEntry.nonce,
-                        depositEntry.amount,
-                        to
+                        to,
+                        depositEntry.amount
                     );
                     emit GasClaimable(
                         depositEntry.nonce,
-                        depositEntry.amount,
-                        to
+                        to,
+                        depositEntry.amount
                     );
                 }
             }
@@ -157,7 +157,7 @@ contract BridgeImpl is
         uint256 sendValue = GasBridgeLib._addTenDecimals(amount);
         (bool success, ) = to.call{value: sendValue}("");
         if (!success) revert TransferFailed();
-        emit GasClaim(_nonce, amount, to);
+        emit GasClaim(_nonce, to, amount);
     }
 
     /**
@@ -191,8 +191,8 @@ contract BridgeImpl is
         );
         emit GasWithdrawal(
             newNonce,
-            amountForHashing,
             _to,
+            amountForHashing,
             msg.sender,
             withdrawalHash,
             newRoot
@@ -368,8 +368,8 @@ contract BridgeImpl is
                 success,
                 _neoXToken,
                 depositEntry.nonce,
-                transferAmount,
-                to
+                to,
+                transferAmount
             );
         }
     }
@@ -410,14 +410,14 @@ contract BridgeImpl is
         bool _success,
         address _neoXToken,
         uint256 _nonce,
-        uint256 _amount,
-        address _to
+        address _to,
+        uint256 _amount
     ) private {
         if (_success) {
-            emit TokenDeposit(_neoXToken, _nonce, _amount, _to);
+            emit TokenDeposit(_neoXToken, _nonce, _to, _amount);
         } else {
-            _addTokenClaimable(_neoXToken, _nonce, _amount, _to);
-            emit TokenClaimable(_neoXToken, _nonce, _amount, _to);
+            _addTokenClaimable(_neoXToken, _nonce, _to, _amount);
+            emit TokenClaimable(_neoXToken, _nonce, _to, _amount);
         }
     }
 
@@ -480,7 +480,7 @@ contract BridgeImpl is
             _neoXToken,
             StorageTypes.State({nonce: newNonce, root: newRoot})
         );
-        emit TokenWithdrawal(_neoXToken, newNonce, tokenValue, _to);
+        emit TokenWithdrawal(_neoXToken, newNonce, _to, tokenValue);
     }
 
     function setTokenWithdrawalFee(

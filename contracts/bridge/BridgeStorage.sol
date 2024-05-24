@@ -145,8 +145,8 @@ contract BridgeStorage is UUPSUpgradeable {
 
     function _addClaimableGas(
         uint256 _nonce,
-        uint256 _amount,
-        address _to
+        address _to,
+        uint256 _amount
     ) internal {
         claimableGas[_nonce] = StorageTypes.Claimable({
             to: _to,
@@ -354,8 +354,8 @@ contract BridgeStorage is UUPSUpgradeable {
     function _addTokenClaimable(
         address _neoXToken,
         uint256 _nonce,
-        uint256 _amount,
-        address _to
+        address _to,
+        uint256 _amount
     ) internal {
         tokenClaimables[_neoXToken][_nonce] = StorageTypes.Claimable({
             to: _to,
