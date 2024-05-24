@@ -1,9 +1,9 @@
 pragma solidity ^0.8.0;
 
 import "../lib/forge-std/src/Test.sol";
-import "../contracts/BridgeManagementImpl.sol";
+import "../contracts/management/BridgeManagementImpl.sol";
 import "../contracts/tests/SigUtils.sol";
-import "../contracts/BridgeLib.sol";
+import "../contracts/library/BridgeLib.sol";
 
 contract BridgeManagementImplTest is Test, SigUtils {
     BridgeManagementImpl bridgeManagementImpl;
@@ -18,7 +18,7 @@ contract BridgeManagementImplTest is Test, SigUtils {
     address internal securityGuard = 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720;
 
     function setUp() public {
-        bridgeManagementImpl = new BridgeManagementImpl();
+  
         sigUtils = new SigUtils();
         validatorsKeys.push(user0PrivateKey);
         validatorsAddresses.push(vm.addr(user0PrivateKey));
@@ -34,8 +34,15 @@ contract BridgeManagementImplTest is Test, SigUtils {
         validatorsAddresses.push(vm.addr(user5PrivateKey));
         validatorsKeys.push(user6PrivateKey);
         validatorsAddresses.push(vm.addr(user6PrivateKey));
-        vm.prank(owner);
-        bridgeManagementImpl.setValidators(validatorsAddresses, 5);
+        bridgeManagementImpl = new BridgeManagementImpl(
+            owner,
+            relayer,
+            5,
+            validatorsAddresses,
+            governor,
+            securityGuard,
+            user
+        );
     }
 
 
