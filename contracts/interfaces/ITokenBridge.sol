@@ -24,7 +24,7 @@ interface ITokenBridge {
     event TokenDepositRootUpdate(
         address indexed neoXToken,
         address indexed neoN3Token,
-        uint256 nonce,
+        uint256 indexed nonce,
         bytes32 depositRoot
     );
     event TokenClaimable(
