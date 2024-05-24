@@ -340,6 +340,12 @@ contract BridgeImpl is
                 root: _tokenDepositRoot
             })
         );
+        emit TokenDepositRootUpdate(
+            _neoXToken,
+            config.neoN3Token,
+            _deposits[depositLength - 1].nonce,
+            _tokenDepositRoot
+        );
 
         // Execute the token distribution
         _executeTokenDistribution(_neoXToken, config.tokenType, _deposits);
