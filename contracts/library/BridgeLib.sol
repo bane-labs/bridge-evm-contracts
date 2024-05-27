@@ -3,9 +3,9 @@ pragma solidity ^0.8.24;
 
 library BridgeLib {
     struct DepositData {
+        uint256 nonce;
         address payable to;
         uint256 amount;
-        uint256 nonce;
     }
 
     struct Signature {
