@@ -180,6 +180,7 @@ contract BridgeImpl is
         uint256 actualWithdrawalAmount = msg.value - config.fee;
         if (actualWithdrawalAmount < config.minAmount) revert InvalidAmount();
         if (actualWithdrawalAmount > config.maxAmount) revert InvalidAmount();
+        _addUnclaimedRewards(config.fee);
 
         uint256 amountForHashing = GasBridgeLib._removeTenDecimals(
             actualWithdrawalAmount
@@ -458,6 +459,7 @@ contract BridgeImpl is
         if (tokenValue > config.maxAmount) revert InvalidAmount();
         if (msg.value < config.fee)
             revert InsufficientFee(msg.value, config.fee);
+        _addUnclaimedRewards(msg.value);
 
         // Execute the transfer of the tokens from the sender to the bridge contract.
         bool success = IERC20(_neoXToken).transferFrom(

@@ -80,7 +80,7 @@ describe("Bridge Implementation", function () {
             const newFee = ethers.parseEther("0.2");
             const tx = await bridgeContract.connect(governor).setGasWithdrawalFee(newFee);
             await expect(tx).to.emit(bridgeContract, "GasWithdrawalFeeChange").withArgs(newFee);
-            gasBridge = await bridgeContract.gasBridge()
+            gasBridge = await bridgeContract.gasBridge();
             expect(gasBridge.config.fee).to.be.equal(newFee);
         });
 
@@ -611,6 +611,30 @@ describe("Bridge Implementation", function () {
             const tooHighWithdrawalAmount = maxWithdrawalAmount + withdrawlFee + minFraction;
             await expect(bridgeContract.connect(validator7).withdrawGas(validator6, { value: tooHighWithdrawalAmount })).to.be.revertedWithCustomError(bridgeContract, "InvalidAmount");
             validator7.sendTransaction({ to: validator6, value: ethers.parseEther("1000") });
+        });
+
+        it("Withdraw with different fees and verify unclaimed rewards", async function () {
+            const { bridgeContract, relayer, funder, governor } = await loadFixture(deployBridgeFixture);
+
+            let withdrawalAmount_1 = ethers.parseEther("10");
+            let withdrawalAmount_2 = ethers.parseEther("20");
+            let withdrawalFeeBeforeChange = (await bridgeContract.gasBridge()).config.fee;
+            expect(withdrawalFeeBeforeChange).to.be.equal(ethers.parseEther("0.1"));
+            expect(await bridgeContract.unclaimedRewards()).to.be.equal(0);
+
+            const to1 = relayer.address;
+            await bridgeContract.connect(relayer).withdrawGas(to1, { value: withdrawalAmount_1 });
+
+            await bridgeContract.connect(governor).setGasWithdrawalFee(ethers.parseEther("0.5"));
+            const withdrawalFeeAfterChange = (await bridgeContract.gasBridge()).config.fee;
+            expect(withdrawalFeeAfterChange).to.be.equal(ethers.parseEther("0.5"));
+
+            const to2 = funder.address;
+            const tx2 = await bridgeContract.connect(relayer).withdrawGas(to2, { value: withdrawalAmount_2 });
+
+            let withdrawalState = (await bridgeContract.gasBridge()).withdrawalState;
+            expect(withdrawalState.nonce).to.be.equal(2);
+            expect(await bridgeContract.unclaimedRewards()).to.be.equal(withdrawalFeeBeforeChange + withdrawalFeeAfterChange);
         });
     });
 
