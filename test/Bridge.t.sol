@@ -57,6 +57,7 @@ contract BridgeImplTest is Test,SigUtils {
             );
         // vm.prank(owner);
         // bridgeManagementImpl.setGovernor(governor);
+        // 1
 
         // ready for register token dada
 
