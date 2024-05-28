@@ -5,7 +5,7 @@ import "../interfaces/IBridgeManagement.sol";
 import "../library/BridgeLib.sol";
 import "../library/GasBridgeLib.sol";
 import "../library/StorageTypes.sol";
-import "../library/TokenBridgeLib.sol";
+import {TokenBridgeLib} from "../library/TokenBridgeLib.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 contract BridgeStorage is UUPSUpgradeable {
@@ -231,7 +231,7 @@ contract BridgeStorage is UUPSUpgradeable {
         // Check if token bridge is already registered
         if (_isRegisteredToken(_neoXToken))
             revert TokenBridgeAlreadyRegistered(_neoXToken);
-        if (TokenBridgeLib._isValidConfig(_tokenConfig))
+        if (!TokenBridgeLib._isValidConfig(_tokenConfig))
             revert InvalidTokenConfig();
 
         // Add token bridge to storage
