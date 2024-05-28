@@ -230,6 +230,7 @@ contract BridgeStorage is UUPSUpgradeable {
     ) internal {
         // Check if token bridge is already registered
         if (_isRegisteredToken(_neoXToken))
+            
             revert TokenBridgeAlreadyRegistered(_neoXToken);
         if (!TokenBridgeLib._isValidConfig(_tokenConfig))
             revert InvalidTokenConfig();
