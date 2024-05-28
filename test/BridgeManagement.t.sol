@@ -4,7 +4,7 @@ import "../lib/forge-std/src/Test.sol";
 import "../contracts/management/BridgeManagementImpl.sol";
 import "../contracts/tests/SigUtils.sol";
 import "../contracts/library/BridgeLib.sol";
-import "hardhat/console.sol";
+
 
 contract BridgeManagementImplTest is Test, SigUtils {
     BridgeManagementImpl bridgeManagementImpl;

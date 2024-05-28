@@ -11,7 +11,7 @@ contract BridgeImplTest is Test,SigUtils {
     // constructor(address _management) BridgeImpl(_management) {}
     TestBridge bridgeImpl;
 
-    address neoXToken = address(0x6782);
+    address neoXToken = address(0x6789);
     address neoN3Token = address(0x7892);
     StorageTypes.TokenConfig validConfig;
 
@@ -55,11 +55,6 @@ contract BridgeImplTest is Test,SigUtils {
                 securityGuard,
                 user
             );
-        // vm.prank(owner);
-        // bridgeManagementImpl.setGovernor(governor);
-        // 1
-
-        // ready for register token dada
 
         bridgeImpl = new TestBridge(address(bridgeManagementImpl));
         validConfig = StorageTypes.TokenConfig({
@@ -87,41 +82,154 @@ contract BridgeImplTest is Test,SigUtils {
 
 
 
-    // function testFailRegisterTokenWithZeroAddress() public {
-    //     vm.prank(governor);
-    //     bridgeImpl.registerToken(address(0), validConfig);
-    // }
+    function test_RegisterTokenWithZeroAddress() public {
+        vm.prank(governor);
+        vm.expectRevert(BridgeStorage.InvalidTokenAddress.selector);
+        bridgeImpl.registerToken(address(0), validConfig);
+    }
 
 
-    // function testFailRegisterTokenWithInvalidAmount() public {
-    //     vm.prank(governor);
-    //     StorageTypes.TokenConfig memory invalidConfig = StorageTypes.TokenConfig({
-    //         neoN3Token: neoN3Token,
-    //         fee: 1,
-    //         minAmount: 1000,
-    //         maxAmount: 100,
-    //         maxDeposits: 10,
-    //         tokenType: StorageTypes.TokenType.NEO
-    //     });
-    //     bridgeImpl.registerToken(neoXToken, invalidConfig);
-    // }
+    function test_RegisterTokenWithInvalidAmount() public {
+        vm.prank(governor);
+        vm.expectRevert(BridgeStorage.InvalidAmount.selector);
+        StorageTypes.TokenConfig memory invalidConfig = StorageTypes.TokenConfig({
+            neoN3Token: neoN3Token,
+            fee: 1,
+            minAmount: 1000,
+            maxAmount: 100,
+            maxDeposits: 10,
+            tokenType: StorageTypes.TokenType.NEO
+        });
+        bridgeImpl.registerToken(neoXToken, invalidConfig);
+    }
 
-    // function testFailRegisterTokenWithInvalidNeoN3TokenAddress() public {
-    //     vm.prank(governor);
-    //     StorageTypes.TokenConfig memory invalidConfig = StorageTypes.TokenConfig({
-    //         neoN3Token: address(0),
-    //         fee: 1,
-    //         minAmount: 100,
-    //         maxAmount: 1000,
-    //         maxDeposits: 10,
-    //         tokenType: StorageTypes.TokenType.NEO
-    //     });
-    //     bridgeImpl.registerToken(neoXToken, invalidConfig);
-    // }
+    function test_RegisterTokenWithInvalidFee() public {
+        vm.prank(governor);
+        vm.expectRevert(BridgeStorage.InvalidTokenConfig.selector);
+        StorageTypes.TokenConfig memory invalidConfig = StorageTypes.TokenConfig({
+            neoN3Token: neoN3Token,
+            fee: 0,
+            minAmount: 1,
+            maxAmount: 10000,
+            maxDeposits: 10,
+            tokenType: StorageTypes.TokenType.NEO
+        });
+        bridgeImpl.registerToken(neoXToken, invalidConfig);
+    }
 
-    // function testFailRegisterTokenAlreadyRegistered() public {
-    //     vm.prank(governor);
-    //     bridgeImpl.registerToken(neoXToken, validConfig);
-    //     bridgeImpl.registerToken(neoXToken, validConfig); // Should fail
-    // }
+    function test_RegisterTokenWithInvalidMinAmount() public {
+        vm.prank(governor);       
+        vm.expectRevert(BridgeStorage.InvalidTokenConfig.selector);
+        StorageTypes.TokenConfig memory invalidConfig = StorageTypes.TokenConfig({
+            neoN3Token: neoN3Token,
+            fee: 1,
+            minAmount: 0,
+            maxAmount: 100,
+            maxDeposits: 10,
+            tokenType: StorageTypes.TokenType.NEO
+        });
+        bridgeImpl.registerToken(neoXToken, invalidConfig);
+    }
+
+    function test_RegisterTokenWithInvalidNeoN3TokenAddress() public {
+        vm.prank(governor);
+        vm.expectRevert(BridgeStorage.InvalidAddress.selector);
+        StorageTypes.TokenConfig memory invalidConfig = StorageTypes.TokenConfig({
+            neoN3Token: address(0),
+            fee: 1,
+            minAmount: 100,
+            maxAmount: 1000,
+            maxDeposits: 10,
+            tokenType: StorageTypes.TokenType.NEO
+        });
+        bridgeImpl.registerToken(neoXToken, invalidConfig);
+    }
+
+    function test_RegisterTokenAlreadyRegistered() public {
+        vm.prank(governor);
+        bridgeImpl.registerToken(neoXToken, validConfig);
+        vm.expectRevert(abi.encodeWithSelector(BridgeStorage.TokenBridgeAlreadyRegistered.selector,neoXToken));
+        vm.prank(governor);
+        bridgeImpl.registerToken(neoXToken, validConfig); // Should fail
+    }
+
+    function test_RegisterTokenByNonGovernorr() public{
+        vm.prank(address(0x456));
+        vm.expectRevert("not governor");
+        bridgeImpl.registerToken(neoXToken, validConfig);
+    }
+
+    function testUnregisterToken() public {
+        // Mock the registration of the token
+        vm.prank(governor);
+        bridgeImpl.registerToken(neoXToken, validConfig);
+
+        // Pause the token bridge
+        vm.prank(securityGuard);
+        bridgeImpl.pauseTokenBridge(neoXToken);
+
+        // Verify the token bridge is paused
+        StorageTypes.TokenBridge memory tokenBridgeBefore = bridgeImpl.getTokenbridge(neoXToken);
+        assertTrue(tokenBridgeBefore.paused);
+
+        // Unregister the token
+        // vm.expectEmit(true, true, true, true);
+        // emit bridgeImpl.TokenUnregister(neoXToken,validConfig);
+        vm.prank(governor);
+        bridgeImpl.unregisterToken(neoXToken);
+
+        // // Verify that the token bridge is unregistered
+        address afterneoXToken = bridgeImpl.getNeoN3Token(neoXToken);
+        assertEq(afterneoXToken, address(0));
+    }
+    
+
+    function test_UnregisterTokenWhenNotPaused() public {
+        vm.prank(governor);
+        bridgeImpl.registerToken(neoXToken, validConfig);
+
+        // Attempt to unregister the token without pausing
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSignature("TokenBridgeUnpaused(address)", neoXToken));
+        bridgeImpl.unregisterToken(neoXToken);
+    }
+
+    function test_UnregisterTokenByNonGovernor() public {
+        vm.prank(governor);
+        bridgeImpl.registerToken(neoXToken, validConfig);
+        // Pause the token bridge
+        vm.prank(securityGuard);
+        bridgeImpl.pauseTokenBridge(neoXToken);
+
+        // Attempt to unregister the token by non-governor
+        vm.prank(address(0x456));
+        vm.expectRevert("not governor");
+        bridgeImpl.unregisterToken(neoXToken);
+    }
+
+    function testFailUnregisterTokenWhenRepeat() public {
+
+        // Mock the registration of the token
+        vm.prank(governor);
+        bridgeImpl.registerToken(neoXToken, validConfig);
+
+        // Pause the token bridge
+        vm.prank(securityGuard);
+        bridgeImpl.pauseTokenBridge(neoXToken);
+
+        // Verify the token bridge is paused
+        StorageTypes.TokenBridge memory tokenBridgeBefore = bridgeImpl.getTokenbridge(neoXToken);
+        assertTrue(tokenBridgeBefore.paused);
+
+        // Unregister the token
+        // vm.expectEmit(true, true, true, true);
+        // emit bridgeImpl.TokenUnregister(neoXToken,validConfig);
+        vm.prank(governor);
+        bridgeImpl.unregisterToken(neoXToken);
+
+
+        vm.prank(governor);
+        // vm.expectRevert(abi.encodeWithSignature("", neoXToken));
+        bridgeImpl.unregisterToken(neoXToken);
+    }
 }
