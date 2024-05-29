@@ -7,6 +7,7 @@ import "../interfaces/IGasBridge.sol";
 import "../interfaces/ITokenBridge.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol"; 
+import "hardhat/console.sol";
 contract BridgeImpl is
     BridgeStorage,
     ReentrancyGuard,
@@ -438,10 +439,11 @@ contract BridgeImpl is
         onlyBridgeUnpaused
         onlyTokenBridgeUnpaused(_neoXToken)
     {
-        if (_isRegisteredToken(_neoXToken))
+        if (!_isRegisteredToken(_neoXToken))
             revert TokenBridgeNotRegistered(_neoXToken);
         StorageTypes.TokenConfig memory config = _getTokenConfig(_neoXToken);
         uint256 tokenValue = _amount;
+        console.log("tokenValue: %d,config.minAmount: %d,config.maxAmount: %d", tokenValue,config.minAmount,config.maxAmount);
         if (tokenValue < config.minAmount) revert InvalidAmount();
         if (tokenValue > config.maxAmount) revert InvalidAmount();
         if (msg.value < config.fee)

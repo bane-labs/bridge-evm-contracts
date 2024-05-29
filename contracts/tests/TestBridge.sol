@@ -5,6 +5,10 @@ import "../bridge/BridgeImpl.sol";
 contract TestBridge is BridgeImpl {
     constructor(address m) BridgeImpl(m) {}
 
+    function isRegisteredToken(address neoXToken) public view returns (bool) {
+        return _isRegisteredToken(neoXToken);
+    }
+
     function getTokenConfig(
         address neoXToken
     ) public view returns (StorageTypes.TokenConfig memory config) {
@@ -28,6 +32,9 @@ contract TestBridge is BridgeImpl {
         return _getTokenDepositState(neoXToken);
     }
 
+    function getTokenWithdrawalState( address _neoXToken) public view returns (StorageTypes.State memory withdrawalState) {
+        return _getTokenWithdrawalState(_neoXToken);
+    }
     function computeTokenRoot(
         bytes32 _previousRoot,
         address _neoN3Token,
