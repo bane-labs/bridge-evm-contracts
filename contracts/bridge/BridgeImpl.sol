@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {BridgeStorage,BridgeLib,GasBridgeLib,StorageTypes,TokenBridgeLib} from "./BridgeStorage.sol";
+import  "./BridgeStorage.sol";
 import "../interfaces/IBridge.sol";
 import "../interfaces/IGasBridge.sol";
 import "../interfaces/ITokenBridge.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "hardhat/console.sol";   
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol"; 
 contract BridgeImpl is
     BridgeStorage,
     ReentrancyGuard,
@@ -246,7 +245,6 @@ contract BridgeImpl is
     function unregisterToken(
         address _neoXToken
     ) external override onlyGovernor onlyTokenBridgePaused(_neoXToken) {
-        console.log("in unregisterToken");
         _unregisterToken(_neoXToken);
         emit TokenUnregister(_neoXToken, _getNeoN3Token(_neoXToken));
     }

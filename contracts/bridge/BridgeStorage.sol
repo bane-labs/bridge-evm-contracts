@@ -5,9 +5,9 @@ import "../interfaces/IBridgeManagement.sol";
 import "../library/BridgeLib.sol";
 import "../library/GasBridgeLib.sol";
 import "../library/StorageTypes.sol";
-import {TokenBridgeLib} from "../library/TokenBridgeLib.sol";
+import "../library/TokenBridgeLib.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "hardhat/console.sol";
+
 contract BridgeStorage is UUPSUpgradeable {
     address public constant SELF = 0x1212100000000000000000000000000000000004;
     address public constant GOV_ADMIN =
@@ -78,7 +78,6 @@ contract BridgeStorage is UUPSUpgradeable {
     }
 
     modifier onlyGovernor() {
-        console.log("onlyGovernor:: msg.sender : %s, management.getGovernor() : %s",msg.sender,management.getGovernor());
         require(msg.sender == management.getGovernor(), "not governor");
         _;
     }
@@ -248,7 +247,6 @@ contract BridgeStorage is UUPSUpgradeable {
     function _isRegisteredToken(
         address _neoXToken
     ) internal view returns (bool) {
-        console.log("check _isRegisteredToken");
         return tokenBridges[_neoXToken].config.neoN3Token != address(0);
     }
 
