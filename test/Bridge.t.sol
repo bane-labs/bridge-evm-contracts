@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 import "../lib/forge-std/src/Test.sol";
 import {TestBridge} from "../contracts/tests/TestBridge.sol";
-import "../contracts/bridge/BridgeStorage.sol";
+import {BridgeStorage,BridgeLib,GasBridgeLib,StorageTypes,TokenBridgeLib}from "../contracts/bridge/BridgeStorage.sol";
 import "../contracts/management/BridgeManagementImpl.sol";
 import "../contracts/tests/SigUtils.sol";
 
@@ -207,8 +207,7 @@ contract BridgeImplTest is Test,SigUtils {
         bridgeImpl.unregisterToken(neoXToken);
     }
 
-    function testFailUnregisterTokenWhenRepeat() public {
-
+  function test_UnregisterTokenWhenRepeat() public {
         // Mock the registration of the token
         vm.prank(governor);
         bridgeImpl.registerToken(neoXToken, validConfig);
@@ -220,16 +219,14 @@ contract BridgeImplTest is Test,SigUtils {
         // Verify the token bridge is paused
         StorageTypes.TokenBridge memory tokenBridgeBefore = bridgeImpl.getTokenbridge(neoXToken);
         assertTrue(tokenBridgeBefore.paused);
-
-        // Unregister the token
-        // vm.expectEmit(true, true, true, true);
-        // emit bridgeImpl.TokenUnregister(neoXToken,validConfig);
         vm.prank(governor);
         bridgeImpl.unregisterToken(neoXToken);
 
+        vm.prank(securityGuard);
+        //bridgeImpl.pauseTokenBridge(neoXToken);
 
         vm.prank(governor);
-        // vm.expectRevert(abi.encodeWithSignature("", neoXToken));
+        vm.expectRevert(abi.encodeWithSelector(BridgeStorage.TokenBridgeUnpaused.selector,neoXToken));
         bridgeImpl.unregisterToken(neoXToken);
     }
 }
