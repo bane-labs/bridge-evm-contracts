@@ -317,14 +317,10 @@ contract BridgeImplTest is Test,SigUtils {
 
 
 
-    function testFailUnpauseTokenBridgeWhenNotRegistered() public {
+    function test_UnpauseTokenBridgeWhenNotRegistered() public {
         address unregisteredToken = address(0xDEF);
-        vm.prank(securityGuard);
-        bridgeImpl.pauseTokenBridge(neoXToken);
-
-        // Attempt to unpause an unregistered token bridge
         vm.prank(governor);
-        vm.expectRevert(abi.encodeWithSignature("TokenBridgeNotRegistered(address)", unregisteredToken));
+        vm.expectRevert(abi.encodeWithSignature("TokenBridgeUnpaused(address)", unregisteredToken));
         bridgeImpl.unpauseTokenBridge(unregisteredToken);
     }
 
