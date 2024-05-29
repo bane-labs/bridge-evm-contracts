@@ -322,10 +322,10 @@ contract BridgeStorage is UUPSUpgradeable {
         return tokenBridges[_neoXToken].config;
     }
 
-    function _getTokenType(
+    function _getExecutionType(
         address _neoXToken
-    ) internal view returns (StorageTypes.TokenType) {
-        return tokenBridges[_neoXToken].config.tokenType;
+    ) internal view returns (StorageTypes.ExecutionType) {
+        return tokenBridges[_neoXToken].config.executionType;
     }
 
     function _getTokenDepositState(

@@ -300,6 +300,7 @@ contract BridgeImpl is
     )
         external
         override
+        onlyRelayer
         onlyBridgeUnpaused
         onlyTokenBridgeUnpaused(_neoXToken)
         nonReentrant
@@ -349,12 +350,12 @@ contract BridgeImpl is
         );
 
         // Execute the token distribution
-        _executeTokenDistribution(_neoXToken, config.tokenType, _deposits);
+        _executeTokenDistribution(_neoXToken, config.executionType, _deposits);
     }
 
     function _executeTokenDistribution(
         address _neoXToken,
-        StorageTypes.TokenType _tokenType,
+        StorageTypes.ExecutionType _executionType,
         BridgeLib.DepositData[] calldata _deposits
     ) private {
         uint depositLength = _deposits.length;
@@ -363,13 +364,13 @@ contract BridgeImpl is
             BridgeLib.DepositData calldata depositEntry = _deposits[i];
             address to = depositEntry.to;
             uint256 transferAmount = depositEntry.amount;
-            if (_tokenType == StorageTypes.TokenType.NEO) {
+            if (_executionType == StorageTypes.ExecutionType.NEO) {
                 // For NEO tokens, the transfer value needs to be extended with 18 decimals, since it's nondivisible on Neo N3 and it has 18 decimals on Neo X.
                 transferAmount *= 1e18;
             }
             assert(
-                _tokenType == StorageTypes.TokenType.NEO ||
-                    _tokenType == StorageTypes.TokenType.ERC20Capped
+                _executionType == StorageTypes.ExecutionType.NEO ||
+                    _executionType == StorageTypes.ExecutionType.ERC20
             );
             bool success = TokenBridgeLib._executeERC20Transfer(
                 _neoXToken,
@@ -409,10 +410,12 @@ contract BridgeImpl is
         address to = claimable.to;
         if (to == address(0)) revert NonexistentClaimable();
         _deleteTokenClaimable(_neoXToken, _nonce);
-        StorageTypes.TokenType tokenType = _getTokenType(_neoXToken);
+        StorageTypes.ExecutionType executionType = _getExecutionType(
+            _neoXToken
+        );
         assert(
-            tokenType == StorageTypes.TokenType.NEO ||
-                tokenType == StorageTypes.TokenType.ERC20Capped
+            executionType == StorageTypes.ExecutionType.NEO ||
+                executionType == StorageTypes.ExecutionType.ERC20
         );
         // Note: For NEO tokens, the transfer value has already been extended with 18 decimals in the deposit function.
         TokenBridgeLib._executeERC20Transfer(_neoXToken, claimable.amount, to);
@@ -473,12 +476,11 @@ contract BridgeImpl is
         StorageTypes.State memory state = _getTokenWithdrawalState(_neoXToken);
         uint256 newNonce = state.nonce + 1;
 
-        if (config.tokenType == StorageTypes.TokenType.NEO) {
+        if (config.executionType == StorageTypes.ExecutionType.NEO) {
             if (tokenValue % 1e18 != 0) {
                 revert InvalidAmount();
-            } else {
-                tokenValue /= 1e18;
             }
+            tokenValue /= 1e18;
         }
 
         bytes32 withdrawalHash = TokenBridgeLib._hashTokenBridgeOp(
