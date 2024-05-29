@@ -300,6 +300,7 @@ contract BridgeImpl is
     )
         external
         override
+        onlyRelayer
         onlyBridgeUnpaused
         onlyTokenBridgeUnpaused(_neoXToken)
         nonReentrant
