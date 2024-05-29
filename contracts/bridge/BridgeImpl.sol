@@ -451,7 +451,7 @@ contract BridgeImpl is
         onlyBridgeUnpaused
         onlyTokenBridgeUnpaused(_neoXToken)
     {
-        if (_isRegisteredToken(_neoXToken))
+        if (!_isRegisteredToken(_neoXToken))
             revert TokenBridgeNotRegistered(_neoXToken);
         StorageTypes.TokenConfig memory config = _getTokenConfig(_neoXToken);
         uint256 tokenValue = _amount;
