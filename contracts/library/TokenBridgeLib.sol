@@ -17,7 +17,9 @@ library TokenBridgeLib {
         uint256 _amount,
         address _to
     ) internal returns (bool) {
-        return IERC20(_neoXToken).transfer(_to, _amount);
+        bytes memory transferCall = abi.encodeCall(IERC20.transfer, (_to, _amount));
+        (bool success, bytes memory returndata) = address(_neoXToken).call(transferCall);
+        return success && (returndata.length == 0 || abi.decode(returndata, (bool))) && address(_neoXToken).code.length > 0;
     }
 
     /**

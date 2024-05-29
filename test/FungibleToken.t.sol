@@ -78,11 +78,12 @@ contract TestFungibleToken is Test,SigUtils {
             maxDeposits: 10,
             tokenType: StorageTypes.TokenType.NEO
         });
-        MockERC20(neoXTokenA).mint(address(bridgeImpl), 100 ether);
+
 
     }
 
     function testDepositTokenASuccess() public {
+        MockERC20(neoXTokenA).mint(address(bridgeImpl), 100 ether);
         vm.prank(governor);
         bridgeImpl.registerToken(neoXTokenA, validConfigA);
         BridgeLib.DepositData[] memory depositData = new BridgeLib.DepositData[](2);
@@ -108,6 +109,41 @@ contract TestFungibleToken is Test,SigUtils {
         bridgeImpl.depositToken(neoXTokenA,tokenDepositRoot, signatures,depositData);
         assertEq(MockERC20(neoXTokenA).balanceOf(user), 100);
         assertEq(MockERC20(neoXTokenA).balanceOf(owner), 200);
+    }
+
+    function testClaimTokenASuccess() public {
+        vm.prank(governor);
+        bridgeImpl.registerToken(neoXTokenA, validConfigA);
+        BridgeLib.DepositData[] memory depositData = new BridgeLib.DepositData[](2);
+        BridgeLib.DepositData memory d0 = BridgeLib.DepositData({
+            to: payable(user),
+            amount: 100,
+            nonce: 1
+        });
+        BridgeLib.DepositData memory d1 = BridgeLib.DepositData({
+            to: payable(owner),
+            amount: 200,
+            nonce: 2
+        });
+        depositData[0] = d0;
+        depositData[1] = d1;
+        bytes32 tokenDepositRoot = bridgeImpl.computeTokenRoot(
+           bridgeImpl.getTokenDepositState(neoXTokenA).root,          
+         neoN3TokenA,
+         neoXTokenA,
+        depositData
+        );
+        BridgeLib.Signature[] memory signatures = getSignatures(tokenDepositRoot);
+        bridgeImpl.depositToken(neoXTokenA,tokenDepositRoot, signatures,depositData);
+        assertEq(MockERC20(neoXTokenA).balanceOf(user), 0);
+        assertEq(MockERC20(neoXTokenA).balanceOf(owner), 0);
+        MockERC20(neoXTokenA).mint(address(bridgeImpl), 100 ether);
+        bridgeImpl.claimToken(neoXTokenA,1);
+        assertEq(MockERC20(neoXTokenA).balanceOf(user), 100);
+         bridgeImpl.claimToken(neoXTokenA,2);
+        assertEq(MockERC20(neoXTokenA).balanceOf(owner), 200);
+
+
     }
 
     function getSignatures(bytes32 _depositRoot) public view returns (BridgeLib.Signature[] memory){
