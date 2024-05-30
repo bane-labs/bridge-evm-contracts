@@ -415,7 +415,8 @@ contract BridgeImpl is
                 tokenType == StorageTypes.TokenType.ERC20Capped
         );
         // Note: For NEO tokens, the transfer value has already been extended with 18 decimals in the deposit function.
-        TokenBridgeLib._executeERC20Transfer(_neoXToken, claimable.amount, to);
+        bool success = TokenBridgeLib._executeERC20Transfer(_neoXToken, claimable.amount, to);
+        if(!success) revert TransferFailed();
     }
 
     function _emitTransferEventOrAddNewTokenClaimable(
