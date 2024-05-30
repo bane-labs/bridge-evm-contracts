@@ -191,4 +191,22 @@ contract TestFungibleToken is Test, SigUtils {
         }
         return _signatures;
     }
+
+    function executeERC20Transfer(
+        address _neoXToken,
+        uint256 _amount,
+        address _to
+    ) internal returns (bool success, bytes memory returndata) {
+        bytes memory transferCall = abi.encodeCall(IERC20.transfer, (_to, _amount));
+        return address(_neoXToken).call(transferCall);
+    }
+
+    function testTransfer() public {
+        assertEq(user.code.length,0);
+        (bool success, bytes memory returndata)  = executeERC20Transfer(user, 100, owner);
+        assertEq(success, true);
+        assertEq(returndata.length, 0);
+    }
+
+    
 }
