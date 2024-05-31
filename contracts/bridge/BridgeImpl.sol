@@ -403,7 +403,8 @@ contract BridgeImpl is
                 tokenType == StorageTypes.TokenType.ERC20Capped
         );
         // Note: For NEO tokens, the transfer value has already been extended with 18 decimals in the deposit function.
-        TokenBridgeLib._executeERC20Transfer(_neoXToken, claimable.amount, to);
+        bool success = TokenBridgeLib._executeERC20Transfer(_neoXToken, claimable.amount, to);
+        if(!success) revert TransferFailed();
     }
 
     function _emitTransferEventOrAddNewTokenClaimable(
@@ -443,7 +444,6 @@ contract BridgeImpl is
             revert TokenBridgeNotRegistered(_neoXToken);
         StorageTypes.TokenConfig memory config = _getTokenConfig(_neoXToken);
         uint256 tokenValue = _amount;
-        console.log("tokenValue: %d,config.minAmount: %d,config.maxAmount: %d", tokenValue,config.minAmount,config.maxAmount);
         if (tokenValue < config.minAmount) revert InvalidAmount();
         if (tokenValue > config.maxAmount) revert InvalidAmount();
         if (msg.value < config.fee)
@@ -476,7 +476,13 @@ contract BridgeImpl is
             _to,
             tokenValue
         );
+        /*console.log("withdrawalHash: ");
+        console.logBytes32(withdrawalHash);
+        console.log("state before: ");
+        console.logBytes32(state.root);*/
         bytes32 newRoot = BridgeLib._computeNewRoot(state.root, withdrawalHash);
+        //console.log("state after: ");
+        //console.logBytes32(newRoot);
         _setTokenWithdrawalState(
             _neoXToken,
             StorageTypes.State({nonce: newNonce, root: newRoot})

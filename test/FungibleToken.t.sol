@@ -77,9 +77,10 @@ contract TestFungibleToken is Test, SigUtils {
             tokenType: StorageTypes.TokenType.NEO
         });
         vm.deal(user, 1 ether);
+        vm.deal(owner, 1 ether);
     }
 
-    function testDepositTokenASuccess() public {
+    function testDepositTokenA() public {
         MockERC20(neoXTokenA).mint(address(bridgeImpl), 100 ether);
         vm.prank(governor);
         bridgeImpl.registerToken(neoXTokenA, validConfigA);
@@ -116,7 +117,7 @@ contract TestFungibleToken is Test, SigUtils {
         assertEq(MockERC20(neoXTokenA).balanceOf(owner), 200);
     }
 
-    function testClaimTokenASuccess() public {
+    function testClaimTokenA() public {
         vm.prank(governor);
         bridgeImpl.registerToken(neoXTokenA, validConfigA);
         BridgeLib.DepositData[]
@@ -150,27 +151,66 @@ contract TestFungibleToken is Test, SigUtils {
         );
         assertEq(MockERC20(neoXTokenA).balanceOf(user), 0);
         assertEq(MockERC20(neoXTokenA).balanceOf(owner), 0);
-        MockERC20(neoXTokenA).mint(address(bridgeImpl), 100 ether);
+        MockERC20(neoXTokenA).mint(address(bridgeImpl), 100);
         bridgeImpl.claimToken(neoXTokenA, 1);
         assertEq(MockERC20(neoXTokenA).balanceOf(user), 100);
+        vm.expectRevert(abi.encodeWithSelector(BridgeStorage.TransferFailed.selector));
+        bridgeImpl.claimToken(neoXTokenA, 2);
+        MockERC20(neoXTokenA).mint(address(bridgeImpl), 200);
         bridgeImpl.claimToken(neoXTokenA, 2);
         assertEq(MockERC20(neoXTokenA).balanceOf(owner), 200);
+        vm.expectRevert(abi.encodeWithSelector(BridgeStorage.NonexistentClaimable.selector));
+        bridgeImpl.claimToken(neoXTokenA, 3);
+        vm.expectRevert(abi.encodeWithSelector(BridgeStorage.NonexistentClaimable.selector));
+        bridgeImpl.claimToken(neoXTokenA, 1);
+
     }
 
-    function testWithdrawToken() public {
+    function testWithdrawTokenA() public {
+        console.log("neoxtoken address: %s,neo address : %s, nonce = 0", neoXTokenA, neoN3TokenA);
         assertEq(bridgeImpl.isRegisteredToken(neoXTokenA), false);
         vm.prank(governor);
         bridgeImpl.registerToken(neoXTokenA, validConfigA);
-        MockERC20(neoXTokenA).mint(user, 200);
+        uint balance = 1000;
+        MockERC20(neoXTokenA).mint(user, balance);
+        MockERC20(neoXTokenA).mint(owner, balance);
         vm.prank(user);
-        MockERC20(neoXTokenA).approve(address(bridgeImpl), 100);
+        MockERC20(neoXTokenA).approve(address(bridgeImpl), balance);
+        assertEq(MockERC20(neoXTokenA).allowance(user, address(bridgeImpl)), balance);
+        vm.prank(owner);
+        MockERC20(neoXTokenA).approve(address(bridgeImpl), balance);
+        assertEq(MockERC20(neoXTokenA).allowance(owner, address(bridgeImpl)), balance);
         vm.prank(user);
+        console.log("user: %s,amount: %d", user,100);
         bridgeImpl.withdrawToken{value: validConfigA.fee}(
             neoXTokenA,
             user,
             100
         );
-        assertEq(MockERC20(neoXTokenA).balanceOf(user), 100);
+        vm.prank(user);
+        console.log("user: %s,amount: %d", user,200);
+        bridgeImpl.withdrawToken{value: validConfigA.fee}(
+            neoXTokenA,
+            user,
+            200
+        );
+        vm.prank(owner);
+        console.log("user: %s,amount: %d", owner,300);
+        bridgeImpl.withdrawToken{value: validConfigA.fee}(
+            neoXTokenA,
+            owner,
+            300
+        );
+        vm.prank(owner);
+
+        console.log("user: %s,amount: %d", owner,400);
+        bridgeImpl.withdrawToken{value: validConfigA.fee}(
+            neoXTokenA,
+            owner,
+            400
+        );
+        assertEq(MockERC20(neoXTokenA).balanceOf(user), balance-300);
+        assertEq(MockERC20(neoXTokenA).balanceOf(owner), balance-700);
         //@TODO
         //check withdrwal state and missing max/min deposit amount check in depositToken?
     }
@@ -190,22 +230,6 @@ contract TestFungibleToken is Test, SigUtils {
             assertEq(x, validatorsAddresses[i]);
         }
         return _signatures;
-    }
-
-    function executeERC20Transfer(
-        address _neoXToken,
-        uint256 _amount,
-        address _to
-    ) internal returns (bool success, bytes memory returndata) {
-        bytes memory transferCall = abi.encodeCall(IERC20.transfer, (_to, _amount));
-        return address(_neoXToken).call(transferCall);
-    }
-
-    function testTransfer() public {
-        assertEq(user.code.length,0);
-        (bool success, bytes memory returndata)  = executeERC20Transfer(user, 100, owner);
-        assertEq(success, true);
-        assertEq(returndata.length, 0);
     }
 
     
