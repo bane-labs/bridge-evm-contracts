@@ -269,7 +269,7 @@ contract TestFungibleToken is Test, SigUtils {
     }
 
 
-    function test_DepositGasWithInvalidNonceSequence() public {
+    function test_DepositTokenWithInvalidNonceSequence() public {
         MockERC20(neoXTokenA).mint(address(bridgeImpl), 100 ether);
         vm.prank(governor);
         bridgeImpl.registerToken(neoXTokenA, validConfigA);
@@ -307,7 +307,7 @@ contract TestFungibleToken is Test, SigUtils {
     }
 
 
-    function test_DepositGasWithInvalidRoot() public {
+    function test_DepositTokenWithInvalidRoot() public {
         MockERC20(neoXTokenA).mint(address(bridgeImpl), 100 ether);
         vm.prank(governor);
         bridgeImpl.registerToken(neoXTokenA, validConfigA);
@@ -347,7 +347,7 @@ contract TestFungibleToken is Test, SigUtils {
         );
     }
 
-    function test_DepositGasWithInvalidSignatures() public {
+    function test_DepositTokenWithInvalidSignatures() public {
         MockERC20(neoXTokenA).mint(address(bridgeImpl), 100 ether);
         vm.prank(governor);
         bridgeImpl.registerToken(neoXTokenA, validConfigA);        
@@ -392,7 +392,7 @@ contract TestFungibleToken is Test, SigUtils {
 
 
 // todo deposittoken到底需不需要relayer
-    function testFailDepositGasByNonRelayer() public {
+    function testFailDepositTokenByNonRelayer() public {
         MockERC20(neoXTokenA).mint(address(bridgeImpl), 100 ether);
         vm.prank(governor);
         bridgeImpl.registerToken(neoXTokenA, validConfigA);
@@ -429,7 +429,7 @@ contract TestFungibleToken is Test, SigUtils {
         );
     }
 
-    function test_DepositGasWithInvalidLength() public {
+    function test_DepositTokenWithInvalidLength() public {
         MockERC20(neoXTokenA).mint(address(bridgeImpl), 100 ether);
         vm.prank(governor);
         bridgeImpl.registerToken(neoXTokenA, validConfigA);
@@ -454,7 +454,7 @@ contract TestFungibleToken is Test, SigUtils {
     }
     
 
-    function test_DepositGasWithExceedMaxDeposits() public {
+    function test_DepositTokenWithExceedMaxDeposits() public {
         MockERC20(neoXTokenA).mint(address(bridgeImpl), 100 ether);
         vm.prank(governor);
         bridgeImpl.registerToken(neoXTokenA, validConfigA);
@@ -496,7 +496,7 @@ contract TestFungibleToken is Test, SigUtils {
         );
     } 
 
-    function test_DepositGasWithTokenBridgepaused() public {
+    function test_DepositTokenWithTokenBridgepaused() public {
         MockERC20(neoXTokenA).mint(address(bridgeImpl), 100 ether);
         vm.prank(governor);
         bridgeImpl.registerToken(neoXTokenA, validConfigA);
@@ -539,7 +539,7 @@ contract TestFungibleToken is Test, SigUtils {
     }  
 
 
-    function test_DepositGasWithbridgePaused() public {
+    function test_DepositTokenWithbridgePaused() public {
         MockERC20(neoXTokenA).mint(address(bridgeImpl), 100 ether);
         vm.prank(governor);
         bridgeImpl.registerToken(neoXTokenA, validConfigA);
