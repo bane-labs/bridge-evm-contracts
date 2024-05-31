@@ -13,8 +13,14 @@ interface ITokenBridge {
         address indexed neoXToken,
         address indexed neoN3Token
     );
-    event TokenPause(address indexed neoXToken, address indexed neoN3Token);
-    event TokenUnpause(address indexed neoXToken, address indexed neoN3Token);
+    event TokenBridgePause(
+        address indexed neoXToken,
+        address indexed neoN3Token
+    );
+    event TokenBridgeUnpause(
+        address indexed neoXToken,
+        address indexed neoN3Token
+    );
     event TokenDeposit(
         address indexed neoXToken,
         uint256 indexed nonce,

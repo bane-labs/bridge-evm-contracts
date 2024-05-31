@@ -264,7 +264,7 @@ contract BridgeImpl is
         address _neoXToken
     ) external override onlyTokenBridgeUnpaused(_neoXToken) onlySecurityGuard {
         _pauseToken(_neoXToken);
-        emit TokenPause(_neoXToken, _getNeoN3Token(_neoXToken));
+        emit TokenBridgePause(_neoXToken, _getNeoN3Token(_neoXToken));
     }
 
     /**
@@ -275,7 +275,7 @@ contract BridgeImpl is
         address _neoXToken
     ) external override onlyTokenBridgePaused(_neoXToken) onlyGovernor {
         _unpauseToken(_neoXToken);
-        emit TokenPause(_neoXToken, _getNeoN3Token(_neoXToken));
+        emit TokenBridgeUnpause(_neoXToken, _getNeoN3Token(_neoXToken));
     }
 
     /**
@@ -418,7 +418,11 @@ contract BridgeImpl is
                 executionType == StorageTypes.ExecutionType.ERC20
         );
         // Note: For NEO tokens, the transfer value has already been extended with 18 decimals in the deposit function.
-        bool success = TokenBridgeLib._executeERC20Transfer(_neoXToken, claimable.amount, to);
+        bool success = TokenBridgeLib._executeERC20Transfer(
+            _neoXToken,
+            claimable.amount,
+            to
+        );
         if (!success) revert TransferFailed();
     }
 
