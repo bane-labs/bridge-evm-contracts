@@ -22,6 +22,9 @@ contract TestBridge is BridgeImpl {
         return tokenBridges[neoXToken];
     }
 
+
+
+
     function getNeoN3Token(address _neoXToken) public view returns (address) {
         return tokenBridges[_neoXToken].config.neoN3Token;
     }
@@ -35,6 +38,15 @@ contract TestBridge is BridgeImpl {
     function getTokenWithdrawalState( address _neoXToken) public view returns (StorageTypes.State memory withdrawalState) {
         return _getTokenWithdrawalState(_neoXToken);
     }
+
+
+
+
+    function getbridgePaused() public view returns (bool) {
+        return bridgePaused;
+    }
+
+
     function computeTokenRoot(
         bytes32 _previousRoot,
         address _neoN3Token,
