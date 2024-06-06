@@ -7,7 +7,6 @@ import "../interfaces/IGasBridge.sol";
 import "../interfaces/ITokenBridge.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "hardhat/console.sol";
 
 contract BridgeImpl is
     BridgeStorage,
@@ -496,13 +495,7 @@ contract BridgeImpl is
             _to,
             tokenValue
         );
-        /*console.log("withdrawalHash: ");
-        console.logBytes32(withdrawalHash);
-        console.log("state before: ");
-        console.logBytes32(state.root);*/
         bytes32 newRoot = BridgeLib._computeNewRoot(state.root, withdrawalHash);
-        //console.log("state after: ");
-        //console.logBytes32(newRoot);
         _setTokenWithdrawalState(
             _neoXToken,
             StorageTypes.State({nonce: newNonce, root: newRoot})
