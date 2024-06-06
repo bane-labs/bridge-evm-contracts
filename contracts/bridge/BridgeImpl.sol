@@ -99,6 +99,11 @@ contract BridgeImpl is
                 root: _depositRoot
             })
         );
+        emit GasDepositRootUpdate(
+            _deposits[depositLength - 1].nonce,
+            _depositRoot
+        );
+
         // Execution data interface
         _executeGasTransfers(_deposits);
     }
@@ -111,8 +116,8 @@ contract BridgeImpl is
             BridgeLib.DepositData calldata depositEntry = _deposits[i];
             address to = depositEntry.to;
             if (BridgeLib._isContract(to)) {
-                _addClaimableGas(depositEntry.nonce, depositEntry.amount, to);
-                emit GasClaimable(depositEntry.nonce, depositEntry.amount, to);
+                _addClaimableGas(depositEntry.nonce, to, depositEntry.amount);
+                emit GasClaimable(depositEntry.nonce, to, depositEntry.amount);
             } else {
                 uint256 sendValue = GasBridgeLib._addTenDecimals(
                     depositEntry.amount
@@ -121,19 +126,19 @@ contract BridgeImpl is
                 if (success) {
                     emit GasDeposit(
                         depositEntry.nonce,
-                        depositEntry.amount,
-                        to
+                        to,
+                        depositEntry.amount
                     );
                 } else {
                     _addClaimableGas(
                         depositEntry.nonce,
-                        depositEntry.amount,
-                        to
+                        to,
+                        depositEntry.amount
                     );
                     emit GasClaimable(
                         depositEntry.nonce,
-                        depositEntry.amount,
-                        to
+                        to,
+                        depositEntry.amount
                     );
                 }
             }
@@ -157,7 +162,7 @@ contract BridgeImpl is
         uint256 sendValue = GasBridgeLib._addTenDecimals(amount);
         (bool success, ) = to.call{value: sendValue}("");
         if (!success) revert TransferFailed();
-        emit GasClaim(_nonce, amount, to);
+        emit GasClaim(_nonce, to, amount);
     }
 
     /**
@@ -175,6 +180,7 @@ contract BridgeImpl is
         uint256 actualWithdrawalAmount = msg.value - config.fee;
         if (actualWithdrawalAmount < config.minAmount) revert InvalidAmount();
         if (actualWithdrawalAmount > config.maxAmount) revert InvalidAmount();
+        _addUnclaimedRewards(config.fee);
 
         uint256 amountForHashing = GasBridgeLib._removeTenDecimals(
             actualWithdrawalAmount
@@ -191,8 +197,8 @@ contract BridgeImpl is
         );
         emit GasWithdrawal(
             newNonce,
-            amountForHashing,
             _to,
+            amountForHashing,
             msg.sender,
             withdrawalHash,
             newRoot
@@ -258,7 +264,7 @@ contract BridgeImpl is
         address _neoXToken
     ) external override onlyTokenBridgeUnpaused(_neoXToken) onlySecurityGuard {
         _pauseToken(_neoXToken);
-        emit TokenPause(_neoXToken, _getNeoN3Token(_neoXToken));
+        emit TokenBridgePause(_neoXToken, _getNeoN3Token(_neoXToken));
     }
 
     /**
@@ -269,7 +275,7 @@ contract BridgeImpl is
         address _neoXToken
     ) external override onlyTokenBridgePaused(_neoXToken) onlyGovernor {
         _unpauseToken(_neoXToken);
-        emit TokenPause(_neoXToken, _getNeoN3Token(_neoXToken));
+        emit TokenBridgeUnpause(_neoXToken, _getNeoN3Token(_neoXToken));
     }
 
     /**
@@ -294,6 +300,7 @@ contract BridgeImpl is
     )
         external
         override
+        onlyRelayer
         onlyBridgeUnpaused
         onlyTokenBridgeUnpaused(_neoXToken)
         nonReentrant
@@ -335,14 +342,20 @@ contract BridgeImpl is
                 root: _tokenDepositRoot
             })
         );
+        emit TokenDepositRootUpdate(
+            _neoXToken,
+            config.neoN3Token,
+            _deposits[depositLength - 1].nonce,
+            _tokenDepositRoot
+        );
 
         // Execute the token distribution
-        _executeTokenDistribution(_neoXToken, config.tokenType, _deposits);
+        _executeTokenDistribution(_neoXToken, config.executionType, _deposits);
     }
 
     function _executeTokenDistribution(
         address _neoXToken,
-        StorageTypes.TokenType _tokenType,
+        StorageTypes.ExecutionType _executionType,
         BridgeLib.DepositData[] calldata _deposits
     ) private {
         uint depositLength = _deposits.length;
@@ -351,13 +364,13 @@ contract BridgeImpl is
             BridgeLib.DepositData calldata depositEntry = _deposits[i];
             address to = depositEntry.to;
             uint256 transferAmount = depositEntry.amount;
-            if (_tokenType == StorageTypes.TokenType.NEO) {
+            if (_executionType == StorageTypes.ExecutionType.NEO) {
                 // For NEO tokens, the transfer value needs to be extended with 18 decimals, since it's nondivisible on Neo N3 and it has 18 decimals on Neo X.
                 transferAmount *= 1e18;
             }
             assert(
-                _tokenType == StorageTypes.TokenType.NEO ||
-                    _tokenType == StorageTypes.TokenType.ERC20Capped
+                _executionType == StorageTypes.ExecutionType.NEO ||
+                    _executionType == StorageTypes.ExecutionType.ERC20
             );
             bool success = TokenBridgeLib._executeERC20Transfer(
                 _neoXToken,
@@ -368,8 +381,8 @@ contract BridgeImpl is
                 success,
                 _neoXToken,
                 depositEntry.nonce,
-                transferAmount,
-                to
+                to,
+                transferAmount
             );
         }
     }
@@ -397,36 +410,47 @@ contract BridgeImpl is
         address to = claimable.to;
         if (to == address(0)) revert NonexistentClaimable();
         _deleteTokenClaimable(_neoXToken, _nonce);
-        StorageTypes.TokenType tokenType = _getTokenType(_neoXToken);
+        StorageTypes.ExecutionType executionType = _getExecutionType(
+            _neoXToken
+        );
         assert(
-            tokenType == StorageTypes.TokenType.NEO ||
-                tokenType == StorageTypes.TokenType.ERC20Capped
+            executionType == StorageTypes.ExecutionType.NEO ||
+                executionType == StorageTypes.ExecutionType.ERC20
         );
         // Note: For NEO tokens, the transfer value has already been extended with 18 decimals in the deposit function.
+<<<<<<< HEAD
         bool success = TokenBridgeLib._executeERC20Transfer(_neoXToken, claimable.amount, to);
         if(!success) revert TransferFailed();
+=======
+        bool success = TokenBridgeLib._executeERC20Transfer(
+            _neoXToken,
+            claimable.amount,
+            to
+        );
+        if (!success) revert TransferFailed();
+>>>>>>> origin/develop
     }
 
     function _emitTransferEventOrAddNewTokenClaimable(
         bool _success,
         address _neoXToken,
         uint256 _nonce,
-        uint256 _amount,
-        address _to
+        address _to,
+        uint256 _amount
     ) private {
         if (_success) {
-            emit TokenDeposit(_neoXToken, _nonce, _amount, _to);
+            emit TokenDeposit(_neoXToken, _nonce, _to, _amount);
         } else {
-            _addTokenClaimable(_neoXToken, _nonce, _amount, _to);
-            emit TokenClaimable(_neoXToken, _nonce, _amount, _to);
+            _addTokenClaimable(_neoXToken, _nonce, _to, _amount);
+            emit TokenClaimable(_neoXToken, _nonce, _to, _amount);
         }
     }
 
     /**
      * @notice Withdraw tokens to Neo N3. Requires that the sender has approved the provided amount to the bridge contract.
      * @dev This function transfers the provided amount of the provided token from the msg.sender to this contract. It requires that the msg.sender has previously approved at least the provided amount to this contract. Further, it computes the new root and updates the token withdrawal state.
-     * @param _amount the amount of tokens to withdraw to Neo N3.
      * @param _to the address to which the tokens should be sent on Neo N3.
+     * @param _amount the amount of tokens to withdraw to Neo N3.
      */
     function withdrawToken(
         address _neoXToken,
@@ -448,6 +472,7 @@ contract BridgeImpl is
         if (tokenValue > config.maxAmount) revert InvalidAmount();
         if (msg.value < config.fee)
             revert InsufficientFee(msg.value, config.fee);
+        _addUnclaimedRewards(msg.value);
 
         // Execute the transfer of the tokens from the sender to the bridge contract.
         bool success = IERC20(_neoXToken).transferFrom(
@@ -461,12 +486,11 @@ contract BridgeImpl is
         StorageTypes.State memory state = _getTokenWithdrawalState(_neoXToken);
         uint256 newNonce = state.nonce + 1;
 
-        if (config.tokenType == StorageTypes.TokenType.NEO) {
+        if (config.executionType == StorageTypes.ExecutionType.NEO) {
             if (tokenValue % 1e18 != 0) {
                 revert InvalidAmount();
-            } else {
-                tokenValue /= 1e18;
             }
+            tokenValue /= 1e18;
         }
 
         bytes32 withdrawalHash = TokenBridgeLib._hashTokenBridgeOp(
@@ -487,7 +511,16 @@ contract BridgeImpl is
             _neoXToken,
             StorageTypes.State({nonce: newNonce, root: newRoot})
         );
-        emit TokenWithdrawal(_neoXToken, newNonce, tokenValue, _to);
+        emit TokenWithdrawal(
+            _neoXToken,
+            config.neoN3Token,
+            newNonce,
+            _to,
+            tokenValue,
+            msg.sender,
+            withdrawalHash,
+            newRoot
+        );
     }
 
     function setTokenWithdrawalFee(
@@ -497,10 +530,9 @@ contract BridgeImpl is
         uint nrTokens = _neoXTokens.length;
         if (nrTokens != _fees.length) revert LengthMismatch();
         for (uint i = 0; i < nrTokens; i++) {
-            address token = _neoXTokens[i];
             uint256 fee = _fees[i];
-            _setTokenWithdrawalFee(token, fee);
-            emit TokenWithdrawalFeeChange(token, fee);
+            _setTokenWithdrawalFee(_neoXTokens[i], fee);
+            emit TokenWithdrawalFeeChange(_neoXTokens[i], fee);
         }
     }
 
@@ -511,10 +543,9 @@ contract BridgeImpl is
         uint nrTokens = _neoXTokens.length;
         if (nrTokens != _minAmounts.length) revert LengthMismatch();
         for (uint i = 0; i < nrTokens; i++) {
-            address token = _neoXTokens[i];
             uint256 minAmount = _minAmounts[i];
-            _setTokenMinWithdrawalAmount(token, minAmount);
-            emit MinTokenWithdrawalAmountChange(token, minAmount);
+            _setTokenMinWithdrawalAmount(_neoXTokens[i], minAmount);
+            emit MinTokenWithdrawalAmountChange(_neoXTokens[i], minAmount);
         }
     }
 
@@ -525,10 +556,9 @@ contract BridgeImpl is
         uint nrTokens = _neoXTokens.length;
         if (nrTokens != _maxAmounts.length) revert LengthMismatch();
         for (uint i = 0; i < nrTokens; i++) {
-            address token = _neoXTokens[i];
             uint256 maxAmount = _maxAmounts[i];
-            _setTokenMaxWithdrawalAmount(token, maxAmount);
-            emit MaxTokenWithdrawalAmountChange(token, maxAmount);
+            _setTokenMaxWithdrawalAmount(_neoXTokens[i], maxAmount);
+            emit MaxTokenWithdrawalAmountChange(_neoXTokens[i], maxAmount);
         }
     }
 
@@ -539,10 +569,9 @@ contract BridgeImpl is
         uint nrTokens = _neoXTokens.length;
         if (nrTokens != _maxDeposits.length) revert LengthMismatch();
         for (uint i = 0; i < nrTokens; i++) {
-            address token = _neoXTokens[i];
             uint256 maxDeposits = _maxDeposits[i];
-            _setMaxTokenDeposits(token, maxDeposits);
-            emit MaxTokenDepositsChange(token, maxDeposits);
+            _setMaxTokenDeposits(_neoXTokens[i], maxDeposits);
+            emit MaxTokenDepositsChange(_neoXTokens[i], maxDeposits);
         }
     }
 }

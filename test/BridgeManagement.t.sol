@@ -76,7 +76,4 @@ contract BridgeManagementImplTest is Test, SigUtils {
         }
         assert(bridgeManagementImpl.verifyValidatorSignatures(_depositRoot, _signatures));
     }
-
-
-
 }

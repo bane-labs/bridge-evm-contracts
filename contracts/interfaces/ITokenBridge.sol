@@ -13,31 +13,47 @@ interface ITokenBridge {
         address indexed neoXToken,
         address indexed neoN3Token
     );
-    event TokenPause(address indexed neoXToken, address indexed neoN3Token);
-    event TokenUnpause(address indexed neoXToken, address indexed neoN3Token);
+    event TokenBridgePause(
+        address indexed neoXToken,
+        address indexed neoN3Token
+    );
+    event TokenBridgeUnpause(
+        address indexed neoXToken,
+        address indexed neoN3Token
+    );
     event TokenDeposit(
         address indexed neoXToken,
         uint256 indexed nonce,
-        uint256 amount,
-        address indexed to
+        address indexed to,
+        uint256 amount
+    );
+    event TokenDepositRootUpdate(
+        address indexed neoXToken,
+        address indexed neoN3Token,
+        uint256 indexed nonce,
+        bytes32 depositRoot
     );
     event TokenClaimable(
         address indexed neoXToken,
         uint256 indexed nonce,
-        uint256 amount,
-        address indexed to
+        address indexed to,
+        uint256 amount
     );
     event TokenClaim(
         address indexed neoXToken,
         uint256 indexed nonce,
-        uint256 amount,
-        address indexed to
+        address indexed to,
+        uint256 amount
     );
     event TokenWithdrawal(
         address indexed neoXToken,
+        address neoN3Token,
         uint256 indexed nonce,
+        address indexed to,
         uint256 amount,
-        address indexed to
+        address from,
+        bytes32 withdrawalHash,
+        bytes32 withdrawalRoot
     );
     event TokenWithdrawalFeeChange(address indexed neoXToken, uint256 fee);
     event MinTokenWithdrawalAmountChange(

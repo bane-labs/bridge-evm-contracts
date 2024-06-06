@@ -6,13 +6,18 @@ import "../library/BridgeLib.sol";
 interface IGasBridge {
     event GasBridgePause();
     event GasBridgeUnpause();
-    event GasDeposit(uint256 nonce, uint256 amount, address to);
-    event GasClaimable(uint256 nonce, uint256 amount, address to);
-    event GasClaim(uint256 nonce, uint256 amount, address to);
+    event GasDeposit(uint256 indexed nonce, address indexed to, uint256 amount);
+    event GasDepositRootUpdate(uint256 indexed nonce, bytes32 depositRoot);
+    event GasClaimable(
+        uint256 indexed nonce,
+        address indexed to,
+        uint256 amount
+    );
+    event GasClaim(uint256 indexed nonce, address indexed to, uint256 amount);
     event GasWithdrawal(
-        uint256 nonce,
+        uint256 indexed nonce,
+        address indexed to,
         uint256 amount,
-        address to,
         address from,
         bytes32 withdrawalHash,
         bytes32 withdrawalRoot

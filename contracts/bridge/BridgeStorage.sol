@@ -22,6 +22,8 @@ contract BridgeStorage is UUPSUpgradeable {
     StorageTypes.GasBridge public gasBridge;
     mapping(uint256 nonce => StorageTypes.Claimable claimable)
         public claimableGas;
+    // Unclaimed Fee Rewards
+    uint256 public unclaimedRewards;
     // Token Bridges
     mapping(address tokenAddress => StorageTypes.TokenBridge tokenBridge)
         public tokenBridges;
@@ -127,6 +129,8 @@ contract BridgeStorage is UUPSUpgradeable {
         _;
     }
 
+    // Pause Bridge functions
+
     function _pauseBridge() internal {
         bridgePaused = true;
     }
@@ -134,6 +138,14 @@ contract BridgeStorage is UUPSUpgradeable {
     function _unpauseBridge() internal {
         bridgePaused = false;
     }
+
+    // Unclaimed Rewards functions
+
+    function _addUnclaimedRewards(uint256 _amount) internal {
+        unclaimedRewards += _amount;
+    }
+
+    // Gas Bridge functions
 
     function _pauseGasBridge() internal {
         gasBridge.config.paused = true;
@@ -145,8 +157,8 @@ contract BridgeStorage is UUPSUpgradeable {
 
     function _addClaimableGas(
         uint256 _nonce,
-        uint256 _amount,
-        address _to
+        address _to,
+        uint256 _amount
     ) internal {
         claimableGas[_nonce] = StorageTypes.Claimable({
             to: _to,
@@ -311,10 +323,10 @@ contract BridgeStorage is UUPSUpgradeable {
         return tokenBridges[_neoXToken].config;
     }
 
-    function _getTokenType(
+    function _getExecutionType(
         address _neoXToken
-    ) internal view returns (StorageTypes.TokenType) {
-        return tokenBridges[_neoXToken].config.tokenType;
+    ) internal view returns (StorageTypes.ExecutionType) {
+        return tokenBridges[_neoXToken].config.executionType;
     }
 
     function _getTokenDepositState(
@@ -355,8 +367,8 @@ contract BridgeStorage is UUPSUpgradeable {
     function _addTokenClaimable(
         address _neoXToken,
         uint256 _nonce,
-        uint256 _amount,
-        address _to
+        address _to,
+        uint256 _amount
     ) internal {
         tokenClaimables[_neoXToken][_nonce] = StorageTypes.Claimable({
             to: _to,
