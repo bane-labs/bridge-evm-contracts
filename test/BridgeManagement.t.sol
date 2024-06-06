@@ -5,7 +5,6 @@ import "../contracts/management/BridgeManagementImpl.sol";
 import "../contracts/tests/SigUtils.sol";
 import "../contracts/library/BridgeLib.sol";
 
-
 contract BridgeManagementImplTest is Test, SigUtils {
     BridgeManagementImpl bridgeManagementImpl;
     SigUtils sigUtils;
@@ -19,7 +18,6 @@ contract BridgeManagementImplTest is Test, SigUtils {
     address internal securityGuard = 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720;
 
     function setUp() public {
-  
         sigUtils = new SigUtils();
         validatorsKeys.push(user0PrivateKey);
         validatorsAddresses.push(vm.addr(user0PrivateKey));
@@ -46,10 +44,6 @@ contract BridgeManagementImplTest is Test, SigUtils {
         );
     }
 
-
-
-
-
     function testSetOwner() public {
         assertEq(bridgeManagementImpl.getOwner(), owner);
         vm.expectRevert(bytes("not owner"));
@@ -69,11 +63,19 @@ contract BridgeManagementImplTest is Test, SigUtils {
         BridgeLib.Signature[] memory _signatures = new BridgeLib.Signature[](5);
         bytes32 ethHash = getSignedHash(_depositRoot);
         for (uint i = 0; i < 5; i++) {
-            (uint8 v, bytes32 r, bytes32 s) = vm.sign(validatorsKeys[i], ethHash);
+            (uint8 v, bytes32 r, bytes32 s) = vm.sign(
+                validatorsKeys[i],
+                ethHash
+            );
             address x = ecrecover(ethHash, v, r, s);
             _signatures[i] = BridgeLib.Signature(v, r, s);
             assertEq(x, validatorsAddresses[i]);
         }
-        assert(bridgeManagementImpl.verifyValidatorSignatures(_depositRoot, _signatures));
+        assert(
+            bridgeManagementImpl.verifyValidatorSignatures(
+                _depositRoot,
+                _signatures
+            )
+        );
     }
 }

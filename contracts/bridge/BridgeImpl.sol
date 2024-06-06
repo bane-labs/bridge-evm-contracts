@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import  "./BridgeStorage.sol";
+import "./BridgeStorage.sol";
 import "../interfaces/IBridge.sol";
 import "../interfaces/IGasBridge.sol";
 import "../interfaces/ITokenBridge.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol"; 
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "hardhat/console.sol";
+
 contract BridgeImpl is
     BridgeStorage,
     ReentrancyGuard,
@@ -418,17 +419,12 @@ contract BridgeImpl is
                 executionType == StorageTypes.ExecutionType.ERC20
         );
         // Note: For NEO tokens, the transfer value has already been extended with 18 decimals in the deposit function.
-<<<<<<< HEAD
-        bool success = TokenBridgeLib._executeERC20Transfer(_neoXToken, claimable.amount, to);
-        if(!success) revert TransferFailed();
-=======
         bool success = TokenBridgeLib._executeERC20Transfer(
             _neoXToken,
             claimable.amount,
             to
         );
         if (!success) revert TransferFailed();
->>>>>>> origin/develop
     }
 
     function _emitTransferEventOrAddNewTokenClaimable(
