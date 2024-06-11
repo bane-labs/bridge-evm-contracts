@@ -19,4 +19,7 @@ contract BridgeStorageV1 {
         public tokenBridges;
     mapping(address tokenAddress => mapping(uint256 nonce => StorageTypes.Claimable claimable) claimableTokens)
         public tokenClaimables;
+
+    uint256 public feeChangePendingPeriod;
+    uint256 public feeChangeExecutionWindow;
 }

@@ -8,6 +8,8 @@ interface IBridge {
 
     event BridgePause();
     event BridgeUnpause();
+    event FeeChangePendingPeriodChange(uint256 pendingPeriod);
+    event FeeChangeExecutionWindowChange(uint256 executionWindow);
     event Fund(uint256 amount);
 
     // General bridge functions
@@ -15,4 +17,8 @@ interface IBridge {
     function pauseBridge() external;
 
     function unpauseBridge() external;
+
+    function setFeeChangePendingPeriod(uint256 pendingPeriod) external;
+
+    function setFeeChangeExecutionWindow(uint256 executionWindow) external;
 }

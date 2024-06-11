@@ -14,7 +14,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
 
     constructor(address _management) BridgeStorage(_management) {}
 
-    // Contract Pausing
+    // IBridge Implementation
 
     function pauseBridge() external onlySecurityGuard onlyBridgeUnpaused {
         _pauseBridge();
@@ -24,6 +24,20 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     function unpauseBridge() external onlyGovernor onlyBridgePaused {
         _unpauseBridge();
         emit BridgeUnpause();
+    }
+
+    function setFeeChangePendingPeriod(
+        uint256 _newPendingPeriod
+    ) external override onlyGovernor {
+        _setFeeChangePendingPeriod(_newPendingPeriod);
+        emit FeeChangePendingPeriodChange(_newPendingPeriod);
+    }
+
+    function setFeeChangeExecutionWindow(
+        uint256 _newExecutionWindow
+    ) external override onlyGovernor {
+        _setFeeChangeExecutionWindow(_newExecutionWindow);
+        emit FeeChangeExecutionWindowChange(_newExecutionWindow);
     }
 
     // IGasBridge Implementation
