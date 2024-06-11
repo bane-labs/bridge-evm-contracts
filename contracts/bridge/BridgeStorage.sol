@@ -6,31 +6,14 @@ import "../library/BridgeLib.sol";
 import "../library/GasBridgeLib.sol";
 import "../library/StorageTypes.sol";
 import "../library/TokenBridgeLib.sol";
+import "./BridgeStorageV1.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract BridgeStorage is UUPSUpgradeable {
+contract BridgeStorage is UUPSUpgradeable, BridgeStorageV1, ReentrancyGuard {
     address public constant SELF = 0x1212100000000000000000000000000000000004;
     address public constant GOV_ADMIN =
         0x1212000000000000000000000000000000000000;
-
-    // Begin Storage Slots
-
-    // General Bridge Parameters
-    IBridgeManagement public management;
-    bool public bridgePaused;
-    // Gas Bridge
-    StorageTypes.GasBridge public gasBridge;
-    mapping(uint256 nonce => StorageTypes.Claimable claimable)
-        public claimableGas;
-    // Unclaimed Fee Rewards
-    uint256 public unclaimedRewards;
-    // Token Bridges
-    mapping(address tokenAddress => StorageTypes.TokenBridge tokenBridge)
-        public tokenBridges;
-    mapping(address tokenAddress => mapping(uint256 nonce => StorageTypes.Claimable claimable) claimableTokens)
-        public tokenClaimables;
-
-    // End Storage Slots
 
     constructor(address _management) {
         _disableInitializers();
