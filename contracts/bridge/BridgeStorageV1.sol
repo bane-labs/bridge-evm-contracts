@@ -23,48 +23,47 @@ contract SlotShiftV1 {
 contract BridgeStorageV1 is SlotShiftV1, ReentrancyGuard {
     // Slots 0-99 are taken by SlotShiftV1 (SlotShiftV1 has 100 empty slots)
     // Slot 100 is taken by ReentrancyGuard's _status storage value
-    // Slots 101-200 remain empty for future upgrades
-    uint256[100] private _gap101_200;
+    // Slots 101-199 remain empty for future upgrades
+    uint256[99] private _gap101_200;
 
     // ###############################
     // Contract-wide storage variables
     // ###############################
 
-    // Slot 201
+    // Slot 200
     IBridgeManagement public management;
-    uint96 private _gap201_21_32; // Shifting the bool value 'bridgePaused' to the next slot.
-    // Slot 202
+    // Slot 200 - offset 20
     bool public bridgePaused;
-    // Slot 203
+    // Slot 201
     uint256 public unclaimedRewards;
-    // Slots 204-300 remain empty for future upgrades
-    uint256[97] private _gap204_300;
+    // Slots 202-299 remain empty for future upgrades
+    uint256[98] private _gap202_299;
 
     // ####################################
     // GasBridge-specific storage variables
     // ####################################
 
-    // Slot 301
+    // Slot 300
     mapping(uint256 nonce => StorageTypes.Claimable claimable)
         public claimableGas;
-    // Slots 302-311 (10 slots)
+    // Slots 301-310 (10 slots)
     StorageTypes.GasBridge public gasBridge;
-    // Slots 312-400 remain empty for future upgrades
-    uint256[89] private _gap312_400;
+    // Slots 311-399 remain empty for future upgrades
+    uint256[89] private _gap311_399;
 
     // ######################################
     // TokenBridge-specific storage variables
     // ######################################
 
-    // Slot 401
+    // Slot 400
     mapping(address tokenAddress => StorageTypes.TokenBridge tokenBridge)
         public tokenBridges;
-    // Slot 402
+    // Slot 401
     mapping(address tokenAddress => mapping(uint256 nonce => StorageTypes.Claimable claimable) claimableTokens)
         public tokenClaimables;
 
-    // Slot 403-500 remain empty for future upgrades - these remain empty anyway. This is just here to make sure of it if this contract were extended.
-    uint256[97] private _gap403_500;
+    // Slot 402-499 remain empty for future upgrades - these remain empty anyway. This is just here to make sure of it if this contract were extended.
+    uint256[97] private _gap402_499;
 
     constructor(address _management) {
         management = IBridgeManagement(_management);
