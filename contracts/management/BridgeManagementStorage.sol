@@ -2,25 +2,21 @@
 pragma solidity ^0.8.24;
 
 import "../library/ManagementLib.sol";
+import "./BridgeManagementStorageV1.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract BridgeManagementStorage is UUPSUpgradeable {
+/**
+ * @dev This contract holds errors, modifiers, internal view functions and functions that directly modify the storage. The modification functions have logical checks but no access-checks. For example, registering a token should only be viable if there is no entry for that token already. However, checking if the msg.sender is allowed to do so should be handled in a higher-level contract (i.e., in this case the corresponding Impl contract).
+ */
+contract BridgeManagementStorage is BridgeManagementStorageV1, UUPSUpgradeable {
     address public constant SELF = 0x1212100000000000000000000000000000000005;
     address public constant GOV_ADMIN =
         0x1212000000000000000000000000000000000000;
 
-    address internal owner;
-    address internal relayer;
-    uint8 internal validatorThreshold;
-    address[] internal validators;
-    address internal governor;
-    address internal securityGuard;
-    address internal funder;
-
     constructor(
         address _owner,
         address _relayer,
-        uint8 _validatorThreshold,
+        uint256 _validatorThreshold,
         address[] memory _validators,
         address _governor,
         address _securityGuard,
@@ -50,11 +46,11 @@ contract BridgeManagementStorage is UUPSUpgradeable {
 
     function _setValidators(
         address[] memory _validators,
-        uint threshold
+        uint256 _threshold
     ) internal {
         uint256 validatorsLength = _validators.length;
         if (validatorsLength == 0) revert InvalidValidatorArray();
-        if (threshold == 0 || threshold > validatorsLength)
+        if (_threshold == 0 || _threshold > validatorsLength)
             revert InvalidValidatorThreshold();
         for (uint256 i = 0; i < validatorsLength; i++) {
             if (_validators[i] == address(0)) revert InvalidAddress();
@@ -66,7 +62,7 @@ contract BridgeManagementStorage is UUPSUpgradeable {
         for (uint256 i = 0; i < validatorsLength; i++) {
             validators.push(_validators[i]);
         }
-        validatorThreshold = uint8(threshold);
+        validatorThreshold = _threshold;
     }
 
     function _setRelayer(address _relayer) internal {
