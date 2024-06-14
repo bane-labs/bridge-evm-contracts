@@ -28,7 +28,8 @@ contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
 
     error BridgePaused();
     error BridgeUnpaused();
-    error ExistingActiveChange(address tokenBridge);
+    error ExistingActiveParamChange(address tokenBridge);
+    error ExistingActiveGasParamChange();
     error GasBridgePaused();
     error GasBridgeUnpaused();
     error InsufficientFee(uint256 provided, uint256 minExpected);
@@ -47,6 +48,7 @@ contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     error InvalidPendingPeriod(uint256 pendingPeriod, uint256 minPendingPeriod);
     error InvalidValidatorSignatures();
     error LengthMismatch();
+    error NoExecutableGasParamChange();
     error NoExecutableTokenParamChange(address tokenBridge);
     error NonexistentClaimable();
     error NonZeroValueRequired();
@@ -214,24 +216,47 @@ contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         gasBridge.withdrawalState = state;
     }
 
-    function _setGasWithdrawalFee(uint256 _fee) internal {
+    function _changeGasParam(
+        StorageTypes.ParamType _paramType,
+        uint256 _value
+    ) internal {
+        if (_paramType == StorageTypes.ParamType.Fee)
+            _setGasWithdrawalFee(_value);
+        else if (_paramType == StorageTypes.ParamType.MinAmount)
+            _setMinGasWithdrawalAmount(_value);
+        else if (_paramType == StorageTypes.ParamType.MaxAmount)
+            _setMaxGasWithdrawalAmount(_value);
+        else if (_paramType == StorageTypes.ParamType.MaxDeposits)
+            _setMaxGasDeposits(_value);
+    }
+
+    function _setGasWithdrawalFee(uint256 _fee) private {
+        // Fee must be a multiple of 1e10
         if ((_fee % 1e10) != 0) revert InvalidFee();
+        // Fee must be less than the minimum amount
+        if (_fee >= gasBridge.config.minAmount) revert InvalidFee();
         gasBridge.config.fee = _fee;
     }
 
-    function _setGasWithdrawalMinAmount(uint256 _amount) internal {
+    function _setMinGasWithdrawalAmount(uint256 _amount) private {
+        // Amount must be a multiple of 1e10
         if ((_amount % 1e10) != 0) revert InvalidAmount();
+        // Amount must be less than the maximum amount
         if (_amount >= gasBridge.config.maxAmount) revert InvalidAmount();
+        // Amount must be greater than the fee
+        if (_amount <= gasBridge.config.fee) revert InvalidAmount();
         gasBridge.config.minAmount = _amount;
     }
 
-    function _setGasWithdrawalMaxAmount(uint256 _amount) internal {
+    function _setMaxGasWithdrawalAmount(uint256 _amount) private {
+        // Amount must be a multiple of 1e10
         if ((_amount % 1e10) != 0) revert InvalidAmount();
+        // Amount must be greater than the minimum amount
         if (_amount <= gasBridge.config.minAmount) revert InvalidAmount();
         gasBridge.config.maxAmount = _amount;
     }
 
-    function _setMaxGasDeposits(uint8 _maxDeposits) internal {
+    function _setMaxGasDeposits(uint256 _maxDeposits) private {
         if (_maxDeposits == 0) revert InvalidAmount();
         gasBridge.config.maxDeposits = _maxDeposits;
     }

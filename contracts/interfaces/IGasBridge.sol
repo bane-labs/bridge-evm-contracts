@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import "../library/BridgeLib.sol";
+import "../library/StorageTypes.sol";
 
 interface IGasBridge {
     event GasBridgePause();
@@ -22,10 +23,14 @@ interface IGasBridge {
         bytes32 withdrawalHash,
         bytes32 withdrawalRoot
     );
-    event GasWithdrawalFeeChange(uint256 newFee);
-    event MinGasWithdrawalChange(uint256 newAmount);
-    event MaxGasWithdrawalChange(uint256 amount);
-    event MaxGasDepositsChange(uint8 amount);
+    event GasParamChange(
+        StorageTypes.ParamType indexed paramType,
+        uint256 value
+    );
+    event GasParamChangeInitiation(
+        StorageTypes.ParamType indexed paramType,
+        uint256 value
+    );
 
     function pauseGasBridge() external;
 
@@ -41,11 +46,10 @@ interface IGasBridge {
 
     function withdrawGas(address _to) external payable;
 
-    function setGasWithdrawalFee(uint256 _fee) external;
+    function initiateGasParamChange(
+        StorageTypes.ParamType _paramType,
+        uint256 _value
+    ) external;
 
-    function setMinGasWithdrawalAmount(uint256 _amount) external;
-
-    function setMaxGasWithdrawalAmount(uint256 _amount) external;
-
-    function setMaxGasDeposits(uint8 _maxNrDeposits) external;
+    function executeGasParamChange() external;
 }

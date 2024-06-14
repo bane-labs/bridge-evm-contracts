@@ -212,24 +212,53 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         );
     }
 
-    function setGasWithdrawalFee(uint256 _fee) external onlyGovernor {
-        _setGasWithdrawalFee(_fee);
-        emit GasWithdrawalFeeChange(_fee);
+    /**
+     * @notice Initiates a Gas parameter change.
+     * @dev New parameter changes can only be initiated if there's no active pending parameter change for each token. An active pending parameter change is a parameter change which has a non-zero pendingUntilBlock value that is lower or equal than the current block number + 1. If any of the changes is not allowed to be initiated, the function reverts. In this case, make sure to batch only tokens which don't have active pending parameter changes.
+     * @param _paramType the type of the parameter to change.
+     * @param _value the new value of the parameter.
+     */
+    function initiateGasParamChange(
+        StorageTypes.ParamType _paramType,
+        uint256 _value
+    ) external override onlyGovernor {
+        uint blockNumber = block.number;
+        uint256 pendingUntil = blockNumber + pendingPeriod;
+        uint256 executableUntil = blockNumber + pendingPeriod + executionWindow;
+        // Check if allowed to initiate change
+        if (
+            !BridgeLib._paramChangeInitAllowed(
+                gasParamChange.pendingUntilBlock,
+                blockNumber
+            )
+        ) revert ExistingActiveGasParamChange();
+        // Initiate change by setting change in storage
+        gasParamChange = StorageTypes.Change({
+            paramType: _paramType,
+            pendingUntilBlock: pendingUntil,
+            executableUntilBlock: executableUntil,
+            value: _value
+        });
+        emit GasParamChangeInitiation(_paramType, _value);
     }
 
-    function setMinGasWithdrawalAmount(uint256 _amount) external onlyGovernor {
-        _setGasWithdrawalMinAmount(_amount);
-        emit MinGasWithdrawalChange(_amount);
-    }
-
-    function setMaxGasWithdrawalAmount(uint256 _amount) external onlyGovernor {
-        _setGasWithdrawalMaxAmount(_amount);
-        emit MaxGasWithdrawalChange(_amount);
-    }
-
-    function setMaxGasDeposits(uint8 _maxNrDeposits) external onlyGovernor {
-        _setMaxGasDeposits(_maxNrDeposits);
-        emit MaxGasDepositsChange(_maxNrDeposits);
+    /**
+     * @notice Executes the initiated Gas parameter change.
+     * @dev The change is only executed if the current block number is greater than the change's pendingUntilBlock and less or equal to the change's executionUntilBlock. If the change is not executable, the function reverts.
+     */
+    function executeGasParamChange() external override onlyGovernor {
+        uint blockNumber = block.number;
+        // Check if the param change is executable
+        if (
+            !TokenBridgeLib._tokenParamChangeIsExecutable(
+                gasParamChange,
+                blockNumber
+            )
+        ) revert NoExecutableGasParamChange();
+        // Execute the change
+        _changeGasParam(gasParamChange.paramType, gasParamChange.value);
+        delete gasParamChange;
+        emit GasParamChange(gasParamChange.paramType, gasParamChange.value);
     }
 
     // ITokenBridge Implementation
@@ -532,19 +561,23 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         uint256[] calldata _values
     ) external override onlyGovernor {
         uint256 len = _neoXTokens.length;
+        // Check if the lengths of the provided arrays match.
         if (len != _paramTypes.length || len != _values.length)
             revert LengthMismatch();
+
         uint blockNumber = block.number;
         uint256 pendingUntil = blockNumber + pendingPeriod;
         uint256 executableUntil = blockNumber + pendingPeriod + executionWindow;
         for (uint i = 0; i < len; i++) {
             address token = _neoXTokens[i];
+            // Check if allowed to initiate change
             if (
-                !TokenBridgeLib._tokenParamChangeInitAllowed(
+                !BridgeLib._paramChangeInitAllowed(
                     tokenBridgeChanges[token].pendingUntilBlock,
                     blockNumber
                 )
-            ) revert ExistingActiveChange(token);
+            ) revert ExistingActiveParamChange(token);
+            // Initiate change by setting change in storage
             tokenBridgeChanges[token] = StorageTypes.Change({
                 paramType: _paramTypes[i],
                 pendingUntilBlock: pendingUntil,

@@ -19,20 +19,19 @@ contract BridgeStorageV1 is ReentrancyGuard {
     IBridgeManagement public management;
     // Slot 100 - offset 20
     bool public bridgePaused;
-    // Slot 102
+    // Slot 101
     uint256 public unclaimedRewards;
-    // Slot 103
+    // Slot 102
     uint256 public pendingPeriod;
-    // Slot 104
+    // Slot 103
     uint256 public executionWindow;
 
-    // Slots 105-199 (95 slots)
-    uint256[95] private _gap1;
+    // Slots 104-199 (96 slots)
+    uint256[96] private _gap1;
 
     // Slot 200
     mapping(uint256 nonce => StorageTypes.Claimable claimable)
         public claimableGas;
-
     // Slot 201
     mapping(address tokenAddress => StorageTypes.TokenBridge tokenBridge)
         public tokenBridges;
@@ -43,7 +42,9 @@ contract BridgeStorageV1 is ReentrancyGuard {
     mapping(address tokenAddress => StorageTypes.Change change)
         public tokenBridgeChanges;
 
-    // Slots 204-213 (10 slots)
+    // Slots 204-207 (4 slots)
+    StorageTypes.Change public gasParamChange;
+    // Slots 208-217 (10 slots)
     StorageTypes.GasBridge public gasBridge;
 
     constructor(address _management) {
