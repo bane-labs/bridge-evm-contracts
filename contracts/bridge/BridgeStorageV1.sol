@@ -12,7 +12,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
  */
 contract SlotShiftV1 {
     // Slots 0-99 remain empty for future upgrades
-    uint256[100] private _gap0_99;
+    uint256[100] private _gap0;
 }
 
 /**
@@ -24,7 +24,7 @@ contract BridgeStorageV1 is SlotShiftV1, ReentrancyGuard {
     // Slots 0-99 are taken by SlotShiftV1 (SlotShiftV1 has 100 empty slots)
     // Slot 100 is taken by ReentrancyGuard's _status storage value
     // Slots 101-199 remain empty for future upgrades
-    uint256[99] private _gap101_200;
+    uint256[99] private _gap1;
 
     // ###############################
     // Contract-wide storage variables
@@ -37,7 +37,7 @@ contract BridgeStorageV1 is SlotShiftV1, ReentrancyGuard {
     // Slot 201
     uint256 public unclaimedRewards;
     // Slots 202-299 remain empty for future upgrades
-    uint256[98] private _gap202_299;
+    uint256[98] private _gap2;
 
     // ####################################
     // GasBridge-specific storage variables
@@ -49,7 +49,7 @@ contract BridgeStorageV1 is SlotShiftV1, ReentrancyGuard {
     // Slots 301-310 (10 slots)
     StorageTypes.GasBridge public gasBridge;
     // Slots 311-399 remain empty for future upgrades
-    uint256[89] private _gap311_399;
+    uint256[89] private _gap3;
 
     // ######################################
     // TokenBridge-specific storage variables
@@ -63,7 +63,7 @@ contract BridgeStorageV1 is SlotShiftV1, ReentrancyGuard {
         public tokenClaimables;
 
     // Slot 402-499 remain empty for future upgrades - these remain empty anyway. This is just here to make sure of it if this contract were extended.
-    uint256[97] private _gap402_499;
+    uint256[97] private _gap4;
 
     constructor(address _management) {
         management = IBridgeManagement(_management);

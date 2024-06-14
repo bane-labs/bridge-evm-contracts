@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 contract BridgeManagementStorageV1 {
     // Slots 0-99 remain empty for future upgrades
-    uint256[100] private _gap0_99;
+    uint256[100] private _gap0;
 
     // Slot 100
     address internal owner;
@@ -30,5 +30,5 @@ contract BridgeManagementStorageV1 {
     address internal funder;
 
     // Slots 107-199 remain empty for future upgrades - these remain empty anyway. This is just here to make sure of it if this contract were extended.
-    uint256[93] private _gap107_199;
+    uint256[93] private _gap1;
 }
