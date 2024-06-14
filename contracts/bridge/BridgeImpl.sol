@@ -519,55 +519,65 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         );
     }
 
-    function setTokenWithdrawalFee(
+    /**
+     * @notice Initiates token parameter changes.
+     * @dev New parameter changes can only be initiated if there's no active pending parameter change for each token. An active pending parameter change is a parameter change which has a non-zero pendingUntilBlock value that is lower or equal than the current block number + 1. If any of the changes is not allowed to be initiated, the function reverts. In this case, make sure to batch only tokens which don't have active pending parameter changes.
+     * @param _neoXTokens the tokens for which a parameter change should be initiated.
+     * @param _paramTypes the types of the parameters to change.
+     * @param _values the new values of the parameters.
+     */
+    function initiateTokenParamChanges(
         address[] calldata _neoXTokens,
-        uint256[] calldata _fees
+        StorageTypes.ParamType[] calldata _paramTypes,
+        uint256[] calldata _values
     ) external override onlyGovernor {
-        uint nrTokens = _neoXTokens.length;
-        if (nrTokens != _fees.length) revert LengthMismatch();
-        for (uint i = 0; i < nrTokens; i++) {
-            uint256 fee = _fees[i];
-            _setTokenWithdrawalFee(_neoXTokens[i], fee);
-            emit TokenWithdrawalFeeChange(_neoXTokens[i], fee);
+        uint256 len = _neoXTokens.length;
+        if (len != _paramTypes.length || len != _values.length)
+            revert LengthMismatch();
+        uint blockNumber = block.number;
+        uint256 pendingUntil = blockNumber + pendingPeriod;
+        uint256 executableUntil = blockNumber + pendingPeriod + executionWindow;
+        for (uint i = 0; i < len; i++) {
+            address token = _neoXTokens[i];
+            if (
+                !TokenBridgeLib._tokenParamChangeInitAllowed(
+                    tokenBridgeChanges[token].pendingUntilBlock,
+                    blockNumber
+                )
+            ) revert ExistingActiveChange(token);
+            tokenBridgeChanges[token] = StorageTypes.Change({
+                paramType: _paramTypes[i],
+                pendingUntilBlock: pendingUntil,
+                executableUntilBlock: executableUntil,
+                value: _values[i]
+            });
+            emit TokenParamChangeInitiation(token, _paramTypes[i], _values[i]);
         }
     }
 
-    function setMinTokenWithdrawalAmount(
-        address[] calldata _neoXTokens,
-        uint256[] calldata _minAmounts
+    /**
+     * @notice Executes the initiated token parameter changes.
+     * @dev The changes are only executed if the current block number is greater than each change's pendingUntilBlock and less or equal to each change's executionUntilBlock. If any of the changes is not executable, the function reverts. In this case, make sure to batch only tokens which active changes are executable.
+     * @param _neoXTokens the tokens for which the active changes should be executed.
+     */
+    function executeTokenParamChanges(
+        address[] calldata _neoXTokens
     ) external override onlyGovernor {
-        uint nrTokens = _neoXTokens.length;
-        if (nrTokens != _minAmounts.length) revert LengthMismatch();
-        for (uint i = 0; i < nrTokens; i++) {
-            uint256 minAmount = _minAmounts[i];
-            _setTokenMinWithdrawalAmount(_neoXTokens[i], minAmount);
-            emit MinTokenWithdrawalAmountChange(_neoXTokens[i], minAmount);
-        }
-    }
+        uint len = _neoXTokens.length;
+        uint blockNumber = block.number;
+        for (uint i = 0; i < len; i++) {
+            address token = _neoXTokens[i];
+            StorageTypes.Change memory change = tokenBridgeChanges[token];
+            if (
+                !TokenBridgeLib._tokenParamChangeIsExecutable(
+                    change,
+                    blockNumber
+                )
+            ) revert NoExecutableTokenParamChange(token);
+            _changeTokenParam(token, change.paramType, change.value);
+            delete tokenBridgeChanges[token];
 
-    function setMaxTokenWithdrawalAmount(
-        address[] calldata _neoXTokens,
-        uint256[] calldata _maxAmounts
-    ) external override onlyGovernor {
-        uint nrTokens = _neoXTokens.length;
-        if (nrTokens != _maxAmounts.length) revert LengthMismatch();
-        for (uint i = 0; i < nrTokens; i++) {
-            uint256 maxAmount = _maxAmounts[i];
-            _setTokenMaxWithdrawalAmount(_neoXTokens[i], maxAmount);
-            emit MaxTokenWithdrawalAmountChange(_neoXTokens[i], maxAmount);
-        }
-    }
-
-    function setMaxTokenDeposits(
-        address[] calldata _neoXTokens,
-        uint256[] calldata _maxDeposits
-    ) external override onlyGovernor {
-        uint nrTokens = _neoXTokens.length;
-        if (nrTokens != _maxDeposits.length) revert LengthMismatch();
-        for (uint i = 0; i < nrTokens; i++) {
-            uint256 maxDeposits = _maxDeposits[i];
-            _setMaxTokenDeposits(_neoXTokens[i], maxDeposits);
-            emit MaxTokenDepositsChange(_neoXTokens[i], maxDeposits);
+            emit TokenParamChange(token, change.paramType, change.value);
         }
     }
 }

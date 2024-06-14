@@ -45,6 +45,16 @@ interface ITokenBridge {
         address indexed to,
         uint256 amount
     );
+    event TokenParamChangeInitiation(
+        address indexed neoXToken,
+        StorageTypes.ParamType indexed paramType,
+        uint256 value
+    );
+    event TokenParamChange(
+        address indexed neoXToken,
+        StorageTypes.ParamType indexed paramType,
+        uint256 value
+    );
     event TokenWithdrawal(
         address indexed neoXToken,
         address neoN3Token,
@@ -54,19 +64,6 @@ interface ITokenBridge {
         address from,
         bytes32 withdrawalHash,
         bytes32 withdrawalRoot
-    );
-    event TokenWithdrawalFeeChange(address indexed neoXToken, uint256 fee);
-    event MinTokenWithdrawalAmountChange(
-        address indexed neoXToken,
-        uint256 minAmount
-    );
-    event MaxTokenWithdrawalAmountChange(
-        address indexed neoXToken,
-        uint256 maxAmount
-    );
-    event MaxTokenDepositsChange(
-        address indexed neoXToken,
-        uint256 maxDeposits
     );
 
     function registerToken(
@@ -95,23 +92,11 @@ interface ITokenBridge {
         uint256 amount
     ) external payable;
 
-    function setTokenWithdrawalFee(
+    function initiateTokenParamChanges(
         address[] calldata neoXTokens,
-        uint256[] calldata fees
+        StorageTypes.ParamType[] calldata paramTypes,
+        uint256[] calldata values
     ) external;
 
-    function setMinTokenWithdrawalAmount(
-        address[] calldata neoXTokens,
-        uint256[] calldata minAmounts
-    ) external;
-
-    function setMaxTokenWithdrawalAmount(
-        address[] calldata neoXTokens,
-        uint256[] calldata maxAmounts
-    ) external;
-
-    function setMaxTokenDeposits(
-        address[] calldata neoXTokens,
-        uint256[] calldata maxWithdrawals
-    ) external;
+    function executeTokenParamChanges(address[] calldata neoXTokens) external;
 }

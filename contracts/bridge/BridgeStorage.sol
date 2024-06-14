@@ -28,6 +28,7 @@ contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
 
     error BridgePaused();
     error BridgeUnpaused();
+    error ExistingActiveChange(address tokenBridge);
     error GasBridgePaused();
     error GasBridgeUnpaused();
     error InsufficientFee(uint256 provided, uint256 minExpected);
@@ -46,7 +47,9 @@ contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     error InvalidPendingPeriod(uint256 pendingPeriod, uint256 minPendingPeriod);
     error InvalidValidatorSignatures();
     error LengthMismatch();
+    error NoExecutableTokenParamChange(address tokenBridge);
     error NonexistentClaimable();
+    error NonZeroValueRequired();
     error TokenBridgeAlreadyRegistered(address neoXToken);
     error TokenBridgePaused(address neoXToken);
     error TokenBridgeUnpaused(address neoXToken);
@@ -280,6 +283,21 @@ contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         tokenBridges[_neoXToken].paused = false;
     }
 
+    function _changeTokenParam(
+        address _token,
+        StorageTypes.ParamType _paramType,
+        uint256 _value
+    ) internal {
+        if (_paramType == StorageTypes.ParamType.Fee)
+            _setTokenWithdrawalFee(_token, _value);
+        else if (_paramType == StorageTypes.ParamType.MinAmount)
+            _setTokenMinWithdrawalAmount(_token, _value);
+        else if (_paramType == StorageTypes.ParamType.MaxAmount)
+            _setTokenMaxWithdrawalAmount(_token, _value);
+        else if (_paramType == StorageTypes.ParamType.MaxDeposits)
+            _setMaxTokenDeposits(_token, _value);
+    }
+
     function _setTokenWithdrawalFee(address _neoXToken, uint256 _fee) internal {
         tokenBridges[_neoXToken].config.fee = _fee;
     }
@@ -287,7 +305,7 @@ contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     function _setTokenMinWithdrawalAmount(
         address _neoXToken,
         uint256 _amount
-    ) internal {
+    ) private {
         if (_amount > tokenBridges[_neoXToken].config.maxAmount)
             revert InvalidAmount();
         tokenBridges[_neoXToken].config.minAmount = _amount;
@@ -296,7 +314,7 @@ contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     function _setTokenMaxWithdrawalAmount(
         address _neoXToken,
         uint256 _amount
-    ) internal {
+    ) private {
         if (_amount < tokenBridges[_neoXToken].config.minAmount)
             revert InvalidAmount();
         tokenBridges[_neoXToken].config.maxAmount = _amount;
@@ -305,7 +323,8 @@ contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     function _setMaxTokenDeposits(
         address _neoXToken,
         uint256 _maxDeposits
-    ) internal {
+    ) private {
+        if (_maxDeposits == 0) revert NonZeroValueRequired();
         tokenBridges[_neoXToken].config.maxDeposits = _maxDeposits;
     }
 

@@ -13,6 +13,20 @@ library StorageTypes {
         uint256 amount;
     }
 
+    struct Change {
+        ParamType paramType;
+        uint256 pendingUntilBlock;
+        uint256 executableUntilBlock;
+        uint256 value;
+    }
+
+    enum ParamType {
+        Fee,
+        MinAmount,
+        MaxAmount,
+        MaxDeposits
+    }
+
     // Gas Bridge
 
     struct GasBridge {

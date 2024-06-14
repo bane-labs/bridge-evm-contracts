@@ -39,8 +39,11 @@ contract BridgeStorageV1 is ReentrancyGuard {
     // Slot 202
     mapping(address tokenAddress => mapping(uint256 nonce => StorageTypes.Claimable claimable) claimableTokens)
         public tokenClaimables;
+    // Slot 203
+    mapping(address tokenAddress => StorageTypes.Change change)
+        public tokenBridgeChanges;
 
-    // Slots 203-212 (10 slots)
+    // Slots 204-213 (10 slots)
     StorageTypes.GasBridge public gasBridge;
 
     constructor(address _management) {
