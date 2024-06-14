@@ -17,10 +17,10 @@ contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     address public constant GOV_ADMIN =
         0x1212000000000000000000000000000000000000;
 
-    // The minimum value of the minimum number of blocks to wait before a fee update can be executed after the update was initiated.
-    uint256 public constant MIN_FEE_CHANGE_PENDING_PERIOD = 12; // in blocks, 1 minute with 5s block time
-    // The minimum value of the maximum number of blocks to wait after the pending period before a fee update expires.
-    uint256 public constant MIN_FEE_CHANGE_EXECUTION_WINDOW = 120; // in blocks, 10 minutes with 5s block time
+    // The minimum value of the minimum number of blocks to wait before a change can be executed after the change was initiated.
+    uint256 public constant MIN_PENDING_PERIOD = 1;
+    // The minimum value of the maximum number of blocks to wait after the pending period before a change expires.
+    uint256 public constant MIN_EXECUTION_WINDOW = 120; // 10 minutes with 5s block time
 
     constructor(address _management) BridgeStorageV1(_management) {
         _disableInitializers();
@@ -123,22 +123,19 @@ contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
 
     // Functions to set fee change pending period and execution window
 
-    function _setFeeChangePendingPeriod(uint256 _pendingPeriod) internal {
-        if (_pendingPeriod < MIN_FEE_CHANGE_PENDING_PERIOD)
-            revert InvalidPendingPeriod(
-                _pendingPeriod,
-                MIN_FEE_CHANGE_PENDING_PERIOD
-            );
-        feeChangePendingPeriod = _pendingPeriod;
+    function _setPendingPeriod(uint256 _pendingPeriod) internal {
+        if (_pendingPeriod < MIN_PENDING_PERIOD)
+            revert InvalidPendingPeriod(_pendingPeriod, MIN_PENDING_PERIOD);
+        pendingPeriod = _pendingPeriod;
     }
 
-    function _setFeeChangeExecutionWindow(uint256 _executionWindow) internal {
-        if (_executionWindow < MIN_FEE_CHANGE_EXECUTION_WINDOW)
+    function _setExecutionWindow(uint256 _executionWindow) internal {
+        if (_executionWindow < MIN_EXECUTION_WINDOW)
             revert InvalidExecutionWindow(
                 _executionWindow,
-                MIN_FEE_CHANGE_EXECUTION_WINDOW
+                MIN_EXECUTION_WINDOW
             );
-        feeChangeExecutionWindow = _executionWindow;
+        executionWindow = _executionWindow;
     }
 
     // Unclaimed Rewards functions

@@ -22,9 +22,9 @@ contract BridgeStorageV1 is ReentrancyGuard {
     // Slot 102
     uint256 public unclaimedRewards;
     // Slot 103
-    uint256 public feeChangePendingPeriod;
+    uint256 public pendingPeriod;
     // Slot 104
-    uint256 public feeChangeExecutionWindow;
+    uint256 public executionWindow;
 
     // Slots 105-199 (95 slots)
     uint256[95] private _gap1;

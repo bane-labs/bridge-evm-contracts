@@ -26,18 +26,18 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         emit BridgeUnpause();
     }
 
-    function setFeeChangePendingPeriod(
+    function setPendingPeriod(
         uint256 _newPendingPeriod
     ) external override onlyGovernor {
-        _setFeeChangePendingPeriod(_newPendingPeriod);
-        emit FeeChangePendingPeriodChange(_newPendingPeriod);
+        _setPendingPeriod(_newPendingPeriod);
+        emit PendingPeriodChange(_newPendingPeriod);
     }
 
-    function setFeeChangeExecutionWindow(
+    function setExecutionWindow(
         uint256 _newExecutionWindow
     ) external override onlyGovernor {
-        _setFeeChangeExecutionWindow(_newExecutionWindow);
-        emit FeeChangeExecutionWindowChange(_newExecutionWindow);
+        _setExecutionWindow(_newExecutionWindow);
+        emit ExecutionWindowChange(_newExecutionWindow);
     }
 
     // IGasBridge Implementation
