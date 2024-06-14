@@ -28,7 +28,4 @@ contract BridgeManagementStorageV1 {
 
     // Slot 106
     address internal funder;
-
-    // Slots 107-199 remain empty for future upgrades - these remain empty anyway. This is just here to make sure of it if this contract were extended.
-    uint256[93] private _gap1;
 }

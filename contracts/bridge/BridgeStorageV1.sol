@@ -6,64 +6,38 @@ import "../library/StorageTypes.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
- * @title SlotShiftV1
- * @author BaneLabs
- * @dev This contract shifts the storage slots by 100 of any extending contract - making room for future upgrades.
- */
-contract SlotShiftV1 {
-    // Slots 0-99 remain empty for future upgrades
-    uint256[100] private _gap0;
-}
-
-/**
  * @title BridgeStorageV1
  * @author BaneLabs
  * @dev This contract holds the storage variables for the Bridge contract and outlines the slot allocations of the contracts storage. Storage slot modifications should be done with care to avoid conflicts with existing storage slots in the proxy.
  */
-contract BridgeStorageV1 is SlotShiftV1, ReentrancyGuard {
-    // Slots 0-99 are taken by SlotShiftV1 (SlotShiftV1 has 100 empty slots)
-    // Slot 100 is taken by ReentrancyGuard's _status storage value
-    // Slots 101-199 remain empty for future upgrades
-    uint256[99] private _gap1;
+contract BridgeStorageV1 is ReentrancyGuard {
+    // Slot 0 is taken by ReentrancyGuard's _status storage value
+    // Slots 1-99 remain empty for future upgrades
+    uint256[99] private _gap0;
 
-    // ###############################
-    // Contract-wide storage variables
-    // ###############################
+    // Slot 100
+    IBridgeManagement public management;
+    // Slot 100 - offset 20
+    bool public bridgePaused;
+    // Slot 102
+    uint256 public unclaimedRewards;
+
+    // Slots 103-199 (97 slots)
+    uint256[97] private _gap1;
 
     // Slot 200
-    IBridgeManagement public management;
-    // Slot 200 - offset 20
-    bool public bridgePaused;
-    // Slot 201
-    uint256 public unclaimedRewards;
-    // Slots 202-299 remain empty for future upgrades
-    uint256[98] private _gap2;
-
-    // ####################################
-    // GasBridge-specific storage variables
-    // ####################################
-
-    // Slot 300
     mapping(uint256 nonce => StorageTypes.Claimable claimable)
         public claimableGas;
-    // Slots 301-310 (10 slots)
-    StorageTypes.GasBridge public gasBridge;
-    // Slots 311-399 remain empty for future upgrades
-    uint256[89] private _gap3;
 
-    // ######################################
-    // TokenBridge-specific storage variables
-    // ######################################
-
-    // Slot 400
+    // Slot 201
     mapping(address tokenAddress => StorageTypes.TokenBridge tokenBridge)
         public tokenBridges;
-    // Slot 401
+    // Slot 202
     mapping(address tokenAddress => mapping(uint256 nonce => StorageTypes.Claimable claimable) claimableTokens)
         public tokenClaimables;
 
-    // Slot 402-499 remain empty for future upgrades - these remain empty anyway. This is just here to make sure of it if this contract were extended.
-    uint256[97] private _gap4;
+    // Slots 203-212 (10 slots)
+    StorageTypes.GasBridge public gasBridge;
 
     constructor(address _management) {
         management = IBridgeManagement(_management);
