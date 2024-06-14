@@ -90,12 +90,12 @@ contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     }
 
     modifier onlyGasBridgeUnpaused() {
-        if (gasBridge.config.paused) revert GasBridgePaused();
+        if (gasBridge.paused) revert GasBridgePaused();
         _;
     }
 
     modifier onlyGasBridgePaused() {
-        if (!gasBridge.config.paused) revert GasBridgeUnpaused();
+        if (!gasBridge.paused) revert GasBridgeUnpaused();
         _;
     }
 
@@ -150,11 +150,11 @@ contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     // Gas Bridge functions
 
     function _pauseGasBridge() internal {
-        gasBridge.config.paused = true;
+        gasBridge.paused = true;
     }
 
     function _unpauseGasBridge() internal {
-        gasBridge.config.paused = false;
+        gasBridge.paused = false;
     }
 
     function _addClaimableGas(
