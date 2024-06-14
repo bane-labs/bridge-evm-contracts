@@ -75,8 +75,7 @@ contract BridgeStorageV1 is SlotShiftV1, ReentrancyGuard {
                 fee: 1e17,
                 minAmount: 1e18,
                 maxAmount: 1e22,
-                maxDeposits: 100,
-                gap: [uint256(0), uint256(0)]
+                maxDeposits: 100
             })
         });
     }
