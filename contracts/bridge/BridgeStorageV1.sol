@@ -68,6 +68,7 @@ contract BridgeStorageV1 is SlotShiftV1, ReentrancyGuard {
     constructor(address _management) {
         management = IBridgeManagement(_management);
         gasBridge = StorageTypes.GasBridge({
+            paused: false,
             depositState: StorageTypes.State({nonce: 0, root: 0x0}),
             withdrawalState: StorageTypes.State({nonce: 0, root: 0x0}),
             config: StorageTypes.GasConfig({
@@ -75,7 +76,6 @@ contract BridgeStorageV1 is SlotShiftV1, ReentrancyGuard {
                 minAmount: 1e18,
                 maxAmount: 1e22,
                 maxDeposits: 100,
-                paused: false,
                 gap: [uint256(0), uint256(0)]
             })
         });
