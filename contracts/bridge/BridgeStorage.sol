@@ -8,28 +8,17 @@ import "../library/StorageTypes.sol";
 import "../library/TokenBridgeLib.sol";
 import "./BridgeStorageV1.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract BridgeStorage is UUPSUpgradeable, BridgeStorageV1, ReentrancyGuard {
+/**
+ * @dev This contract holds errors, modifiers, internal view functions and functions that directly modify the storage. The modification functions have logical checks but no access-checks. For example, registering a token should only be viable if there is no entry for that token already. However, checking if the msg.sender is allowed to do so should be handled in a higher-level contract (i.e., in this case the corresponding Impl contract).
+ */
+contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     address public constant SELF = 0x1212100000000000000000000000000000000004;
     address public constant GOV_ADMIN =
         0x1212000000000000000000000000000000000000;
 
-    constructor(address _management) {
+    constructor(address _management) BridgeStorageV1(_management) {
         _disableInitializers();
-        management = IBridgeManagement(_management);
-        gasBridge = StorageTypes.GasBridge({
-            depositState: StorageTypes.State({nonce: 0, root: 0x0}),
-            withdrawalState: StorageTypes.State({nonce: 0, root: 0x0}),
-            config: StorageTypes.GasConfig({
-                fee: 1e17,
-                minAmount: 1e18,
-                maxAmount: 1e22,
-                maxDeposits: 100,
-                paused: false,
-                gap: [uint256(0), uint256(0)]
-            })
-        });
     }
 
     error BridgePaused();

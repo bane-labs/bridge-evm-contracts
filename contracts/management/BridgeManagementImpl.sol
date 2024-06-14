@@ -5,10 +5,6 @@ import "./BridgeManagementStorage.sol";
 import "../interfaces/IBridgeManagement.sol";
 import "../library/BridgeLib.sol";
 
-/**
- * When generating the bytecode for genesis script:
- * - set initial storage values in BridgeManagementStorage.sol
- */
 contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
     constructor(
         address _owner,
@@ -34,7 +30,7 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
         bytes32 _newDepositRoot,
         BridgeLib.Signature[] calldata _signatures
     ) external view returns (bool) {
-        uint8 threshold = validatorThreshold;
+        uint256 threshold = validatorThreshold;
         if (_signatures.length != threshold) {
             return false;
         }
