@@ -2,13 +2,15 @@
 pragma solidity ^0.8.0;
 import "../lib/forge-std/src/Test.sol";
 import {TestBridge} from "../contracts/tests/TestBridge.sol";
+import {IERC20Errors} from "../node_modules/@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
+import {ITokenBridge} from "../contracts/interfaces/ITokenBridge.sol";
 import {BridgeStorage, BridgeLib, GasBridgeLib, StorageTypes, TokenBridgeLib} from "../contracts/bridge/BridgeStorage.sol";
 import "../contracts/management/BridgeManagementImpl.sol";
 import "../contracts/tests/SigUtils.sol";
 import "../contracts/tests/MockERC20.sol";
 
+
 contract TestFungibleToken is Test, SigUtils {
-    // constructor(address _management) BridgeImpl(_management) {}
     TestBridge bridgeImpl;
 
     address neoXTokenA;
@@ -22,7 +24,7 @@ contract TestFungibleToken is Test, SigUtils {
     BridgeManagementImpl bridgeManagementImpl;
     SigUtils sigUtils;
     address public owner = 0xBcd4042DE499D14e55001CcbB24a551F3b954096;
-    address public user = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
+    address public funder = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
     address public relayer = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
     uint8 public validatorThreshold = 5;
     uint256[] public validatorsKeys;
@@ -33,7 +35,7 @@ contract TestFungibleToken is Test, SigUtils {
     address[] public valid_validatorsAddresses;
 
     function setUp() public {
-        //set  _management
+        //set _management
         sigUtils = new SigUtils();
         validatorsKeys.push(user0PrivateKey);
         validatorsAddresses.push(vm.addr(user0PrivateKey));
@@ -56,7 +58,7 @@ contract TestFungibleToken is Test, SigUtils {
             validatorsAddresses,
             governor,
             securityGuard,
-            user
+            funder
         );
 
         bridgeImpl = new TestBridge(address(bridgeManagementImpl));
@@ -78,49 +80,48 @@ contract TestFungibleToken is Test, SigUtils {
             maxDeposits: 2,
             executionType: StorageTypes.ExecutionType.NEO
         });
-        vm.deal(user, 1 ether);
+        vm.deal(funder, 1 ether);
         vm.deal(owner, 1 ether);
         vm.deal(owner, 1 ether);
     }
 
-    function testDepositTokenB() public {
-        MockERC20(neoXTokenB).mint(address(bridgeImpl), 1000 ether);
-        vm.prank(governor);
-        bridgeImpl.registerToken(neoXTokenB, validConfigB);
-        BridgeLib.DepositData[]
-            memory depositData = new BridgeLib.DepositData[](2);
-        BridgeLib.DepositData memory d0 = BridgeLib.DepositData({
-            to: payable(user),
-            amount: 100,
-            nonce: 1
-        });
-        BridgeLib.DepositData memory d1 = BridgeLib.DepositData({
-            to: payable(owner),
-            amount: 200,
-            nonce: 2
-        });
-        depositData[0] = d0;
-        depositData[1] = d1;
-        bytes32 tokenDepositRoot = bridgeImpl.computeTokenRoot(
-            bridgeImpl.getTokenDepositState(neoXTokenB).root,
-            neoN3TokenB,
-            neoXTokenB,
-            depositData
-        );
-        BridgeLib.Signature[] memory signatures = getSignatures(
-            tokenDepositRoot
-        );
-        vm.prank(relayer);
-        bridgeImpl.depositToken(
-            neoXTokenB,
-            tokenDepositRoot,
-            signatures,
-            depositData
-        );
-        assertEq(MockERC20(neoXTokenB).balanceOf(user), 100 ether);
-        assertEq(MockERC20(neoXTokenB).balanceOf(owner), 200 ether);
+    // Get the correct signatures of the five validators
+    function getSignatures(bytes32 _depositRoot) public view returns (BridgeLib.Signature[] memory) {
+        uint[] memory defaultIndices = new uint[](5);
+        for (uint i = 0; i < 5; i++) {
+            defaultIndices[i] = i;
+        }
+        return getSignatures(_depositRoot, defaultIndices);
     }
 
+    // Get the correct signatures of the five/six/seven validators
+    function getSignatures(
+        bytes32 _depositRoot,
+        uint[] memory validatorIndices
+    ) public view returns (BridgeLib.Signature[] memory) {
+        // Ensure that the length of the validatorIndices array passed in is 5,6,7, otherwise an exception is thrown
+        require(validatorIndices.length==5 || validatorIndices.length==6|| validatorIndices.length==7, "five-seven validator indexes must be provided");
+        
+        BridgeLib.Signature[] memory _signatures = new BridgeLib.Signature[](validatorIndices.length);
+        bytes32 ethHash = getSignedHash(_depositRoot);
+
+        for (uint i = 0; i < validatorIndices.length; i++) {
+            uint validatorIndex = validatorIndices[i];
+            require(validatorIndex < validatorsKeys.length, "Invalid index");
+
+            (uint8 v, bytes32 r, bytes32 s) = vm.sign(
+                validatorsKeys[validatorIndex],
+                ethHash
+            );
+            
+            address recoverAddress = ecrecover(ethHash, v, r, s);
+            _signatures[i] = BridgeLib.Signature(v, r, s);
+            assertEq(recoverAddress, validatorsAddresses[validatorIndex]);
+        }
+        return _signatures;
+    }
+
+    // test case: successful deposit token, token type is ERC20, Let's call it deposit token A, takes the signatures of the first 5 validators，and check the event
     function testDepositTokenA() public {
         MockERC20(neoXTokenA).mint(address(bridgeImpl), 100 ether);
         vm.prank(governor);
@@ -128,7 +129,7 @@ contract TestFungibleToken is Test, SigUtils {
         BridgeLib.DepositData[]
             memory depositData = new BridgeLib.DepositData[](2);
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({
-            to: payable(user),
+            to: payable(funder),
             amount: 100,
             nonce: 1
         });
@@ -149,78 +150,38 @@ contract TestFungibleToken is Test, SigUtils {
             tokenDepositRoot
         );
         vm.prank(relayer);
-        bridgeImpl.depositToken(
-            neoXTokenA,
-            tokenDepositRoot,
-            signatures,
-            depositData
-        );
-        assertEq(MockERC20(neoXTokenA).balanceOf(user), 100);
-        assertEq(MockERC20(neoXTokenA).balanceOf(owner), 200);
-    }
-
-    function testClaimTokenA() public {
-        vm.prank(governor);
-        bridgeImpl.registerToken(neoXTokenA, validConfigA);
-        BridgeLib.DepositData[]
-            memory depositData = new BridgeLib.DepositData[](2);
-        BridgeLib.DepositData memory d0 = BridgeLib.DepositData({
-            to: payable(user),
-            amount: 100,
-            nonce: 1
-        });
-        BridgeLib.DepositData memory d1 = BridgeLib.DepositData({
-            to: payable(owner),
-            amount: 200,
-            nonce: 2
-        });
-        depositData[0] = d0;
-        depositData[1] = d1;
-        bytes32 tokenDepositRoot = bridgeImpl.computeTokenRoot(
-            bridgeImpl.getTokenDepositState(neoXTokenA).root,
-            neoN3TokenA,
-            neoXTokenA,
-            depositData
-        );
-        BridgeLib.Signature[] memory signatures = getSignatures(
+        // check event
+        vm.expectEmit(true, true, true, true);
+        emit ITokenBridge.TokenDepositRootUpdate(           
+            address(neoXTokenA),
+            address(neoN3TokenA),
+            d1.nonce,
             tokenDepositRoot
         );
-        vm.prank(relayer);
         bridgeImpl.depositToken(
             neoXTokenA,
             tokenDepositRoot,
             signatures,
             depositData
         );
-        assertEq(MockERC20(neoXTokenA).balanceOf(user), 0);
-        assertEq(MockERC20(neoXTokenA).balanceOf(owner), 0);
-        MockERC20(neoXTokenA).mint(address(bridgeImpl), 100);
-        bridgeImpl.claimToken(neoXTokenA, 1);
-        assertEq(MockERC20(neoXTokenA).balanceOf(user), 100);
-        vm.expectRevert(
-            abi.encodeWithSelector(BridgeStorage.TransferFailed.selector)
-        );
-        bridgeImpl.claimToken(neoXTokenA, 2);
-        MockERC20(neoXTokenA).mint(address(bridgeImpl), 200);
-        bridgeImpl.claimToken(neoXTokenA, 2);
+        // check balance
+        assertEq(MockERC20(neoXTokenA).balanceOf(funder), 100);
         assertEq(MockERC20(neoXTokenA).balanceOf(owner), 200);
-        vm.expectRevert(
-            abi.encodeWithSelector(BridgeStorage.NonexistentClaimable.selector)
-        );
-        bridgeImpl.claimToken(neoXTokenA, 3);
-        vm.expectRevert(
-            abi.encodeWithSelector(BridgeStorage.NonexistentClaimable.selector)
-        );
-        bridgeImpl.claimToken(neoXTokenA, 1);
     }
 
-    function testClaimTokenB() public {
+    // test case: successful deposit token, token type is NEO, Let's call it deposit token B, takes the signatures of the random 6 validators
+    function testDepositTokenB() public {
+        // Verify the signatures of 6 validators
+        vm.prank(owner);
+        bridgeManagementImpl.setValidators(validatorsAddresses,6);
+
+        MockERC20(neoXTokenB).mint(address(bridgeImpl), 1000 ether);
         vm.prank(governor);
         bridgeImpl.registerToken(neoXTokenB, validConfigB);
         BridgeLib.DepositData[]
             memory depositData = new BridgeLib.DepositData[](2);
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({
-            to: payable(user),
+            to: payable(funder),
             amount: 100,
             nonce: 1
         });
@@ -237,6 +198,143 @@ contract TestFungibleToken is Test, SigUtils {
             neoXTokenB,
             depositData
         );
+        // takes the signatures of the random 6 validators
+        uint[] memory validatorIndices = new uint[](6);
+        validatorIndices[0] = 0;
+        validatorIndices[1] = 1;
+        validatorIndices[2] = 3;
+        validatorIndices[3] = 4;
+        validatorIndices[4] = 5;
+        validatorIndices[5] = 6;
+        BridgeLib.Signature[] memory signatures = getSignatures(
+            tokenDepositRoot,
+            validatorIndices
+        );
+        vm.prank(relayer);
+        // check event 
+        emit ITokenBridge.TokenDepositRootUpdate(           
+            address(neoXTokenB),
+            address(neoN3TokenB),
+            d1.nonce,
+            tokenDepositRoot
+        );
+        bridgeImpl.depositToken(
+            neoXTokenB,
+            tokenDepositRoot,
+            signatures,
+            depositData
+        );
+        // check balances
+        assertEq(MockERC20(neoXTokenB).balanceOf(funder), 100 ether);
+        assertEq(MockERC20(neoXTokenB).balanceOf(owner), 200 ether);
+    }
+
+    // some test case, token type is ERC20, Let's call it claim token A, seven validator participate in the verification
+    function testClaimTokenA() public {
+        // Verify the signatures of 7 validators
+        vm.prank(owner);
+        bridgeManagementImpl.setValidators(validatorsAddresses,7);
+        vm.prank(governor);
+        bridgeImpl.registerToken(neoXTokenA, validConfigA);
+        BridgeLib.DepositData[]
+            memory depositData = new BridgeLib.DepositData[](2);
+        BridgeLib.DepositData memory d0 = BridgeLib.DepositData({
+            to: payable(funder),
+            amount: 100,
+            nonce: 1
+        });
+        BridgeLib.DepositData memory d1 = BridgeLib.DepositData({
+            to: payable(owner),
+            amount: 200,
+            nonce: 2
+        });
+        depositData[0] = d0;
+        depositData[1] = d1;
+        bytes32 tokenDepositRoot = bridgeImpl.computeTokenRoot(
+            bridgeImpl.getTokenDepositState(neoXTokenA).root,
+            neoN3TokenA,
+            neoXTokenA,
+            depositData
+        );
+        // seven validator participate in the verification
+        uint[] memory validatorIndices = new uint[](7);
+        for(uint i = 0 ; i<validatorIndices.length; i++){
+            validatorIndices[i] = i;
+        }
+        BridgeLib.Signature[] memory signatures = getSignatures(
+            tokenDepositRoot,
+            validatorIndices
+        );
+        vm.prank(relayer);
+        bridgeImpl.depositToken(
+            neoXTokenA,
+            tokenDepositRoot,
+            signatures,
+            depositData
+        );
+        assertEq(MockERC20(neoXTokenA).balanceOf(funder), 0);
+        assertEq(MockERC20(neoXTokenA).balanceOf(owner), 0);
+
+        // test case: claim token A nonce 1 successful
+        MockERC20(neoXTokenA).mint(address(bridgeImpl), 100);
+        bridgeImpl.claimToken(neoXTokenA, 1);
+        assertEq(MockERC20(neoXTokenA).balanceOf(funder), 100);
+        
+        // test case: claim token A nonce 2 failed, bridge have not enough token
+        vm.expectRevert(
+            abi.encodeWithSelector(BridgeStorage.TransferFailed.selector)
+        );
+        bridgeImpl.claimToken(neoXTokenA, 2);
+
+        // test case: claim token A nonce 2 successful
+        MockERC20(neoXTokenA).mint(address(bridgeImpl), 200);
+        bridgeImpl.claimToken(neoXTokenA, 2);
+        assertEq(MockERC20(neoXTokenA).balanceOf(owner), 200);
+       
+        // test case: claim token A not exit nonce 3 failed 
+        vm.expectRevert(
+            abi.encodeWithSelector(BridgeStorage.NonexistentClaimable.selector)
+        );
+        bridgeImpl.claimToken(neoXTokenA, 3);
+
+        // test case:non-repeatable claim token
+        vm.expectRevert(
+            abi.encodeWithSelector(BridgeStorage.NonexistentClaimable.selector)
+        );
+        bridgeImpl.claimToken(neoXTokenA, 1);
+    }
+
+    // some test case, token type is NEO, Let's call it claim token B, takes the signatures of the random 5 validators
+    function testClaimTokenB() public {
+        vm.prank(governor);
+        bridgeImpl.registerToken(neoXTokenB, validConfigB);
+        BridgeLib.DepositData[]
+            memory depositData = new BridgeLib.DepositData[](2);
+        BridgeLib.DepositData memory d0 = BridgeLib.DepositData({
+            to: payable(funder),
+            amount: 100,
+            nonce: 1
+        });
+        BridgeLib.DepositData memory d1 = BridgeLib.DepositData({
+            to: payable(owner),
+            amount: 200,
+            nonce: 2
+        });
+        depositData[0] = d0;
+        depositData[1] = d1;
+        bytes32 tokenDepositRoot = bridgeImpl.computeTokenRoot(
+            bridgeImpl.getTokenDepositState(neoXTokenB).root,
+            neoN3TokenB,
+            neoXTokenB,
+            depositData
+        );
+        // takes the signatures of the random 5 validators
+        uint[] memory validatorIndices = new uint[](5);
+        validatorIndices[1] = 1;
+        validatorIndices[1] = 3;
+        validatorIndices[1] = 4;
+        validatorIndices[1] = 5;
+        validatorIndices[1] = 6;
         BridgeLib.Signature[] memory signatures = getSignatures(
             tokenDepositRoot
         );
@@ -247,44 +345,50 @@ contract TestFungibleToken is Test, SigUtils {
             signatures,
             depositData
         );
-        assertEq(MockERC20(neoXTokenB).balanceOf(user), 0);
+        assertEq(MockERC20(neoXTokenB).balanceOf(funder), 0);
         assertEq(MockERC20(neoXTokenB).balanceOf(owner), 0);
+
+        // test case: claim token B nonce 1 successful
         MockERC20(neoXTokenB).mint(address(bridgeImpl), 100 ether);
         bridgeImpl.claimToken(neoXTokenB, 1);
-        assertEq(MockERC20(neoXTokenB).balanceOf(user), 100 ether);
+        assertEq(MockERC20(neoXTokenB).balanceOf(funder), 100 ether);
+
+        // test case: claim token B nonce 2 failed, bridge have not enough token
         vm.expectRevert(
             abi.encodeWithSelector(BridgeStorage.TransferFailed.selector)
         );
         bridgeImpl.claimToken(neoXTokenB, 2);
+
+        // test case: claim token B nonce 2 successful
         MockERC20(neoXTokenB).mint(address(bridgeImpl), 200 ether);
         bridgeImpl.claimToken(neoXTokenB, 2);
         assertEq(MockERC20(neoXTokenB).balanceOf(owner), 200 ether);
+
+        // test case: claim token B not exit nonce 3 failed 
         vm.expectRevert(
             abi.encodeWithSelector(BridgeStorage.NonexistentClaimable.selector)
         );
         bridgeImpl.claimToken(neoXTokenB, 3);
+
+        // test case:non-repeatable claim token
         vm.expectRevert(
             abi.encodeWithSelector(BridgeStorage.NonexistentClaimable.selector)
         );
         bridgeImpl.claimToken(neoXTokenB, 1);
     }
 
+    // test case: successful withdraw token, token type is ERC20, Let's call it withdraw token A
     function testWithdrawTokenA() public {
-        console.log(
-            "neoxtoken address: %s,neo address : %s, nonce = 0",
-            neoXTokenA,
-            neoN3TokenA
-        );
         assertEq(bridgeImpl.isRegisteredToken(neoXTokenA), false);
         vm.prank(governor);
         bridgeImpl.registerToken(neoXTokenA, validConfigA);
         uint balance = 1000;
-        MockERC20(neoXTokenA).mint(user, balance);
+        MockERC20(neoXTokenA).mint(funder, balance);
         MockERC20(neoXTokenA).mint(owner, balance);
-        vm.prank(user);
+        vm.prank(funder);
         MockERC20(neoXTokenA).approve(address(bridgeImpl), balance);
         assertEq(
-            MockERC20(neoXTokenA).allowance(user, address(bridgeImpl)),
+            MockERC20(neoXTokenA).allowance(funder, address(bridgeImpl)),
             balance
         );
         vm.prank(owner);
@@ -293,57 +397,48 @@ contract TestFungibleToken is Test, SigUtils {
             MockERC20(neoXTokenA).allowance(owner, address(bridgeImpl)),
             balance
         );
-        vm.prank(user);
-        console.log("user: %s,amount: %d", user, 100);
+        vm.prank(funder);
         bridgeImpl.withdrawToken{value: validConfigA.fee}(
             neoXTokenA,
-            user,
+            funder,
             100
         );
-        vm.prank(user);
-        console.log("user: %s,amount: %d", user, 200);
+        vm.prank(funder);
         bridgeImpl.withdrawToken{value: validConfigA.fee}(
             neoXTokenA,
-            user,
+            funder,
             200
         );
         vm.prank(owner);
-        console.log("user: %s,amount: %d", owner, 300);
         bridgeImpl.withdrawToken{value: validConfigA.fee}(
-            neoXTokenA,
+            neoXTokenA, 
             owner,
             300
         );
         vm.prank(owner);
-
-        console.log("user: %s,amount: %d", owner, 400);
         bridgeImpl.withdrawToken{value: validConfigA.fee}(
             neoXTokenA,
             owner,
             400
         );
-        assertEq(MockERC20(neoXTokenA).balanceOf(user), balance - 300);
+        assertEq(MockERC20(neoXTokenA).balanceOf(funder), balance - 300);
         assertEq(MockERC20(neoXTokenA).balanceOf(owner), balance - 700);
         //@TODO
         //check withdrwal state and missing max/min deposit amount check in depositToken?
     }
 
+    // test case: successful withdraw token, token type is NEO, Let's call it withdraw token B
     function testWithdrawTokenB() public {
-        console.log(
-            "neoxtoken address: %s,neo address : %s, nonce = 0",
-            neoXTokenB,
-            neoN3TokenB
-        );
         assertEq(bridgeImpl.isRegisteredToken(neoXTokenB), false);
         vm.prank(governor);
         bridgeImpl.registerToken(neoXTokenB, validConfigB);
         uint balance = 1000 ether;
-        MockERC20(neoXTokenB).mint(user, balance);
+        MockERC20(neoXTokenB).mint(funder, balance);
         MockERC20(neoXTokenB).mint(owner, balance);
-        vm.prank(user);
+        vm.prank(funder);
         MockERC20(neoXTokenB).approve(address(bridgeImpl), balance);
         assertEq(
-            MockERC20(neoXTokenB).allowance(user, address(bridgeImpl)),
+            MockERC20(neoXTokenB).allowance(funder, address(bridgeImpl)),
             balance
         );
         vm.prank(owner);
@@ -352,20 +447,19 @@ contract TestFungibleToken is Test, SigUtils {
             MockERC20(neoXTokenB).allowance(owner, address(bridgeImpl)),
             balance
         );
-        vm.prank(user);
+        vm.prank(funder);
         bridgeImpl.withdrawToken{value: validConfigB.fee}(
             neoXTokenB,
-            user,
+            funder,
             100 ether
         );
-        vm.prank(user);
+        vm.prank(funder);
         bridgeImpl.withdrawToken{value: validConfigB.fee}(
             neoXTokenB,
-            user,
+            funder,
             200 ether
         );
         vm.prank(owner);
-        console.log("user: %s,amount: %d", owner, 300);
         bridgeImpl.withdrawToken{value: validConfigB.fee}(
             neoXTokenB,
             owner,
@@ -387,29 +481,13 @@ contract TestFungibleToken is Test, SigUtils {
             1 ether + 100
         );
 
-        assertEq(MockERC20(neoXTokenB).balanceOf(user), balance - 300 ether);
+        assertEq(MockERC20(neoXTokenB).balanceOf(funder), balance - 300 ether);
         assertEq(MockERC20(neoXTokenB).balanceOf(owner), balance - 700 ether);
         //@TODO
         //check withdrwal state and missing max/min deposit amount check in depositToken?
     }
 
-    function getSignatures(
-        bytes32 _depositRoot
-    ) public view returns (BridgeLib.Signature[] memory) {
-        BridgeLib.Signature[] memory _signatures = new BridgeLib.Signature[](5);
-        bytes32 ethHash = getSignedHash(_depositRoot);
-        for (uint i = 0; i < 5; i++) {
-            (uint8 v, bytes32 r, bytes32 s) = vm.sign(
-                validatorsKeys[i],
-                ethHash
-            );
-            address x = ecrecover(ethHash, v, r, s);
-            _signatures[i] = BridgeLib.Signature(v, r, s);
-            assertEq(x, validatorsAddresses[i]);
-        }
-        return _signatures;
-    }
-
+    // Get the error signatures of the five validators
     function geterrorSignatures(
         bytes32 _depositRoot
     ) public returns (BridgeLib.Signature[] memory) {
@@ -442,6 +520,7 @@ contract TestFungibleToken is Test, SigUtils {
         return _signatures;
     }
 
+    // test case: successful withdraw token, token type is NEO, Let's call it withdraw token B
     function test_DepositTokenWithInvalidNonceSequence() public {
         MockERC20(neoXTokenA).mint(address(bridgeImpl), 100 ether);
         vm.prank(governor);
@@ -449,7 +528,7 @@ contract TestFungibleToken is Test, SigUtils {
         BridgeLib.DepositData[]
             memory depositData = new BridgeLib.DepositData[](2);
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({
-            to: payable(user),
+            to: payable(funder),
             amount: 100,
             nonce: 2
         });
@@ -480,6 +559,7 @@ contract TestFungibleToken is Test, SigUtils {
         );
     }
 
+    // test case: deposit token failed when DepositRoot is invalid
     function test_DepositTokenWithInvalidRoot() public {
         MockERC20(neoXTokenA).mint(address(bridgeImpl), 100 ether);
         vm.prank(governor);
@@ -487,7 +567,7 @@ contract TestFungibleToken is Test, SigUtils {
         BridgeLib.DepositData[]
             memory depositData = new BridgeLib.DepositData[](2);
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({
-            to: payable(user),
+            to: payable(funder),
             amount: 100,
             nonce: 1
         });
@@ -520,6 +600,7 @@ contract TestFungibleToken is Test, SigUtils {
         );
     }
 
+    // test case: deposit token failed when signatures is invalid
     function test_DepositTokenWithInvalidSignatures() public {
         MockERC20(neoXTokenA).mint(address(bridgeImpl), 100 ether);
         vm.prank(governor);
@@ -528,7 +609,7 @@ contract TestFungibleToken is Test, SigUtils {
             memory depositData = new BridgeLib.DepositData[](2);
 
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({
-            to: payable(user),
+            to: payable(funder),
             amount: 100,
             nonce: 1
         });
@@ -565,15 +646,15 @@ contract TestFungibleToken is Test, SigUtils {
         );
     }
 
-    // todo deposittoken到底需不需要relayer
-    function testFailDepositTokenByNonRelayer() public {
+    // test case: deposit token failed because it is not relayer
+    function test_DepositTokenByNonRelayer() public {
         MockERC20(neoXTokenA).mint(address(bridgeImpl), 100 ether);
         vm.prank(governor);
         bridgeImpl.registerToken(neoXTokenA, validConfigA);
         BridgeLib.DepositData[]
             memory depositData = new BridgeLib.DepositData[](2);
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({
-            to: payable(user),
+            to: payable(funder),
             amount: 100,
             nonce: 1
         });
@@ -594,7 +675,7 @@ contract TestFungibleToken is Test, SigUtils {
             tokenDepositRoot
         );
         vm.prank(address(0x9541)); // Non-relayer address
-        // vm.expectRevert("not relayer");
+        vm.expectRevert("not relayer");
         bridgeImpl.depositToken(
             neoXTokenA,
             tokenDepositRoot,
@@ -603,6 +684,7 @@ contract TestFungibleToken is Test, SigUtils {
         );
     }
 
+    // test case: deposit token failed when depositData is null
     function test_DepositTokenWithInvalidLength() public {
         MockERC20(neoXTokenA).mint(address(bridgeImpl), 100 ether);
         vm.prank(governor);
@@ -628,6 +710,7 @@ contract TestFungibleToken is Test, SigUtils {
         );
     }
 
+    // Test case: Deposit token failed when depositData length exceeds bridge configuration
     function test_DepositTokenWithExceedMaxDeposits() public {
         MockERC20(neoXTokenA).mint(address(bridgeImpl), 100 ether);
         vm.prank(governor);
@@ -635,7 +718,7 @@ contract TestFungibleToken is Test, SigUtils {
         BridgeLib.DepositData[]
             memory depositData = new BridgeLib.DepositData[](3);
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({
-            to: payable(user),
+            to: payable(funder),
             amount: 100,
             nonce: 1
         });
@@ -651,7 +734,7 @@ contract TestFungibleToken is Test, SigUtils {
         });
         depositData[0] = d0;
         depositData[1] = d1;
-
+        depositData[2] = d2;
         bytes32 tokenDepositRoot = bridgeImpl.computeTokenRoot(
             bridgeImpl.getTokenDepositState(neoXTokenA).root,
             neoN3TokenA,
@@ -671,6 +754,7 @@ contract TestFungibleToken is Test, SigUtils {
         );
     }
 
+    // Test case: Deposit token failed when token is paused
     function test_DepositTokenWithTokenBridgepaused() public {
         MockERC20(neoXTokenA).mint(address(bridgeImpl), 100 ether);
         vm.prank(governor);
@@ -684,7 +768,7 @@ contract TestFungibleToken is Test, SigUtils {
         BridgeLib.DepositData[]
             memory depositData = new BridgeLib.DepositData[](2);
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({
-            to: payable(user),
+            to: payable(funder),
             amount: 100,
             nonce: 1
         });
@@ -717,6 +801,7 @@ contract TestFungibleToken is Test, SigUtils {
         );
     }
 
+    // Test case: Deposit token failed when bridge is paused
     function test_DepositTokenWithbridgePaused() public {
         MockERC20(neoXTokenA).mint(address(bridgeImpl), 100 ether);
         vm.prank(governor);
@@ -728,7 +813,7 @@ contract TestFungibleToken is Test, SigUtils {
         BridgeLib.DepositData[]
             memory depositData = new BridgeLib.DepositData[](2);
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({
-            to: payable(user),
+            to: payable(funder),
             amount: 100,
             nonce: 1
         });
@@ -760,5 +845,222 @@ contract TestFungibleToken is Test, SigUtils {
         vm.prank(governor);
         bridgeImpl.unpauseBridge();
         assertFalse(bridgeImpl.getbridgePaused());
+    }
+
+    // test case: withdraw token failed when insufficient fee 
+    function testWithdrawToken_InsufficientFee() public {
+        assertEq(bridgeImpl.isRegisteredToken(neoXTokenA), false);
+        vm.prank(governor);
+        bridgeImpl.registerToken(neoXTokenA, validConfigA);
+        uint balance = 1000;
+        MockERC20(neoXTokenA).mint(funder, balance);
+        vm.prank(funder);
+        MockERC20(neoXTokenA).approve(address(bridgeImpl), balance);
+        assertEq(
+            MockERC20(neoXTokenA).allowance(funder, address(bridgeImpl)),
+            balance
+        );
+        // Set an insufficient fee 
+        uint256 providedFee = validConfigA.fee - 1;
+        vm.expectRevert(
+            abi.encodeWithSignature("InsufficientFee(uint256,uint256)",providedFee,validConfigA.fee)
+        );
+        vm.prank(funder);
+        bridgeImpl.withdrawToken{value: providedFee}(
+            neoXTokenA,
+            funder,
+            100
+        );
+    }
+
+    // test case: withdraw token failed when amount < minAmount 
+    function testWithdrawToken_InvalidAmount_LessThanMin() public {
+        assertEq(bridgeImpl.isRegisteredToken(neoXTokenA), false);
+        vm.prank(governor);
+        bridgeImpl.registerToken(neoXTokenA, validConfigA);
+        uint balance = 1000;
+        MockERC20(neoXTokenA).mint(funder, balance);
+        vm.prank(funder);
+        MockERC20(neoXTokenA).approve(address(bridgeImpl), balance);
+        assertEq(
+            MockERC20(neoXTokenA).allowance(funder, address(bridgeImpl)),
+            balance
+        );
+        uint256 amount = validConfigA.minAmount - 1;
+        vm.expectRevert(abi.encodeWithSignature("InvalidAmount()"));
+        vm.prank(funder);
+        bridgeImpl.withdrawToken{value: validConfigA.fee}(
+            address(neoXTokenA),
+            funder,
+            amount
+        );
+    }
+
+    // test case: withdraw token failed when amount > maxAmount 
+    function testWithdrawToken_InvalidAmount_MoreThanMaxl() public {
+        assertEq(bridgeImpl.isRegisteredToken(neoXTokenA), false);
+        vm.prank(governor);
+        bridgeImpl.registerToken(neoXTokenA, validConfigA);
+        uint balance = 1000;
+        MockERC20(neoXTokenA).mint(funder, balance);
+        vm.prank(funder);
+        MockERC20(neoXTokenA).approve(address(bridgeImpl), balance);
+        assertEq(
+            MockERC20(neoXTokenA).allowance(funder, address(bridgeImpl)),
+            balance
+        );
+        uint256 amount = validConfigA.maxAmount + 1;
+        vm.expectRevert(abi.encodeWithSignature("InvalidAmount()"));
+        vm.prank(funder);
+        bridgeImpl.withdrawToken{value: validConfigA.fee}(
+            address(neoXTokenA),
+            funder,
+            amount
+        );
+    }
+
+    // test case: withdraw token failed when amount > approveAmount
+    function testWithdrawToken_TransferFailed() public {
+        assertEq(bridgeImpl.isRegisteredToken(neoXTokenA), false);
+        vm.prank(governor);
+        bridgeImpl.registerToken(neoXTokenA, validConfigA);
+        uint balance = 1000;
+        uint approveAmount = 100 ;
+        MockERC20(neoXTokenA).mint(funder, balance);
+        vm.prank(funder);
+        MockERC20(neoXTokenA).approve(address(bridgeImpl), approveAmount);
+        assertEq(
+            MockERC20(neoXTokenA).allowance(funder, address(bridgeImpl)),
+            approveAmount
+        );
+        vm.expectRevert(
+            abi.encodeWithSignature("ERC20InsufficientAllowance(address,uint256,uint256)",address(bridgeImpl),approveAmount,balance)
+        );
+        vm.prank(funder);
+        bridgeImpl.withdrawToken{value: validConfigA.fee}(
+            address(neoXTokenA),
+            funder,
+            balance
+        );
+    }
+
+    // test case:withdraw token failed when token bridge not registered
+    function testWithdrawToken_UnregisteredToken() public {
+        MockERC20 unregisteredToken = new MockERC20("MockA", "MA");
+        vm.expectRevert(abi.encodeWithSignature("TokenBridgeNotRegistered(address)",address(unregisteredToken)));
+        bridgeImpl.withdrawToken{value: validConfigA.fee}(
+            address(unregisteredToken),
+            funder,
+            100
+        );
+    }
+
+    // test case:  withdraw token B failed , token type is NEO,tokenvalue < 1e18
+    function testWithdrawTokenB_TransferFailed() public {
+        assertEq(bridgeImpl.isRegisteredToken(neoXTokenB), false);
+        vm.prank(governor);
+        bridgeImpl.registerToken(neoXTokenB, validConfigB);
+        uint balance = 1000 ether;
+        MockERC20(neoXTokenB).mint(funder, balance);
+        vm.prank(funder);
+        MockERC20(neoXTokenB).approve(address(bridgeImpl), balance);
+        assertEq(
+            MockERC20(neoXTokenB).allowance(funder, address(bridgeImpl)),
+            balance
+        );
+        vm.expectRevert(abi.encodeWithSignature("InvalidAmount()"));
+        vm.prank(funder);
+        bridgeImpl.withdrawToken{value: validConfigB.fee}(
+            neoXTokenB,
+            funder,
+            1000000 
+        );
+    }
+
+    // test case: Check the event that withdraw token A succeeds 
+    function testWithdrawATokenEvent() public{
+        assertEq(bridgeImpl.isRegisteredToken(neoXTokenA), false);
+        vm.prank(governor);
+        bridgeImpl.registerToken(neoXTokenA, validConfigA);
+        uint balance = 1000;
+        MockERC20(neoXTokenA).mint(funder, balance);
+        vm.prank(funder);
+        MockERC20(neoXTokenA).approve(address(bridgeImpl), balance);
+        assertEq(
+            MockERC20(neoXTokenA).allowance(funder, address(bridgeImpl)),
+            balance
+        );
+        // caculate withdrawalHash
+        bytes32 withdrawalHash = TokenBridgeLib._hashTokenBridgeOp(
+            neoN3TokenA,
+            neoXTokenA,
+            1,
+            funder,
+            100
+        );
+        // caculate newRoot
+        bytes32 newRoot = BridgeLib._computeNewRoot(bridgeImpl.getTokenDepositState(neoXTokenA).root, withdrawalHash);
+        // check withdraw token event
+        vm.prank(funder);
+        vm.expectEmit(true, true, true, true);
+        emit ITokenBridge.TokenWithdrawal(           
+            address(neoXTokenA),
+            address(neoN3TokenA),
+            1,
+            funder,
+            100,
+            funder,
+            withdrawalHash,
+            newRoot
+
+        );
+        bridgeImpl.withdrawToken{value: validConfigA.fee}(
+            neoXTokenA,
+            funder,
+            100
+        );
+    }
+
+    // test case: Check the event that withdraw token B succeeds 
+    function testWithdrawBTokenEvent() public{
+        assertEq(bridgeImpl.isRegisteredToken(neoXTokenB), false);
+        vm.prank(governor);
+        bridgeImpl.registerToken(neoXTokenB, validConfigB);
+        uint balance = 1000 ether;
+        MockERC20(neoXTokenB).mint(funder, balance);
+        vm.prank(funder);
+        MockERC20(neoXTokenB).approve(address(bridgeImpl), balance);
+        assertEq(
+            MockERC20(neoXTokenB).allowance(funder, address(bridgeImpl)),
+            balance
+        );
+        // caculate withdrawalHash
+        bytes32 withdrawalHash = TokenBridgeLib._hashTokenBridgeOp(
+            neoN3TokenB,
+            neoXTokenB,
+            1,
+            funder,
+            100 
+        );
+        // caculate newRoot
+        bytes32 newRoot = BridgeLib._computeNewRoot(bridgeImpl.getTokenDepositState(neoXTokenB).root, withdrawalHash);
+        // check withdraw token event
+        vm.prank(funder);
+        vm.expectEmit(true, true, true, true);
+        emit ITokenBridge.TokenWithdrawal(           
+            address(neoXTokenB),
+            address(neoN3TokenB),
+            1,
+            funder,
+            100,
+            funder,
+            withdrawalHash,
+            newRoot
+        );
+        bridgeImpl.withdrawToken{value: validConfigB.fee}(
+            neoXTokenB,
+            funder,
+            100 ether
+        );
     }
 }

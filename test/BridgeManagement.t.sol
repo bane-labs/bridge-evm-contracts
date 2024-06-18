@@ -9,7 +9,7 @@ contract BridgeManagementImplTest is Test, SigUtils {
     BridgeManagementImpl bridgeManagementImpl;
     SigUtils sigUtils;
     address public owner = 0xBcd4042DE499D14e55001CcbB24a551F3b954096;
-    address public user = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
+    address public funder = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
     address public relayer = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
     uint8 public validatorThreshold = 5;
     uint256[] public validatorsKeys;
@@ -36,28 +36,28 @@ contract BridgeManagementImplTest is Test, SigUtils {
         bridgeManagementImpl = new BridgeManagementImpl(
             owner,
             relayer,
-            5,
+            7,
             validatorsAddresses,
             governor,
             securityGuard,
-            user
+            funder
         );
     }
 
     function testSetOwner() public {
         assertEq(bridgeManagementImpl.getOwner(), owner);
         vm.expectRevert(bytes("not owner"));
-        bridgeManagementImpl.setOwner(user);
+        bridgeManagementImpl.setOwner(funder);
         vm.prank(owner);
-        bridgeManagementImpl.setOwner(user);
-        assertEq(bridgeManagementImpl.getOwner(), user);
+        bridgeManagementImpl.setOwner(funder);
+        assertEq(bridgeManagementImpl.getOwner(), funder);
     }
 
-    function testVerifyValidatorSignatures() public {
+    function testVerifyValidatorSignatures() public view {
         BridgeLib.DepositData memory d = BridgeLib.DepositData({
-            to: payable(user),
-            amount: 100,
-            nonce: 1
+            nonce: 1,
+            to: payable(funder),
+            amount: 100
         });
         bytes32 _depositRoot = getStructHash(d);
         BridgeLib.Signature[] memory _signatures = new BridgeLib.Signature[](5);
@@ -67,9 +67,9 @@ contract BridgeManagementImplTest is Test, SigUtils {
                 validatorsKeys[i],
                 ethHash
             );
-            address x = ecrecover(ethHash, v, r, s);
+            address recoveredAddr = ecrecover(ethHash, v, r, s);
             _signatures[i] = BridgeLib.Signature(v, r, s);
-            assertEq(x, validatorsAddresses[i]);
+            assertEq(recoveredAddr, validatorsAddresses[i]);
         }
         assert(
             bridgeManagementImpl.verifyValidatorSignatures(

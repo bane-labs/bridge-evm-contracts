@@ -22,9 +22,6 @@ contract TestBridge is BridgeImpl {
         return tokenBridges[neoXToken];
     }
 
-
-
-
     function getNeoN3Token(address _neoXToken) public view returns (address) {
         return tokenBridges[_neoXToken].config.neoN3Token;
     }
@@ -39,20 +36,16 @@ contract TestBridge is BridgeImpl {
         return _getTokenWithdrawalState(_neoXToken);
     }
 
-
-
-
     function getbridgePaused() public view returns (bool) {
         return bridgePaused;
     }
-
 
     function computeTokenRoot(
         bytes32 _previousRoot,
         address _neoN3Token,
         address _neoXToken,
         BridgeLib.DepositData[] calldata _deposits
-    ) public returns (bytes32) {
+    ) public pure returns (bytes32) {
         return
             TokenBridgeLib._computeNewTopRoot(
                 _previousRoot,
