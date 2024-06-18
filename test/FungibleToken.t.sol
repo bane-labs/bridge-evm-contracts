@@ -22,7 +22,6 @@ contract TestFungibleToken is Test, SigUtils {
     // set _management
     BridgeManagementImpl bridgeManagementImpl;
     SigUtils sigUtils;
-    BridgeStorage bridgeStorage;
     address public owner = 0xBcd4042DE499D14e55001CcbB24a551F3b954096;
     address public funder = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
     address public relayer = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
@@ -37,7 +36,6 @@ contract TestFungibleToken is Test, SigUtils {
     function setUp() public {
         //set _management
         sigUtils = new SigUtils();
-        bridgeStorage = new BridgeStorage(address(bridgeManagementImpl));
         validatorsKeys.push(user0PrivateKey);
         validatorsAddresses.push(vm.addr(user0PrivateKey));
         validatorsKeys.push(user1PrivateKey);
@@ -763,9 +761,8 @@ contract TestFungibleToken is Test, SigUtils {
         vm.prank(securityGuard);
         bridgeImpl.pauseTokenBridge(neoXTokenA);
         // Verify the token bridge is paused
-        StorageTypes.TokenBridge memory tokenBridgeAfter = bridgeImpl
-            .getTokenbridge(neoXTokenA);
-        assertTrue(tokenBridgeAfter.paused);
+        bool tokenBridgePaused= bridgeImpl.getTokenbridgePaused(neoXTokenA);
+        assertTrue(tokenBridgePaused);
         BridgeLib.DepositData[]
             memory depositData = new BridgeLib.DepositData[](2);
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({
@@ -807,12 +804,12 @@ contract TestFungibleToken is Test, SigUtils {
         MockERC20(neoXTokenA).mint(address(bridgeImpl), 100 ether);
         vm.prank(governor);
         bridgeImpl.registerToken(neoXTokenA, validConfigA);
-        bool beforeBridgePaused = bridgeStorage.bridgePaused();
-        assertFalse(beforeBridgePaused);
+        assertFalse(bridgeImpl.getbridgePaused());
+
         vm.prank(securityGuard);
         bridgeImpl.pauseBridge();
-        bool afterBridgePaused = bridgeStorage.bridgePaused();
-        assertTrue(afterBridgePaused);
+        assertTrue(bridgeImpl.getbridgePaused());
+
         BridgeLib.DepositData[]
             memory depositData = new BridgeLib.DepositData[](2);
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({
@@ -846,9 +843,9 @@ contract TestFungibleToken is Test, SigUtils {
             depositData
         );
         vm.prank(governor);
+
         bridgeImpl.unpauseBridge();
-        bool normalBridgeUnPaused = bridgeStorage.bridgePaused();
-        assertFalse(normalBridgeUnPaused);
+        assertFalse(bridgeImpl.getbridgePaused());
     }
 
     // test case: withdraw token failed when insufficient fee 

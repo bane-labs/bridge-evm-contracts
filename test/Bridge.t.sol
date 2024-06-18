@@ -189,8 +189,8 @@ contract BridgeImplTest is Test, SigUtils {
         bridgeImpl.pauseTokenBridge(neoXToken);
 
         // Verify the token bridge is paused
-        StorageTypes.TokenBridge memory tokenBridgeBefore = bridgeImpl.getTokenbridge(neoXToken);
-        assertTrue(tokenBridgeBefore.paused);
+        bool tokenBridgePaused= bridgeImpl.getTokenbridgePaused(neoXToken);
+        assertTrue(tokenBridgePaused);
 
         // Unregister the token, check unregister token successful event
         vm.expectEmit(true, true, true, true);
@@ -242,8 +242,8 @@ contract BridgeImplTest is Test, SigUtils {
         bridgeImpl.pauseTokenBridge(neoXToken);
 
         // Verify the token bridge is paused
-        StorageTypes.TokenBridge memory tokenBridgeBefore = bridgeImpl.getTokenbridge(neoXToken);
-        assertTrue(tokenBridgeBefore.paused);
+        bool tokenBridgePaused = bridgeImpl.getTokenbridgePaused(neoXToken);
+        assertTrue(tokenBridgePaused);
         vm.prank(governor);
         bridgeImpl.unregisterToken(neoXToken);
 
@@ -259,10 +259,9 @@ contract BridgeImplTest is Test, SigUtils {
     function testPauseTokenBridge() public {
         vm.prank(governor);
         bridgeImpl.registerToken(neoXToken, validConfig);
-        StorageTypes.TokenBridge memory tokenBridgeBefore = bridgeImpl
-            .getTokenbridge(neoXToken);
+        bool tokenBridgePaused = bridgeImpl.getTokenbridgePaused(neoXToken);
         // Ensure the token bridge is unpaused
-        assertFalse(tokenBridgeBefore.paused);
+        assertFalse(tokenBridgePaused);
 
         // check pause token successful event
         vm.expectEmit(true, true, true, true);
@@ -274,9 +273,8 @@ contract BridgeImplTest is Test, SigUtils {
         bridgeImpl.pauseTokenBridge(neoXToken);
 
         // Verify the token bridge is paused
-        StorageTypes.TokenBridge memory tokenBridgeAfter = bridgeImpl
-            .getTokenbridge(neoXToken);
-        assertTrue(tokenBridgeAfter.paused);
+        bool afterTokenBridgePaused = bridgeImpl.getTokenbridgePaused(neoXToken);
+        assertTrue(afterTokenBridgePaused);
     }
 
     // test case: pause token when token is already paused
@@ -323,19 +321,17 @@ contract BridgeImplTest is Test, SigUtils {
     function testUnpauseTokenBridge() public {
         vm.prank(governor);
         bridgeImpl.registerToken(neoXToken, validConfig);
-        StorageTypes.TokenBridge memory tokenBridgeBefore = bridgeImpl
-            .getTokenbridge(neoXToken);
+        bool tokenBridgePaused = bridgeImpl.getTokenbridgePaused(neoXToken);
         // Ensure the token bridge is unpaused
-        assertFalse(tokenBridgeBefore.paused);
+        assertFalse(tokenBridgePaused);
 
         // Pause the token bridge
         vm.prank(securityGuard);
         bridgeImpl.pauseTokenBridge(neoXToken);
 
         // Verify the token bridge is paused
-        StorageTypes.TokenBridge memory _tokenBridgeAfter = bridgeImpl
-            .getTokenbridge(neoXToken);
-        assertTrue(_tokenBridgeAfter.paused);
+        bool afterTokenBridgePaused = bridgeImpl.getTokenbridgePaused(neoXToken);
+        assertTrue(afterTokenBridgePaused);
 
         // unause the token bridge, check unpause token successful event
         vm.expectEmit(true, true, true, true);
@@ -345,9 +341,8 @@ contract BridgeImplTest is Test, SigUtils {
         //unause the token bridge, check unpause token successful result 
         vm.prank(governor);
         bridgeImpl.unpauseTokenBridge(neoXToken);
-        StorageTypes.TokenBridge memory tokenBridgeAfter = bridgeImpl
-            .getTokenbridge(neoXToken);
-        assertFalse(tokenBridgeAfter.paused);
+        bool aftersTokenBridgePaused = bridgeImpl.getTokenbridgePaused(neoXToken);
+        assertFalse(aftersTokenBridgePaused);
     }
 
     // test case: unpause token bridge when token bridge is not paused
@@ -355,10 +350,9 @@ contract BridgeImplTest is Test, SigUtils {
         // Ensure the token bridge is not paused
         vm.prank(governor);
         bridgeImpl.registerToken(neoXToken, validConfig);
-        StorageTypes.TokenBridge memory tokenBridgeBefore = bridgeImpl
-            .getTokenbridge(neoXToken);
+        bool tokenBridgePaused = bridgeImpl.getTokenbridgePaused(neoXToken);
         // Ensure the token bridge is unpaused
-        assertFalse(tokenBridgeBefore.paused);
+        assertFalse(tokenBridgePaused);
 
         // Attempt to unpause the token bridge
         vm.prank(governor);

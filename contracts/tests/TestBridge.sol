@@ -16,14 +16,18 @@ contract TestBridge is BridgeImpl {
         return config;
     }
 
-    function getTokenbridge(
+    function getTokenbridgePaused(
         address neoXToken
-    ) public view returns (StorageTypes.TokenBridge memory tokenBridgeBefore) {
-        return tokenBridges[neoXToken];
+    ) public view returns (bool) {
+        return tokenBridges[neoXToken].paused;
     }
 
     function getNeoN3Token(address _neoXToken) public view returns (address) {
         return _getNeoN3Token(_neoXToken);
+    }
+
+    function getbridgePaused() public view returns (bool) {
+        return bridgePaused;
     }
 
     function getTokenDepositState(
