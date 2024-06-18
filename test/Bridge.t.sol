@@ -7,7 +7,6 @@ import "../contracts/management/BridgeManagementImpl.sol";
 import "../contracts/tests/SigUtils.sol";
 import {ITokenBridge} from "../contracts/interfaces/ITokenBridge.sol";
 
-
 contract BridgeImplTest is Test, SigUtils {
     TestBridge bridgeImpl;
 

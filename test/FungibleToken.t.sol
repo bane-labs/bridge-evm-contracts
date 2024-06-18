@@ -9,7 +9,6 @@ import "../contracts/management/BridgeManagementImpl.sol";
 import "../contracts/tests/SigUtils.sol";
 import "../contracts/tests/MockERC20.sol";
 
-
 contract TestFungibleToken is Test, SigUtils {
     TestBridge bridgeImpl;
 
