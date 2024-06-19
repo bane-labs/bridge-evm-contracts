@@ -466,9 +466,11 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         if (!_isRegisteredToken(_neoXToken))
             revert TokenBridgeNotRegistered(_neoXToken);
         StorageTypes.TokenConfig memory config = _getTokenConfig(_neoXToken);
-        uint256 tokenValue = _amount;
-        if (tokenValue < config.minAmount) revert InvalidAmount();
-        if (tokenValue > config.maxAmount) revert InvalidAmount();
+        uint256 tokenAmount = _amount;
+        if (tokenAmount < config.minAmount)
+            revert AmountBelowMinAmount(config.minAmount, tokenAmount);
+        if (tokenAmount > config.maxAmount)
+            revert AmountExceedsMaxAmount(config.maxAmount, tokenAmount);
         // Revert if the actual fee is higher than the provided max fee.
         if (config.fee > _maxFee) revert MaxFeeExceeded(_maxFee, config.fee);
         // Revert if the provided value is lower than the required fee.
@@ -489,10 +491,10 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         uint256 newNonce = state.nonce + 1;
 
         if (config.executionType == StorageTypes.ExecutionType.NEO) {
-            if (tokenValue % 1e18 != 0) {
+            if (tokenAmount % 1e18 != 0) {
                 revert InvalidAmount();
             }
-            tokenValue /= 1e18;
+            tokenAmount /= 1e18;
         }
 
         bytes32 withdrawalHash = TokenBridgeLib._hashTokenBridgeOp(
@@ -500,7 +502,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
             _neoXToken,
             newNonce,
             _to,
-            tokenValue
+            tokenAmount
         );
         bytes32 newRoot = BridgeLib._computeNewRoot(state.root, withdrawalHash);
         _setTokenWithdrawalState(
@@ -512,7 +514,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
             config.neoN3Token,
             newNonce,
             _to,
-            tokenValue,
+            tokenAmount,
             msg.sender,
             withdrawalHash,
             newRoot
