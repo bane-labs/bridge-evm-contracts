@@ -5,7 +5,7 @@ import "../library/ManagementLib.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 contract BridgeManagementStorageV1 {
-    // Slots 0-99 remain empty for future upgrades
+    // Slots 0-99 remain empty for future upgrades (if further storage extension is needed, e.g., similar to ReentrancyGuard's _status var, this contract can easily be extended and the new var can use the next slot from _gap0, so that the other storage variables can remain in this file)
     uint256[100] private _gap0;
 
     // Slot 100
