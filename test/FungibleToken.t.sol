@@ -720,18 +720,18 @@ contract TestFungibleToken is Test, SigUtils {
         BridgeLib.DepositData[]
             memory depositData = new BridgeLib.DepositData[](3);
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({
-            to: payable(funder),
-            amount: 100,
+            to: payable(transferUser0),
+            amount: 55,
             nonce: 1
         });
         BridgeLib.DepositData memory d1 = BridgeLib.DepositData({
-            to: payable(owner),
-            amount: 200,
+            to: payable(transferUser1),
+            amount: 65,
             nonce: 2
         });
         BridgeLib.DepositData memory d2 = BridgeLib.DepositData({
             to: payable(governor),
-            amount: 200,
+            amount: 75,
             nonce: 3
         });
         depositData[0] = d0;
@@ -769,12 +769,12 @@ contract TestFungibleToken is Test, SigUtils {
         BridgeLib.DepositData[]
             memory depositData = new BridgeLib.DepositData[](2);
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({
-            to: payable(funder),
+            to: payable(transferUser0),
             amount: 100,
             nonce: 1
         });
         BridgeLib.DepositData memory d1 = BridgeLib.DepositData({
-            to: payable(owner),
+            to: payable(transferUser1),
             amount: 200,
             nonce: 2
         });
@@ -816,12 +816,12 @@ contract TestFungibleToken is Test, SigUtils {
         BridgeLib.DepositData[]
             memory depositData = new BridgeLib.DepositData[](2);
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({
-            to: payable(funder),
+            to: payable(transferUser0),
             amount: 54,
             nonce: 1
         });
         BridgeLib.DepositData memory d1 = BridgeLib.DepositData({
-            to: payable(owner),
+            to: payable(transferUser1),
             amount: 65,
             nonce: 2
         });
