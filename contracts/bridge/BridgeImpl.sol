@@ -162,14 +162,19 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
      * @notice Withdraw Gas to provided address on Neo N3. The provided amount of Gas must have a precision of maximal 8 decimal points due to the GAS token on Neo N3 having 8 decimals.
      * @dev When invoking this function provide the amount of Gas to withdraw to Neo N3 as msg.value.
      * @param _to the address to which the Gas should be sent on Neo N3.
+     * @param _maxFee the maximum fee that the sender is willing to pay for the withdrawal. If the actual fee is higher than this value, the withdrawal is aborted.
      */
     function withdrawGas(
-        address _to
+        address _to,
+        uint256 _maxFee
     ) external payable onlyBridgeUnpaused onlyGasBridgeUnpaused {
         if (_to == address(0)) revert InvalidAddress();
         if ((msg.value % 1e10) != 0) revert InvalidAmount();
         StorageTypes.GasConfig memory config = _getGasBridgeConfig();
         StorageTypes.State memory state = _getGasBridgeWithdrawalState();
+        // Revert if the actual fee is higher than the provided max fee.
+        if (config.fee > _maxFee) revert MaxFeeExceeded(_maxFee, config.fee);
+        // The actual withdrawal amount is the sent value minus the fee.
         uint256 actualWithdrawalAmount = msg.value - config.fee;
         if (actualWithdrawalAmount < config.minAmount) revert InvalidAmount();
         if (actualWithdrawalAmount > config.maxAmount) revert InvalidAmount();
@@ -437,13 +442,16 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     /**
      * @notice Withdraw tokens to Neo N3. Requires that the sender has approved the provided amount to the bridge contract.
      * @dev This function transfers the provided amount of the provided token from the msg.sender to this contract. It requires that the msg.sender has previously approved at least the provided amount to this contract. Further, it computes the new root and updates the token withdrawal state.
+     * @param _neoXToken the address of the token on the Neo X network.
      * @param _to the address to which the tokens should be sent on Neo N3.
      * @param _amount the amount of tokens to withdraw to Neo N3.
+     * @param _maxFee the maximum fee that the sender is willing to pay for the withdrawal. If the actual fee is higher than this value, the withdrawal is aborted.
      */
     function withdrawToken(
         address _neoXToken,
         address _to,
-        uint256 _amount
+        uint256 _amount,
+        uint256 _maxFee
     )
         external
         payable
@@ -458,6 +466,9 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         uint256 tokenValue = _amount;
         if (tokenValue < config.minAmount) revert InvalidAmount();
         if (tokenValue > config.maxAmount) revert InvalidAmount();
+        // Revert if the actual fee is higher than the provided max fee.
+        if (config.fee > _maxFee) revert MaxFeeExceeded(_maxFee, config.fee);
+        // Revert if the provided value is lower than the required fee.
         if (msg.value < config.fee)
             revert InsufficientFee(msg.value, config.fee);
         _addUnclaimedRewards(msg.value);

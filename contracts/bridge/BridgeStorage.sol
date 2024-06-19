@@ -36,6 +36,7 @@ contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     error InvalidRoot();
     error InvalidValidatorSignatures();
     error LengthMismatch();
+    error MaxFeeExceeded(uint256 maxFeeAllowed, uint256 actualFee);
     error NonexistentClaimable();
     error TokenBridgeAlreadyRegistered(address neoXToken);
     error TokenBridgePaused(address neoXToken);

@@ -39,7 +39,7 @@ interface IGasBridge {
 
     function claimGas(uint256 _nonce) external;
 
-    function withdrawGas(address _to) external payable;
+    function withdrawGas(address _to, uint256 _maxFee) external payable;
 
     function setGasWithdrawalFee(uint256 _fee) external;
 

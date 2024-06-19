@@ -92,7 +92,8 @@ interface ITokenBridge {
     function withdrawToken(
         address neoXToken,
         address to,
-        uint256 amount
+        uint256 amount,
+        uint256 maxFee
     ) external payable;
 
     function setTokenWithdrawalFee(
