@@ -169,19 +169,22 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         uint256 _maxFee
     ) external payable onlyBridgeUnpaused onlyGasBridgeUnpaused {
         if (_to == address(0)) revert InvalidAddress();
-        if ((msg.value % 1e10) != 0) revert InvalidAmount();
+        uint256 msgValue = msg.value;
+        if ((msgValue % 1e10) != 0) revert InvalidAmount();
         StorageTypes.GasConfig memory config = _getGasBridgeConfig();
         StorageTypes.State memory state = _getGasBridgeWithdrawalState();
+        // Revert if the provided value is outside the allowed range.
+        if (msgValue < config.minAmount)
+            revert AmountBelowMinAmount(config.minAmount, msgValue);
+        if (msgValue > config.maxAmount)
+            revert AmountExceedsMaxAmount(config.maxAmount, msgValue);
         // Revert if the actual fee is higher than the provided max fee.
         if (config.fee > _maxFee) revert MaxFeeExceeded(_maxFee, config.fee);
-        // The actual withdrawal amount is the sent value minus the fee.
-        uint256 actualWithdrawalAmount = msg.value - config.fee;
-        if (actualWithdrawalAmount < config.minAmount) revert InvalidAmount();
-        if (actualWithdrawalAmount > config.maxAmount) revert InvalidAmount();
         _addUnclaimedRewards(config.fee);
 
+        // The actual withdrawal amount is the sent value minus the fee.
         uint256 amountForHashing = GasBridgeLib._removeTenDecimals(
-            actualWithdrawalAmount
+            msgValue - config.fee
         );
         uint256 newNonce = state.nonce + 1;
         bytes32 withdrawalHash = GasBridgeLib._hashGasBrideOp(

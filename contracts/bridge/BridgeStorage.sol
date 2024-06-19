@@ -21,6 +21,8 @@ contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         _disableInitializers();
     }
 
+    error AmountBelowMinAmount(uint256 minAmount, uint256 provided);
+    error AmountExceedsMaxAmount(uint256 maxAmount, uint256 provided);
     error BridgePaused();
     error BridgeUnpaused();
     error GasBridgePaused();
