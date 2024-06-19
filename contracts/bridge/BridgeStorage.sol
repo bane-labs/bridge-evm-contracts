@@ -6,47 +6,19 @@ import "../library/BridgeLib.sol";
 import "../library/GasBridgeLib.sol";
 import "../library/StorageTypes.sol";
 import "../library/TokenBridgeLib.sol";
+import "./BridgeStorageV1.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract BridgeStorage is UUPSUpgradeable {
+/**
+ * @dev This contract holds errors, modifiers, internal view functions and functions that directly modify the storage. The modification functions have logical checks but no access-checks. For example, registering a token should only be viable if there is no entry for that token already. However, checking if the msg.sender is allowed to do so should be handled in a higher-level contract (i.e., in this case the corresponding Impl contract).
+ */
+contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     address public constant SELF = 0x1212100000000000000000000000000000000004;
     address public constant GOV_ADMIN =
         0x1212000000000000000000000000000000000000;
 
-    // Begin Storage Slots
-
-    // General Bridge Parameters
-    IBridgeManagement public management;
-    bool public bridgePaused;
-    // Gas Bridge
-    StorageTypes.GasBridge public gasBridge;
-    mapping(uint256 nonce => StorageTypes.Claimable claimable)
-        public claimableGas;
-    // Unclaimed Fee Rewards
-    uint256 public unclaimedRewards;
-    // Token Bridges
-    mapping(address tokenAddress => StorageTypes.TokenBridge tokenBridge)
-        public tokenBridges;
-    mapping(address tokenAddress => mapping(uint256 nonce => StorageTypes.Claimable claimable) claimableTokens)
-        public tokenClaimables;
-
-    // End Storage Slots
-
-    constructor(address _management) {
+    constructor(address _management) BridgeStorageV1(_management) {
         _disableInitializers();
-        management = IBridgeManagement(_management);
-        gasBridge = StorageTypes.GasBridge({
-            depositState: StorageTypes.State({nonce: 0, root: 0x0}),
-            withdrawalState: StorageTypes.State({nonce: 0, root: 0x0}),
-            config: StorageTypes.GasConfig({
-                fee: 1e17,
-                minAmount: 1e18,
-                maxAmount: 1e22,
-                maxDeposits: 100,
-                paused: false,
-                gap: [uint256(0), uint256(0)]
-            })
-        });
     }
 
     error BridgePaused();
@@ -108,12 +80,12 @@ contract BridgeStorage is UUPSUpgradeable {
     }
 
     modifier onlyGasBridgeUnpaused() {
-        if (gasBridge.config.paused) revert GasBridgePaused();
+        if (gasBridge.paused) revert GasBridgePaused();
         _;
     }
 
     modifier onlyGasBridgePaused() {
-        if (!gasBridge.config.paused) revert GasBridgeUnpaused();
+        if (!gasBridge.paused) revert GasBridgeUnpaused();
         _;
     }
 
@@ -148,11 +120,11 @@ contract BridgeStorage is UUPSUpgradeable {
     // Gas Bridge functions
 
     function _pauseGasBridge() internal {
-        gasBridge.config.paused = true;
+        gasBridge.paused = true;
     }
 
     function _unpauseGasBridge() internal {
-        gasBridge.config.paused = false;
+        gasBridge.paused = false;
     }
 
     function _addClaimableGas(
