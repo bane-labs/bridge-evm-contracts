@@ -179,7 +179,7 @@ contract BridgeImplTest is Test, SigUtils {
     }
 
     // test case: successful unregister token bridge, check result and event
-    function testUnregisterToken() public {
+    function test   () public {
         // Mock the registration of the token
         vm.prank(governor);
         bridgeImpl.registerToken(neoXToken, validConfig);

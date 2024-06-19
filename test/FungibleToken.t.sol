@@ -32,6 +32,9 @@ contract TestFungibleToken is Test, SigUtils {
     address internal securityGuard = 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720;
     uint256[] public valid_validatorsKeys;
     address[] public valid_validatorsAddresses;
+    address transferUser0 = 0xF3D4D6320dd41f14B8Fa6550a6F33c46c6F44407;
+    address transferUser1 = 0x3220a7ee654E1f84f13E8021B7E2b09775E1BDf2;
+
 
     function setUp() public {
         //set _management
@@ -81,7 +84,8 @@ contract TestFungibleToken is Test, SigUtils {
         });
         vm.deal(funder, 1 ether);
         vm.deal(owner, 1 ether);
-        vm.deal(owner, 1 ether);
+        vm.deal(transferUser0, 1 ether);
+        vm.deal(transferUser1, 1 ether);
     }
 
     // Get the correct signatures of the five validators
@@ -128,13 +132,13 @@ contract TestFungibleToken is Test, SigUtils {
         BridgeLib.DepositData[]
             memory depositData = new BridgeLib.DepositData[](2);
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({
-            to: payable(funder),
-            amount: 100,
+            to: payable(transferUser0),
+            amount: 700,
             nonce: 1
         });
         BridgeLib.DepositData memory d1 = BridgeLib.DepositData({
-            to: payable(owner),
-            amount: 200,
+            to: payable(transferUser1),
+            amount: 800,
             nonce: 2
         });
         depositData[0] = d0;
@@ -164,8 +168,8 @@ contract TestFungibleToken is Test, SigUtils {
             depositData
         );
         // check balance
-        assertEq(MockERC20(neoXTokenA).balanceOf(funder), 100);
-        assertEq(MockERC20(neoXTokenA).balanceOf(owner), 200);
+        assertEq(MockERC20(neoXTokenA).balanceOf(transferUser0), 700);
+        assertEq(MockERC20(neoXTokenA).balanceOf(transferUser1), 800);
     }
 
     // test case: successful deposit token, token type is NEO, Let's call it deposit token B, takes the signatures of the random 6 validators
@@ -180,13 +184,13 @@ contract TestFungibleToken is Test, SigUtils {
         BridgeLib.DepositData[]
             memory depositData = new BridgeLib.DepositData[](2);
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({
-            to: payable(funder),
-            amount: 100,
+            to: payable(transferUser0),
+            amount: 355,
             nonce: 1
         });
         BridgeLib.DepositData memory d1 = BridgeLib.DepositData({
-            to: payable(owner),
-            amount: 200,
+            to: payable(transferUser1),
+            amount: 445,
             nonce: 2
         });
         depositData[0] = d0;
@@ -224,8 +228,8 @@ contract TestFungibleToken is Test, SigUtils {
             depositData
         );
         // check balances
-        assertEq(MockERC20(neoXTokenB).balanceOf(funder), 100 ether);
-        assertEq(MockERC20(neoXTokenB).balanceOf(owner), 200 ether);
+        assertEq(MockERC20(neoXTokenB).balanceOf(transferUser0), 355 ether);
+        assertEq(MockERC20(neoXTokenB).balanceOf(transferUser1), 445 ether);
     }
 
     // some test case, token type is ERC20, Let's call it claim token A, seven validator participate in the verification
@@ -238,13 +242,13 @@ contract TestFungibleToken is Test, SigUtils {
         BridgeLib.DepositData[]
             memory depositData = new BridgeLib.DepositData[](2);
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({
-            to: payable(funder),
-            amount: 100,
+            to: payable(transferUser0),
+            amount: 199,
             nonce: 1
         });
         BridgeLib.DepositData memory d1 = BridgeLib.DepositData({
-            to: payable(owner),
-            amount: 200,
+            to: payable(transferUser1),
+            amount: 299,
             nonce: 2
         });
         depositData[0] = d0;
@@ -271,13 +275,13 @@ contract TestFungibleToken is Test, SigUtils {
             signatures,
             depositData
         );
-        assertEq(MockERC20(neoXTokenA).balanceOf(funder), 0);
-        assertEq(MockERC20(neoXTokenA).balanceOf(owner), 0);
+        assertEq(MockERC20(neoXTokenA).balanceOf(transferUser0), 0);
+        assertEq(MockERC20(neoXTokenA).balanceOf(transferUser1), 0);
 
         // test case: claim token A nonce 1 successful
-        MockERC20(neoXTokenA).mint(address(bridgeImpl), 100);
+        MockERC20(neoXTokenA).mint(address(bridgeImpl), 199);
         bridgeImpl.claimToken(neoXTokenA, 1);
-        assertEq(MockERC20(neoXTokenA).balanceOf(funder), 100);
+        assertEq(MockERC20(neoXTokenA).balanceOf(transferUser0), 199);
         
         // test case: claim token A nonce 2 failed, bridge have not enough token
         vm.expectRevert(
@@ -286,9 +290,9 @@ contract TestFungibleToken is Test, SigUtils {
         bridgeImpl.claimToken(neoXTokenA, 2);
 
         // test case: claim token A nonce 2 successful
-        MockERC20(neoXTokenA).mint(address(bridgeImpl), 200);
+        MockERC20(neoXTokenA).mint(address(bridgeImpl), 299);
         bridgeImpl.claimToken(neoXTokenA, 2);
-        assertEq(MockERC20(neoXTokenA).balanceOf(owner), 200);
+        assertEq(MockERC20(neoXTokenA).balanceOf(transferUser1), 299);
        
         // test case: claim token A not exit nonce 3 failed 
         vm.expectRevert(
@@ -310,13 +314,13 @@ contract TestFungibleToken is Test, SigUtils {
         BridgeLib.DepositData[]
             memory depositData = new BridgeLib.DepositData[](2);
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({
-            to: payable(funder),
-            amount: 100,
+            to: payable(transferUser0),
+            amount: 438,
             nonce: 1
         });
         BridgeLib.DepositData memory d1 = BridgeLib.DepositData({
-            to: payable(owner),
-            amount: 200,
+            to: payable(transferUser1),
+            amount: 439,
             nonce: 2
         });
         depositData[0] = d0;
@@ -344,13 +348,13 @@ contract TestFungibleToken is Test, SigUtils {
             signatures,
             depositData
         );
-        assertEq(MockERC20(neoXTokenB).balanceOf(funder), 0);
-        assertEq(MockERC20(neoXTokenB).balanceOf(owner), 0);
+        assertEq(MockERC20(neoXTokenB).balanceOf(transferUser0), 0);
+        assertEq(MockERC20(neoXTokenB).balanceOf(transferUser1), 0);
 
         // test case: claim token B nonce 1 successful
-        MockERC20(neoXTokenB).mint(address(bridgeImpl), 100 ether);
+        MockERC20(neoXTokenB).mint(address(bridgeImpl), 438 ether);
         bridgeImpl.claimToken(neoXTokenB, 1);
-        assertEq(MockERC20(neoXTokenB).balanceOf(funder), 100 ether);
+        assertEq(MockERC20(neoXTokenB).balanceOf(transferUser0), 438 ether);
 
         // test case: claim token B nonce 2 failed, bridge have not enough token
         vm.expectRevert(
@@ -359,9 +363,9 @@ contract TestFungibleToken is Test, SigUtils {
         bridgeImpl.claimToken(neoXTokenB, 2);
 
         // test case: claim token B nonce 2 successful
-        MockERC20(neoXTokenB).mint(address(bridgeImpl), 200 ether);
+        MockERC20(neoXTokenB).mint(address(bridgeImpl), 439 ether);
         bridgeImpl.claimToken(neoXTokenB, 2);
-        assertEq(MockERC20(neoXTokenB).balanceOf(owner), 200 ether);
+        assertEq(MockERC20(neoXTokenB).balanceOf(transferUser1), 439 ether);
 
         // test case: claim token B not exit nonce 3 failed 
         vm.expectRevert(
@@ -382,46 +386,46 @@ contract TestFungibleToken is Test, SigUtils {
         vm.prank(governor);
         bridgeImpl.registerToken(neoXTokenA, validConfigA);
         uint balance = 1000;
-        MockERC20(neoXTokenA).mint(funder, balance);
-        MockERC20(neoXTokenA).mint(owner, balance);
-        vm.prank(funder);
+        MockERC20(neoXTokenA).mint(transferUser0, balance);
+        MockERC20(neoXTokenA).mint(transferUser1, balance);
+        vm.prank(transferUser0);
         MockERC20(neoXTokenA).approve(address(bridgeImpl), balance);
         assertEq(
-            MockERC20(neoXTokenA).allowance(funder, address(bridgeImpl)),
+            MockERC20(neoXTokenA).allowance(transferUser0, address(bridgeImpl)),
             balance
         );
-        vm.prank(owner);
+        vm.prank(transferUser1);
         MockERC20(neoXTokenA).approve(address(bridgeImpl), balance);
         assertEq(
-            MockERC20(neoXTokenA).allowance(owner, address(bridgeImpl)),
+            MockERC20(neoXTokenA).allowance(transferUser1, address(bridgeImpl)),
             balance
         );
-        vm.prank(funder);
+        vm.prank(transferUser0);
         bridgeImpl.withdrawToken{value: validConfigA.fee}(
             neoXTokenA,
-            funder,
-            100
+            transferUser0,
+            666
         );
-        vm.prank(funder);
+        vm.prank(transferUser0);
         bridgeImpl.withdrawToken{value: validConfigA.fee}(
             neoXTokenA,
-            funder,
-            200
+            transferUser0,
+            111
         );
-        vm.prank(owner);
+        vm.prank(transferUser1);
         bridgeImpl.withdrawToken{value: validConfigA.fee}(
             neoXTokenA, 
-            owner,
-            300
+            transferUser1,
+            777
         );
-        vm.prank(owner);
+        vm.prank(transferUser1);
         bridgeImpl.withdrawToken{value: validConfigA.fee}(
             neoXTokenA,
-            owner,
-            400
+            transferUser1,
+            111
         );
-        assertEq(MockERC20(neoXTokenA).balanceOf(funder), balance - 300);
-        assertEq(MockERC20(neoXTokenA).balanceOf(owner), balance - 700);
+        assertEq(MockERC20(neoXTokenA).balanceOf(transferUser0), balance - 777);
+        assertEq(MockERC20(neoXTokenA).balanceOf(transferUser1), balance - 888);
         //@TODO
         //check withdrwal state and missing max/min deposit amount check in depositToken?
     }
@@ -432,56 +436,55 @@ contract TestFungibleToken is Test, SigUtils {
         vm.prank(governor);
         bridgeImpl.registerToken(neoXTokenB, validConfigB);
         uint balance = 1000 ether;
-        MockERC20(neoXTokenB).mint(funder, balance);
-        MockERC20(neoXTokenB).mint(owner, balance);
-        vm.prank(funder);
+        MockERC20(neoXTokenB).mint(transferUser0, balance);
+        MockERC20(neoXTokenB).mint(transferUser1, balance);
+        vm.prank(transferUser0);
         MockERC20(neoXTokenB).approve(address(bridgeImpl), balance);
         assertEq(
-            MockERC20(neoXTokenB).allowance(funder, address(bridgeImpl)),
+            MockERC20(neoXTokenB).allowance(transferUser0, address(bridgeImpl)),
             balance
         );
-        vm.prank(owner);
+        vm.prank(transferUser1);
         MockERC20(neoXTokenB).approve(address(bridgeImpl), balance);
         assertEq(
-            MockERC20(neoXTokenB).allowance(owner, address(bridgeImpl)),
+            MockERC20(neoXTokenB).allowance(transferUser1, address(bridgeImpl)),
             balance
         );
-        vm.prank(funder);
+        vm.prank(transferUser0);
         bridgeImpl.withdrawToken{value: validConfigB.fee}(
             neoXTokenB,
-            funder,
-            100 ether
+            transferUser0,
+            135 ether
         );
-        vm.prank(funder);
+        vm.prank(transferUser0);
         bridgeImpl.withdrawToken{value: validConfigB.fee}(
             neoXTokenB,
-            funder,
-            200 ether
+            transferUser0,
+            165 ether
         );
-        vm.prank(owner);
+        vm.prank(transferUser1);
         bridgeImpl.withdrawToken{value: validConfigB.fee}(
             neoXTokenB,
-            owner,
-            300 ether
+            transferUser1,
+            337 ether
         );
-        vm.prank(owner);
+        vm.prank(transferUser1);
+        bridgeImpl.withdrawToken{value: validConfigB.fee}(
+            neoXTokenB,
+            transferUser1,
+            363 ether
+        );
 
-        bridgeImpl.withdrawToken{value: validConfigB.fee}(
-            neoXTokenB,
-            owner,
-            400 ether
-        );
-
-        vm.prank(owner);
+        vm.prank(transferUser1);
         vm.expectRevert(BridgeStorage.InvalidAmount.selector);
         bridgeImpl.withdrawToken{value: validConfigB.fee}(
             neoXTokenB,
-            owner,
+            transferUser1,
             1 ether + 100
         );
 
-        assertEq(MockERC20(neoXTokenB).balanceOf(funder), balance - 300 ether);
-        assertEq(MockERC20(neoXTokenB).balanceOf(owner), balance - 700 ether);
+        assertEq(MockERC20(neoXTokenB).balanceOf(transferUser0), balance - 300 ether);
+        assertEq(MockERC20(neoXTokenB).balanceOf(transferUser1), balance - 700 ether);
         //@TODO
         //check withdrwal state and missing max/min deposit amount check in depositToken?
     }
@@ -527,12 +530,12 @@ contract TestFungibleToken is Test, SigUtils {
         BridgeLib.DepositData[]
             memory depositData = new BridgeLib.DepositData[](2);
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({
-            to: payable(funder),
+            to: payable(transferUser0),
             amount: 100,
             nonce: 2
         });
         BridgeLib.DepositData memory d1 = BridgeLib.DepositData({
-            to: payable(owner),
+            to: payable(transferUser1),
             amount: 200,
             nonce: 1 // Invalid nonce sequence
         });
@@ -566,13 +569,13 @@ contract TestFungibleToken is Test, SigUtils {
         BridgeLib.DepositData[]
             memory depositData = new BridgeLib.DepositData[](2);
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({
-            to: payable(funder),
-            amount: 100,
+            to: payable(transferUser0),
+            amount: 45,
             nonce: 1
         });
         BridgeLib.DepositData memory d1 = BridgeLib.DepositData({
-            to: payable(owner),
-            amount: 200,
+            to: payable(transferUser1),
+            amount: 65,
             nonce: 2
         });
         depositData[0] = d0;
@@ -608,13 +611,13 @@ contract TestFungibleToken is Test, SigUtils {
             memory depositData = new BridgeLib.DepositData[](2);
 
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({
-            to: payable(funder),
-            amount: 100,
+            to: payable(transferUser0),
+            amount: 65,
             nonce: 1
         });
         BridgeLib.DepositData memory d1 = BridgeLib.DepositData({
-            to: payable(owner),
-            amount: 200,
+            to: payable(transferUser1),
+            amount: 78,
             nonce: 2
         });
 
@@ -653,12 +656,12 @@ contract TestFungibleToken is Test, SigUtils {
         BridgeLib.DepositData[]
             memory depositData = new BridgeLib.DepositData[](2);
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({
-            to: payable(funder),
+            to: payable(transferUser0),
             amount: 100,
             nonce: 1
         });
         BridgeLib.DepositData memory d1 = BridgeLib.DepositData({
-            to: payable(owner),
+            to: payable(transferUser1),
             amount: 200,
             nonce: 2
         });
@@ -814,12 +817,12 @@ contract TestFungibleToken is Test, SigUtils {
             memory depositData = new BridgeLib.DepositData[](2);
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({
             to: payable(funder),
-            amount: 100,
+            amount: 54,
             nonce: 1
         });
         BridgeLib.DepositData memory d1 = BridgeLib.DepositData({
             to: payable(owner),
-            amount: 200,
+            amount: 65,
             nonce: 2
         });
         depositData[0] = d0;
@@ -854,11 +857,11 @@ contract TestFungibleToken is Test, SigUtils {
         vm.prank(governor);
         bridgeImpl.registerToken(neoXTokenA, validConfigA);
         uint balance = 1000;
-        MockERC20(neoXTokenA).mint(funder, balance);
-        vm.prank(funder);
+        MockERC20(neoXTokenA).mint(transferUser0, balance);
+        vm.prank(transferUser0);
         MockERC20(neoXTokenA).approve(address(bridgeImpl), balance);
         assertEq(
-            MockERC20(neoXTokenA).allowance(funder, address(bridgeImpl)),
+            MockERC20(neoXTokenA).allowance(transferUser0, address(bridgeImpl)),
             balance
         );
         // Set an insufficient fee 
@@ -866,10 +869,10 @@ contract TestFungibleToken is Test, SigUtils {
         vm.expectRevert(
             abi.encodeWithSignature("InsufficientFee(uint256,uint256)",providedFee,validConfigA.fee)
         );
-        vm.prank(funder);
+        vm.prank(transferUser0);
         bridgeImpl.withdrawToken{value: providedFee}(
             neoXTokenA,
-            funder,
+            transferUser0,
             100
         );
     }
@@ -880,19 +883,19 @@ contract TestFungibleToken is Test, SigUtils {
         vm.prank(governor);
         bridgeImpl.registerToken(neoXTokenA, validConfigA);
         uint balance = 1000;
-        MockERC20(neoXTokenA).mint(funder, balance);
-        vm.prank(funder);
+        MockERC20(neoXTokenA).mint(transferUser0, balance);
+        vm.prank(transferUser0);
         MockERC20(neoXTokenA).approve(address(bridgeImpl), balance);
         assertEq(
-            MockERC20(neoXTokenA).allowance(funder, address(bridgeImpl)),
+            MockERC20(neoXTokenA).allowance(transferUser0, address(bridgeImpl)),
             balance
         );
         uint256 amount = validConfigA.minAmount - 1;
         vm.expectRevert(abi.encodeWithSignature("InvalidAmount()"));
-        vm.prank(funder);
+        vm.prank(transferUser0);
         bridgeImpl.withdrawToken{value: validConfigA.fee}(
             address(neoXTokenA),
-            funder,
+            transferUser0,
             amount
         );
     }
@@ -903,19 +906,19 @@ contract TestFungibleToken is Test, SigUtils {
         vm.prank(governor);
         bridgeImpl.registerToken(neoXTokenA, validConfigA);
         uint balance = 1000;
-        MockERC20(neoXTokenA).mint(funder, balance);
-        vm.prank(funder);
+        MockERC20(neoXTokenA).mint(transferUser0, balance);
+        vm.prank(transferUser0);
         MockERC20(neoXTokenA).approve(address(bridgeImpl), balance);
         assertEq(
-            MockERC20(neoXTokenA).allowance(funder, address(bridgeImpl)),
+            MockERC20(neoXTokenA).allowance(transferUser0, address(bridgeImpl)),
             balance
         );
         uint256 amount = validConfigA.maxAmount + 1;
         vm.expectRevert(abi.encodeWithSignature("InvalidAmount()"));
-        vm.prank(funder);
+        vm.prank(transferUser0);
         bridgeImpl.withdrawToken{value: validConfigA.fee}(
             address(neoXTokenA),
-            funder,
+            transferUser0,
             amount
         );
     }
@@ -927,20 +930,20 @@ contract TestFungibleToken is Test, SigUtils {
         bridgeImpl.registerToken(neoXTokenA, validConfigA);
         uint balance = 1000;
         uint approveAmount = 100 ;
-        MockERC20(neoXTokenA).mint(funder, balance);
-        vm.prank(funder);
+        MockERC20(neoXTokenA).mint(transferUser0, balance);
+        vm.prank(transferUser0);
         MockERC20(neoXTokenA).approve(address(bridgeImpl), approveAmount);
         assertEq(
-            MockERC20(neoXTokenA).allowance(funder, address(bridgeImpl)),
+            MockERC20(neoXTokenA).allowance(transferUser0, address(bridgeImpl)),
             approveAmount
         );
         vm.expectRevert(
             abi.encodeWithSignature("ERC20InsufficientAllowance(address,uint256,uint256)",address(bridgeImpl),approveAmount,balance)
         );
-        vm.prank(funder);
+        vm.prank(transferUser0);
         bridgeImpl.withdrawToken{value: validConfigA.fee}(
             address(neoXTokenA),
-            funder,
+            transferUser0,
             balance
         );
     }
@@ -951,7 +954,7 @@ contract TestFungibleToken is Test, SigUtils {
         vm.expectRevert(abi.encodeWithSignature("TokenBridgeNotRegistered(address)",address(unregisteredToken)));
         bridgeImpl.withdrawToken{value: validConfigA.fee}(
             address(unregisteredToken),
-            funder,
+            transferUser0,
             100
         );
     }
@@ -962,18 +965,18 @@ contract TestFungibleToken is Test, SigUtils {
         vm.prank(governor);
         bridgeImpl.registerToken(neoXTokenB, validConfigB);
         uint balance = 1000 ether;
-        MockERC20(neoXTokenB).mint(funder, balance);
-        vm.prank(funder);
+        MockERC20(neoXTokenB).mint(transferUser0, balance);
+        vm.prank(transferUser0);
         MockERC20(neoXTokenB).approve(address(bridgeImpl), balance);
         assertEq(
-            MockERC20(neoXTokenB).allowance(funder, address(bridgeImpl)),
+            MockERC20(neoXTokenB).allowance(transferUser0, address(bridgeImpl)),
             balance
         );
         vm.expectRevert(abi.encodeWithSignature("InvalidAmount()"));
-        vm.prank(funder);
+        vm.prank(transferUser0);
         bridgeImpl.withdrawToken{value: validConfigB.fee}(
             neoXTokenB,
-            funder,
+            transferUser0,
             1000000 
         );
     }
@@ -984,11 +987,11 @@ contract TestFungibleToken is Test, SigUtils {
         vm.prank(governor);
         bridgeImpl.registerToken(neoXTokenA, validConfigA);
         uint balance = 1000;
-        MockERC20(neoXTokenA).mint(funder, balance);
-        vm.prank(funder);
+        MockERC20(neoXTokenA).mint(transferUser0, balance);
+        vm.prank(transferUser0);
         MockERC20(neoXTokenA).approve(address(bridgeImpl), balance);
         assertEq(
-            MockERC20(neoXTokenA).allowance(funder, address(bridgeImpl)),
+            MockERC20(neoXTokenA).allowance(transferUser0, address(bridgeImpl)),
             balance
         );
         // caculate withdrawalHash
@@ -996,29 +999,29 @@ contract TestFungibleToken is Test, SigUtils {
             neoN3TokenA,
             neoXTokenA,
             1,
-            funder,
-            100
+            transferUser0,
+            342
         );
         // caculate newRoot
         bytes32 newRoot = BridgeLib._computeNewRoot(bridgeImpl.getTokenDepositState(neoXTokenA).root, withdrawalHash);
         // check withdraw token event
-        vm.prank(funder);
+        vm.prank(transferUser0);
         vm.expectEmit(true, true, true, true);
         emit ITokenBridge.TokenWithdrawal(           
             address(neoXTokenA),
             address(neoN3TokenA),
             1,
-            funder,
-            100,
-            funder,
+            transferUser0,
+            342,
+            transferUser0,
             withdrawalHash,
             newRoot
 
         );
         bridgeImpl.withdrawToken{value: validConfigA.fee}(
             neoXTokenA,
-            funder,
-            100
+            transferUser0,
+            342
         );
     }
 
@@ -1028,11 +1031,11 @@ contract TestFungibleToken is Test, SigUtils {
         vm.prank(governor);
         bridgeImpl.registerToken(neoXTokenB, validConfigB);
         uint balance = 1000 ether;
-        MockERC20(neoXTokenB).mint(funder, balance);
-        vm.prank(funder);
+        MockERC20(neoXTokenB).mint(transferUser0, balance);
+        vm.prank(transferUser0);
         MockERC20(neoXTokenB).approve(address(bridgeImpl), balance);
         assertEq(
-            MockERC20(neoXTokenB).allowance(funder, address(bridgeImpl)),
+            MockERC20(neoXTokenB).allowance(transferUser0, address(bridgeImpl)),
             balance
         );
         // caculate withdrawalHash
@@ -1040,28 +1043,28 @@ contract TestFungibleToken is Test, SigUtils {
             neoN3TokenB,
             neoXTokenB,
             1,
-            funder,
-            100 
+            transferUser0,
+            233 
         );
         // caculate newRoot
         bytes32 newRoot = BridgeLib._computeNewRoot(bridgeImpl.getTokenDepositState(neoXTokenB).root, withdrawalHash);
         // check withdraw token event
-        vm.prank(funder);
+        vm.prank(transferUser0);
         vm.expectEmit(true, true, true, true);
         emit ITokenBridge.TokenWithdrawal(           
             address(neoXTokenB),
             address(neoN3TokenB),
             1,
-            funder,
-            100,
-            funder,
+            transferUser0,
+            233,
+            transferUser0,
             withdrawalHash,
             newRoot
         );
         bridgeImpl.withdrawToken{value: validConfigB.fee}(
             neoXTokenB,
-            funder,
-            100 ether
+            transferUser0,
+            233 ether
         );
     }
 }
