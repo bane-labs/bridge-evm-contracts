@@ -162,21 +162,29 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
      * @notice Withdraw Gas to provided address on Neo N3. The provided amount of Gas must have a precision of maximal 8 decimal points due to the GAS token on Neo N3 having 8 decimals.
      * @dev When invoking this function provide the amount of Gas to withdraw to Neo N3 as msg.value.
      * @param _to the address to which the Gas should be sent on Neo N3.
+     * @param _maxFee the maximum fee that the sender is willing to pay for the withdrawal. If the actual fee is higher than this value, the withdrawal is aborted.
      */
     function withdrawGas(
-        address _to
+        address _to,
+        uint256 _maxFee
     ) external payable onlyBridgeUnpaused onlyGasBridgeUnpaused {
         if (_to == address(0)) revert InvalidAddress();
-        if ((msg.value % 1e10) != 0) revert InvalidAmount();
+        uint256 msgValue = msg.value;
+        if ((msgValue % 1e10) != 0) revert InvalidAmount();
         StorageTypes.GasConfig memory config = _getGasBridgeConfig();
         StorageTypes.State memory state = _getGasBridgeWithdrawalState();
-        uint256 actualWithdrawalAmount = msg.value - config.fee;
-        if (actualWithdrawalAmount < config.minAmount) revert InvalidAmount();
-        if (actualWithdrawalAmount > config.maxAmount) revert InvalidAmount();
+        // Revert if the provided value is outside the allowed range.
+        if (msgValue < config.minAmount)
+            revert AmountBelowMinAmount(config.minAmount, msgValue);
+        if (msgValue > config.maxAmount)
+            revert AmountExceedsMaxAmount(config.maxAmount, msgValue);
+        // Revert if the actual fee is higher than the provided max fee.
+        if (config.fee > _maxFee) revert MaxFeeExceeded(_maxFee, config.fee);
         _addUnclaimedRewards(config.fee);
 
+        // The actual withdrawal amount is the sent value minus the fee.
         uint256 amountForHashing = GasBridgeLib._removeTenDecimals(
-            actualWithdrawalAmount
+            msgValue - config.fee
         );
         uint256 newNonce = state.nonce + 1;
         bytes32 withdrawalHash = GasBridgeLib._hashGasBrideOp(
@@ -435,8 +443,9 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     }
 
     /**
-     * @notice Withdraw tokens to Neo N3. Requires that the sender has approved the provided amount to the bridge contract.
+     * @notice Withdraw tokens to Neo N3. Requires that the sender has approved the provided amount to the bridge contract. The fee required for withdrawing that token can be fetched from its config (i.e., tokenBridges[_neoXToken].config.fee). It needs to be payed to this function (i.e., as msg.value).
      * @dev This function transfers the provided amount of the provided token from the msg.sender to this contract. It requires that the msg.sender has previously approved at least the provided amount to this contract. Further, it computes the new root and updates the token withdrawal state.
+     * @param _neoXToken the address of the token on the Neo X network.
      * @param _to the address to which the tokens should be sent on Neo N3.
      * @param _amount the amount of tokens to withdraw to Neo N3.
      */
@@ -455,9 +464,12 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         if (!_isRegisteredToken(_neoXToken))
             revert TokenBridgeNotRegistered(_neoXToken);
         StorageTypes.TokenConfig memory config = _getTokenConfig(_neoXToken);
-        uint256 tokenValue = _amount;
-        if (tokenValue < config.minAmount) revert InvalidAmount();
-        if (tokenValue > config.maxAmount) revert InvalidAmount();
+        uint256 tokenAmount = _amount;
+        if (tokenAmount < config.minAmount)
+            revert AmountBelowMinAmount(config.minAmount, tokenAmount);
+        if (tokenAmount > config.maxAmount)
+            revert AmountExceedsMaxAmount(config.maxAmount, tokenAmount);
+        // Revert if the provided value is lower than the required fee.
         if (msg.value < config.fee)
             revert InsufficientFee(msg.value, config.fee);
         _addUnclaimedRewards(msg.value);
@@ -475,10 +487,10 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         uint256 newNonce = state.nonce + 1;
 
         if (config.executionType == StorageTypes.ExecutionType.NEO) {
-            if (tokenValue % 1e18 != 0) {
+            if (tokenAmount % 1e18 != 0) {
                 revert InvalidAmount();
             }
-            tokenValue /= 1e18;
+            tokenAmount /= 1e18;
         }
 
         bytes32 withdrawalHash = TokenBridgeLib._hashTokenBridgeOp(
@@ -486,7 +498,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
             _neoXToken,
             newNonce,
             _to,
-            tokenValue
+            tokenAmount
         );
         bytes32 newRoot = BridgeLib._computeNewRoot(state.root, withdrawalHash);
         _setTokenWithdrawalState(
@@ -498,7 +510,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
             config.neoN3Token,
             newNonce,
             _to,
-            tokenValue,
+            tokenAmount,
             msg.sender,
             withdrawalHash,
             newRoot

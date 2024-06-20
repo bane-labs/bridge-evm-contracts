@@ -21,6 +21,8 @@ contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         _disableInitializers();
     }
 
+    error AmountBelowMinAmount(uint256 minAmount, uint256 provided);
+    error AmountExceedsMaxAmount(uint256 maxAmount, uint256 provided);
     error BridgePaused();
     error BridgeUnpaused();
     error GasBridgePaused();
@@ -36,6 +38,7 @@ contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     error InvalidRoot();
     error InvalidValidatorSignatures();
     error LengthMismatch();
+    error MaxFeeExceeded(uint256 maxFeeAllowed, uint256 actualFee);
     error NonexistentClaimable();
     error TokenBridgeAlreadyRegistered(address neoXToken);
     error TokenBridgePaused(address neoXToken);
