@@ -21,7 +21,6 @@ contract BridgeImplTest is Test, SigUtils {
     address public funder = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
     address public relayer = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
     uint8 public validatorThreshold = 5;
-    uint256[] public validatorsKeys;
     address[] public validatorsAddresses;
     address internal governor = 0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f;
     address internal securityGuard = 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720;
@@ -29,19 +28,12 @@ contract BridgeImplTest is Test, SigUtils {
     function setUp() public {
         //set  _management
         sigUtils = new SigUtils();
-        validatorsKeys.push(user0PrivateKey);
         validatorsAddresses.push(vm.addr(user0PrivateKey));
-        validatorsKeys.push(user1PrivateKey);
         validatorsAddresses.push(vm.addr(user1PrivateKey));
-        validatorsKeys.push(user2PrivateKey);
         validatorsAddresses.push(vm.addr(user2PrivateKey));
-        validatorsKeys.push(user3PrivateKey);
         validatorsAddresses.push(vm.addr(user3PrivateKey));
-        validatorsKeys.push(user4PrivateKey);
         validatorsAddresses.push(vm.addr(user4PrivateKey));
-        validatorsKeys.push(user5PrivateKey);
         validatorsAddresses.push(vm.addr(user5PrivateKey));
-        validatorsKeys.push(user6PrivateKey);
         validatorsAddresses.push(vm.addr(user6PrivateKey));
         bridgeManagementImpl = new BridgeManagementImpl(
             owner,

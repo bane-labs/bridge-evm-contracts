@@ -12,31 +12,25 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
  */
 contract BridgeStorageV1 is ReentrancyGuard {
     // Slot 0 is taken by ReentrancyGuard's _status storage value
-    // Slots 1-99 remain empty for future upgrades
+    // Slots 1-99 remain empty for future upgrades (if further storage extension is needed, e.g., similar to ReentrancyGuard's _status var, this contract can easily be extended and the new var can use the next slot from _gap0, so that the other storage variables can remain in this file)
     uint256[99] private _gap0;
 
     // Slot 100
     IBridgeManagement public management;
     // Slot 100 - offset 20
     bool public bridgePaused;
-    // Slot 102
+    // Slot 101
     uint256 public unclaimedRewards;
-
-    // Slots 103-199 (97 slots)
-    uint256[97] private _gap1;
-
-    // Slot 200
+    // Slot 102
     mapping(uint256 nonce => StorageTypes.Claimable claimable)
         public claimableGas;
-
-    // Slot 201
+    // Slot 103
     mapping(address tokenAddress => StorageTypes.TokenBridge tokenBridge)
         public tokenBridges;
-    // Slot 202
+    // Slot 104
     mapping(address tokenAddress => mapping(uint256 nonce => StorageTypes.Claimable claimable) claimableTokens)
         public tokenClaimables;
-
-    // Slots 203-212 (10 slots)
+    // Slots 105-113 (9 slots)
     StorageTypes.GasBridge public gasBridge;
 
     constructor(address _management) {
