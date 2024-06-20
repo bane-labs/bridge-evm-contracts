@@ -9,7 +9,6 @@ import {ITokenBridge} from "../contracts/interfaces/ITokenBridge.sol";
 
 contract BridgeImplTest is Test, SigUtils {
     TestBridge bridgeImpl;
-
     address neoXToken = address(0x6789);
     address neoN3Token = address(0x7892);
     StorageTypes.TokenConfig validConfig;
