@@ -426,8 +426,6 @@ contract TestFungibleToken is Test, SigUtils {
         );
         assertEq(MockERC20(neoXTokenA).balanceOf(transferUser0), balance - 777);
         assertEq(MockERC20(neoXTokenA).balanceOf(transferUser1), balance - 888);
-        //@TODO
-        //check withdrwal state and missing max/min deposit amount check in depositToken?
     }
 
     // test case: successful withdraw token, token type is NEO, Let's call it withdraw token B
@@ -482,11 +480,8 @@ contract TestFungibleToken is Test, SigUtils {
             transferUser1,
             1 ether + 100
         );
-
         assertEq(MockERC20(neoXTokenB).balanceOf(transferUser0), balance - 300 ether);
         assertEq(MockERC20(neoXTokenB).balanceOf(transferUser1), balance - 700 ether);
-        //@TODO
-        //check withdrwal state and missing max/min deposit amount check in depositToken?
     }
 
     // Get the error signatures of the five validators
