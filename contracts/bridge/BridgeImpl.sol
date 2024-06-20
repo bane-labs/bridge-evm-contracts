@@ -443,18 +443,16 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     }
 
     /**
-     * @notice Withdraw tokens to Neo N3. Requires that the sender has approved the provided amount to the bridge contract.
+     * @notice Withdraw tokens to Neo N3. Requires that the sender has approved the provided amount to the bridge contract. The fee required for withdrawing that token can be fetched from its config (i.e., tokenBridges[_neoXToken].config.fee). It needs to be payed to this function (i.e., as msg.value).
      * @dev This function transfers the provided amount of the provided token from the msg.sender to this contract. It requires that the msg.sender has previously approved at least the provided amount to this contract. Further, it computes the new root and updates the token withdrawal state.
      * @param _neoXToken the address of the token on the Neo X network.
      * @param _to the address to which the tokens should be sent on Neo N3.
      * @param _amount the amount of tokens to withdraw to Neo N3.
-     * @param _maxFee the maximum fee that the sender is willing to pay for the withdrawal. If the actual fee is higher than this value, the withdrawal is aborted.
      */
     function withdrawToken(
         address _neoXToken,
         address _to,
-        uint256 _amount,
-        uint256 _maxFee
+        uint256 _amount
     )
         external
         payable
@@ -471,8 +469,6 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
             revert AmountBelowMinAmount(config.minAmount, tokenAmount);
         if (tokenAmount > config.maxAmount)
             revert AmountExceedsMaxAmount(config.maxAmount, tokenAmount);
-        // Revert if the actual fee is higher than the provided max fee.
-        if (config.fee > _maxFee) revert MaxFeeExceeded(_maxFee, config.fee);
         // Revert if the provided value is lower than the required fee.
         if (msg.value < config.fee)
             revert InsufficientFee(msg.value, config.fee);
