@@ -1,33 +1,46 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+import "../library/ManagementLib.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "./BridgeLib.sol";
 
 contract BridgeManagementStorage is UUPSUpgradeable {
     address public constant SELF = 0x1212100000000000000000000000000000000005;
     address public constant GOV_ADMIN =
         0x1212000000000000000000000000000000000000;
 
-    address internal owner = 0xBcd4042DE499D14e55001CcbB24a551F3b954096;
-    address internal relayer = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
-    uint8 internal validatorThreshold = 5;
-    address[] internal validators = [
-        0x70997970C51812dc3A010C7d01b50e0d17dc79C8,
-        0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC,
-        0x90F79bf6EB2c4f870365E785982E1f101E93b906,
-        0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65,
-        0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc,
-        0x976EA74026E726554dB657fA54763abd0C3a0aa9,
-        0x14dC79964da2C08b23698B3D3cc7Ca32193d9955
-    ];
-    address internal governor = 0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f;
-    address internal securityGuard = 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720;
+    address internal owner;
+    address internal relayer;
+    uint8 internal validatorThreshold;
+    address[] internal validators;
+    address internal governor;
+    address internal securityGuard;
+    address internal funder;
 
-    // Role Restriction Modifiers
+    constructor(
+        address _owner,
+        address _relayer,
+        uint8 _validatorThreshold,
+        address[] memory _validators,
+        address _governor,
+        address _securityGuard,
+        address _funder
+    ) {
+        _disableInitializers();
+        _setOwner(_owner);
+        _setRelayer(_relayer);
+        _setValidators(_validators, _validatorThreshold);
+        _setGovernor(_governor);
+        _setSecurityGuard(_securityGuard);
+        _setFunder(_funder);
+    }
+
+    error InvalidAddress();
+    error InvalidValidatorArray();
+    error InvalidValidatorThreshold();
 
     modifier onlyOwner() {
-        require(msg.sender == owner, "Not owner");
+        require(msg.sender == owner, "not owner");
         _;
     }
 
@@ -36,30 +49,21 @@ contract BridgeManagementStorage is UUPSUpgradeable {
     }
 
     function _setValidators(
-        address[] calldata _validators,
+        address[] memory _validators,
         uint threshold
     ) internal {
-        uint256 nrValidators = _validators.length;
-        require(
-            nrValidators > 0,
-            "Validators array must contain at least one address"
-        );
-        require(
-            threshold > 0 && threshold <= nrValidators,
-            "Threshold must be greater than 0 and less than or equal to the number of validators"
-        );
-        for (uint256 i = 0; i < nrValidators; i++) {
-            require(
-                _validators[i] != address(0),
-                "Validator address cannot be 0x0"
-            );
+        uint256 validatorsLength = _validators.length;
+        if (validatorsLength == 0) revert InvalidValidatorArray();
+        if (threshold == 0 || threshold > validatorsLength)
+            revert InvalidValidatorThreshold();
+        for (uint256 i = 0; i < validatorsLength; i++) {
+            if (_validators[i] == address(0)) revert InvalidAddress();
         }
-        require(
-            BridgeLib._hasDuplicates(_validators) == false,
-            "Duplicate validator addresses are not allowed"
-        );
+        if (ManagementLib._hasDuplicates(_validators))
+            revert InvalidValidatorArray();
+
         delete validators;
-        for (uint256 i = 0; i < nrValidators; i++) {
+        for (uint256 i = 0; i < validatorsLength; i++) {
             validators.push(_validators[i]);
         }
         validatorThreshold = uint8(threshold);
@@ -77,10 +81,14 @@ contract BridgeManagementStorage is UUPSUpgradeable {
         securityGuard = _securityGuard;
     }
 
+    function _setFunder(address _funder) internal {
+        funder = _funder;
+    }
+
     // Upgrade authorization
 
     modifier onlyAdmin() {
-        require(msg.sender == GOV_ADMIN, "Not admin");
+        require(msg.sender == GOV_ADMIN, "not admin");
         _;
     }
 

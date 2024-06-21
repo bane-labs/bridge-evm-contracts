@@ -2,52 +2,16 @@
 pragma solidity ^0.8.24;
 
 import "./BridgeManagementStorage.sol";
-
-interface IBridgeManagement {
-    event SetOwner(address owner);
-    event SetRelayer(address relayer);
-    event SetValidators(address[] validators, uint threshold);
-    event SetGovernor(address governor);
-    event SetSecurityGuard(address securityGuard);
-
-    function setOwner(address _owner) external;
-
-    function getOwner() external view returns (address);
-
-    function setRelayer(address _relayer) external;
-
-    function getRelayer() external view returns (address);
-
-    function setValidators(
-        address[] calldata _validators,
-        uint threshold
-    ) external;
-
-    function getValidators() external view returns (address[] memory);
-
-    function getValidator(uint _index) external view returns (address);
-
-    function getValidatorThreshold() external view returns (uint);
-
-    function verifyValidatorSignatures(
-        bytes32 _newDepositRoot,
-        BridgeLib.Signature[] calldata _signatures
-    ) external view returns (bool);
-
-    function setGovernor(address _governor) external;
-
-    function getGovernor() external view returns (address);
-
-    function setSecurityGuard(address _securityGuard) external;
-
-    function getSecurityGuard() external view returns (address);
-}
+import "../interfaces/IBridgeManagement.sol";
+import "../library/BridgeLib.sol";
 
 /**
  * When generating the bytecode for genesis script:
  * - set initial storage values in BridgeManagementStorage.sol
  */
-contract BridgeManagementImpl is IBridgeManagement, BridgeManagementStorage {
+contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
+    constructor() BridgeManagementStorage() {}
+
     function verifyValidatorSignatures(
         bytes32 _newDepositRoot,
         BridgeLib.Signature[] calldata _signatures
@@ -71,8 +35,9 @@ contract BridgeManagementImpl is IBridgeManagement, BridgeManagementStorage {
         uint covered = 0;
         uint n = 0;
         uint j;
+        uint validatorsLength = validators.length;
         for (uint i = 0; i < threshold; i++) {
-            for (j = n; j < validators.length; j++) {
+            for (j = n; j < validatorsLength; j++) {
                 if (recovered[i] == validators[j]) {
                     covered++;
                     break;
@@ -85,7 +50,7 @@ contract BridgeManagementImpl is IBridgeManagement, BridgeManagementStorage {
 
     function setOwner(address _owner) external onlyOwner {
         _setOwner(_owner);
-        emit SetOwner(_owner);
+        emit OwnerChange(_owner);
     }
 
     function getOwner() external view override returns (address) {
@@ -94,7 +59,7 @@ contract BridgeManagementImpl is IBridgeManagement, BridgeManagementStorage {
 
     function setRelayer(address _relayer) external onlyOwner {
         _setRelayer(_relayer);
-        emit SetRelayer(_relayer);
+        emit RelayerChange(_relayer);
     }
 
     function getRelayer() external view override returns (address) {
@@ -106,7 +71,7 @@ contract BridgeManagementImpl is IBridgeManagement, BridgeManagementStorage {
         uint threshold
     ) external onlyOwner {
         _setValidators(_validators, threshold);
-        emit SetValidators(_validators, threshold);
+        emit ValidatorsChange(_validators, threshold);
     }
 
     function getValidators() external view returns (address[] memory) {
@@ -123,7 +88,7 @@ contract BridgeManagementImpl is IBridgeManagement, BridgeManagementStorage {
 
     function setGovernor(address _governor) external onlyOwner {
         _setGovernor(_governor);
-        emit SetGovernor(_governor);
+        emit GovernorChange(_governor);
     }
 
     function getGovernor() external view override returns (address) {
@@ -132,10 +97,19 @@ contract BridgeManagementImpl is IBridgeManagement, BridgeManagementStorage {
 
     function setSecurityGuard(address _securityGuard) external onlyOwner {
         _setSecurityGuard(_securityGuard);
-        emit SetSecurityGuard(_securityGuard);
+        emit SecurityGuardChange(_securityGuard);
     }
 
     function getSecurityGuard() external view override returns (address) {
         return securityGuard;
+    }
+
+    function setFunder(address _funder) external onlyOwner {
+        _setFunder(_funder);
+        emit FunderChange(_funder);
+    }
+
+    function getFunder() external view override returns (address) {
+        return funder;
     }
 }

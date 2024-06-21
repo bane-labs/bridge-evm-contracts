@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-// Todo: Before compiling byte code for genesis script, make sure to set the correct values for the following variables:
+// Before compiling byte code for genesis script, make sure to set the correct values for the following variables:
 // - relayer
 // - validators
 // - minWithdrawalAmount
@@ -9,7 +9,7 @@ pragma solidity ^0.8.9;
 // - remove the receive function as it is only used for testing purpose.
 
 contract BridgeContract {
-    // Todo: Discuss using values hardcoded here as default and adding an overwrite functionality.
+    // Discuss using values hardcoded here as default and adding an overwrite functionality.
     address public constant relayer =
         0xacC85FFb71f83b9bb264f6d64541926D375a6C1d;
     address[] public validators = [
@@ -58,14 +58,14 @@ contract BridgeContract {
         bytes32 withdrawalRoot
     );
 
-    // Todo: This is only used for testing. Remove it before compiling byte code for genesis script.
+    // This is only used for testing. Remove it before compiling byte code for genesis script.
     // receive() external payable onlyRelayer {}
 
     //////////////////////////
     // Deposit Verification //
     //////////////////////////
 
-    // Todo: Introduce limit for max mint amount -> max amount limit should be handled in Bridge contract on Neo.
+    // Introduce limit for max mint amount -> max amount limit should be handled in Bridge contract on Neo.
 
     struct DepositData {
         address payable to;
@@ -151,7 +151,7 @@ contract BridgeContract {
             address to = depositEntry.to;
             if (!isContract(to)) {
                 uint256 sendValue = addTenDecimals(depositEntry.amount);
-                // Todo: Verify that this call works as expected, i.e., the funds have not been sent if it returns false.
+                // Verify that this call works as expected, i.e., the funds have not been sent if it returns false.
                 (bool success, ) = to.call{value: sendValue}("");
                 if (success) {
                     emit Deposit(depositEntry.nonce, depositEntry.amount, to);
@@ -296,7 +296,7 @@ contract BridgeContract {
     //         withdrawalRoot,
     //         withdrawalHash
     //     );
-    //     // Todo: Consider passing the new withdrawalRoot in the Withdrawal event as well.
+    //     // Consider passing the new withdrawalRoot in the Withdrawal event as well.
     //     emit Withdrawal(
     //         withdrawalNonce,
     //         hashAmount,

@@ -104,7 +104,7 @@ contract BridgeImpl is IBridge, BridgeStorage {
                 uint256 sendValue = BridgeLib._addTenDecimals(
                     depositEntry.amount
                 );
-                // Todo: Verify that this call works as expected, i.e., the funds have not been sent if it returns false.
+                // Verify that this call works as expected, i.e., the funds have not been sent if it returns false.
                 (bool success, ) = to.call{value: sendValue}("");
                 if (success) {
                     emit Deposit(depositEntry.nonce, depositEntry.amount, to);

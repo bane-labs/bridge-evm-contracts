@@ -16,10 +16,20 @@ describe("Bridge Management", function () {
             validator7,
             governor,
             securityGuard,
-            owner
+            owner,
+            deployer,
+            funder
         ] = await ethers.getSigners();
         const BridgeManagementFactory = await ethers.getContractFactory("BridgeManagementImpl");
-        const bridgeManagementImpl = await BridgeManagementFactory.connect(owner).deploy();
+        const bridgeManagementImpl = await BridgeManagementFactory.connect(deployer).deploy(
+            owner.address,
+            relayer.address,
+            5,
+            [validator1.address, validator2.address, validator3.address, validator4.address, validator5.address, validator6.address, validator7.address],
+            governor.address,
+            securityGuard.address,
+            funder.address
+        );
         await bridgeManagementImpl.waitForDeployment();
         return {
             bridgeManagementImpl: bridgeManagementImpl,
@@ -33,7 +43,8 @@ describe("Bridge Management", function () {
             validator7,
             governor,
             securityGuard,
-            owner
+            owner,
+            funder
         }
     }
 
@@ -70,13 +81,17 @@ describe("Bridge Management", function () {
             expect(await bridgeManagementImpl.getSecurityGuard()).to.equal(securityGuard.address);
         });
 
+        it("Should have the right funder", async function () {
+            const { bridgeManagementImpl, funder } = await loadFixture(deployBridgeFixture);
+            expect(await bridgeManagementImpl.getFunder()).to.equal(funder.address);
+        });
     });
 
     describe("Bridge role setting", function () {
         it("Set owner", async function () {
             const { bridgeManagementImpl, owner, validator2 } = await loadFixture(deployBridgeFixture);
             const tx = await bridgeManagementImpl.connect(owner).setOwner(validator2.address);
-            await expect(tx).to.emit(bridgeManagementImpl, "SetOwner").withArgs(validator2.address);
+            await expect(tx).to.emit(bridgeManagementImpl, "OwnerChange").withArgs(validator2.address);
             await expect(await bridgeManagementImpl.getOwner()).to.be.equal(validator2.address);
         });
 
@@ -84,7 +99,7 @@ describe("Bridge Management", function () {
             const { bridgeManagementImpl, owner } = await loadFixture(deployBridgeFixture);
             const new_validators = [ethers.Wallet.createRandom().address, ethers.Wallet.createRandom().address];
             const tx = await bridgeManagementImpl.connect(owner).setValidators(new_validators, 2);
-            await expect(tx).to.emit(bridgeManagementImpl, "SetValidators").withArgs(new_validators, 2);
+            await expect(tx).to.emit(bridgeManagementImpl, "ValidatorsChange").withArgs(new_validators, 2);
             await expect(await bridgeManagementImpl.getValidator(0)).to.be.equal(new_validators[0]);
             await expect(await bridgeManagementImpl.getValidator(1)).to.be.equal(new_validators[1]);
             await expect(await bridgeManagementImpl.getValidatorThreshold()).to.be.equal(2);
@@ -94,7 +109,7 @@ describe("Bridge Management", function () {
             const { bridgeManagementImpl, owner, validator1, validator2, validator3, validator4 } = await loadFixture(deployBridgeFixture);
             let new_validators = [validator1.address, validator2.address, validator3.address];
             let tx = await bridgeManagementImpl.connect(owner).setValidators(new_validators, 2);
-            await expect(tx).to.emit(bridgeManagementImpl, "SetValidators").withArgs(new_validators, 2);
+            await expect(tx).to.emit(bridgeManagementImpl, "ValidatorsChange").withArgs(new_validators, 2);
             await expect(await bridgeManagementImpl.getValidator(0)).to.be.equal(validator1.address);
             await expect(await bridgeManagementImpl.getValidator(1)).to.be.equal(validator2.address);
             await expect(await bridgeManagementImpl.getValidator(2)).to.be.equal(validator3.address);
@@ -103,7 +118,7 @@ describe("Bridge Management", function () {
             // The 3rd validator address needs to be updated
             new_validators = [validator1.address, validator2.address, validator4.address];
             tx = await bridgeManagementImpl.connect(owner).setValidators(new_validators, 2);
-            await expect(tx).to.emit(bridgeManagementImpl, "SetValidators").withArgs(new_validators, 2);
+            await expect(tx).to.emit(bridgeManagementImpl, "ValidatorsChange").withArgs(new_validators, 2);
             await expect(await bridgeManagementImpl.getValidator(0)).to.be.equal(validator1.address);
             await expect(await bridgeManagementImpl.getValidator(1)).to.be.equal(validator2.address);
             await expect(await bridgeManagementImpl.getValidator(2)).to.be.equal(validator4.address);
@@ -114,65 +129,72 @@ describe("Bridge Management", function () {
             const { bridgeManagementImpl, validator1, validator2, owner } = await loadFixture(deployBridgeFixture);
             const new_validators = [validator1.address, validator1.address, validator2.address];
             const tx = bridgeManagementImpl.connect(owner).setValidators(new_validators, 2);
-            await expect(tx).to.be.revertedWith("Duplicate validator addresses are not allowed");
+            await expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "InvalidValidatorArray");
         });
 
         it("Set validators with threshold greater than validators length", async function () {
             const { bridgeManagementImpl, validator1, validator2, owner } = await loadFixture(deployBridgeFixture);
             const new_validators = [validator1.address, validator2.address];
             const tx = bridgeManagementImpl.connect(owner).setValidators(new_validators, 3);
-            await expect(tx).to.be.revertedWith("Threshold must be greater than 0 and less than or equal to the number of validators");
+            await expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "InvalidValidatorThreshold");
         });
 
         it("Set validators with empty validators", async function () {
             const { bridgeManagementImpl, owner } = await loadFixture(deployBridgeFixture);
             const tx = bridgeManagementImpl.connect(owner).setValidators([], 1);
-            await expect(tx).to.be.revertedWith("Validators array must contain at least one address");
+            await expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "InvalidValidatorArray");
         });
 
         it("Set validators with zero address validators", async function () {
             const { bridgeManagementImpl, validator1, owner } = await loadFixture(deployBridgeFixture);
             const tx = bridgeManagementImpl.connect(owner).setValidators([validator1.address, ZeroAddress], 1);
-            await expect(tx).to.be.revertedWith("Validator address cannot be 0x0");
+            await expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "InvalidAddress");
         });
 
         it("Set relayer", async function () {
             const { bridgeManagementImpl, owner, validator2 } = await loadFixture(deployBridgeFixture);
             const tx = await bridgeManagementImpl.connect(owner).setRelayer(validator2.address);
-            await expect(tx).to.emit(bridgeManagementImpl, "SetRelayer").withArgs(validator2.address);
+            await expect(tx).to.emit(bridgeManagementImpl, "RelayerChange").withArgs(validator2.address);
             await expect(await bridgeManagementImpl.getRelayer()).to.be.equal(validator2.address);
         });
 
         it("Set governor", async function () {
             const { bridgeManagementImpl, owner, validator2 } = await loadFixture(deployBridgeFixture);
             const tx = await bridgeManagementImpl.connect(owner).setGovernor(validator2.address);
-            await expect(tx).to.emit(bridgeManagementImpl, "SetGovernor").withArgs(validator2.address);
+            await expect(tx).to.emit(bridgeManagementImpl, "GovernorChange").withArgs(validator2.address);
             await expect(await bridgeManagementImpl.getGovernor()).to.be.equal(validator2.address);
         });
 
         it("Set securityGuard", async function () {
             const { bridgeManagementImpl, owner, validator2 } = await loadFixture(deployBridgeFixture);
             let tx = bridgeManagementImpl.connect(owner).setSecurityGuard(validator2.address);
-            await expect(tx).to.emit(bridgeManagementImpl, "SetSecurityGuard").withArgs(validator2.address);
+            await expect(tx).to.emit(bridgeManagementImpl, "SecurityGuardChange").withArgs(validator2.address);
             await expect(await bridgeManagementImpl.getSecurityGuard()).to.be.equal(validator2.address);
+        });
+
+        it("Set funder", async function () {
+            const { bridgeManagementImpl, owner, validator2 } = await loadFixture(deployBridgeFixture);
+            let tx = bridgeManagementImpl.connect(owner).setFunder(validator2.address);
+            await expect(tx).to.emit(bridgeManagementImpl, "FunderChange").withArgs(validator2.address);
+            await expect(await bridgeManagementImpl.getFunder()).to.be.equal(validator2.address);
         });
 
         it("Non-owner fail to set owner", async function () {
             const { bridgeManagementImpl, validator2 } = await loadFixture(deployBridgeFixture);
             let tx = bridgeManagementImpl.connect(validator2).setOwner(validator2.address);
-            await expect(tx).to.be.revertedWith("Not owner");
+            await expect(tx).to.be.revertedWith("not owner");
         });
 
         it("Non-owner fail to set relayer", async function () {
             const { bridgeManagementImpl, validator2 } = await loadFixture(deployBridgeFixture);
             let tx = bridgeManagementImpl.connect(validator2).setRelayer(validator2.address);
-            await expect(tx).to.be.revertedWith("Not owner");
+            await expect(tx).to.be.revertedWith("not owner");
         });
 
         it("Non-owner fail to set governor", async function () {
             const { bridgeManagementImpl, validator2 } = await loadFixture(deployBridgeFixture);
             let tx = bridgeManagementImpl.connect(validator2).setGovernor(validator2.address);
-            await expect(tx).to.be.revertedWith("Not owner");
+            await expect(tx).to.be.revertedWith("not owner");
         });
     });
 
