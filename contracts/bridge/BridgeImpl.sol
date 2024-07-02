@@ -247,17 +247,6 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     }
 
     /**
-     * @notice Unregister a token bridge.
-     * @param _neoXToken the address of the token on the Neo X network.
-     */
-    function unregisterToken(
-        address _neoXToken
-    ) external override onlyGovernor onlyTokenBridgePaused(_neoXToken) {
-        _unregisterToken(_neoXToken);
-        emit TokenUnregister(_neoXToken, _getNeoN3Token(_neoXToken));
-    }
-
-    /**
      * @notice Pause a token bridge. No deposits, withdrawals, or claims of a token bridge can be made while it is locked.
      * @param _neoXToken the address of the token on the Neo X network.
      */
