@@ -159,7 +159,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     }
 
     /**
-     * @notice Withdraw Gas to provided address on Neo N3. The provided amount of Gas must have a precision of maximal 8 decimal points due to the GAS token on Neo N3 having 8 decimals.
+     * @notice Withdraw Gas to provided address on Neo N3. The provided amount of Gas after the fee deduction must have a precision of maximal 8 decimal points matching the 8 decimals of the GAS token on Neo N3.
      * @dev When invoking this function provide the amount of Gas to withdraw to Neo N3 as msg.value.
      * @param _to the address to which the Gas should be sent on Neo N3.
      * @param _maxFee the maximum fee that the sender is willing to pay for the withdrawal. If the actual fee is higher than this value, the withdrawal is aborted.
@@ -169,22 +169,25 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         uint256 _maxFee
     ) external payable onlyBridgeUnpaused onlyGasBridgeUnpaused {
         if (_to == address(0)) revert InvalidAddress();
-        uint256 msgValue = msg.value;
-        if ((msgValue % 1e10) != 0) revert InvalidAmount();
         StorageTypes.GasConfig memory config = _getGasBridgeConfig();
         StorageTypes.State memory state = _getGasBridgeWithdrawalState();
-        // Revert if the provided value is outside the allowed range.
-        if (msgValue < config.minAmount)
-            revert AmountBelowMinAmount(config.minAmount, msgValue);
-        if (msgValue > config.maxAmount)
-            revert AmountExceedsMaxAmount(config.maxAmount, msgValue);
+
         // Revert if the actual fee is higher than the provided max fee.
         if (config.fee > _maxFee) revert MaxFeeExceeded(_maxFee, config.fee);
         _addUnclaimedRewards(config.fee);
 
+        uint256 withdrawalAmount = msg.value - config.fee;
+        // Revert if the withdrawal amount is not a multiple of 1e10, matching the 8 decimals of Gas on Neo N3.
+        if ((withdrawalAmount % 1e10) != 0) revert InvalidAmount();
+        // Revert if the withdrawal amount is outside the allowed range.
+        if (withdrawalAmount < config.minAmount)
+            revert AmountBelowMinAmount(config.minAmount, withdrawalAmount);
+        if (withdrawalAmount > config.maxAmount)
+            revert AmountExceedsMaxAmount(config.maxAmount, withdrawalAmount);
+
         // The actual withdrawal amount is the sent value minus the fee.
         uint256 amountForHashing = GasBridgeLib._removeTenDecimals(
-            msgValue - config.fee
+            withdrawalAmount
         );
         uint256 newNonce = state.nonce + 1;
         bytes32 withdrawalHash = GasBridgeLib._hashGasBrideOp(
