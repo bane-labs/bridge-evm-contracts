@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import "./BridgeManagementStorage.sol";
 import "../interfaces/IBridgeManagement.sol";
 import "../library/BridgeLib.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
     constructor(
@@ -43,7 +44,7 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
         address[] memory recovered = new address[](threshold);
         for (uint i = 0; i < threshold; i++) {
             BridgeLib.Signature calldata sig = _signatures[i];
-            recovered[i] = ecrecover(signedRootMsg, sig.v, sig.r, sig.s);
+            recovered[i] = ECDSA.recover(signedRootMsg, sig.v, sig.r, sig.s);
         }
         // check if all recovered addresses are in the validator set
         uint covered = 0;
