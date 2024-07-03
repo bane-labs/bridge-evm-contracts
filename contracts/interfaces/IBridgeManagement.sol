@@ -11,8 +11,6 @@ interface IBridgeManagement {
     event SecurityGuardChange(address securityGuard);
     event FunderChange(address funder);
 
-    function setOwner(address _owner) external;
-
     function getOwner() external view returns (address);
 
     function setRelayer(address _relayer) external;

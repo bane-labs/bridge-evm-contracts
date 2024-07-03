@@ -21,9 +21,8 @@ contract BridgeManagementStorage is BridgeManagementStorageV1, UUPSUpgradeable {
         address _governor,
         address _securityGuard,
         address _funder
-    ) {
+    ) BridgeManagementStorageV1(_owner) {
         _disableInitializers();
-        _setOwner(_owner);
         _setRelayer(_relayer);
         _setValidators(_validators, _validatorThreshold);
         _setGovernor(_governor);
@@ -34,15 +33,6 @@ contract BridgeManagementStorage is BridgeManagementStorageV1, UUPSUpgradeable {
     error InvalidAddress();
     error InvalidValidatorArray();
     error InvalidValidatorThreshold();
-
-    modifier onlyOwner() {
-        require(msg.sender == owner, "not owner");
-        _;
-    }
-
-    function _setOwner(address _owner) internal {
-        owner = _owner;
-    }
 
     function _setValidators(
         address[] memory _validators,
