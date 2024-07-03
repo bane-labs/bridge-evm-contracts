@@ -34,6 +34,7 @@ contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     error InvalidFee();
     error InvalidTokenAddress();
     error InvalidTokenConfig();
+    error InvalidTransfer();
     error InvalidNonceSequence();
     error InvalidRoot();
     error InvalidValidatorSignatures();

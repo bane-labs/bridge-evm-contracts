@@ -485,6 +485,8 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
 
         // Compare the balance before and after the transfer to get the actual received amount. This is necessary if the token contract were to deduct a fee in transfers.
         uint256 bridgeBalanceAfter = erc20Token.balanceOf(address(this));
+        // Revert if there is an underflow.
+        if (bridgeBalanceAfter < bridgeBalanceBefore) revert InvalidTransfer();
         uint256 receivedAmount = bridgeBalanceAfter - bridgeBalanceBefore;
 
         // Check that the received amount is in the allowed range.
