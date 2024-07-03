@@ -236,14 +236,6 @@ contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         return tokenBridges[_neoXToken].config.neoN3Token != address(0);
     }
 
-    function _unregisterToken(address _neoXToken) internal {
-        if (!_isRegisteredToken(_neoXToken))
-            revert TokenBridgeNotRegistered(_neoXToken);
-        delete tokenBridges[_neoXToken];
-        // If a token is unregistered, the claimables remain in storage.
-        // This means, that they are locked, and can only ever be retrieved again if there's a new token bridge registration with the same Neo X token address.
-    }
-
     function _pauseToken(address _neoXToken) internal {
         if ((!_isRegisteredToken(_neoXToken)))
             revert TokenBridgeNotRegistered(_neoXToken);

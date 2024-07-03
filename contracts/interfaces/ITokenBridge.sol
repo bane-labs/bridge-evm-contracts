@@ -9,10 +9,6 @@ interface ITokenBridge {
         address indexed neoXToken,
         StorageTypes.TokenConfig tokenConfig
     );
-    event TokenUnregister(
-        address indexed neoXToken,
-        address indexed neoN3Token
-    );
     event TokenBridgePause(
         address indexed neoXToken,
         address indexed neoN3Token
@@ -73,8 +69,6 @@ interface ITokenBridge {
         address neoXToken,
         StorageTypes.TokenConfig calldata tokenConfig
     ) external;
-
-    function unregisterToken(address neoXToken) external;
 
     function pauseTokenBridge(address neoXToken) external;
 
