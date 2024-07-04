@@ -63,15 +63,6 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
         return covered == threshold;
     }
 
-    function setOwner(address _owner) external onlyOwner {
-        _setOwner(_owner);
-        emit OwnerChange(_owner);
-    }
-
-    function getOwner() external view override returns (address) {
-        return owner;
-    }
-
     function setRelayer(address _relayer) external onlyOwner {
         _setRelayer(_relayer);
         emit RelayerChange(_relayer);
