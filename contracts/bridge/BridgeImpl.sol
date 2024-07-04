@@ -436,10 +436,10 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
 
     /**
      * @notice Withdraw tokens to Neo N3. Requires that the sender has approved the provided amount to the bridge contract. The fee required for withdrawing that token can be fetched from its config (i.e., tokenBridges[_neoXToken].config.fee). It needs to be payed to this function (i.e., as msg.value).
-     * @dev This function transfers the provided amount of the provided token from the msg.sender to this contract. It requires that the msg.sender has previously approved at least the provided amount to this contract. Further, it computes the new root and updates the token withdrawal state.
+     * @dev This function transfers the provided amount of the provided token from the msg.sender to this contract. It requires that the msg.sender has previously approved at least the provided amount to this contract. Further, it computes the new root and updates the token withdrawal state. Note, that potential fee deductions by a token contract need to be considered when setting the _amount parameter, i.e., the allowed range for amount values is checked against the actual received amount of tokens.
      * @param _neoXToken the address of the token on the Neo X network.
      * @param _to the address to which the tokens should be sent on Neo N3.
-     * @param _amount the amount of tokens to withdraw to Neo N3.
+     * @param _amount the amount of tokens to transfer to the bridge contract in order to withdraw them to Neo N3.
      */
     function withdrawToken(
         address _neoXToken,
@@ -456,16 +456,14 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         if (!_isRegisteredToken(_neoXToken))
             revert TokenBridgeNotRegistered(_neoXToken);
         StorageTypes.TokenConfig memory config = _getTokenConfig(_neoXToken);
-        uint256 tokenAmount = _amount;
-        if (tokenAmount < config.minAmount)
-            revert AmountBelowMinAmount(config.minAmount, tokenAmount);
-        if (tokenAmount > config.maxAmount)
-            revert AmountExceedsMaxAmount(config.maxAmount, tokenAmount);
+
         // Revert if the provided value is lower than the required fee.
         if (msg.value < config.fee)
             revert InsufficientFee(msg.value, config.fee);
         _addUnclaimedRewards(msg.value);
 
+        IERC20 erc20Token = IERC20(_neoXToken);
+        uint256 bridgeBalanceBefore = erc20Token.balanceOf(address(this));
         // Execute the transfer of the tokens from the sender to the bridge contract.
         bool success = IERC20(_neoXToken).transferFrom(
             msg.sender,
@@ -474,15 +472,27 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         );
         if (!success) revert TransferFailed();
 
+        // Compare the balance before and after the transfer to get the actual received amount. This is necessary if the token contract were to deduct a fee in transfers.
+        uint256 bridgeBalanceAfter = erc20Token.balanceOf(address(this));
+        // Revert if there is an underflow.
+        if (bridgeBalanceAfter < bridgeBalanceBefore) revert InvalidTransfer();
+        uint256 receivedAmount = bridgeBalanceAfter - bridgeBalanceBefore;
+
+        // Check that the received amount is in the allowed range.
+        if (receivedAmount < config.minAmount)
+            revert AmountBelowMinAmount(config.minAmount, receivedAmount);
+        if (receivedAmount > config.maxAmount)
+            revert AmountExceedsMaxAmount(config.maxAmount, receivedAmount);
+
         // Compute the new root and update the token withdrawal state.
         StorageTypes.State memory state = _getTokenWithdrawalState(_neoXToken);
         uint256 newNonce = state.nonce + 1;
 
         if (config.executionType == StorageTypes.ExecutionType.NEO) {
-            if (tokenAmount % 1e18 != 0) {
+            if (receivedAmount % 1e18 != 0) {
                 revert InvalidAmount();
             }
-            tokenAmount /= 1e18;
+            receivedAmount /= 1e18;
         }
 
         bytes32 withdrawalHash = TokenBridgeLib._hashTokenBridgeOp(
@@ -490,7 +500,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
             _neoXToken,
             newNonce,
             _to,
-            tokenAmount
+            receivedAmount
         );
         bytes32 newRoot = BridgeLib._computeNewRoot(state.root, withdrawalHash);
         _setTokenWithdrawalState(
@@ -502,7 +512,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
             config.neoN3Token,
             newNonce,
             _to,
-            tokenAmount,
+            receivedAmount,
             msg.sender,
             withdrawalHash,
             newRoot
