@@ -68,7 +68,7 @@ describe("Bridge Management", function () {
 
         it("Should have the right owner", async function () {
             const { bridgeManagementImpl, owner } = await loadFixture(deployBridgeFixture);
-            expect(await bridgeManagementImpl.getOwner()).to.equal(owner.address);
+            expect(await bridgeManagementImpl.owner()).to.equal(owner.address);
         });
 
         it("Should have the right governor", async function () {
@@ -94,7 +94,7 @@ describe("Bridge Management", function () {
             const txTransfer = await bridgeManagementImpl.connect(owner).transferOwnership(validator2.address);
             await expect(txTransfer).to.emit(bridgeManagementImpl, "OwnershipTransferStarted").withArgs(owner.address, validator2.address);
             await expect(await bridgeManagementImpl.pendingOwner()).to.be.equal(validator2.address);
-            await expect(await bridgeManagementImpl.getOwner()).to.be.equal(owner.address);
+            await expect(await bridgeManagementImpl.owner()).to.be.equal(owner.address);
 
             // Try accepting with wrong account
             const txAcceptWrongAccount = bridgeManagementImpl.connect(validator1).acceptOwnership();
@@ -104,7 +104,7 @@ describe("Bridge Management", function () {
             const txAccept = await bridgeManagementImpl.connect(validator2).acceptOwnership();
             await expect(txAccept).to.emit(bridgeManagementImpl, "OwnershipTransferred").withArgs(owner.address, validator2.address);
             await expect(await bridgeManagementImpl.pendingOwner()).to.be.equal(ZeroAddress);
-            await expect(await bridgeManagementImpl.getOwner()).to.be.equal(validator2.address);
+            await expect(await bridgeManagementImpl.owner()).to.be.equal(validator2.address);
         });
 
         it("Set validators with unique address", async function () {
