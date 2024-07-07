@@ -5,6 +5,8 @@ import '@typechain/hardhat'
 import '@openzeppelin/hardhat-upgrades'
 import '@nomicfoundation/hardhat-chai-matchers'
 import 'hardhat-storage-layout'
+import "@nomicfoundation/hardhat-foundry";
+
 
 /** @type import('hardhat/config').HardhatUserConfig */
 const config: HardhatUserConfig = {

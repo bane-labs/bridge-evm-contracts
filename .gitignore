@@ -120,3 +120,12 @@ lint/tmp/
 
 node_modules
 typechain-types/
+
+#foundry
+
+lib/
+cache_forge/
+crytic-export
+
+
+.deps/npm/@openzeppelin
