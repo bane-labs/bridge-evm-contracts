@@ -6,7 +6,6 @@ import {
     to1, to2, to3, to4, to5, to6, to7, to8, to9, to0,
     toEthDecimals, toNeoDecimals, hashDepositOrWithdrawal, computeRoot, validator1, validator2, validator3, validator7
 } from "./helper";
-import { BridgeImpl } from "../typechain-types";
 
 const Depositdata1 = { nonce: 1, to: validator1, amount: 100000000n };
 const Depositdata2 = { nonce: 2, to: validator2, amount: 200000000n };

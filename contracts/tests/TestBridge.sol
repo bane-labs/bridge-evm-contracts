@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
+
 import "../bridge/BridgeImpl.sol";
 
 contract TestBridge is BridgeImpl {
-    constructor(address m) BridgeImpl(m) {}
-
     function isRegisteredToken(address neoXToken) public view returns (bool) {
         return _isRegisteredToken(neoXToken);
     }
@@ -36,7 +35,9 @@ contract TestBridge is BridgeImpl {
         return _getTokenDepositState(neoXToken);
     }
 
-    function getTokenWithdrawalState( address _neoXToken) public view returns (StorageTypes.State memory withdrawalState) {
+    function getTokenWithdrawalState(
+        address _neoXToken
+    ) public view returns (StorageTypes.State memory withdrawalState) {
         return _getTokenWithdrawalState(_neoXToken);
     }
 
