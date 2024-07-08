@@ -9,8 +9,8 @@ library GasBridgeLib {
         BridgeLib.DepositData[] calldata _deposits
     ) internal pure returns (bytes32) {
         bytes32 parent = _previousRoot;
-        uint depositsLength = _deposits.length;
-        for (uint i = 0; i < depositsLength; i++) {
+        uint256 depositsLength = _deposits.length;
+        for (uint256 i = 0; i < depositsLength; i++) {
             BridgeLib.DepositData calldata depositData = _deposits[i];
             bytes32 depositHash = _hashGasBrideOp(
                 depositData.nonce,

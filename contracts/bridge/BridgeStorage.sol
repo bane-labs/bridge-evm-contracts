@@ -205,7 +205,7 @@ contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         gasBridge.config.maxAmount = _amount;
     }
 
-    function _setMaxGasDeposits(uint8 _maxDeposits) internal {
+    function _setMaxGasDeposits(uint256 _maxDeposits) internal {
         if (_maxDeposits == 0) revert InvalidAmount();
         gasBridge.config.maxDeposits = _maxDeposits;
     }

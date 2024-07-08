@@ -10,7 +10,7 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
     constructor(
         address _owner,
         address _relayer,
-        uint8 _validatorThreshold,
+        uint256 _validatorThreshold,
         address[] memory _validators,
         address _governor,
         address _securityGuard,
@@ -42,16 +42,16 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
             )
         );
         address[] memory recovered = new address[](threshold);
-        for (uint i = 0; i < threshold; i++) {
+        for (uint256 i = 0; i < threshold; i++) {
             BridgeLib.Signature calldata sig = _signatures[i];
             recovered[i] = ECDSA.recover(signedRootMsg, sig.v, sig.r, sig.s);
         }
         // check if all recovered addresses are in the validator set
-        uint covered = 0;
-        uint n = 0;
-        uint j;
-        uint validatorsLength = validators.length;
-        for (uint i = 0; i < threshold; i++) {
+        uint256 covered = 0;
+        uint256 n = 0;
+        uint256 j;
+        uint256 validatorsLength = validators.length;
+        for (uint256 i = 0; i < threshold; i++) {
             for (j = n; j < validatorsLength; j++) {
                 if (recovered[i] == validators[j]) {
                     covered++;
@@ -74,7 +74,7 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
 
     function setValidators(
         address[] calldata _validators,
-        uint threshold
+        uint256 threshold
     ) external onlyOwner {
         _setValidators(_validators, threshold);
         emit ValidatorsChange(_validators, threshold);
@@ -84,11 +84,11 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
         return validators;
     }
 
-    function getValidator(uint _index) external view returns (address) {
+    function getValidator(uint256 _index) external view returns (address) {
         return validators[_index];
     }
 
-    function getValidatorThreshold() external view returns (uint) {
+    function getValidatorThreshold() external view returns (uint256) {
         return validatorThreshold;
     }
 
