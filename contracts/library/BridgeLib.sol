@@ -20,7 +20,7 @@ library BridgeLib {
         uint256 _startNonce
     ) internal pure returns (bool) {
         uint depositsLength = _deposits.length;
-        for (uint8 i = 1; i <= depositsLength; i++) {
+        for (uint256 i = 1; i <= depositsLength; i++) {
             if (_deposits[i - 1].nonce != _startNonce + i) {
                 return false;
             }

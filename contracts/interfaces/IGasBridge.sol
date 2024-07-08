@@ -25,7 +25,7 @@ interface IGasBridge {
     event GasWithdrawalFeeChange(uint256 newFee);
     event MinGasWithdrawalChange(uint256 newAmount);
     event MaxGasWithdrawalChange(uint256 amount);
-    event MaxGasDepositsChange(uint8 amount);
+    event MaxGasDepositsChange(uint256 amount);
 
     function pauseGasBridge() external;
 
@@ -47,5 +47,5 @@ interface IGasBridge {
 
     function setMaxGasWithdrawalAmount(uint256 _amount) external;
 
-    function setMaxGasDeposits(uint8 _maxNrDeposits) external;
+    function setMaxGasDeposits(uint256 _maxNrDeposits) external;
 }

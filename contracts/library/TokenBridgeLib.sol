@@ -17,9 +17,16 @@ library TokenBridgeLib {
         uint256 _amount,
         address _to
     ) internal returns (bool) {
-        bytes memory transferCall = abi.encodeCall(IERC20.transfer, (_to, _amount));
-        (bool success, bytes memory returndata) = address(_neoXToken).call(transferCall);
-        return success && (returndata.length == 0 || abi.decode(returndata, (bool)));
+        bytes memory transferCall = abi.encodeCall(
+            IERC20.transfer,
+            (_to, _amount)
+        );
+        (bool success, bytes memory returndata) = address(_neoXToken).call(
+            transferCall
+        );
+        return
+            success &&
+            (returndata.length == 0 || abi.decode(returndata, (bool)));
     }
 
     /**
@@ -39,8 +46,8 @@ library TokenBridgeLib {
         BridgeLib.DepositData[] calldata _deposits
     ) internal pure returns (bytes32) {
         bytes32 parent = _previousRoot;
-        uint depositsLength = _deposits.length;
-        for (uint i = 0; i < depositsLength; i++) {
+        uint256 depositsLength = _deposits.length;
+        for (uint256 i = 0; i < depositsLength; i++) {
             BridgeLib.DepositData calldata depositData = _deposits[i];
             bytes32 depositHash = _hashTokenBridgeOp(
                 _neoN3Token,

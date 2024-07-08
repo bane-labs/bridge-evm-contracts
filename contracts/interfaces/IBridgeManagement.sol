@@ -6,7 +6,7 @@ import "../library/BridgeLib.sol";
 interface IBridgeManagement {
     event OwnerChange(address owner);
     event RelayerChange(address relayer);
-    event ValidatorsChange(address[] validators, uint threshold);
+    event ValidatorsChange(address[] validators, uint256 threshold);
     event GovernorChange(address governor);
     event SecurityGuardChange(address securityGuard);
     event FunderChange(address funder);
@@ -17,14 +17,14 @@ interface IBridgeManagement {
 
     function setValidators(
         address[] calldata _validators,
-        uint threshold
+        uint256 threshold
     ) external;
 
     function getValidators() external view returns (address[] memory);
 
-    function getValidator(uint _index) external view returns (address);
+    function getValidator(uint256 _index) external view returns (address);
 
-    function getValidatorThreshold() external view returns (uint);
+    function getValidatorThreshold() external view returns (uint256);
 
     function verifyValidatorSignatures(
         bytes32 _newDepositRoot,

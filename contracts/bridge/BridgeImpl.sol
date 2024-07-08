@@ -74,7 +74,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     {
         StorageTypes.State memory state = _getGasBridgeDepositState();
         StorageTypes.GasConfig memory config = _getGasBridgeConfig();
-        uint depositLength = _deposits.length;
+        uint256 depositLength = _deposits.length;
         if (depositLength == 0) revert InvalidDepositsLength();
         if (depositLength > config.maxDeposits) revert InvalidDepositsLength();
         if (!BridgeLib._subsequentNonces(_deposits, state.nonce))
@@ -104,8 +104,8 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     function _executeGasTransfers(
         BridgeLib.DepositData[] calldata _deposits
     ) private {
-        uint depositLength = _deposits.length;
-        for (uint i = 0; i < depositLength; i++) {
+        uint256 depositLength = _deposits.length;
+        for (uint256 i = 0; i < depositLength; i++) {
             BridgeLib.DepositData calldata depositEntry = _deposits[i];
             address to = depositEntry.to;
             if (BridgeLib._isContract(to)) {
@@ -224,7 +224,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         emit MaxGasWithdrawalChange(_amount);
     }
 
-    function setMaxGasDeposits(uint8 _maxNrDeposits) external onlyGovernor {
+    function setMaxGasDeposits(uint256 _maxNrDeposits) external onlyGovernor {
         _setMaxGasDeposits(_maxNrDeposits);
         emit MaxGasDepositsChange(_maxNrDeposits);
     }
@@ -304,7 +304,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         StorageTypes.TokenConfig memory config = _getTokenConfig(_neoXToken);
 
         // Check parameter validity
-        uint depositLength = _deposits.length;
+        uint256 depositLength = _deposits.length;
         if (depositLength == 0) revert InvalidDepositsLength();
         if (depositLength > config.maxDeposits) revert InvalidDepositsLength();
         // Check if provided deposit data's nonces are subsequent to the current nonce and each other.
@@ -351,9 +351,9 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         StorageTypes.ExecutionType _executionType,
         BridgeLib.DepositData[] calldata _deposits
     ) private {
-        uint depositLength = _deposits.length;
+        uint256 depositLength = _deposits.length;
         // Execute the token distribution for each deposit entry
-        for (uint i = 0; i < depositLength; i++) {
+        for (uint256 i = 0; i < depositLength; i++) {
             BridgeLib.DepositData calldata depositEntry = _deposits[i];
             address to = depositEntry.to;
             uint256 transferAmount = depositEntry.amount;
@@ -523,9 +523,9 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         address[] calldata _neoXTokens,
         uint256[] calldata _fees
     ) external override onlyGovernor {
-        uint nrTokens = _neoXTokens.length;
+        uint256 nrTokens = _neoXTokens.length;
         if (nrTokens != _fees.length) revert LengthMismatch();
-        for (uint i = 0; i < nrTokens; i++) {
+        for (uint256 i = 0; i < nrTokens; i++) {
             uint256 fee = _fees[i];
             _setTokenWithdrawalFee(_neoXTokens[i], fee);
             emit TokenWithdrawalFeeChange(_neoXTokens[i], fee);
@@ -536,9 +536,9 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         address[] calldata _neoXTokens,
         uint256[] calldata _minAmounts
     ) external override onlyGovernor {
-        uint nrTokens = _neoXTokens.length;
+        uint256 nrTokens = _neoXTokens.length;
         if (nrTokens != _minAmounts.length) revert LengthMismatch();
-        for (uint i = 0; i < nrTokens; i++) {
+        for (uint256 i = 0; i < nrTokens; i++) {
             uint256 minAmount = _minAmounts[i];
             _setTokenMinWithdrawalAmount(_neoXTokens[i], minAmount);
             emit MinTokenWithdrawalAmountChange(_neoXTokens[i], minAmount);
@@ -549,9 +549,9 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         address[] calldata _neoXTokens,
         uint256[] calldata _maxAmounts
     ) external override onlyGovernor {
-        uint nrTokens = _neoXTokens.length;
+        uint256 nrTokens = _neoXTokens.length;
         if (nrTokens != _maxAmounts.length) revert LengthMismatch();
-        for (uint i = 0; i < nrTokens; i++) {
+        for (uint256 i = 0; i < nrTokens; i++) {
             uint256 maxAmount = _maxAmounts[i];
             _setTokenMaxWithdrawalAmount(_neoXTokens[i], maxAmount);
             emit MaxTokenWithdrawalAmountChange(_neoXTokens[i], maxAmount);
@@ -562,9 +562,9 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         address[] calldata _neoXTokens,
         uint256[] calldata _maxDeposits
     ) external override onlyGovernor {
-        uint nrTokens = _neoXTokens.length;
+        uint256 nrTokens = _neoXTokens.length;
         if (nrTokens != _maxDeposits.length) revert LengthMismatch();
-        for (uint i = 0; i < nrTokens; i++) {
+        for (uint256 i = 0; i < nrTokens; i++) {
             uint256 maxDeposits = _maxDeposits[i];
             _setMaxTokenDeposits(_neoXTokens[i], maxDeposits);
             emit MaxTokenDepositsChange(_neoXTokens[i], maxDeposits);
