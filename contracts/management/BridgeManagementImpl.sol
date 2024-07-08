@@ -24,6 +24,7 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
         _setFunder(_funder);
     }
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
     }
