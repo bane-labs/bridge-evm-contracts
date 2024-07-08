@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { ZeroAddress } from "ethers";
 
@@ -20,8 +20,8 @@ describe("Bridge Management", function () {
             deployer,
             funder
         ] = await ethers.getSigners();
-        const BridgeManagementFactory = await ethers.getContractFactory("BridgeManagementImpl");
-        const bridgeManagementImpl = await BridgeManagementFactory.connect(deployer).deploy(
+        const BridgeManagementFactory = (await ethers.getContractFactory("BridgeManagementImpl"));
+        const proxy = await upgrades.deployProxy(BridgeManagementFactory, [
             owner.address,
             relayer.address,
             5,
@@ -29,10 +29,13 @@ describe("Bridge Management", function () {
             governor.address,
             securityGuard.address,
             funder.address
-        );
-        await bridgeManagementImpl.waitForDeployment();
+        ], { kind: "uups", unsafeAllow: ["constructor"] });
+        await proxy.waitForDeployment();
+
+        const bridgeManagementImpl = proxy as BridgeManagementImpl;
+
         return {
-            bridgeManagementImpl: bridgeManagementImpl,
+            bridgeManagementImpl,
             relayer,
             validator1,
             validator2,

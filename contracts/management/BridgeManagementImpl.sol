@@ -7,7 +7,7 @@ import "../library/BridgeLib.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
-    constructor(
+    function initialize(
         address _owner,
         address _relayer,
         uint256 _validatorThreshold,
@@ -15,17 +15,18 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
         address _governor,
         address _securityGuard,
         address _funder
-    )
-        BridgeManagementStorage(
-            _owner,
-            _relayer,
-            _validatorThreshold,
-            _validators,
-            _governor,
-            _securityGuard,
-            _funder
-        )
-    {}
+    ) public initializer {
+        __Ownable_init(_owner);
+        _setRelayer(_relayer);
+        _setValidators(_validators, _validatorThreshold);
+        _setGovernor(_governor);
+        _setSecurityGuard(_securityGuard);
+        _setFunder(_funder);
+    }
+
+    constructor() {
+        _disableInitializers();
+    }
 
     function verifyValidatorSignatures(
         bytes32 _newDepositRoot,
