@@ -123,7 +123,6 @@ typechain-types/
 
 #foundry
 
-lib/
 cache_forge/
 crytic-export
 
