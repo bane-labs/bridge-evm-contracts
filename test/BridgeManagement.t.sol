@@ -4,9 +4,13 @@ import "../lib/forge-std/src/Test.sol";
 import "../contracts/management/BridgeManagementImpl.sol";
 import "../contracts/tests/SigUtils.sol";
 import "../contracts/library/BridgeLib.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import {Upgrades, Options} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 
 contract BridgeManagementImplTest is Test, SigUtils {
-    BridgeManagementImpl bridgeManagementImpl;
+    BridgeManagementImpl managementProxy;
+    address managementProxyAddress;
+
     SigUtils sigUtils;
     address public owner = 0xBcd4042DE499D14e55001CcbB24a551F3b954096;
     address public funder = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
@@ -33,24 +37,49 @@ contract BridgeManagementImplTest is Test, SigUtils {
         validatorsAddresses.push(vm.addr(user5PrivateKey));
         validatorsKeys.push(user6PrivateKey);
         validatorsAddresses.push(vm.addr(user6PrivateKey));
-        bridgeManagementImpl = new BridgeManagementImpl(
-            owner,
-            relayer,
-            7,
-            validatorsAddresses,
-            governor,
-            securityGuard,
-            funder
+
+        // Allow constructor to bypass the safety check in deployUUPSProxy.
+        // The constructor only contains _disableInitializers() which is safe to bypass.
+        Options memory opts;
+        opts.unsafeAllow = "constructor";
+        // Deploy the bridge management implementation behind a UUPS proxy and initialize it with the provided parameters.
+        managementProxyAddress = Upgrades.deployUUPSProxy(
+            "BridgeManagementImpl.sol",
+            abi.encodeCall(
+                BridgeManagementImpl.initialize,
+                (
+                    owner,
+                    relayer,
+                    5,
+                    validatorsAddresses,
+                    governor,
+                    securityGuard,
+                    funder
+                )
+            ),
+            opts
         );
+        managementProxy = BridgeManagementImpl(payable(managementProxyAddress));
     }
 
     function testSetOwner() public {
-        assertEq(bridgeManagementImpl.getOwner(), owner);
-        vm.expectRevert(bytes("not owner"));
-        bridgeManagementImpl.setOwner(funder);
+        assertEq(managementProxy.owner(), owner);
+        // vm.expectRevert("not owner");
+        // vm.expectRevert(bytes("not owner"));
+        vm.prank(funder);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Ownable.OwnableUnauthorizedAccount.selector,
+                funder
+            )
+        );
+        managementProxy.transferOwnership(funder);
         vm.prank(owner);
-        bridgeManagementImpl.setOwner(funder);
-        assertEq(bridgeManagementImpl.getOwner(), funder);
+        managementProxy.transferOwnership(funder);
+        assertEq(managementProxy.pendingOwner(), funder);
+        vm.prank(funder);
+        managementProxy.acceptOwnership();
+        assertEq(managementProxy.owner(), funder);
     }
 
     function testVerifyValidatorSignatures() public view {
@@ -72,10 +101,7 @@ contract BridgeManagementImplTest is Test, SigUtils {
             assertEq(recoveredAddr, validatorsAddresses[i]);
         }
         assert(
-            bridgeManagementImpl.verifyValidatorSignatures(
-                _depositRoot,
-                _signatures
-            )
+            managementProxy.verifyValidatorSignatures(_depositRoot, _signatures)
         );
     }
 }
