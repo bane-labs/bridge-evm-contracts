@@ -15,6 +15,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         uint256 _maxAmount,
         uint256 _maxDeposits
     ) public initializer {
+        __ReentrancyGuard_init();
         management = IBridgeManagement(_management);
         gasBridge = StorageTypes.GasBridge({
             paused: false,
