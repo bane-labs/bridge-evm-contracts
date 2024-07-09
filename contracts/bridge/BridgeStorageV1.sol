@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
  * @author BaneLabs
  * @dev This contract holds the storage variables for the Bridge contract and outlines the slot allocations of the contracts storage. Storage slot modifications should be done with care to avoid conflicts with existing storage slots in the proxy.
  */
-contract BridgeStorageV1 is ReentrancyGuard {
+abstract contract BridgeStorageV1 is ReentrancyGuard {
     // Slot 0 is taken by ReentrancyGuard's _status storage value
     // Slots 1-99 remain empty for future upgrades (if further storage extension is needed, e.g., similar to ReentrancyGuard's _status var, this contract can easily be extended and the new var can use the next slot from _gap0, so that the other storage variables can remain in this file)
     uint256[99] private _gap0;
@@ -32,19 +32,4 @@ contract BridgeStorageV1 is ReentrancyGuard {
         public tokenClaimables;
     // Slots 105-113 (9 slots)
     StorageTypes.GasBridge public gasBridge;
-
-    constructor(address _management) {
-        management = IBridgeManagement(_management);
-        gasBridge = StorageTypes.GasBridge({
-            paused: false,
-            depositState: StorageTypes.State({nonce: 0, root: 0x0}),
-            withdrawalState: StorageTypes.State({nonce: 0, root: 0x0}),
-            config: StorageTypes.GasConfig({
-                fee: 1e17,
-                minAmount: 1e18,
-                maxAmount: 1e22,
-                maxDeposits: 100
-            })
-        });
-    }
 }

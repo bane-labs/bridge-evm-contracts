@@ -3,13 +3,11 @@ pragma solidity ^0.8.24;
 
 import "../library/ManagementLib.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts/access/Ownable2Step.sol";
+import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 
-contract BridgeManagementStorageV1 is Ownable2Step {
-    // Slot 0 is taken by Ownable2Step's _owner storage value
-    // Slot 1 is taken by Ownable2Step's _pendingOwner storage value
-    // Slots 2-99 remain empty for future upgrades (if further storage extension is needed, e.g., similar to ReentrancyGuard's _status var, this contract can easily be extended and the new var can use the next slot from _gap0, so that the other storage variables can remain in this file)
-    uint256[98] private _gap0;
+abstract contract BridgeManagementStorageV1 is Ownable2StepUpgradeable {
+    // Slots 0-99 remain empty for future upgrades (if further storage extension is needed, e.g., similar to ReentrancyGuard's _status var, this contract can easily be extended and the new var can use the next slot from _gap0, so that the other storage variables can remain in this file)
+    uint256[100] private _gap0;
 
     // Slot 100
     address internal relayer;
@@ -28,6 +26,4 @@ contract BridgeManagementStorageV1 is Ownable2Step {
 
     // Slot 105
     address internal funder;
-
-    constructor(address initialOwner) Ownable(initialOwner) {}
 }

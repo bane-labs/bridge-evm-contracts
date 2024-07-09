@@ -3,32 +3,17 @@ pragma solidity ^0.8.24;
 
 import "../library/ManagementLib.sol";
 import "./BridgeManagementStorageV1.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /**
  * @dev This contract holds errors, modifiers, internal view functions and functions that directly modify the storage. The modification functions have logical checks but no access-checks. For example, registering a token should only be viable if there is no entry for that token already. However, checking if the msg.sender is allowed to do so should be handled in a higher-level contract (i.e., in this case the corresponding Impl contract).
  */
-contract BridgeManagementStorage is BridgeManagementStorageV1, UUPSUpgradeable {
+abstract contract BridgeManagementStorage is
+    BridgeManagementStorageV1,
+    UUPSUpgradeable
+{
     address public constant SELF = 0x1212100000000000000000000000000000000005;
     address public constant GOV_ADMIN =
         0x1212000000000000000000000000000000000000;
-
-    constructor(
-        address _owner,
-        address _relayer,
-        uint256 _validatorThreshold,
-        address[] memory _validators,
-        address _governor,
-        address _securityGuard,
-        address _funder
-    ) BridgeManagementStorageV1(_owner) {
-        _disableInitializers();
-        _setRelayer(_relayer);
-        _setValidators(_validators, _validatorThreshold);
-        _setGovernor(_governor);
-        _setSecurityGuard(_securityGuard);
-        _setFunder(_funder);
-    }
 
     error InvalidAddress();
     error InvalidValidatorArray();

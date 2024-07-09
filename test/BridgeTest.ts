@@ -1,7 +1,6 @@
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-import { getContractAddress } from "@ethersproject/address";
 import { getValidatorSignatures } from "../utils/signature-utils";
 import {
     to1, to2, to3, to4, to5, to6, to7, to8, to9, to0,
@@ -30,8 +29,8 @@ describe("Bridge Implementation", function () {
             funder
         ] = await ethers.getSigners();
 
-        const BridgeManagementFactory = await ethers.getContractFactory("BridgeManagementImpl");
-        const bridgeManagementContract = await BridgeManagementFactory.connect(deployer).deploy(
+        const BridgeManagementFactory = (await ethers.getContractFactory("BridgeManagementImpl"));
+        const bridgeManagementProxy = await upgrades.deployProxy(BridgeManagementFactory, [
             managementOwner.address,
             relayer.address,
             5,
@@ -39,22 +38,21 @@ describe("Bridge Implementation", function () {
             governor.address,
             securityGuard.address,
             funder.address
-        );
+        ], { kind: "uups", unsafeAllow: ["constructor"] });
+        await bridgeManagementProxy.waitForDeployment();
+        const bridgeManagement = bridgeManagementProxy as BridgeManagementImpl;
 
-        const BridgeContract = await ethers.getContractFactory("BridgeImpl");
-        const contractAddress = getContractAddress({
-            from: deployer.address,
-            nonce: await deployer.getNonce(),
-        });
-        // Fund the bridge contract's address before deployment.
-        await funder.sendTransaction({ to: contractAddress, value: ethers.parseEther("80.0") });
+        const BridgeContractFactory = await ethers.getContractFactory("BridgeImpl");
+        const bridgeProxy = await upgrades.deployProxy(BridgeContractFactory, [await bridgeManagement.getAddress(), ethers.parseEther("0.1"), ethers.parseEther("1"), ethers.parseEther("10000"), 100], { kind: "uups", unsafeAllow: ["constructor"] });
+        await bridgeProxy.waitForDeployment();
+        const bridge = bridgeProxy as BridgeImpl;
 
-        const bridgeContract = await BridgeContract.connect(deployer).deploy(bridgeManagementContract);
-        await bridgeContract.waitForDeployment();
+        // Fund the bridge contract.
+        await funder.sendTransaction({ to: bridge, value: ethers.parseEther("80.0") });
 
         return {
-            bridgeContract,
-            bridgeManagementContract,
+            bridgeContract: bridge,
+            bridgeManagementContract: bridgeManagement,
             relayer,
             validator1,
             validator2,
