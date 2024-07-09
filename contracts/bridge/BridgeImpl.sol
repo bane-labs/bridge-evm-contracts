@@ -265,8 +265,6 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         StorageTypes.TokenConfig calldata _tokenConfig
     ) external override onlyGovernor {
         if (_neoXToken == address(0)) revert InvalidTokenAddress();
-        if (_tokenConfig.minAmount > _tokenConfig.maxAmount)
-            revert InvalidAmount();
         if (_tokenConfig.neoN3Token == address(0)) revert InvalidAddress();
 
         _registerToken(_neoXToken, _tokenConfig);
