@@ -253,7 +253,7 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         address _neoXToken,
         uint256 _amount
     ) internal {
-        if (_amount > tokenBridges[_neoXToken].config.maxAmount)
+        if (_amount >= tokenBridges[_neoXToken].config.maxAmount)
             revert InvalidAmount();
         tokenBridges[_neoXToken].config.minAmount = _amount;
     }
@@ -262,7 +262,7 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         address _neoXToken,
         uint256 _amount
     ) internal {
-        if (_amount < tokenBridges[_neoXToken].config.minAmount)
+        if (_amount <= tokenBridges[_neoXToken].config.minAmount)
             revert InvalidAmount();
         tokenBridges[_neoXToken].config.maxAmount = _amount;
     }
