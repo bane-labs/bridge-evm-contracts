@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { ZeroAddress } from "ethers";
 
@@ -20,8 +20,8 @@ describe("Bridge Management", function () {
             deployer,
             funder
         ] = await ethers.getSigners();
-        const BridgeManagementFactory = await ethers.getContractFactory("BridgeManagementImpl");
-        const bridgeManagementImpl = await BridgeManagementFactory.connect(deployer).deploy(
+        const BridgeManagementFactory = (await ethers.getContractFactory("BridgeManagementImpl"));
+        const proxy = await upgrades.deployProxy(BridgeManagementFactory, [
             owner.address,
             relayer.address,
             5,
@@ -29,10 +29,13 @@ describe("Bridge Management", function () {
             governor.address,
             securityGuard.address,
             funder.address
-        );
-        await bridgeManagementImpl.waitForDeployment();
+        ], { kind: "uups", unsafeAllow: ["constructor"] });
+        await proxy.waitForDeployment();
+
+        const bridgeManagementImpl = proxy as BridgeManagementImpl;
+
         return {
-            bridgeManagementImpl: bridgeManagementImpl,
+            bridgeManagementImpl,
             relayer,
             validator1,
             validator2,
@@ -68,7 +71,7 @@ describe("Bridge Management", function () {
 
         it("Should have the right owner", async function () {
             const { bridgeManagementImpl, owner } = await loadFixture(deployBridgeFixture);
-            expect(await bridgeManagementImpl.getOwner()).to.equal(owner.address);
+            expect(await bridgeManagementImpl.owner()).to.equal(owner.address);
         });
 
         it("Should have the right governor", async function () {
@@ -89,10 +92,22 @@ describe("Bridge Management", function () {
 
     describe("Bridge role setting", function () {
         it("Set owner", async function () {
-            const { bridgeManagementImpl, owner, validator2 } = await loadFixture(deployBridgeFixture);
-            const tx = await bridgeManagementImpl.connect(owner).setOwner(validator2.address);
-            await expect(tx).to.emit(bridgeManagementImpl, "OwnerChange").withArgs(validator2.address);
-            await expect(await bridgeManagementImpl.getOwner()).to.be.equal(validator2.address);
+            const { bridgeManagementImpl, owner, validator1, validator2 } = await loadFixture(deployBridgeFixture);
+            // Start ownership transfer
+            const txTransfer = await bridgeManagementImpl.connect(owner).transferOwnership(validator2.address);
+            await expect(txTransfer).to.emit(bridgeManagementImpl, "OwnershipTransferStarted").withArgs(owner.address, validator2.address);
+            await expect(await bridgeManagementImpl.pendingOwner()).to.be.equal(validator2.address);
+            await expect(await bridgeManagementImpl.owner()).to.be.equal(owner.address);
+
+            // Try accepting with wrong account
+            const txAcceptWrongAccount = bridgeManagementImpl.connect(validator1).acceptOwnership();
+            await expect(txAcceptWrongAccount).to.be.revertedWithCustomError(bridgeManagementImpl, "OwnableUnauthorizedAccount");
+
+            // Accept ownership with correct account
+            const txAccept = await bridgeManagementImpl.connect(validator2).acceptOwnership();
+            await expect(txAccept).to.emit(bridgeManagementImpl, "OwnershipTransferred").withArgs(owner.address, validator2.address);
+            await expect(await bridgeManagementImpl.pendingOwner()).to.be.equal(ZeroAddress);
+            await expect(await bridgeManagementImpl.owner()).to.be.equal(validator2.address);
         });
 
         it("Set validators with unique address", async function () {
@@ -179,22 +194,34 @@ describe("Bridge Management", function () {
             await expect(await bridgeManagementImpl.getFunder()).to.be.equal(validator2.address);
         });
 
-        it("Non-owner fail to set owner", async function () {
+        it("Non-owner fail to start ownership transfer", async function () {
             const { bridgeManagementImpl, validator2 } = await loadFixture(deployBridgeFixture);
-            let tx = bridgeManagementImpl.connect(validator2).setOwner(validator2.address);
-            await expect(tx).to.be.revertedWith("not owner");
+            let tx = bridgeManagementImpl.connect(validator2).transferOwnership(validator2.address);
+            await expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "OwnableUnauthorizedAccount");
         });
 
         it("Non-owner fail to set relayer", async function () {
-            const { bridgeManagementImpl, validator2 } = await loadFixture(deployBridgeFixture);
-            let tx = bridgeManagementImpl.connect(validator2).setRelayer(validator2.address);
-            await expect(tx).to.be.revertedWith("not owner");
+            const { bridgeManagementImpl, validator1, validator2 } = await loadFixture(deployBridgeFixture);
+            let tx = bridgeManagementImpl.connect(validator2).setRelayer(validator1.address);
+            await expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "OwnableUnauthorizedAccount").withArgs(validator2.address);
         });
 
         it("Non-owner fail to set governor", async function () {
-            const { bridgeManagementImpl, validator2 } = await loadFixture(deployBridgeFixture);
-            let tx = bridgeManagementImpl.connect(validator2).setGovernor(validator2.address);
-            await expect(tx).to.be.revertedWith("not owner");
+            const { bridgeManagementImpl, validator1, validator2 } = await loadFixture(deployBridgeFixture);
+            let tx = bridgeManagementImpl.connect(validator2).setGovernor(validator1.address);
+            await expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "OwnableUnauthorizedAccount").withArgs(validator2.address);
+        });
+
+        it("Non-owner fail to set security guard", async function () {
+            const { bridgeManagementImpl, validator1, validator2 } = await loadFixture(deployBridgeFixture);
+            let tx = bridgeManagementImpl.connect(validator2).setSecurityGuard(validator1.address);
+            await expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "OwnableUnauthorizedAccount").withArgs(validator2.address);
+        });
+
+        it("Non-owner fail to set funder", async function () {
+            const { bridgeManagementImpl, validator1, validator2 } = await loadFixture(deployBridgeFixture);
+            let tx = bridgeManagementImpl.connect(validator2).setFunder(validator1.address);
+            await expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "OwnableUnauthorizedAccount").withArgs(validator2.address);
         });
     });
 

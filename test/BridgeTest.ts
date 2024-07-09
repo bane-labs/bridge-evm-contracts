@@ -1,7 +1,6 @@
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-import { getContractAddress } from "@ethersproject/address";
 import { getValidatorSignatures } from "../utils/signature-utils";
 import {
     to1, to2, to3, to4, to5, to6, to7, to8, to9, to0,
@@ -30,8 +29,8 @@ describe("Bridge Implementation", function () {
             funder
         ] = await ethers.getSigners();
 
-        const BridgeManagementFactory = await ethers.getContractFactory("BridgeManagementImpl");
-        const bridgeManagementContract = await BridgeManagementFactory.connect(deployer).deploy(
+        const BridgeManagementFactory = (await ethers.getContractFactory("BridgeManagementImpl"));
+        const bridgeManagementProxy = await upgrades.deployProxy(BridgeManagementFactory, [
             managementOwner.address,
             relayer.address,
             5,
@@ -39,22 +38,21 @@ describe("Bridge Implementation", function () {
             governor.address,
             securityGuard.address,
             funder.address
-        );
+        ], { kind: "uups", unsafeAllow: ["constructor"] });
+        await bridgeManagementProxy.waitForDeployment();
+        const bridgeManagement = bridgeManagementProxy as BridgeManagementImpl;
 
-        const BridgeContract = await ethers.getContractFactory("BridgeImpl");
-        const contractAddress = getContractAddress({
-            from: deployer.address,
-            nonce: await deployer.getNonce(),
-        });
-        // Fund the bridge contract's address before deployment.
-        await funder.sendTransaction({ to: contractAddress, value: ethers.parseEther("80.0") });
+        const BridgeContractFactory = await ethers.getContractFactory("BridgeImpl");
+        const bridgeProxy = await upgrades.deployProxy(BridgeContractFactory, [await bridgeManagement.getAddress(), ethers.parseEther("0.1"), ethers.parseEther("1"), ethers.parseEther("10000"), 100], { kind: "uups", unsafeAllow: ["constructor"] });
+        await bridgeProxy.waitForDeployment();
+        const bridge = bridgeProxy as BridgeImpl;
 
-        const bridgeContract = await BridgeContract.connect(deployer).deploy(bridgeManagementContract);
-        await bridgeContract.waitForDeployment();
+        // Fund the bridge contract.
+        await funder.sendTransaction({ to: bridge, value: ethers.parseEther("80.0") });
 
         return {
-            bridgeContract,
-            bridgeManagementContract,
+            bridgeContract: bridge,
+            bridgeManagementContract: bridgeManagement,
             relayer,
             validator1,
             validator2,
@@ -524,7 +522,7 @@ describe("Bridge Implementation", function () {
             const withdrawalFee = (await bridgeContract.gasBridge()).config.fee;
 
             const withdrawData = { nonce: 1, amount: withdrawalAmount + withdrawalFee, to: relayer.address };
-            const tx = await bridgeContract.connect(relayer).withdrawGas(withdrawData.to, { value: withdrawData.amount });
+            const tx = await bridgeContract.connect(relayer).withdrawGas(withdrawData.to, withdrawalFee, { value: withdrawData.amount });
 
             const hashWithdrawData1 = await hashDepositOrWithdrawal(withdrawData.nonce, relayer.address, toNeoDecimals(withdrawalAmount));
             const new_withdrawRoot = await computeRoot(ethers.ZeroHash, hashWithdrawData1);
@@ -543,9 +541,9 @@ describe("Bridge Implementation", function () {
             let withdrawalFee = (await bridgeContract.gasBridge()).config.fee;
 
             const withdrawData1 = { nonce: 1, amount: withdrawalAmount_1, to: relayer.address };
-            await bridgeContract.connect(relayer).withdrawGas(withdrawData1.to, { value: withdrawalAmount_1 + withdrawalFee });
+            await bridgeContract.connect(relayer).withdrawGas(withdrawData1.to, withdrawalFee, { value: withdrawalAmount_1 + withdrawalFee });
             const withdrawData2 = { nonce: 2, amount: withdrawalAmount_2, to: validator1.address };
-            const tx2 = await bridgeContract.connect(relayer).withdrawGas(withdrawData2.to, { value: withdrawalAmount_2 + withdrawalFee });
+            const tx2 = await bridgeContract.connect(relayer).withdrawGas(withdrawData2.to, withdrawalFee, { value: withdrawalAmount_2 + withdrawalFee });
 
             const hashWithdrawData1 = await hashDepositOrWithdrawal(withdrawData1.nonce, relayer.address, toNeoDecimals(withdrawData1.amount));
             const hash1 = await computeRoot(ethers.ZeroHash, hashWithdrawData1);
@@ -562,21 +560,21 @@ describe("Bridge Implementation", function () {
             const { bridgeContract, relayer } = await loadFixture(deployBridgeFixture);
 
             let gasBridge = (await bridgeContract.gasBridge());
-            const withdrawalAmount = gasBridge.config.minAmount + ethers.parseEther("0.00000001");
+            const minWithdrawalAmount = gasBridge.config.minAmount;
             const withdrawalFee = gasBridge.config.fee;
-            const withdrawalAmountWithFee = withdrawalAmount + withdrawalFee;
+            const minWithdrawalAmountWithFee = minWithdrawalAmount + withdrawalFee;
 
-            const withdrawData = { nonce: 1, amount: withdrawalAmount, to: relayer.address };
-            const tx = await bridgeContract.connect(relayer).withdrawGas(withdrawData.to, { value: withdrawalAmountWithFee });
+            const withdrawData = { nonce: 1, amount: minWithdrawalAmount, to: relayer.address };
+            const minTx = await bridgeContract.connect(relayer).withdrawGas(withdrawData.to, withdrawalFee, { value: minWithdrawalAmountWithFee });
 
-            const hashWithdrawData1 = await hashDepositOrWithdrawal(withdrawData.nonce, relayer.address, toNeoDecimals(withdrawalAmount));
+            const hashWithdrawData1 = await hashDepositOrWithdrawal(withdrawData.nonce, relayer.address, toNeoDecimals(minWithdrawalAmount));
             const new_withdrawRoot = await computeRoot(ethers.ZeroHash, hashWithdrawData1);
 
             let withdrawalState = (await bridgeContract.gasBridge()).withdrawalState;
             expect(withdrawalState.nonce).to.be.equal(1);
             expect(withdrawalState.root).to.be.equal(new_withdrawRoot);
-            await expect(tx).to.emit(bridgeContract, "GasWithdrawal").withArgs(1, relayer.address, toNeoDecimals(withdrawData.amount), relayer.address, hashWithdrawData1, new_withdrawRoot);
-            await expect(tx).to.changeEtherBalances([bridgeContract, relayer], [withdrawalAmountWithFee, -withdrawalAmountWithFee]);
+            await expect(minTx).to.emit(bridgeContract, "GasWithdrawal").withArgs(1, relayer.address, toNeoDecimals(withdrawData.amount), relayer.address, hashWithdrawData1, new_withdrawRoot);
+            await expect(minTx).to.changeEtherBalances([bridgeContract, relayer], [minWithdrawalAmountWithFee, -minWithdrawalAmountWithFee]);
         });
 
         it("withdraw with the wrong amount", async function () {
@@ -585,10 +583,10 @@ describe("Bridge Implementation", function () {
             let config = (await bridgeContract.gasBridge()).config;
             const minWithdrawalAmount = config.minAmount;
             const maxWithdrawalAmount = config.maxAmount;
-            const withdrawlFee = config.fee;
-            await expect(invalidAmount).to.be.greaterThanOrEqual(minWithdrawalAmount + withdrawlFee);
-            await expect(invalidAmount).to.be.lessThanOrEqual(maxWithdrawalAmount + withdrawlFee);
-            await expect(bridgeContract.connect(relayer).withdrawGas(relayer, { value: invalidAmount })).to.be.revertedWithCustomError(bridgeContract, "InvalidAmount");
+            const withdrawalFee = config.fee;
+            await expect(invalidAmount).to.be.greaterThanOrEqual(minWithdrawalAmount + withdrawalFee);
+            await expect(invalidAmount).to.be.lessThanOrEqual(maxWithdrawalAmount + withdrawalFee);
+            await expect(bridgeContract.connect(relayer).withdrawGas(relayer, withdrawalFee, { value: invalidAmount })).to.be.revertedWithCustomError(bridgeContract, "InvalidAmount");
         });
 
         it("withdraw is too low", async function () {
@@ -596,9 +594,9 @@ describe("Bridge Implementation", function () {
             const minFraction = ethers.parseEther("0.00000001");
             let config = (await bridgeContract.gasBridge()).config;
             const minWithdrawalAmount = config.minAmount;
-            const withdrawlFee = config.fee;
-            const tooLowWithdrawalAmount = minWithdrawalAmount + withdrawlFee - minFraction;
-            await expect(bridgeContract.connect(relayer).withdrawGas(relayer, { value: tooLowWithdrawalAmount })).to.be.revertedWithCustomError(bridgeContract, "InvalidAmount");
+            const withdrawalFee = config.fee;
+            const tooLowWithdrawalAmount = minWithdrawalAmount + withdrawalFee - minFraction;
+            await expect(bridgeContract.connect(relayer).withdrawGas(relayer, withdrawalFee, { value: tooLowWithdrawalAmount })).to.be.revertedWithCustomError(bridgeContract, "AmountBelowMinAmount");
         });
 
         it("withdraw is too high", async function () {
@@ -607,9 +605,9 @@ describe("Bridge Implementation", function () {
             const minFraction = ethers.parseEther("0.00000001");
             let config = (await bridgeContract.gasBridge()).config;
             const maxWithdrawalAmount = config.maxAmount;
-            const withdrawlFee = config.fee;
-            const tooHighWithdrawalAmount = maxWithdrawalAmount + withdrawlFee + minFraction;
-            await expect(bridgeContract.connect(validator7).withdrawGas(validator6, { value: tooHighWithdrawalAmount })).to.be.revertedWithCustomError(bridgeContract, "InvalidAmount");
+            const withdrawalFee = config.fee;
+            const tooHighWithdrawalAmount = maxWithdrawalAmount + withdrawalFee + minFraction;
+            await expect(bridgeContract.connect(validator7).withdrawGas(validator6, withdrawalFee, { value: tooHighWithdrawalAmount })).to.be.revertedWithCustomError(bridgeContract, "AmountExceedsMaxAmount");
             validator7.sendTransaction({ to: validator6, value: ethers.parseEther("1000") });
         });
 
@@ -623,14 +621,14 @@ describe("Bridge Implementation", function () {
             expect(await bridgeContract.unclaimedRewards()).to.be.equal(0);
 
             const to1 = relayer.address;
-            await bridgeContract.connect(relayer).withdrawGas(to1, { value: withdrawalAmount_1 });
+            await bridgeContract.connect(relayer).withdrawGas(to1, withdrawalFeeBeforeChange, { value: withdrawalAmount_1 });
 
             await bridgeContract.connect(governor).setGasWithdrawalFee(ethers.parseEther("0.5"));
             const withdrawalFeeAfterChange = (await bridgeContract.gasBridge()).config.fee;
             expect(withdrawalFeeAfterChange).to.be.equal(ethers.parseEther("0.5"));
 
             const to2 = funder.address;
-            const tx2 = await bridgeContract.connect(relayer).withdrawGas(to2, { value: withdrawalAmount_2 });
+            const tx2 = await bridgeContract.connect(relayer).withdrawGas(to2, withdrawalFeeAfterChange, { value: withdrawalAmount_2 });
 
             let withdrawalState = (await bridgeContract.gasBridge()).withdrawalState;
             expect(withdrawalState.nonce).to.be.equal(2);
@@ -654,7 +652,9 @@ describe("Bridge Implementation", function () {
 
             await expect(depositTx).to.changeEtherBalances([bridgeContract, Depositdata1.to], [0, 0]);
 
-            let depositState = (await bridgeContract.gasBridge()).depositState;
+            let gasBridge = await bridgeContract.gasBridge();
+            let depositState = gasBridge.depositState;
+            let withdrawalFee = gasBridge.config.fee;
             expect(depositState.nonce).to.equal(depositData.nonce);
             expect(depositState.root).to.equal(new_root);
 
@@ -665,7 +665,7 @@ describe("Bridge Implementation", function () {
 
             // Let's withdraw some eth to increase the contract's balance and make the claim possible.
             const amount = ethers.parseEther("10");
-            const withdrawTx = await bridgeContract.connect(relayer).withdrawGas(relayer.address, { value: amount });
+            const withdrawTx = await bridgeContract.connect(relayer).withdrawGas(relayer.address, withdrawalFee, { value: amount });
             await expect(withdrawTx).to.changeEtherBalances([bridgeContract, relayer.address], [amount, -amount]);
             const bridgeContractBalance = await ethers.provider.getBalance(bridgeContract.target);
             expect(bridgeContractBalance).to.be.greaterThanOrEqual((await bridgeContract.claimableGas(depositData.nonce)).amount);
@@ -779,7 +779,8 @@ describe("Bridge Implementation", function () {
             await expect(bridgeContract.connect(relayer).depositGas(root1, signatures, [Depositdata1])).to.be.revertedWithCustomError(bridgeContract, "BridgePaused");
             await expect(bridgeContract.connect(relayer).claimGas(Depositdata1.nonce)).to.be.revertedWithCustomError(bridgeContract, "BridgePaused");
             const withdrawData = { nonce: 1, amount: ethers.parseEther("1"), to: relayer.address };
-            await expect(bridgeContract.connect(relayer).withdrawGas(withdrawData.to, { value: withdrawData.amount })).to.be.revertedWithCustomError(bridgeContract, "BridgePaused");
+            let withdrawalFee = (await bridgeContract.gasBridge()).config.fee;
+            await expect(bridgeContract.connect(relayer).withdrawGas(withdrawData.to, withdrawalFee, { value: withdrawData.amount })).to.be.revertedWithCustomError(bridgeContract, "BridgePaused");
             await expect(bridgeContract.connect(securityGuard).pauseBridge()).to.be.revertedWithCustomError(bridgeContract, "BridgePaused");
         });
     });
