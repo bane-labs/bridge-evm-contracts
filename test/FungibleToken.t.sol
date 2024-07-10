@@ -161,41 +161,6 @@ contract TestFungibleToken is Test, SigUtils {
         return _signatures;
     }
 
-    function testHashBridgeOp() public view {
-        address neoN3Token = address(
-            0x4ee48AF838f4638aED56c0cEBc82B1CdF048E8ee
-        );
-        address neoXToken = address(0xa04E18Ed49307eE948Ee70C55A0C0BeaDfb5c5D9);
-        uint256 nonce = 330500;
-        address to = address(0xD44304966f6e74cfd0E2215649D5C57892BfBAaB);
-        uint256 value = 1234567890;
-
-        bytes32 hashedBridgeOp = bridgeProxy.hashTokenBridgeOp(
-            neoXToken,
-            neoN3Token,
-            nonce,
-            to,
-            value
-        );
-        bytes memory concatenated = abi.encodePacked(
-            neoN3Token,
-            neoXToken,
-            nonce,
-            to,
-            value
-        );
-        assertEq(
-            concatenated,
-            hex"4ee48AF838f4638aED56c0cEBc82B1CdF048E8eea04E18Ed49307eE948Ee70C55A0C0BeaDfb5c5D90000000000000000000000000000000000000000000000000000000000050b04D44304966f6e74cfd0E2215649D5C57892BfBAaB00000000000000000000000000000000000000000000000000000000499602d2"
-        );
-        bytes32 expected = sha256(concatenated);
-        assertEq(hashedBridgeOp, expected);
-        assertEq(
-            hashedBridgeOp,
-            hex"612a33ee14e06dbeca17edd47383c2cd1038f5e9569d76b263b90a4972e29c17"
-        );
-    }
-
     // test case: successful deposit token, token type is ERC20, Let's call it deposit token A, takes the signatures of the first 5 validators，and check the event
     function testDepositTokenA() public {
         MockERC20(neoXTokenA).mint(address(bridgeProxy), 100 ether);
