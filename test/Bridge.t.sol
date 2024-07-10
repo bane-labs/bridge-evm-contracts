@@ -109,9 +109,9 @@ contract BridgeImplTest is Test, SigUtils {
     }
 
     // test case: register token bridge, with an invalid amount, minAmount>maxAmount
-    function test_RegisterTokenWithInvalidAmount() public {
+    function test_RegisterTokenWithInvalidConfig() public {
         vm.prank(governor);
-        vm.expectRevert(BridgeStorage.InvalidAmount.selector);
+        vm.expectRevert(BridgeStorage.InvalidTokenConfig.selector);
         StorageTypes.TokenConfig memory invalidConfig = StorageTypes
             .TokenConfig({
                 neoN3Token: neoN3Token,
