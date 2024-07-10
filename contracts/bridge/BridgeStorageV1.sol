@@ -3,17 +3,16 @@ pragma solidity ^0.8.24;
 
 import "../interfaces/IBridgeManagement.sol";
 import "../library/StorageTypes.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
 /**
  * @title BridgeStorageV1
  * @author BaneLabs
  * @dev This contract holds the storage variables for the Bridge contract and outlines the slot allocations of the contracts storage. Storage slot modifications should be done with care to avoid conflicts with existing storage slots in the proxy.
  */
-abstract contract BridgeStorageV1 is ReentrancyGuard {
-    // Slot 0 is taken by ReentrancyGuard's _status storage value
-    // Slots 1-99 remain empty for future upgrades (if further storage extension is needed, e.g., similar to ReentrancyGuard's _status var, this contract can easily be extended and the new var can use the next slot from _gap0, so that the other storage variables can remain in this file)
-    uint256[99] private _gap0;
+abstract contract BridgeStorageV1 is ReentrancyGuardUpgradeable {
+    // Slots 0-99 remain empty for future upgrades (if further storage extension is needed, e.g., similar to ReentrancyGuard's _status var, this contract can easily be extended and the new var can use the next slot from _gap0, so that the other storage variables can remain in this file)
+    uint256[100] private _gap0;
 
     // Slot 100
     IBridgeManagement public management;
