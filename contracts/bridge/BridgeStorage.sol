@@ -186,6 +186,7 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     }
 
     function _setGasWithdrawalFee(uint256 _fee) internal {
+        if (_fee == 0) revert InvalidFee();
         if ((_fee % 1e10) != 0) revert InvalidFee();
         gasBridge.config.fee = _fee;
     }
@@ -247,6 +248,7 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     }
 
     function _setTokenWithdrawalFee(address _neoXToken, uint256 _fee) internal {
+        if (_fee == 0) revert InvalidFee();
         tokenBridges[_neoXToken].config.fee = _fee;
     }
 
