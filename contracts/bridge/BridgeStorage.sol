@@ -42,7 +42,6 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     error TokenBridgePaused(address neoXToken);
     error TokenBridgeUnpaused(address neoXToken);
     error TokenBridgeNotRegistered(address neoXToken);
-    error TokenWithdrawalFailed();
     error TransferFailed();
 
     // Modifiers for Role Restriction
