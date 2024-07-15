@@ -426,13 +426,6 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         address to = claimable.to;
         if (to == address(0)) revert NonexistentClaimable();
         _deleteTokenClaimable(_neoXToken, _nonce);
-        StorageTypes.ExecutionType executionType = _getExecutionType(
-            _neoXToken
-        );
-        assert(
-            executionType == StorageTypes.ExecutionType.NEO ||
-                executionType == StorageTypes.ExecutionType.ERC20
-        );
         // Note: For NEO tokens, the transfer value has already been extended with 18 decimals in the deposit function.
         bool success = TokenBridgeLib._executeERC20Transfer(
             _neoXToken,
