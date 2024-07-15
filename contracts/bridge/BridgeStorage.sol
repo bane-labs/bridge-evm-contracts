@@ -34,6 +34,7 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     error InvalidNonceSequence();
     error InvalidRoot();
     error InvalidValidatorSignatures();
+    error InvalidValue();
     error LengthMismatch();
     error MaxFeeExceeded(uint256 maxFeeAllowed, uint256 actualFee);
     error NonexistentClaimable();
@@ -271,6 +272,7 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         address _neoXToken,
         uint256 _maxDeposits
     ) internal {
+        if (_maxDeposits == 0) revert InvalidValue();
         tokenBridges[_neoXToken].config.maxDeposits = _maxDeposits;
     }
 
