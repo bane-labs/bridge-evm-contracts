@@ -34,6 +34,7 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     error InvalidNonceSequence();
     error InvalidRoot();
     error InvalidValidatorSignatures();
+    error InvalidValue();
     error LengthMismatch();
     error MaxFeeExceeded(uint256 maxFeeAllowed, uint256 actualFee);
     error NonexistentClaimable();
@@ -41,7 +42,6 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     error TokenBridgePaused(address neoXToken);
     error TokenBridgeUnpaused(address neoXToken);
     error TokenBridgeNotRegistered(address neoXToken);
-    error TokenWithdrawalFailed();
     error TransferFailed();
 
     // Modifiers for Role Restriction
@@ -185,6 +185,7 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     }
 
     function _setGasWithdrawalFee(uint256 _fee) internal {
+        if (_fee == 0) revert InvalidFee();
         if ((_fee % 1e10) != 0) revert InvalidFee();
         gasBridge.config.fee = _fee;
     }
@@ -246,6 +247,7 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     }
 
     function _setTokenWithdrawalFee(address _neoXToken, uint256 _fee) internal {
+        if (_fee == 0) revert InvalidFee();
         tokenBridges[_neoXToken].config.fee = _fee;
     }
 
@@ -271,6 +273,7 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         address _neoXToken,
         uint256 _maxDeposits
     ) internal {
+        if (_maxDeposits == 0) revert InvalidValue();
         tokenBridges[_neoXToken].config.maxDeposits = _maxDeposits;
     }
 
