@@ -480,16 +480,21 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         if (msg.value < fee) revert InsufficientFee(fee, msg.value);
         // Refund the sender if the provided value is higher than the required fee.
         if (msg.value > fee) {
-            _refund(msg.sender, msg.value - fee);
+            (bool success, ) = _to.call{value: msg.value - fee}("");
+            if (!success) revert TransferFailed();
         }
         _addUnclaimedRewards(fee);
 
-        uint256 receivedAmount = _executeERC20Transfer(
+        uint256 receivedAmount = _transferERC20TokenToBridge(
             _neoXToken,
-            _amount,
-            config.minAmount,
-            config.maxAmount
+            msg.sender,
+            _amount
         );
+        // Check that the received amount is in the allowed range.
+        if (receivedAmount < config.minAmount)
+            revert AmountBelowMinAmount(config.minAmount, receivedAmount);
+        if (receivedAmount > config.maxAmount)
+            revert AmountExceedsMaxAmount(config.maxAmount, receivedAmount);
 
         // Compute the new root and update the token withdrawal state.
         StorageTypes.State memory state = _getTokenWithdrawalState(_neoXToken);
@@ -526,22 +531,16 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         );
     }
 
-    function _refund(address _to, uint256 _amount) private {
-        (bool success, ) = _to.call{value: _amount}("");
-        if (!success) revert TransferFailed();
-    }
-
-    function _executeERC20Transfer(
+    function _transferERC20TokenToBridge(
         address _neoXToken,
-        uint256 _amount,
-        uint256 _minAmount,
-        uint256 _maxAmount
+        address _from,
+        uint256 _amount
     ) private returns (uint256 actualReceivedAmount) {
         IERC20 erc20Token = IERC20(_neoXToken);
         uint256 bridgeBalanceBefore = erc20Token.balanceOf(address(this));
         // Execute the transfer of the tokens from the sender to the bridge contract.
         bool success = IERC20(_neoXToken).transferFrom(
-            msg.sender,
+            _from,
             address(this),
             _amount
         );
@@ -552,12 +551,6 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         // Revert if there is an underflow.
         if (bridgeBalanceAfter < bridgeBalanceBefore) revert InvalidTransfer();
         uint256 receivedAmount = bridgeBalanceAfter - bridgeBalanceBefore;
-
-        // Check that the received amount is in the allowed range.
-        if (receivedAmount < _minAmount)
-            revert AmountBelowMinAmount(_minAmount, receivedAmount);
-        if (receivedAmount > _maxAmount)
-            revert AmountExceedsMaxAmount(_maxAmount, receivedAmount);
         return receivedAmount;
     }
 
