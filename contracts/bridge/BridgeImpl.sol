@@ -280,7 +280,13 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
      */
     function pauseTokenBridge(
         address _neoXToken
-    ) external override onlyTokenBridgeUnpaused(_neoXToken) onlySecurityGuard {
+    )
+        external
+        override
+        onlySecurityGuard
+        onlyIfTokenRegistered(_neoXToken)
+        onlyTokenBridgeUnpaused(_neoXToken)
+    {
         _pauseToken(_neoXToken);
         emit TokenBridgePause(_neoXToken, _getNeoN3Token(_neoXToken));
     }
@@ -291,7 +297,13 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
      */
     function unpauseTokenBridge(
         address _neoXToken
-    ) external override onlyTokenBridgePaused(_neoXToken) onlyGovernor {
+    )
+        external
+        override
+        onlyGovernor
+        onlyIfTokenRegistered(_neoXToken)
+        onlyTokenBridgePaused(_neoXToken)
+    {
         _unpauseToken(_neoXToken);
         emit TokenBridgeUnpause(_neoXToken, _getNeoN3Token(_neoXToken));
     }
@@ -320,6 +332,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         override
         onlyRelayer
         onlyBridgeUnpaused
+        onlyIfTokenRegistered(_neoXToken)
         onlyTokenBridgeUnpaused(_neoXToken)
         nonReentrant
     {
@@ -416,9 +429,10 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     )
         external
         override
-        onlyBridgeUnpaused
-        onlyTokenBridgeUnpaused(_neoXToken)
         nonReentrant
+        onlyBridgeUnpaused
+        onlyIfTokenRegistered(_neoXToken)
+        onlyTokenBridgeUnpaused(_neoXToken)
     {
         StorageTypes.Claimable memory claimable = _getTokenClaimable(
             _neoXToken,
@@ -469,10 +483,9 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         override
         nonReentrant
         onlyBridgeUnpaused
+        onlyIfTokenRegistered(_neoXToken)
         onlyTokenBridgeUnpaused(_neoXToken)
     {
-        if (!_isRegisteredToken(_neoXToken))
-            revert TokenBridgeNotRegistered(_neoXToken);
         StorageTypes.TokenConfig memory config = _getTokenConfig(_neoXToken);
 
         // Revert if the provided value is lower than the required fee.

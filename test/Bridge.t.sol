@@ -311,8 +311,8 @@ contract BridgeImplTest is Test, SigUtils {
         address unregisteredToken = address(0xDEF);
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSignature(
-                "TokenBridgeUnpaused(address)",
+            abi.encodeWithSelector(
+                BridgeStorage.TokenBridgeNotRegistered.selector,
                 unregisteredToken
             )
         );

@@ -89,6 +89,12 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         _;
     }
 
+    modifier onlyIfTokenRegistered(address _neoXToken) {
+        if (!_isRegisteredToken(_neoXToken))
+            revert TokenBridgeNotRegistered(_neoXToken);
+        _;
+    }
+
     modifier onlyTokenBridgeUnpaused(address _neoXToken) {
         if (tokenBridges[_neoXToken].paused)
             revert TokenBridgePaused(_neoXToken);
@@ -235,18 +241,17 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     }
 
     function _pauseToken(address _neoXToken) internal {
-        if ((!_isRegisteredToken(_neoXToken)))
-            revert TokenBridgeNotRegistered(_neoXToken);
         tokenBridges[_neoXToken].paused = true;
     }
 
     function _unpauseToken(address _neoXToken) internal {
-        if ((!_isRegisteredToken(_neoXToken)))
-            revert TokenBridgeNotRegistered(_neoXToken);
         tokenBridges[_neoXToken].paused = false;
     }
 
-    function _setTokenWithdrawalFee(address _neoXToken, uint256 _fee) internal {
+    function _setTokenWithdrawalFee(
+        address _neoXToken,
+        uint256 _fee
+    ) internal onlyIfTokenRegistered(_neoXToken) {
         if (_fee == 0) revert InvalidFee();
         tokenBridges[_neoXToken].config.fee = _fee;
     }
@@ -254,7 +259,7 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     function _setTokenMinWithdrawalAmount(
         address _neoXToken,
         uint256 _amount
-    ) internal {
+    ) internal onlyIfTokenRegistered(_neoXToken) {
         if (_amount >= tokenBridges[_neoXToken].config.maxAmount)
             revert InvalidAmount();
         tokenBridges[_neoXToken].config.minAmount = _amount;
@@ -263,7 +268,7 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     function _setTokenMaxWithdrawalAmount(
         address _neoXToken,
         uint256 _amount
-    ) internal {
+    ) internal onlyIfTokenRegistered(_neoXToken) {
         if (_amount <= tokenBridges[_neoXToken].config.minAmount)
             revert InvalidAmount();
         tokenBridges[_neoXToken].config.maxAmount = _amount;
@@ -272,7 +277,7 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     function _setMaxTokenDeposits(
         address _neoXToken,
         uint256 _maxDeposits
-    ) internal {
+    ) internal onlyIfTokenRegistered(_neoXToken) {
         if (_maxDeposits == 0) revert InvalidValue();
         tokenBridges[_neoXToken].config.maxDeposits = _maxDeposits;
     }
