@@ -24,8 +24,9 @@ abstract contract BridgeManagementStorage is
         uint256 _threshold
     ) internal {
         uint256 validatorsLength = _validators.length;
-        if (validatorsLength == 0) revert InvalidValidatorArray();
-        if (_threshold == 0 || _threshold > validatorsLength)
+        // Require at least 2 validators and threshold to be greater than 1.
+        if (validatorsLength <= 1) revert InvalidValidatorArray();
+        if (_threshold <= 1 || _threshold > validatorsLength)
             revert InvalidValidatorThreshold();
         for (uint256 i = 0; i < validatorsLength; i++) {
             if (_validators[i] == address(0)) revert InvalidAddress();
