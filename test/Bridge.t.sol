@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.25;
+
 import "../lib/forge-std/src/Test.sol";
 import {TestBridge, BridgeImpl} from "../contracts/tests/TestBridge.sol";
 import "../contracts/bridge/BridgeStorage.sol";

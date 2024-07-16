@@ -1,4 +1,5 @@
-pragma solidity ^0.8.0;
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.25;
 
 import "../lib/forge-std/src/Test.sol";
 import "../contracts/management/BridgeManagementImpl.sol";
