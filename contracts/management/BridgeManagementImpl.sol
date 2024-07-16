@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity 0.8.25;
 
 import "./BridgeManagementStorage.sol";
 import "../interfaces/IBridgeManagement.sol";
@@ -11,7 +11,7 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
         address _owner,
         address _relayer,
         uint256 _validatorThreshold,
-        address[] memory _validators,
+        address[] calldata _validators,
         address _governor,
         address _securityGuard,
         address _funder

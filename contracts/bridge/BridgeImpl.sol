@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity 0.8.25;
 
 import "./BridgeStorage.sol";
 import "../interfaces/IBridge.sol";
@@ -486,8 +486,8 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         onlyIfTokenRegistered(_neoXToken)
         onlyTokenBridgeUnpaused(_neoXToken)
     {
+        if (_to == address(0)) revert InvalidAddress();
         StorageTypes.TokenConfig memory config = _getTokenConfig(_neoXToken);
-
         // Revert if the provided value is lower than the required fee.
         if (msg.value < config.fee)
             revert InsufficientFee(config.fee, msg.value);
