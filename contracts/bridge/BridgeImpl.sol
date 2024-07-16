@@ -195,13 +195,13 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     ) external payable onlyBridgeUnpaused onlyGasBridgeUnpaused {
         if (_to == address(0)) revert InvalidAddress();
         StorageTypes.GasConfig memory config = _getGasBridgeConfig();
-        StorageTypes.State memory state = _getGasBridgeWithdrawalState();
-
+        uint256 fee = config.fee;
+        if (msg.value < fee) revert InsufficientFee(fee, msg.value); // Prevents underflow and provides clear feedback
         // Revert if the actual fee is higher than the provided max fee.
-        if (config.fee > _maxFee) revert MaxFeeExceeded(_maxFee, config.fee);
-        _addUnclaimedRewards(config.fee);
+        if (fee > _maxFee) revert MaxFeeExceeded(_maxFee, fee);
+        _addUnclaimedRewards(fee);
 
-        uint256 withdrawalAmount = msg.value - config.fee;
+        uint256 withdrawalAmount = msg.value - fee;
         // Revert if the withdrawal amount is not a multiple of 1e10, matching the 8 decimals of Gas on Neo N3.
         if ((withdrawalAmount % 1e10) != 0) revert InvalidAmount();
         // Revert if the withdrawal amount is outside the allowed range.
@@ -214,6 +214,8 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         uint256 amountForHashing = GasBridgeLib._removeTenDecimals(
             withdrawalAmount
         );
+
+        StorageTypes.State memory state = _getGasBridgeWithdrawalState();
         uint256 newNonce = state.nonce + 1;
         bytes32 withdrawalHash = GasBridgeLib._hashGasBrideOp(
             newNonce,
@@ -475,7 +477,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
 
         // Revert if the provided value is lower than the required fee.
         if (msg.value < config.fee)
-            revert InsufficientFee(msg.value, config.fee);
+            revert InsufficientFee(config.fee, msg.value);
         _addUnclaimedRewards(msg.value);
 
         IERC20 erc20Token = IERC20(_neoXToken);

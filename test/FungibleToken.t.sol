@@ -922,8 +922,8 @@ contract TestFungibleToken is Test, SigUtils {
         vm.expectRevert(
             abi.encodeWithSignature(
                 "InsufficientFee(uint256,uint256)",
-                providedFee,
-                validConfigA.fee
+                validConfigA.fee,
+                providedFee
             )
         );
         vm.prank(transferUser0);
