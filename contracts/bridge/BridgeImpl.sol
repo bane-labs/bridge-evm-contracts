@@ -471,6 +471,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         onlyBridgeUnpaused
         onlyTokenBridgeUnpaused(_neoXToken)
     {
+        if (_to == address(0)) revert InvalidAddress();
         if (!_isRegisteredToken(_neoXToken))
             revert TokenBridgeNotRegistered(_neoXToken);
         StorageTypes.TokenConfig memory config = _getTokenConfig(_neoXToken);
