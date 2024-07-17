@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity 0.8.25;
 
 import "../library/ManagementLib.sol";
 import "./BridgeManagementStorageV1.sol";
@@ -20,12 +20,13 @@ abstract contract BridgeManagementStorage is
     error InvalidValidatorThreshold();
 
     function _setValidators(
-        address[] memory _validators,
+        address[] calldata _validators,
         uint256 _threshold
     ) internal {
         uint256 validatorsLength = _validators.length;
-        if (validatorsLength == 0) revert InvalidValidatorArray();
-        if (_threshold == 0 || _threshold > validatorsLength)
+        // Require at least 2 validators and threshold to be greater than 1.
+        if (validatorsLength <= 1) revert InvalidValidatorArray();
+        if (_threshold <= 1 || _threshold > validatorsLength)
             revert InvalidValidatorThreshold();
         for (uint256 i = 0; i < validatorsLength; i++) {
             if (_validators[i] == address(0)) revert InvalidAddress();
@@ -35,24 +36,29 @@ abstract contract BridgeManagementStorage is
 
         delete validators;
         for (uint256 i = 0; i < validatorsLength; i++) {
+            if (_validators[i] == address(0)) revert InvalidAddress();
             validators.push(_validators[i]);
         }
         validatorThreshold = _threshold;
     }
 
     function _setRelayer(address _relayer) internal {
+        if (_relayer == address(0)) revert InvalidAddress();
         relayer = _relayer;
     }
 
     function _setGovernor(address _governor) internal {
+        if (_governor == address(0)) revert InvalidAddress();
         governor = _governor;
     }
 
     function _setSecurityGuard(address _securityGuard) internal {
+        if (_securityGuard == address(0)) revert InvalidAddress();
         securityGuard = _securityGuard;
     }
 
     function _setFunder(address _funder) internal {
+        if (_funder == address(0)) revert InvalidAddress();
         funder = _funder;
     }
 
