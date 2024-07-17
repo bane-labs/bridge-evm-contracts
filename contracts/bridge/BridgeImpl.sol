@@ -490,17 +490,18 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         StorageTypes.TokenConfig memory config = _getTokenConfig(_neoXToken);
         // Revert if the provided value is lower than the required fee.
         uint256 fee = config.fee;
+        address from = msg.sender;
         if (msg.value < fee) revert InsufficientFee(fee, msg.value);
         // Refund the sender if the provided value is higher than the required fee.
         if (msg.value > fee) {
-            (bool success, ) = _to.call{value: msg.value - fee}("");
+            (bool success, ) = payable(from).call{value: msg.value - fee}("");
             if (!success) revert TransferFailed();
         }
         _addUnclaimedRewards(fee);
 
         uint256 receivedAmount = _transferERC20TokenToBridge(
             _neoXToken,
-            msg.sender,
+            from,
             _amount
         );
         // Check that the received amount is in the allowed range.
@@ -538,7 +539,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
             newNonce,
             _to,
             receivedAmount,
-            msg.sender,
+            from,
             withdrawalHash,
             newRoot
         );
