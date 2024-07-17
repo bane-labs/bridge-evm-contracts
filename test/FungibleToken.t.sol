@@ -944,6 +944,41 @@ contract TestFungibleToken is Test, SigUtils {
         );
     }
 
+    // test case: withdraw token with too high fee - refunded
+    function testWithdrawToken_refundExcessFee() public {
+        assertEq(bridgeProxy.isRegisteredToken(neoXTokenA), false);
+        vm.prank(governor);
+        bridgeProxy.registerToken(neoXTokenA, validConfigA);
+        uint256 balance = 1000;
+        MockERC20(neoXTokenA).mint(transferUser0, balance);
+        vm.prank(transferUser0);
+        MockERC20(neoXTokenA).approve(address(bridgeProxy), balance);
+        assertEq(
+            MockERC20(neoXTokenA).allowance(
+                transferUser0,
+                address(bridgeProxy)
+            ),
+            balance
+        );
+        // Set an excess fee
+        uint256 excessFee = 0.5 ether;
+        uint256 providedFee = validConfigA.fee + excessFee;
+        uint256 gasBalanceBridgeBefore = address(bridgeProxy).balance;
+
+        vm.prank(transferUser0);
+        bridgeProxy.withdrawToken{value: providedFee}(
+            neoXTokenA,
+            transferUser0,
+            100
+        );
+
+        assertEq(
+            address(bridgeProxy).balance,
+            gasBalanceBridgeBefore + validConfigA.fee
+        );
+        assertEq(bridgeProxy.unclaimedRewards(), validConfigA.fee);
+    }
+
     // test case: withdraw token failed when amount < minAmount
     function testWithdrawToken_InvalidAmount_LessThanMin() public {
         assertEq(bridgeProxy.isRegisteredToken(neoXTokenA), false);

@@ -21,6 +21,7 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     error AmountExceedsMaxAmount(uint256 maxAmount, uint256 provided);
     error BridgePaused();
     error BridgeUnpaused();
+    error ExactFeeRequired(uint256 feeExpected, uint256 feeProvided);
     error GasBridgePaused();
     error GasBridgeUnpaused();
     error InsufficientFee(uint256 minExpected, uint256 provided);
