@@ -488,16 +488,8 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     {
         if (_to == address(0)) revert InvalidAddress();
         StorageTypes.TokenConfig memory config = _getTokenConfig(_neoXToken);
-        // Revert if the provided value is lower than the required fee.
-        uint256 fee = config.fee;
         address from = msg.sender;
-        if (msg.value < fee) revert InsufficientFee(fee, msg.value);
-        // Refund the sender if the provided value is higher than the required fee.
-        if (msg.value > fee) {
-            (bool success, ) = payable(from).call{value: msg.value - fee}("");
-            if (!success) revert TransferFailed();
-        }
-        _addUnclaimedRewards(fee);
+        _processTokenWithdrawalFee(from, msg.value, config.fee);
 
         uint256 receivedAmount = _transferERC20TokenToBridge(
             _neoXToken,
@@ -543,6 +535,32 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
             withdrawalHash,
             newRoot
         );
+    }
+
+    /**
+     * @dev Checks the provided value against the required fee. If the provided value exceeds the required fee, the
+     * excess amount is refunded if the sender is an EOA. Otherwise, if the sender is a contract, it is reverted.
+     * @param _from the sender.
+     * @param _msgValue the value sent with the transaction.
+     * @param _fee the required fee.
+     */
+    function _processTokenWithdrawalFee(
+        address _from,
+        uint256 _msgValue,
+        uint256 _fee
+    ) private {
+        // Revert if the provided value is lower than the required fee.
+        if (_msgValue < _fee) revert InsufficientFee(_fee, _msgValue);
+        // Refund the sender (only EOAs) if the provided value is higher than the required fee.
+        if (_msgValue > _fee) {
+            // Revert if the sender is a contract.
+            if (BridgeLib._isContract(_from)) {
+                revert ExactFeeRequired(_fee, _msgValue);
+            }
+            (bool success, ) = payable(_from).call{value: _msgValue - _fee}("");
+            if (!success) revert TransferFailed();
+        }
+        _addUnclaimedRewards(_fee);
     }
 
     function _transferERC20TokenToBridge(
