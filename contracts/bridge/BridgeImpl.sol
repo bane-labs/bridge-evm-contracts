@@ -6,6 +6,7 @@ import "../interfaces/IBridge.sol";
 import "../interfaces/IGasBridge.sol";
 import "../interfaces/ITokenBridge.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     function initialize(
@@ -390,10 +391,10 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
                 _executionType == StorageTypes.ExecutionType.NEO ||
                     _executionType == StorageTypes.ExecutionType.ERC20
             );
-            bool success = TokenBridgeLib._executeERC20Transfer(
-                _neoXToken,
-                transferAmount,
-                to
+            bool success = TokenBridgeLib._safeERC20Transfer(
+                IERC20(_neoXToken),
+                to,
+                transferAmount
             );
             _emitTransferEventOrAddNewTokenClaimable(
                 success,
@@ -429,12 +430,8 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         if (to == address(0)) revert NonexistentClaimable();
         _deleteTokenClaimable(_neoXToken, _nonce);
         // Note: For NEO tokens, the transfer value has already been extended with 18 decimals in the deposit function.
-        bool success = TokenBridgeLib._executeERC20Transfer(
-            _neoXToken,
-            claimable.amount,
-            to
-        );
-        if (!success) revert TransferFailed();
+        // If no value is returned, non-reverting calls are assumed to be successful.
+        SafeERC20.safeTransfer(IERC20(_neoXToken), to, claimable.amount);
     }
 
     function _emitTransferEventOrAddNewTokenClaimable(
