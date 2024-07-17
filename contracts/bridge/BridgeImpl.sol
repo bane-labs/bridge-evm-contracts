@@ -492,13 +492,12 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
 
         IERC20 erc20Token = IERC20(_neoXToken);
         uint256 bridgeBalanceBefore = erc20Token.balanceOf(address(this));
-        // Execute the transfer of the tokens from the sender to the bridge contract.
-        bool success = IERC20(_neoXToken).transferFrom(
+        SafeERC20.safeTransferFrom(
+            erc20Token,
             msg.sender,
             address(this),
             _amount
         );
-        if (!success) revert TransferFailed();
 
         // Compare the balance before and after the transfer to get the actual received amount. This is necessary if the token contract were to deduct a fee in transfers.
         uint256 bridgeBalanceAfter = erc20Token.balanceOf(address(this));
