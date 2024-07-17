@@ -488,27 +488,14 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     {
         if (_to == address(0)) revert InvalidAddress();
         StorageTypes.TokenConfig memory config = _getTokenConfig(_neoXToken);
-        // Revert if the provided value is lower than the required fee.
-        if (msg.value < config.fee)
-            revert InsufficientFee(config.fee, msg.value);
-        _addUnclaimedRewards(msg.value);
+        address from = msg.sender;
+        _processTokenWithdrawalFee(from, msg.value, config.fee);
 
-        IERC20 erc20Token = IERC20(_neoXToken);
-        uint256 bridgeBalanceBefore = erc20Token.balanceOf(address(this));
-        // Execute the transfer of the tokens from the sender to the bridge contract.
-        bool success = IERC20(_neoXToken).transferFrom(
-            msg.sender,
-            address(this),
+        uint256 receivedAmount = _transferERC20TokenToBridge(
+            _neoXToken,
+            from,
             _amount
         );
-        if (!success) revert TransferFailed();
-
-        // Compare the balance before and after the transfer to get the actual received amount. This is necessary if the token contract were to deduct a fee in transfers.
-        uint256 bridgeBalanceAfter = erc20Token.balanceOf(address(this));
-        // Revert if there is an underflow.
-        if (bridgeBalanceAfter < bridgeBalanceBefore) revert InvalidTransfer();
-        uint256 receivedAmount = bridgeBalanceAfter - bridgeBalanceBefore;
-
         // Check that the received amount is in the allowed range.
         if (receivedAmount < config.minAmount)
             revert AmountBelowMinAmount(config.minAmount, receivedAmount);
@@ -544,10 +531,59 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
             newNonce,
             _to,
             receivedAmount,
-            msg.sender,
+            from,
             withdrawalHash,
             newRoot
         );
+    }
+
+    /**
+     * @dev Checks the provided value against the required fee. If the provided value exceeds the required fee, the
+     * excess amount is refunded if the sender is an EOA. Otherwise, if the sender is a contract, it is reverted.
+     * @param _from the sender.
+     * @param _msgValue the value sent with the transaction.
+     * @param _fee the required fee.
+     */
+    function _processTokenWithdrawalFee(
+        address _from,
+        uint256 _msgValue,
+        uint256 _fee
+    ) private {
+        // Revert if the provided value is lower than the required fee.
+        if (_msgValue < _fee) revert InsufficientFee(_fee, _msgValue);
+        // Refund the sender (only EOAs) if the provided value is higher than the required fee.
+        if (_msgValue > _fee) {
+            // Revert if the sender is a contract.
+            if (BridgeLib._isContract(_from)) {
+                revert ExactFeeRequired(_fee, _msgValue);
+            }
+            (bool success, ) = payable(_from).call{value: _msgValue - _fee}("");
+            if (!success) revert TransferFailed();
+        }
+        _addUnclaimedRewards(_fee);
+    }
+
+    function _transferERC20TokenToBridge(
+        address _neoXToken,
+        address _from,
+        uint256 _amount
+    ) private returns (uint256 actualReceivedAmount) {
+        IERC20 erc20Token = IERC20(_neoXToken);
+        uint256 bridgeBalanceBefore = erc20Token.balanceOf(address(this));
+        // Execute the transfer of the tokens from the sender to the bridge contract.
+        bool success = IERC20(_neoXToken).transferFrom(
+            _from,
+            address(this),
+            _amount
+        );
+        if (!success) revert TransferFailed();
+
+        // Compare the balance before and after the transfer to get the actual received amount. This is necessary if the token contract were to deduct a fee in transfers.
+        uint256 bridgeBalanceAfter = erc20Token.balanceOf(address(this));
+        // Revert if there is an underflow.
+        if (bridgeBalanceAfter < bridgeBalanceBefore) revert InvalidTransfer();
+        uint256 receivedAmount = bridgeBalanceAfter - bridgeBalanceBefore;
+        return receivedAmount;
     }
 
     function setTokenWithdrawalFee(
