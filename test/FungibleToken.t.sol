@@ -322,7 +322,12 @@ contract TestFungibleToken is Test, SigUtils {
 
         // test case: claim token A nonce 2 failed, bridge have not enough token
         vm.expectRevert(
-            abi.encodeWithSelector(BridgeStorage.TransferFailed.selector)
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientBalance.selector,
+                address(bridgeProxy),
+                0,
+                299
+            )
         );
         bridgeProxy.claimToken(neoXTokenA, 2);
 
@@ -395,7 +400,12 @@ contract TestFungibleToken is Test, SigUtils {
 
         // test case: claim token B nonce 2 failed, bridge have not enough token
         vm.expectRevert(
-            abi.encodeWithSelector(BridgeStorage.TransferFailed.selector)
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientBalance.selector,
+                address(bridgeProxy),
+                0,
+                439 ether
+            )
         );
         bridgeProxy.claimToken(neoXTokenB, 2);
 

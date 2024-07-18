@@ -7,26 +7,40 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 library TokenBridgeLib {
     /**
-     * @dev Executes the transfer of the token on the Neo N3 network.
-     * @param _neoXToken The address of the token on the Neo X network.
-     * @param _amount The amount to transfer.
+     * @dev Transfers tokens from the calling contract to the provided recipient and returns a boolean value regarding
+     * its success.
+     * @param _token The address of the token on the Neo X network.
      * @param _to The address of the recipient.
+     * @param _amount The amount to transfer.
      */
-    function _executeERC20Transfer(
-        address _neoXToken,
-        uint256 _amount,
-        address _to
+    function _safeERC20Transfer(
+        IERC20 _token,
+        address _to,
+        uint256 _amount
     ) internal returns (bool) {
-        bytes memory transferCall = abi.encodeCall(
-            IERC20.transfer,
-            (_to, _amount)
-        );
-        (bool success, bytes memory returndata) = address(_neoXToken).call(
-            transferCall
-        );
-        return
-            success &&
-            (returndata.length == 0 || abi.decode(returndata, (bool)));
+        return _callOptionalReturnBool(_token, abi.encodeCall(_token.transfer, (_to, _amount)));
+    }
+
+    /**
+     * This function has been copied from the OpenZeppelin SafeERC20.sol library.
+     * 
+     * @dev Imitates a Solidity high-level call (i.e. a regular function call to a contract), relaxing the requirement
+     * on the return value: the return value is optional (but if data is returned, it must not be false).
+     * @param token The token targeted by the call.
+     * @param data The call data (encoded using abi.encode or one of its variants).
+     *
+     * This is a variant of {_callOptionalReturn} that silently catches all reverts and returns a bool instead.
+     */
+    function _callOptionalReturnBool(IERC20 token, bytes memory data) private returns (bool) {
+        bool success;
+        uint256 returnSize;
+        uint256 returnValue;
+        assembly ("memory-safe") {
+            success := call(gas(), token, 0, add(data, 0x20), mload(data), 0, 0x20)
+            returnSize := returndatasize()
+            returnValue := mload(0)
+        }
+        return success && (returnSize == 0 ? address(token).code.length > 0 : returnValue == 1);
     }
 
     /**
