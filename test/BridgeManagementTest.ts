@@ -156,14 +156,23 @@ describe("Bridge Management", function () {
 
         it("Set validators with empty validators", async function () {
             const { bridgeManagementImpl, owner } = await loadFixture(deployBridgeFixture);
-            const tx = bridgeManagementImpl.connect(owner).setValidators([], 1);
+            const tx = bridgeManagementImpl.connect(owner).setValidators([], 2);
             await expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "InvalidValidatorArray");
         });
 
         it("Set validators with zero address validators", async function () {
             const { bridgeManagementImpl, validator1, owner } = await loadFixture(deployBridgeFixture);
-            const tx = bridgeManagementImpl.connect(owner).setValidators([validator1.address, ZeroAddress], 1);
+            const tx = bridgeManagementImpl.connect(owner).setValidators([validator1.address, ZeroAddress], 2);
             await expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "InvalidAddress");
+        });
+
+        it("Set validators with threshold set to 0 or 1", async function () {
+            const { bridgeManagementImpl, validator1, validator2, owner } = await loadFixture(deployBridgeFixture);
+            let tx = bridgeManagementImpl.connect(owner).setValidators([validator1.address, validator2.address], 1);
+            await expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "InvalidValidatorThreshold");
+
+            tx = bridgeManagementImpl.connect(owner).setValidators([validator1.address, validator2.address], 0);
+            await expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "InvalidValidatorThreshold");
         });
 
         it("Set relayer", async function () {

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.25;
 import "../lib/forge-std/src/Test.sol";
 import {TestBridge, BridgeImpl} from "../contracts/tests/TestBridge.sol";
 import {IERC20Errors} from "../node_modules/@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
@@ -322,7 +322,12 @@ contract TestFungibleToken is Test, SigUtils {
 
         // test case: claim token A nonce 2 failed, bridge have not enough token
         vm.expectRevert(
-            abi.encodeWithSelector(BridgeStorage.TransferFailed.selector)
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientBalance.selector,
+                address(bridgeProxy),
+                0,
+                299
+            )
         );
         bridgeProxy.claimToken(neoXTokenA, 2);
 
@@ -395,7 +400,12 @@ contract TestFungibleToken is Test, SigUtils {
 
         // test case: claim token B nonce 2 failed, bridge have not enough token
         vm.expectRevert(
-            abi.encodeWithSelector(BridgeStorage.TransferFailed.selector)
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientBalance.selector,
+                address(bridgeProxy),
+                0,
+                439 ether
+            )
         );
         bridgeProxy.claimToken(neoXTokenB, 2);
 
@@ -922,8 +932,8 @@ contract TestFungibleToken is Test, SigUtils {
         vm.expectRevert(
             abi.encodeWithSignature(
                 "InsufficientFee(uint256,uint256)",
-                providedFee,
-                validConfigA.fee
+                validConfigA.fee,
+                providedFee
             )
         );
         vm.prank(transferUser0);
@@ -932,6 +942,41 @@ contract TestFungibleToken is Test, SigUtils {
             transferUser0,
             100
         );
+    }
+
+    // test case: withdraw token with too high fee - refunded
+    function testWithdrawToken_refundExcessFee() public {
+        assertEq(bridgeProxy.isRegisteredToken(neoXTokenA), false);
+        vm.prank(governor);
+        bridgeProxy.registerToken(neoXTokenA, validConfigA);
+        uint256 balance = 1000;
+        MockERC20(neoXTokenA).mint(transferUser0, balance);
+        vm.prank(transferUser0);
+        MockERC20(neoXTokenA).approve(address(bridgeProxy), balance);
+        assertEq(
+            MockERC20(neoXTokenA).allowance(
+                transferUser0,
+                address(bridgeProxy)
+            ),
+            balance
+        );
+        // Set an excess fee
+        uint256 excessFee = 0.5 ether;
+        uint256 providedFee = validConfigA.fee + excessFee;
+        uint256 gasBalanceBridgeBefore = address(bridgeProxy).balance;
+
+        vm.prank(transferUser0);
+        bridgeProxy.withdrawToken{value: providedFee}(
+            neoXTokenA,
+            transferUser0,
+            100
+        );
+
+        assertEq(
+            address(bridgeProxy).balance,
+            gasBalanceBridgeBefore + validConfigA.fee
+        );
+        assertEq(bridgeProxy.unclaimedRewards(), validConfigA.fee);
     }
 
     // test case: withdraw token failed when amount < minAmount

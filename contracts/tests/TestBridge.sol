@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.25;
 
 import "../bridge/BridgeImpl.sol";
 
@@ -39,6 +39,23 @@ contract TestBridge is BridgeImpl {
         address _neoXToken
     ) public view returns (StorageTypes.State memory withdrawalState) {
         return _getTokenWithdrawalState(_neoXToken);
+    }
+
+    function hashTokenBridgeOp(
+        address _neoXToken,
+        address _neoN3Token,
+        uint256 _nonce,
+        address _to,
+        uint256 _amount
+    ) public pure returns (bytes32) {
+        return
+            TokenBridgeLib._hashTokenBridgeOp(
+                _neoN3Token,
+                _neoXToken,
+                _nonce,
+                _to,
+                _amount
+            );
     }
 
     function computeTokenRoot(
