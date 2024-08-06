@@ -32,7 +32,7 @@ library BridgeLib {
         bytes32 _formerRoot,
         bytes32 _depositHash
     ) internal pure returns (bytes32) {
-        return sha256(abi.encodePacked(_formerRoot, _depositHash));
+        return keccak256(abi.encodePacked(_formerRoot, _depositHash));
     }
 
     function _isContract(address _addr) internal view returns (bool) {
