@@ -190,11 +190,11 @@ contract TokenBridgeSyncTest is Test, SigUtils {
             concatenated,
             hex"Ef4073A0F2b305a38EC4050e4d3d28bC40eA63F55615dEB798BB3E4dFa0139dFa1b3D433Cc23b72f0000000000000000000000000000000000000000000000000000000000050b04D44304966f6e74cfd0E2215649D5C57892BfBAaB00000000000000000000000000000000000000000000000000000000499602d2"
         );
-        bytes32 expected = sha256(concatenated);
+        bytes32 expected = keccak256(concatenated);
         assertEq(hashedBridgeOp, expected);
         assertEq(
             hashedBridgeOp,
-            hex"5dcc8d59cfb9446288dc79f3e2a776d05e7bce0b82efe28ec554d6dcb08acda4"
+            hex"5df56ac9c1a3c018a83c763c211f89c7c5c5dc4b121c960452f8cfe802cdc631"
         );
     }
 
@@ -260,7 +260,7 @@ contract TokenBridgeSyncTest is Test, SigUtils {
         assertEq(neoXNeoTokenContract.balanceOf(recipientOnNeoX_2), 445 ether);
         assertEq(
             tokenDepositRoot,
-            0x6c995cd010e797f62716b58053fbfbf4834c68d96c5f0361bf49186cbef6d457
+            0x30bd66fcd30d5e4759d2a5af3833f418c2960e3552bf93e9f296b433257b2134
         );
     }
 
@@ -305,7 +305,7 @@ contract TokenBridgeSyncTest is Test, SigUtils {
         assertEq(state.nonce, 3);
         assertEq(
             state.root,
-            0x2b1eb8388620f2ba81eeecda0b88c41a35d8aef678cb1eb22ecc488b087d9c99
+            0xe7bcedec3503f013e96c2656b3ea841f62787a06afd3a3df004635ec9a1432e7
         );
     }
 }

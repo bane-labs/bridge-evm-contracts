@@ -208,9 +208,9 @@ describe("Bridge Implementation", function () {
 
             const hashDepositData1 = await hashDepositOrWithdrawal(nonce, to, amount);
             // Raw deposit hash and root from deposit computed on Neo N3 bridge contract
-            expect(hashDepositData1).to.be.equal("0x20aad97e2860b1934184ffb2b04ea45d49af5145fa43cb212027f9e8e728baea");
+            expect(hashDepositData1).to.be.equal("0x7ed36781b8366a590ce568db6712d377c031b9f1a21c44cda2493182b0ff92e5");
             const root1 = await computeRoot(ethers.ZeroHash, hashDepositData1);
-            expect(root1).to.be.equal("0xdda77cac690580c1e5220d377cd807b4d2ed89751e4078525ee54297182d3d88");
+            expect(root1).to.be.equal("0x70789f5bdb108a6b6dc7d7aa0d31649ab5fa980bbbfd1868eb17821b1f61e0ac");
 
             const encodeRoot1 = ethers.solidityPackedKeccak256(["bytes32"], [root1]);
             const signatures = await getValidatorSignatures(ethers.getBytes(encodeRoot1), [1, 2, 3, 4, 5]);
@@ -229,13 +229,13 @@ describe("Bridge Implementation", function () {
             const amount2 = 100000000n;
 
             const hashDepositData1 = await hashDepositOrWithdrawal(nonce1, to1, amount1);
-            expect(hashDepositData1).to.be.equal("0x20aad97e2860b1934184ffb2b04ea45d49af5145fa43cb212027f9e8e728baea");
+            expect(hashDepositData1).to.be.equal("0x7ed36781b8366a590ce568db6712d377c031b9f1a21c44cda2493182b0ff92e5");
             const hashDepositData2 = await hashDepositOrWithdrawal(nonce2, to2, amount2);
-            expect(hashDepositData2).to.be.equal("0x983b3a1ee6b74a5ba07109966f86189d2adf108a25fd9b456030f684bffa8f84");
+            expect(hashDepositData2).to.be.equal("0xcba84a7e0f42d61e4510f0b13ae53c138cb1864b97f598d273c9fb3a9fe8d51a");
             const root1 = await computeRoot(ethers.ZeroHash, hashDepositData1);
-            expect(root1).to.be.equal("0xdda77cac690580c1e5220d377cd807b4d2ed89751e4078525ee54297182d3d88");
+            expect(root1).to.be.equal("0x70789f5bdb108a6b6dc7d7aa0d31649ab5fa980bbbfd1868eb17821b1f61e0ac");
             const new_root = await computeRoot(root1, hashDepositData2);
-            expect(new_root).to.be.equal("0xa33a32b7b710705118b37d5fa7684a26e63840e7b5b88326177e7ec4ee7be253");
+            expect(new_root).to.be.equal("0xa15d5e4d94b19c1c4c8aa07157bb03a121e5b886c76e5ec7cecab139eb342236");
             const new_encodeRoot = ethers.solidityPackedKeccak256(["bytes32"], [new_root]);
             const signatures = await getValidatorSignatures(ethers.getBytes(new_encodeRoot), [1, 2, 3, 4, 5]);
 
