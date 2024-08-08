@@ -92,7 +92,7 @@ library TokenBridgeLib {
         uint256 _value
     ) internal pure returns (bytes32) {
         return
-            sha256(
+            keccak256(
                 abi.encodePacked(_neoN3Token, _neoXToken, _nonce, _to, _value)
             );
     }

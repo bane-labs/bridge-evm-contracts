@@ -27,7 +27,7 @@ library GasBridgeLib {
         address _to,
         uint256 _amount
     ) internal pure returns (bytes32) {
-        return sha256(abi.encodePacked(_nonce, _to, _amount));
+        return keccak256(abi.encodePacked(_nonce, _to, _amount));
     }
 
     // Adds 10 decimals to the amount. GasToken originally has 8 decimals and on this chain it has 18 decimals.
