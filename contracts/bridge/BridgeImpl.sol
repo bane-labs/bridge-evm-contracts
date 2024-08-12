@@ -42,7 +42,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
 
     // Contract Pausing
 
-    function pauseBridge() external onlySecurityGuard onlyBridgeUnpaused {
+    function pauseBridge() external onlyGovernorOrSecurityGuard onlyBridgeUnpaused {
         _pauseBridge();
         emit BridgePause();
     }
@@ -57,7 +57,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     function pauseGasBridge()
         external
         override
-        onlySecurityGuard
+        onlyGovernorOrSecurityGuard
         onlyGasBridgeUnpaused
     {
         _pauseGasBridge();
@@ -284,7 +284,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     )
         external
         override
-        onlySecurityGuard
+        onlyGovernorOrSecurityGuard
         onlyIfTokenRegistered(_neoXToken)
         onlyTokenBridgeUnpaused(_neoXToken)
     {

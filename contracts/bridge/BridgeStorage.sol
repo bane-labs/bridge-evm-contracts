@@ -38,6 +38,7 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     error InvalidValue();
     error LengthMismatch();
     error MaxFeeExceeded(uint256 maxFeeAllowed, uint256 actualFee);
+    error NoAuthorization();
     error NonexistentClaimable();
     error TokenBridgeAlreadyRegistered(address neoXToken);
     error TokenBridgePaused(address neoXToken);
@@ -57,11 +58,11 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         _;
     }
 
-    modifier onlySecurityGuard() {
-        require(
-            msg.sender == management.getSecurityGuard(),
-            "not securityGuard"
-        );
+    modifier onlyGovernorOrSecurityGuard() {
+        if (
+            msg.sender != management.getGovernor() &&
+                msg.sender != management.getSecurityGuard()
+        ) revert NoAuthorization();
         _;
     }
 
