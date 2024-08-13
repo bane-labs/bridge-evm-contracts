@@ -42,12 +42,12 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
 
     // Contract Pausing
 
-    function pauseBridge() external onlyGovernorOrSecurityGuard onlyBridgeUnpaused {
+    function pauseBridge() external onlyGovernorOrSecurityGuard whenBridgeNotPaused {
         _pauseBridge();
         emit BridgePause();
     }
 
-    function unpauseBridge() external onlyGovernor onlyBridgePaused {
+    function unpauseBridge() external onlyGovernor whenBridgePaused {
         _unpauseBridge();
         emit BridgeUnpause();
     }
@@ -58,7 +58,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         external
         override
         onlyGovernorOrSecurityGuard
-        onlyGasBridgeUnpaused
+        whenGasBridgeNotPaused
     {
         _pauseGasBridge();
         emit GasBridgePause();
@@ -68,7 +68,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         external
         override
         onlyGovernor
-        onlyGasBridgePaused
+        whenGasBridgePaused
     {
         _unpauseGasBridge();
         emit GasBridgeUnpause();
@@ -94,8 +94,8 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     )
         external
         onlyRelayer
-        onlyBridgeUnpaused
-        onlyGasBridgeUnpaused
+        whenBridgeNotPaused
+        whenGasBridgeNotPaused
         nonReentrant
     {
         StorageTypes.State memory state = _getGasBridgeDepositState();
@@ -170,7 +170,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
      */
     function claimGas(
         uint256 _nonce
-    ) external onlyBridgeUnpaused onlyGasBridgeUnpaused nonReentrant {
+    ) external whenBridgeNotPaused whenGasBridgeNotPaused nonReentrant {
         StorageTypes.Claimable memory claimable = _getGasClaimable(_nonce);
         uint256 amount = claimable.amount;
         address to = claimable.to;
@@ -193,7 +193,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     function withdrawGas(
         address _to,
         uint256 _maxFee
-    ) external payable onlyBridgeUnpaused onlyGasBridgeUnpaused {
+    ) external payable whenBridgeNotPaused whenGasBridgeNotPaused {
         if (_to == address(0)) revert InvalidAddress();
         StorageTypes.GasConfig memory config = _getGasBridgeConfig();
         uint256 fee = config.fee;
@@ -286,7 +286,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         override
         onlyGovernorOrSecurityGuard
         onlyIfTokenRegistered(_neoXToken)
-        onlyTokenBridgeUnpaused(_neoXToken)
+        whenTokenBridgeNotPaused(_neoXToken)
     {
         _pauseToken(_neoXToken);
         emit TokenBridgePause(_neoXToken, _getNeoN3Token(_neoXToken));
@@ -303,7 +303,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         override
         onlyGovernor
         onlyIfTokenRegistered(_neoXToken)
-        onlyTokenBridgePaused(_neoXToken)
+        whenTokenBridgePaused(_neoXToken)
     {
         _unpauseToken(_neoXToken);
         emit TokenBridgeUnpause(_neoXToken, _getNeoN3Token(_neoXToken));
@@ -332,9 +332,9 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         external
         override
         onlyRelayer
-        onlyBridgeUnpaused
+        whenBridgeNotPaused
         onlyIfTokenRegistered(_neoXToken)
-        onlyTokenBridgeUnpaused(_neoXToken)
+        whenTokenBridgeNotPaused(_neoXToken)
         nonReentrant
     {
         StorageTypes.State memory depositState = _getTokenDepositState(
@@ -431,9 +431,9 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         external
         override
         nonReentrant
-        onlyBridgeUnpaused
+        whenBridgeNotPaused
         onlyIfTokenRegistered(_neoXToken)
-        onlyTokenBridgeUnpaused(_neoXToken)
+        whenTokenBridgeNotPaused(_neoXToken)
     {
         StorageTypes.Claimable memory claimable = _getTokenClaimable(
             _neoXToken,
@@ -479,9 +479,9 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         payable
         override
         nonReentrant
-        onlyBridgeUnpaused
+        whenBridgeNotPaused
         onlyIfTokenRegistered(_neoXToken)
-        onlyTokenBridgeUnpaused(_neoXToken)
+        whenTokenBridgeNotPaused(_neoXToken)
     {
         if (_to == address(0)) revert InvalidAddress();
         StorageTypes.TokenConfig memory config = _getTokenConfig(_neoXToken);

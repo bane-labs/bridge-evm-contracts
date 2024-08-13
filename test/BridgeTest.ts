@@ -774,7 +774,7 @@ describe("Bridge Implementation", function () {
 
         it("Cannot unpause contract if it's already unpaused", async function () {
             const { bridgeContract, governor } = await loadFixture(deployBridgeFixture);
-            await expect(bridgeContract.connect(governor).unpauseBridge()).to.be.revertedWithCustomError(bridgeContract, "BridgeUnpaused");
+            await expect(bridgeContract.connect(governor).unpauseBridge()).to.be.revertedWithCustomError(bridgeContract, "BridgeNotPaused");
         });
 
         it("Cannot pause contract if it's paused already", async function () {

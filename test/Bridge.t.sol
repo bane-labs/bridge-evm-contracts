@@ -199,7 +199,7 @@ contract BridgeImplTest is Test, SigUtils {
         vm.prank(governor);
         bridgeProxy.registerToken(neoXToken, validConfig);
         bool tokenBridgePaused = bridgeProxy.getTokenbridgePaused(neoXToken);
-        // Ensure the token bridge is unpaused
+        // Ensure the token bridge is not paused
         assertFalse(tokenBridgePaused);
 
         // check pause token successful event
@@ -263,7 +263,7 @@ contract BridgeImplTest is Test, SigUtils {
         vm.prank(governor);
         bridgeProxy.registerToken(neoXToken, validConfig);
         bool tokenBridgePaused = bridgeProxy.getTokenbridgePaused(neoXToken);
-        // Ensure the token bridge is unpaused
+        // Ensure the token bridge is not paused
         assertFalse(tokenBridgePaused);
 
         // Pause the token bridge
@@ -296,13 +296,13 @@ contract BridgeImplTest is Test, SigUtils {
         vm.prank(governor);
         bridgeProxy.registerToken(neoXToken, validConfig);
         bool tokenBridgePaused = bridgeProxy.getTokenbridgePaused(neoXToken);
-        // Ensure the token bridge is unpaused
+        // Ensure the token bridge is not paused
         assertFalse(tokenBridgePaused);
 
         // Attempt to unpause the token bridge
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSignature("TokenBridgeUnpaused(address)", neoXToken)
+            abi.encodeWithSignature("TokenBridgeNotPaused(address)", neoXToken)
         );
         bridgeProxy.unpauseTokenBridge(neoXToken);
     }
