@@ -744,8 +744,8 @@ describe("Bridge Implementation", function () {
         });
     });
 
-    describe("Lock Function", async function () {
-        it("Lock with SecurityGuard Account and Unlock with Governor", async function () {
+    describe("Pausing", async function () {
+        it("Pause with Governor or security guard and unpause with governor", async function () {
             const { bridgeContract, validator1, governor, securityGuard } = await loadFixture(deployBridgeFixture);
 
             await bridgeContract.connect(securityGuard).pauseBridge();
@@ -757,18 +757,33 @@ describe("Bridge Implementation", function () {
             expect(await bridgeContract.bridgePaused()).to.equal(false);
         });
 
-        it("Cannot unlock contract if it's already unlocked", async function () {
+        it("Can only pause if governor or security guard", async function () {
+            const { bridgeContract, validator1, governor, securityGuard } = await loadFixture(deployBridgeFixture);
+
+            await expect(bridgeContract.connect(validator1).pauseBridge()).to.be.revertedWithCustomError(bridgeContract, "NoAuthorization");
+            expect(await bridgeContract.bridgePaused()).to.equal(false);
+            
+            await bridgeContract.connect(governor).pauseBridge();
+            expect(await bridgeContract.bridgePaused()).to.equal(true);
+            await bridgeContract.connect(governor).unpauseBridge();
+            expect(await bridgeContract.bridgePaused()).to.equal(false);
+            await bridgeContract.connect(securityGuard).pauseBridge();
+            expect(await bridgeContract.bridgePaused()).to.equal(true);
+            await bridgeContract.connect(governor).unpauseBridge();
+        });
+
+        it("Cannot unpause contract if it's already unpaused", async function () {
             const { bridgeContract, governor } = await loadFixture(deployBridgeFixture);
             await expect(bridgeContract.connect(governor).unpauseBridge()).to.be.revertedWithCustomError(bridgeContract, "BridgeNotPaused");
         });
 
-        it("Cannot lock contract if it's locked", async function () {
+        it("Cannot pause contract if it's paused already", async function () {
             const { bridgeContract, securityGuard } = await loadFixture(deployBridgeFixture);
             await expect(bridgeContract.connect(securityGuard).pauseBridge()).to.emit(bridgeContract, "BridgePause");
             await expect(bridgeContract.connect(securityGuard).pauseBridge()).to.be.revertedWithCustomError(bridgeContract, "BridgePaused");
         });
 
-        it("Cannot deposit, claim or withdraw Gas if contract is locked", async function () {
+        it("Cannot deposit, claim or withdraw Gas if contract is paused", async function () {
             const { bridgeContract, relayer, securityGuard } = await loadFixture(deployBridgeFixture);
             await bridgeContract.connect(securityGuard).pauseBridge()
 

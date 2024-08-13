@@ -254,7 +254,7 @@ contract BridgeImplTest is Test, SigUtils {
         // Attempt to pause the token bridge by a non-security guard
         address nonSecurityGuard = address(0x654);
         vm.prank(nonSecurityGuard);
-        vm.expectRevert("not securityGuard");
+        vm.expectRevert(BridgeStorage.NoAuthorization.selector);
         bridgeProxy.pauseTokenBridge(neoXToken);
     }
 
