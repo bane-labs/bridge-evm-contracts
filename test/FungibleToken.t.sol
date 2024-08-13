@@ -911,6 +911,97 @@ contract TestFungibleToken is Test, SigUtils {
         assertFalse(bridgeProxy.getbridgePaused());
     }
 
+    // Test case: Withdrawals should be rejected while withdrawals are paused
+    function test_RejectWithdrawalsWhileWithdrawalsPaused() public {
+        MockERC20(neoXTokenA).mint(address(transferUser0), 10000);
+        vm.prank(governor);
+        bridgeProxy.registerToken(neoXTokenA, validConfigA);
+        assertFalse(bridgeProxy.getWithdrawalsPaused());
+
+        uint256 allowance = 500;
+        vm.prank(transferUser0);
+        MockERC20(neoXTokenA).approve(address(bridgeProxy), allowance);
+        assertEq(
+            MockERC20(neoXTokenA).allowance(
+                transferUser0,
+                address(bridgeProxy)
+            ),
+            allowance
+        );
+        
+        uint256 fee = bridgeProxy.getTokenConfig(neoXTokenA).fee;
+        uint256 transferAmount = 200;
+        vm.prank(transferUser0);
+        bridgeProxy.withdrawToken{value: fee}(neoXTokenA, transferUser1, transferAmount);
+        assertEq(
+            MockERC20(neoXTokenA).allowance(
+                transferUser0,
+                address(bridgeProxy)
+            ),
+            allowance - transferAmount
+        );
+
+        vm.prank(governor);
+        bridgeProxy.pauseWithdrawals();
+        assertTrue(bridgeProxy.getWithdrawalsPaused());
+
+        vm.expectRevert(abi.encodeWithSignature("WithdrawalsPaused()"));
+        bridgeProxy.withdrawToken(
+            neoXTokenA,
+            transferUser0,
+            transferAmount
+        );
+    }
+
+    // Test case: Deposits should be allowed while withdrawals are paused
+    function test_DepositsAreAllowedWhileWithdrawalsPaused() public {
+        uint256 initialBridgeBalance = 10000;
+        MockERC20(neoXTokenA).mint(address(bridgeProxy), initialBridgeBalance);
+        assertEq(MockERC20(neoXTokenA).balanceOf(address(bridgeProxy)), initialBridgeBalance);
+        vm.prank(governor);
+        bridgeProxy.registerToken(neoXTokenA, validConfigA);
+        assertFalse(bridgeProxy.getWithdrawalsPaused());
+        vm.prank(governor);
+        bridgeProxy.pauseWithdrawals();
+        assertTrue(bridgeProxy.getWithdrawalsPaused());
+        
+        BridgeLib.DepositData[]
+            memory depositData = new BridgeLib.DepositData[](1);
+        uint256 depositAmount = 700;
+        BridgeLib.DepositData memory d0 = BridgeLib.DepositData({
+            to: payable(transferUser0),
+            amount: depositAmount,
+            nonce: 1
+        });
+        depositData[0] = d0;
+        bytes32 tokenDepositRoot = bridgeProxy.computeTokenRoot(
+            bridgeProxy.getTokenDepositState(neoXTokenA).root,
+            neoN3TokenA,
+            neoXTokenA,
+            depositData
+        );
+        BridgeLib.Signature[] memory signatures = getSignatures(
+            tokenDepositRoot
+        );
+        vm.prank(relayer);
+        vm.expectEmit(true, true, true, true);
+        emit ITokenBridge.TokenDepositRootUpdate(
+            address(neoXTokenA),
+            address(neoN3TokenA),
+            d0.nonce,
+            tokenDepositRoot
+        );
+        bridgeProxy.depositToken(
+            neoXTokenA,
+            tokenDepositRoot,
+            signatures,
+            depositData
+        );
+        // check balance
+        assertEq(MockERC20(neoXTokenA).balanceOf(address(bridgeProxy)), initialBridgeBalance - depositAmount);
+        assertEq(MockERC20(neoXTokenA).balanceOf(transferUser0), depositAmount);
+    }
+
     // test case: withdraw token failed when insufficient fee
     function testWithdrawToken_InsufficientFee() public {
         assertEq(bridgeProxy.isRegisteredToken(neoXTokenA), false);
