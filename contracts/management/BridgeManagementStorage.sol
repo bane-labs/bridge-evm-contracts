@@ -11,7 +11,6 @@ abstract contract BridgeManagementStorage is
     BridgeManagementStorageV1,
     UUPSUpgradeable
 {
-    address public constant SELF = 0x1212100000000000000000000000000000000005;
     address public constant GOV_ADMIN =
         0x1212000000000000000000000000000000000000;
 
