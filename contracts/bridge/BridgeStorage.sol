@@ -13,7 +13,6 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
  * @dev This contract holds errors, modifiers, internal view functions and functions that directly modify the storage. The modification functions have logical checks but no access-checks. For example, registering a token should only be viable if there is no entry for that token already. However, checking if the msg.sender is allowed to do so should be handled in a higher-level contract (i.e., in this case the corresponding Impl contract).
  */
 abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
-    address public constant SELF = 0x1212100000000000000000000000000000000004;
     address public constant GOV_ADMIN =
         0x1212000000000000000000000000000000000000;
 
@@ -365,37 +364,4 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     function _authorizeUpgrade(
         address newImplementation
     ) internal virtual override onlyAdmin {}
-
-    // UUPSUpgradeable-specific functions required for precompiled version.
-
-    /**
-     * @dev Reverts if the execution is not performed via delegatecall or the execution
-     * context is not of a proxy with an ERC-1967 compliant implementation pointing to self.
-     * See the modifier {onlyProxy} in UUPSUpgradeable.sol.
-     *
-     * Only for precompiled uups implementation in genesis file, need to be removed when upgrading the contract.
-     * This override is added because "immutable __self" in UUPSUpgradeable is not avaliable in precompiled contract.
-     */
-    function _checkProxy() internal view virtual override {
-        if (
-            address(this) == SELF || // Must be called through delegatecall
-            ERC1967Utils.getImplementation() != SELF // Must be called through an active proxy
-        ) {
-            revert UUPSUnauthorizedCallContext();
-        }
-    }
-
-    /**
-     * @dev Reverts if the execution is performed via delegatecall.
-     * See the modifier {notDelegated} in UUPSUpgradeable.sol.
-     *
-     * Only for precompiled uups implementation in genesis file, need to be removed when upgrading the contract.
-     * This override is added because "immutable __self" in UUPSUpgradeable is not avaliable in precompiled contract.
-     */
-    function _checkNotDelegated() internal view virtual override {
-        if (address(this) != SELF) {
-            // Must not be called through delegatecall
-            revert UUPSUnauthorizedCallContext();
-        }
-    }
 }
