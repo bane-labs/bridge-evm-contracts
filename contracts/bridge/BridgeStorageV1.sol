@@ -18,6 +18,8 @@ abstract contract BridgeStorageV1 is ReentrancyGuardUpgradeable {
     IBridgeManagement public management;
     // Slot 100 - offset 20
     bool public bridgePaused;
+    // Slot 100 - offset 21
+    bool public withdrawalsPaused;
     // Slot 101
     uint256 public unclaimedRewards;
     // Slot 102

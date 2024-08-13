@@ -42,6 +42,9 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
 
     // Contract Pausing
 
+    /**
+     * @notice Pauses the bridge. No deposits or withdrawals can be made while the bridge is paused. This feature is useful to halt any interaction with the contract besides governor actions, such as updating parameters or registering new token bridges, or contract updates.
+    */
     function pauseBridge() external onlyGovernorOrSecurityGuard whenBridgeNotPaused {
         _pauseBridge();
         emit BridgePause();
@@ -50,6 +53,19 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     function unpauseBridge() external onlyGovernor whenBridgePaused {
         _unpauseBridge();
         emit BridgeUnpause();
+    }
+
+    /**
+     * @notice Pauses withdrawals. No withdrawals can be made while withdrawals are paused. This feature is useful in the case of a planned contract update that involves a change in the computation of the hash chain roots. By pausing the deposits, there will be no new deposits and the relayer can be given time to catch-up with relaying everything that is currently in progress (i.e., the relayer can still use the withdrawal functions) before the bridge is completely paused (i.e., with {@link #pauseBridge()}) and the contract is updated.
+     */
+    function pauseWithdrawals() external onlyGovernor whenWithdrawalsNotPaused {
+        _pauseWithdrawals();
+        emit WithdrawalPause();
+    }
+
+    function unpauseWithdrawals() external onlyGovernor whenWithdrawalsPaused {
+        _unpauseWithdrawals();
+        emit WithdrawalUnpause();
     }
 
     // IGasBridge Implementation
@@ -193,7 +209,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     function withdrawGas(
         address _to,
         uint256 _maxFee
-    ) external payable whenBridgeNotPaused whenGasBridgeNotPaused {
+    ) external payable whenBridgeNotPaused whenWithdrawalsNotPaused whenGasBridgeNotPaused {
         if (_to == address(0)) revert InvalidAddress();
         StorageTypes.GasConfig memory config = _getGasBridgeConfig();
         uint256 fee = config.fee;
@@ -480,6 +496,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         override
         nonReentrant
         whenBridgeNotPaused
+        whenWithdrawalsNotPaused
         onlyIfTokenRegistered(_neoXToken)
         whenTokenBridgeNotPaused(_neoXToken)
     {

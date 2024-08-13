@@ -44,6 +44,8 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     error TokenBridgeNotPaused(address neoXToken);
     error TokenBridgeNotRegistered(address neoXToken);
     error TransferFailed();
+    error WithdrawalsPaused();
+    error WithdrawalsNotPaused();
 
     // Modifiers for Role Restriction
 
@@ -77,6 +79,16 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
 
     modifier whenBridgePaused() {
         if (!bridgePaused) revert BridgeNotPaused();
+        _;
+    }
+    
+    modifier whenWithdrawalsPaused() {
+        if (!withdrawalsPaused) revert WithdrawalsNotPaused();
+        _;
+    }
+
+    modifier whenWithdrawalsNotPaused() {
+        if (withdrawalsPaused) revert WithdrawalsPaused();
         _;
     }
 
@@ -116,6 +128,14 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
 
     function _unpauseBridge() internal {
         bridgePaused = false;
+    }
+
+    function _pauseWithdrawals() internal {
+        withdrawalsPaused = true;
+    }
+
+    function _unpauseWithdrawals() internal {
+        withdrawalsPaused = false;
     }
 
     // Unclaimed Rewards functions
