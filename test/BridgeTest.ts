@@ -759,7 +759,7 @@ describe("Bridge Implementation", function () {
 
         it("Cannot unlock contract if it's already unlocked", async function () {
             const { bridgeContract, governor } = await loadFixture(deployBridgeFixture);
-            await expect(bridgeContract.connect(governor).unpauseBridge()).to.be.revertedWithCustomError(bridgeContract, "BridgeUnpaused");
+            await expect(bridgeContract.connect(governor).unpauseBridge()).to.be.revertedWithCustomError(bridgeContract, "BridgeNotPaused");
         });
 
         it("Cannot lock contract if it's locked", async function () {

@@ -20,10 +20,10 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     error AmountBelowMinAmount(uint256 minAmount, uint256 provided);
     error AmountExceedsMaxAmount(uint256 maxAmount, uint256 provided);
     error BridgePaused();
-    error BridgeUnpaused();
+    error BridgeNotPaused();
     error ExactFeeRequired(uint256 feeExpected, uint256 feeProvided);
     error GasBridgePaused();
-    error GasBridgeUnpaused();
+    error GasBridgeNotPaused();
     error InsufficientFee(uint256 minExpected, uint256 provided);
     error InvalidAddress();
     error InvalidAmount();
@@ -41,7 +41,7 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     error NonexistentClaimable();
     error TokenBridgeAlreadyRegistered(address neoXToken);
     error TokenBridgePaused(address neoXToken);
-    error TokenBridgeUnpaused(address neoXToken);
+    error TokenBridgeNotPaused(address neoXToken);
     error TokenBridgeNotRegistered(address neoXToken);
     error TransferFailed();
 
@@ -70,23 +70,23 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         _;
     }
 
-    modifier onlyBridgeUnpaused() {
+    modifier whenBridgeNotPaused() {
         if (bridgePaused) revert BridgePaused();
         _;
     }
 
-    modifier onlyBridgePaused() {
-        if (!bridgePaused) revert BridgeUnpaused();
+    modifier whenBridgePaused() {
+        if (!bridgePaused) revert BridgeNotPaused();
         _;
     }
 
-    modifier onlyGasBridgeUnpaused() {
+    modifier whenGasBridgeNotPaused() {
         if (gasBridge.paused) revert GasBridgePaused();
         _;
     }
 
-    modifier onlyGasBridgePaused() {
-        if (!gasBridge.paused) revert GasBridgeUnpaused();
+    modifier whenGasBridgePaused() {
+        if (!gasBridge.paused) revert GasBridgeNotPaused();
         _;
     }
 
@@ -96,15 +96,15 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         _;
     }
 
-    modifier onlyTokenBridgeUnpaused(address _neoXToken) {
+    modifier whenTokenBridgeNotPaused(address _neoXToken) {
         if (tokenBridges[_neoXToken].paused)
             revert TokenBridgePaused(_neoXToken);
         _;
     }
 
-    modifier onlyTokenBridgePaused(address _neoXToken) {
+    modifier whenTokenBridgePaused(address _neoXToken) {
         if (!tokenBridges[_neoXToken].paused)
-            revert TokenBridgeUnpaused(_neoXToken);
+            revert TokenBridgeNotPaused(_neoXToken);
         _;
     }
 
