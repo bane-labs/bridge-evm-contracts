@@ -29,6 +29,10 @@ contract TestBridge is BridgeImpl {
         return bridgePaused;
     }
 
+    function getWithdrawalsPaused() public view returns (bool) {
+        return withdrawalsPaused;
+    }
+
     function getTokenDepositState(
         address neoXToken
     ) public view returns (StorageTypes.State memory depositState) {

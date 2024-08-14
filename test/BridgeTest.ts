@@ -799,4 +799,69 @@ describe("Bridge Implementation", function () {
             await expect(bridgeContract.connect(securityGuard).pauseBridge()).to.be.revertedWithCustomError(bridgeContract, "BridgePaused");
         });
     });
+
+    describe("Withdrawal Pausing", async function () {
+        it("Governor can pause withdrawals", async function () {
+            const { bridgeContract, governor } = await loadFixture(deployBridgeFixture);
+            expect(await bridgeContract.withdrawalsPaused()).to.equal(false);
+            await bridgeContract.connect(governor).pauseWithdrawals();
+            expect(await bridgeContract.withdrawalsPaused()).to.equal(true);
+        });
+
+        it("Governor can unpause withdrawals", async function () {
+            const { bridgeContract, governor } = await loadFixture(deployBridgeFixture);
+            await bridgeContract.connect(governor).pauseWithdrawals();
+            expect(await bridgeContract.withdrawalsPaused()).to.equal(true);
+            await bridgeContract.connect(governor).unpauseWithdrawals();
+            expect(await bridgeContract.withdrawalsPaused()).to.equal(false);
+        });
+
+        it("Non-Governor cannot pause withdrawals", async function () {
+            const { bridgeContract, relayer, securityGuard } = await loadFixture(deployBridgeFixture);
+            expect(await bridgeContract.withdrawalsPaused()).to.equal(false);
+            expect(bridgeContract.connect(relayer).pauseWithdrawals()).to.be.revertedWithCustomError(bridgeContract, "NoAuthorization");
+            expect(bridgeContract.connect(securityGuard).pauseWithdrawals()).to.be.revertedWithCustomError(bridgeContract, "NoAuthorization");
+        });
+
+        it("Non-Governor cannot unpause withdrawals", async function () {
+            const { bridgeContract, governor, relayer, securityGuard } = await loadFixture(deployBridgeFixture);
+            await bridgeContract.connect(governor).pauseWithdrawals();
+            expect(await bridgeContract.withdrawalsPaused()).to.equal(true);
+            expect(bridgeContract.connect(relayer).unpauseWithdrawals()).to.be.revertedWithCustomError(bridgeContract, "NoAuthorization");
+            expect(bridgeContract.connect(securityGuard).unpauseWithdrawals()).to.be.revertedWithCustomError(bridgeContract, "NoAuthorization");
+        });
+
+        it("Gas withdrawals are rejected while withdrawals are paused", async function () {
+            const { bridgeContract, governor, relayer } = await loadFixture(deployBridgeFixture);
+            await bridgeContract.connect(governor).pauseWithdrawals();
+            expect(await bridgeContract.withdrawalsPaused()).to.equal(true);
+
+            const withdrawalAmount = ethers.parseEther("10");
+            const withdrawalFee = (await bridgeContract.gasBridge()).config.fee;
+            const withdrawData = { nonce: 1, amount: withdrawalAmount + withdrawalFee, to: relayer.address };
+            await expect(bridgeContract.connect(relayer).withdrawGas(withdrawData.to, withdrawalFee, { value: withdrawData.amount })).to.be.revertedWithCustomError(bridgeContract, "WithdrawalsPaused");
+        });
+
+        it("Gas deposits are allowed while withdrawals are paused", async function () {
+            const { bridgeContract, governor, relayer } = await loadFixture(deployBridgeFixture);
+            await bridgeContract.connect(governor).pauseWithdrawals();
+            expect(await bridgeContract.withdrawalsPaused()).to.equal(true);
+
+            const nonce = 1;
+            const to = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
+            const amount = 100000000n;
+
+            const hashDepositData1 = await hashDepositOrWithdrawal(nonce, to, amount);
+            // Raw deposit hash and root from deposit computed on Neo N3 bridge contract
+            expect(hashDepositData1).to.be.equal("0x7ed36781b8366a590ce568db6712d377c031b9f1a21c44cda2493182b0ff92e5");
+            const root1 = await computeRoot(ethers.ZeroHash, hashDepositData1);
+            expect(root1).to.be.equal("0x70789f5bdb108a6b6dc7d7aa0d31649ab5fa980bbbfd1868eb17821b1f61e0ac");
+
+            const encodeRoot1 = ethers.solidityPackedKeccak256(["bytes32"], [root1]);
+            const signatures = await getValidatorSignatures(ethers.getBytes(encodeRoot1), [1, 2, 3, 4, 5]);
+
+            const tx = await bridgeContract.connect(relayer).depositGas(root1, signatures, [Depositdata1]);
+            await expect(tx).to.changeEtherBalances([bridgeContract, Depositdata1.to], [-toEthDecimals(Depositdata1.amount), toEthDecimals(Depositdata1.amount)]);
+        });
+    });
 });
