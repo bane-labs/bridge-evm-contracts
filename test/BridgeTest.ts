@@ -693,7 +693,7 @@ describe("Bridge Implementation", function () {
 
             const tx = await bridgeContract.connect(relayer).depositGas(new_root, signatures, [data1]);
 
-            await expect(tx).to.changeEtherBalances([bridgeContract, data1.to], [0, 0, 0]);
+            await expect(tx).to.changeEtherBalances([bridgeContract, data1.to], [0, 0]);
             let depositState = (await bridgeContract.gasBridge()).depositState;
             expect(depositState.nonce).to.equal(data1.nonce);
             expect(depositState.root).to.equal(new_root);
@@ -725,7 +725,7 @@ describe("Bridge Implementation", function () {
 
             const tx = await bridgeContract.connect(relayer).depositGas(new_root, signatures, [data1]);
 
-            await expect(tx).to.changeEtherBalances([bridgeContract, data1.to], [0, 0, 0]);
+            await expect(tx).to.changeEtherBalances([bridgeContract, data1.to], [0, 0]);
             let depositState = (await bridgeContract.gasBridge()).depositState;
             expect(depositState.nonce).to.equal(data1.nonce);
             expect(depositState.root).to.equal(new_root);
