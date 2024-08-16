@@ -48,12 +48,12 @@ contract SigUtils {
             );
     }
 
-    function getSignedHash(bytes32 _hash) internal pure returns (bytes32) {
+    function getSignedHash(bytes32 _hash) internal view returns (bytes32) {
         return
             keccak256(
                 abi.encodePacked(
                     "\x19Ethereum Signed Message:\n32",
-                    keccak256(abi.encodePacked(_hash))
+                    keccak256(abi.encodePacked(block.chainid, _hash))
                 )
             );
     }

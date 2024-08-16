@@ -40,7 +40,7 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
         bytes32 signedRootMsg = keccak256(
             abi.encodePacked(
                 "\x19Ethereum Signed Message:\n32",
-                keccak256(abi.encodePacked(_newDepositRoot))
+                keccak256(abi.encodePacked(block.chainid, _newDepositRoot))
             )
         );
         address[] memory recovered = new address[](threshold);
