@@ -106,6 +106,7 @@ library TokenBridgeLib {
     ) internal pure returns (bool) {
         // The fee must always be greater than 0.
         return
+            _config.neoN3Token != address(0) &&
             _config.fee > 0 &&
             _config.minAmount > 0 &&
             _config.maxAmount > _config.minAmount &&
