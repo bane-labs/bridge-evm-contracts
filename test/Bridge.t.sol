@@ -160,7 +160,7 @@ contract BridgeImplTest is Test, SigUtils {
     // test case: register token bridge, with an invalid neoN3Token:0 address
     function test_RegisterTokenWithInvalidNeoN3TokenAddress() public {
         vm.prank(governor);
-        vm.expectRevert(BridgeStorage.InvalidAddress.selector);
+        vm.expectRevert(BridgeStorage.InvalidTokenConfig.selector);
         StorageTypes.TokenConfig memory invalidConfig = StorageTypes
             .TokenConfig({
                 neoN3Token: address(0),

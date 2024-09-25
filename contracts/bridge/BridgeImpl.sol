@@ -44,8 +44,12 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
 
     /**
      * @notice Pauses the bridge. No deposits or withdrawals can be made while the bridge is paused. This feature is useful to halt any interaction with the contract besides governor actions, such as updating parameters or registering new token bridges, or contract updates.
-    */
-    function pauseBridge() external onlyGovernorOrSecurityGuard whenBridgeNotPaused {
+     */
+    function pauseBridge()
+        external
+        onlyGovernorOrSecurityGuard
+        whenBridgeNotPaused
+    {
         _pauseBridge();
         emit BridgePause();
     }
@@ -209,7 +213,13 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     function withdrawGas(
         address _to,
         uint256 _maxFee
-    ) external payable whenBridgeNotPaused whenWithdrawalsNotPaused whenGasBridgeNotPaused {
+    )
+        external
+        payable
+        whenBridgeNotPaused
+        whenWithdrawalsNotPaused
+        whenGasBridgeNotPaused
+    {
         if (_to == address(0)) revert InvalidAddress();
         StorageTypes.GasConfig memory config = _getGasBridgeConfig();
         uint256 fee = config.fee;
@@ -285,8 +295,8 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         StorageTypes.TokenConfig calldata _tokenConfig
     ) external override onlyGovernor {
         if (_neoXToken == address(0)) revert InvalidTokenAddress();
-        if (_tokenConfig.neoN3Token == address(0)) revert InvalidAddress();
-
+        if (!TokenBridgeLib._isValidConfig(_tokenConfig))
+            revert InvalidTokenConfig();
         _registerToken(_neoXToken, _tokenConfig);
         emit TokenRegister(_neoXToken, _tokenConfig);
     }

@@ -62,7 +62,7 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     modifier onlyGovernorOrSecurityGuard() {
         if (
             msg.sender != management.getGovernor() &&
-                msg.sender != management.getSecurityGuard()
+            msg.sender != management.getSecurityGuard()
         ) revert NoAuthorization();
         _;
     }
@@ -81,7 +81,7 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         if (!bridgePaused) revert BridgeNotPaused();
         _;
     }
-    
+
     modifier whenWithdrawalsPaused() {
         if (!withdrawalsPaused) revert WithdrawalsNotPaused();
         _;
@@ -243,8 +243,6 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         // Check if token bridge is already registered
         if (_isRegisteredToken(_neoXToken))
             revert TokenBridgeAlreadyRegistered(_neoXToken);
-        if (!TokenBridgeLib._isValidConfig(_tokenConfig))
-            revert InvalidTokenConfig();
 
         // Add token bridge to storage
         tokenBridges[_neoXToken] = StorageTypes.TokenBridge({
