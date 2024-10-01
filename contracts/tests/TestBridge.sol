@@ -6,7 +6,10 @@ import "./interfaces/ITestBridgeManagement.sol";
 
 contract TestBridge is BridgeImpl {
     modifier onlyOwner() {
-        require(msg.sender == ITestBridgeManagement(address(management)).owner(), "Unauthorized");
+        require(
+            msg.sender == ITestBridgeManagement(address(management)).owner(),
+            "Unauthorized"
+        );
         _;
     }
 
