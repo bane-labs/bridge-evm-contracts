@@ -1,8 +1,8 @@
-import { ethers } from "hardhat";
 import { Wallet } from "ethers";
-import { vars } from "hardhat/config";
 import { Provider } from "ethers";
 import fs from "fs";
+import { ethers } from "hardhat";
+import { vars } from "hardhat/config";
 
 // For testing purposes, the owner is also used as the deployer, governor, security guart, and funder.
 export const DEPLOYER_PASSWORD = vars.has("BRIDGE_DEPLOYER_PASSWORD") ? vars.get("BRIDGE_DEPLOYER_PASSWORD") : "";

@@ -1,0 +1,30 @@
+import { Provider } from "ethers";
+import { ethers } from "hardhat";
+import { vars } from "hardhat/config";
+import { TestBridge, TestBridgeManagement } from "../../typechain-types/contracts/tests";
+
+export const BRIDGE_ADDRESS = vars.has("BRIDGE_ADDRESS") ? vars.get("BRIDGE_ADDRESS") : "";
+export const MANAGEMENT_ADDRESS = vars.has("MANAGEMENT_ADDRESS") ? vars.get("MANAGEMENT_ADDRESS") : "";
+export const N3_TOKEN_ADDRESS = vars.has("N3_TOKEN_ADDRESS") ? vars.get("N3_TOKEN_ADDRESS") : "";
+export const N3_NEO_ADDRESS = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
+
+export async function getBridgeFromEnv(provider: Provider): Promise<TestBridge> {
+    if (BRIDGE_ADDRESS === "") {
+        throw new Error("BRIDGE_ADDRESS is not set in the environment");
+    }
+    return (await ethers.getContractAt("TestBridge", BRIDGE_ADDRESS)) as TestBridge;
+}
+
+export async function getManagementFromEnv(provider: Provider): Promise<TestBridgeManagement> {
+    if (MANAGEMENT_ADDRESS === "") {
+        throw new Error("MANAGEMENT_ADDRESS is not set in the environment");
+    }
+    return (await ethers.getContractAt("TestBridgeManagement", MANAGEMENT_ADDRESS)) as TestBridgeManagement;
+}
+
+export function getN3TokenFromEnv(): string {
+    if (N3_TOKEN_ADDRESS === "") {
+        throw new Error("N3_TOKEN_ADDRESS is not set in the environment");
+    }
+    return N3_TOKEN_ADDRESS;
+}

@@ -1,5 +1,10 @@
 import { ethers } from "hardhat";
 
+export enum TokenExecutionType {
+    NEO = 0,
+    ERC20 = 1
+}
+
 export const HARDHAT_LOCAL_NETWORK_CHAIN_ID = 1n;
 export const HARDHAT_DEFAULT_PROVIDER_NETWORK_CHAIN_ID = 31337n;
 export const NEOX_TESTNET_CHAIN_ID = 12227332n;
