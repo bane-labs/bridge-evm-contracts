@@ -1,17 +1,11 @@
 import { ethers, upgrades } from "hardhat";
 import { TestBridgeManagement, TestBridge } from "../typechain-types/contracts/tests/";
-import { getDeployer, getOwner, getRelayer, getValidator01, getValdiator02 } from "./utils/wallet";
+import { HARDHAT_LOCAL_NETWORK_CHAIN_ID, HARDHAT_DEFAULT_PROVIDER_NETWORK_CHAIN_ID, NEOX_TESTNET_CHAIN_ID, MAX_FEE_PER_GAS, MAX_PRIORITY_FEE_PER_GAS } from "./utils/constants";
 import { fundAddress } from "./utils/funding";
-
-const HARDHAT_LOCAL_NETWORK_CHAIN_ID = 1n;
-const HARDHAT_DEFAULT_PROVIDER_NETWORK_CHAIN_ID = 31337n;
-const NEOX_TESTNET_CHAIN_ID = 12227332n;
-const MAX_FEE_PER_GAS = ethers.parseUnits("41", "gwei");  // maxGasTip
-const MAX_PRIORITY_FEE_PER_GAS = ethers.parseUnits("20", "gwei"); // maxGasFee
+import { getDeployer, getOwner, getRelayer, getValidator01, getValdiator02 } from "./utils/wallet";
 
 async function deployBridgeContracts() {
     console.log("\n#################### Bridge Contracts Deployment ####################");
-    // console.log("\n# Bridge Contracts Deployment #######################################");
     const network = await ethers.provider.getNetwork();
 
     const deployer = getDeployer(ethers.provider);
@@ -25,8 +19,6 @@ async function deployBridgeContracts() {
 
     const chainId = network.chainId;
     const localNetwork = chainId === HARDHAT_LOCAL_NETWORK_CHAIN_ID || chainId === HARDHAT_DEFAULT_PROVIDER_NETWORK_CHAIN_ID;
-    // console.log("\n####################### Network Configuration #######################");
-    // console.log("\n# Network Configuration #############################################");
     console.log("\n# Network Configuration");
     if (localNetwork) {
         console.log("Network:                              Local Hardhat Network");
@@ -42,8 +34,6 @@ async function deployBridgeContracts() {
     console.log("Max Fee Per Gas (gasTipCap):         ", ethers.formatUnits(MAX_FEE_PER_GAS, "gwei"), "gwei");
 
     if (localNetwork) {
-        // console.log("\n########################## Account Funding ##########################");
-        // console.log("\n# Account Funding ###################################################");
         console.log("\n# Funding");
         const [signer01] = await ethers.getSigners();
         fundAddress(signer01, deployer.address, ethers.parseEther("10"));
@@ -67,16 +57,12 @@ async function deployBridgeContracts() {
     await bridgeProxy.waitForDeployment();
     const bridge = bridgeProxy as TestBridge;
 
-    // console.log("\n############################# Deployment ############################");
-    // console.log("\n# Deployment ########################################################");
     console.log("\n# Deployment");
     console.log("Management Logic Address: ", await upgrades.erc1967.getImplementationAddress(await management.getAddress()));
     console.log("Management Proxy Address: ", await management.getAddress());
     console.log("Bridge Logic Address:     ", await upgrades.erc1967.getImplementationAddress(await bridge.getAddress()));
     console.log("Bridge Proxy Address:     ", await bridge.getAddress());
 
-    // console.log("\n############################### Roles ###############################");
-    // console.log("\n# Roles #############################################################");
     console.log("\n# Roles");
     console.log("Owner:               ", await management.owner());
     console.log("Relayer:             ", await management.getRelayer());
@@ -87,8 +73,6 @@ async function deployBridgeContracts() {
     console.log("Security Guard:      ", await management.getSecurityGuard());
     console.log("Funder:              ", await management.getFunder());
 
-    // console.log("\n########################### Configuration ###########################");
-    // console.log("\n# Configuration #####################################################");
     console.log("\n# Bridge Configuration");
     console.log("Linked Management:       ", await bridge.management());
     const gasBridge = await bridge.gasBridge();
