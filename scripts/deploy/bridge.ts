@@ -2,8 +2,8 @@ import { ethers, upgrades } from "hardhat";
 import { Wallet } from "ethers";
 import { TestBridge } from "../../typechain-types/contracts/tests";
 import { printFeeConfiguration, MAX_FEE_PER_GAS, MAX_PRIORITY_FEE_PER_GAS } from "../utils/constants";
-import { getDeployer } from "../utils/wallet";
 import { fundIfLocalNetwork, printNetworkConfiguration } from "../utils/network";
+import { getDeployer } from "../utils/wallet";
 import { deployBridgeManagement } from "./management";
 
 export async function deployBridge(managementAddress: string, deployer: Wallet): Promise<TestBridge> {

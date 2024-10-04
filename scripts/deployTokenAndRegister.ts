@@ -2,9 +2,9 @@ import { ethers } from "hardhat";
 import { deployTokenContract } from "./deploy/token";
 import { getBridgeFromEnv, getN3TokenAddressFromEnv } from "./utils/addresses";
 import { TokenExecutionType } from "./utils/constants";
+import { fundIfLocalNetwork } from "./utils/network";
 import { registerToken } from "./utils/registration";
 import { getDeployer, getOwner } from "./utils/wallet";
-import { fundIfLocalNetwork } from "./utils/network";
 
 async function main() {
     const deployer = getDeployer(ethers.provider);

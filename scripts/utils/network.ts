@@ -1,4 +1,3 @@
-
 import { ethers } from "hardhat";
 import { Network } from "ethers";
 import { HARDHAT_LOCAL_NETWORK_CHAIN_ID, HARDHAT_DEFAULT_PROVIDER_NETWORK_CHAIN_ID, NEOX_TESTNET_CHAIN_ID } from "./constants";
@@ -18,7 +17,6 @@ export async function fundIfLocalNetwork(addresses: string[]) {
         }
     }
 }
-
 
 export async function printNetworkConfiguration() {
     const network = await ethers.provider.getNetwork();
