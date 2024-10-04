@@ -5,7 +5,7 @@ import { TokenExecutionType, MAX_FEE_PER_GAS, MAX_PRIORITY_FEE_PER_GAS } from ".
 import { fundIfLocalNetwork } from "./network";
 
 export async function registerToken(bridge: TestBridge, governor: Wallet, token: TestToken, executionType: TokenExecutionType, n3TokenAddress: string) {
-    await fundIfLocalNetwork(governor.address);
+    await fundIfLocalNetwork([governor.address]);
     console.log("\n#####################################################################");
     console.log("######################### Token Registration ########################");
     console.log("#####################################################################");

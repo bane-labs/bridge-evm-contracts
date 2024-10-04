@@ -8,12 +8,14 @@ export function isLocalNetwork(network: Network) {
     return network.chainId === HARDHAT_LOCAL_NETWORK_CHAIN_ID || network.chainId === HARDHAT_DEFAULT_PROVIDER_NETWORK_CHAIN_ID;
 }
 
-export async function fundIfLocalNetwork(address: string) {
+export async function fundIfLocalNetwork(addresses: string[]) {
     const network = await ethers.provider.getNetwork();
     if (isLocalNetwork(network)) {
         console.log("\n# Funding");
         const [signer01] = await ethers.getSigners();
-        await fundAddress(signer01, address, ethers.parseEther("10"));
+        for (const address of addresses) {
+            await fundAddress(signer01, address, ethers.parseEther("10"));
+        }
     }
 }
 

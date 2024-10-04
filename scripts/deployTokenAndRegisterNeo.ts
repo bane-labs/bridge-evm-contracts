@@ -11,8 +11,7 @@ import { fundAddress } from "./utils/funding";
 async function main() {
     const deployer = getDeployer(ethers.provider);
     const governor = getOwner(ethers.provider);
-    fundIfLocalNetwork(deployer.address);
-    fundIfLocalNetwork(governor.address);
+    await fundIfLocalNetwork([deployer.address, governor.address]);
     const bridge = await getBridgeFromEnv(ethers.provider);
     const token = await deployTokenContract(deployer);
     await registerToken(bridge, governor, token, TokenExecutionType.NEO, N3_NEO_ADDRESS);

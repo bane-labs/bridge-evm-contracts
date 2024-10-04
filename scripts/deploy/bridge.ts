@@ -40,7 +40,7 @@ export async function deployBridgeContracts(): Promise<TestBridge> {
     console.log("Max Fee Per Gas (gasTipCap):         ", ethers.formatUnits(MAX_FEE_PER_GAS, "gwei"), "gwei");
 
     const deployer = getDeployer(ethers.provider);
-    await fundIfLocalNetwork(deployer.address);
+    await fundIfLocalNetwork([deployer.address]);
     const management = await deployBridgeManagement(deployer);
     const bridge = await deployBridge(await management.getAddress(), deployer);
     return bridge;

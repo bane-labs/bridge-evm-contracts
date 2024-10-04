@@ -8,8 +8,7 @@ import { fundIfLocalNetwork } from "./utils/network";
 async function main() {
     const deployer = getDeployer(ethers.provider);
     const governor = getOwner(ethers.provider);
-    fundIfLocalNetwork(deployer.address);
-    fundIfLocalNetwork(governor.address);
+    await fundIfLocalNetwork([deployer.address, governor.address]);
     const bridge = await getBridgeFromEnv(ethers.provider);
     const token = await getNeoXTokenFromEnv();
     await registerToken(bridge, governor, token, TokenExecutionType.ERC20, N3_TOKEN_ADDRESS);
