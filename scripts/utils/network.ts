@@ -13,7 +13,7 @@ export async function fundIfLocalNetwork(addresses: string[]) {
         console.log("\n# Funding");
         const [signer01] = await ethers.getSigners();
         for (const address of addresses) {
-            await fundAddress(signer01, address, ethers.parseEther("10"));
+            await fundAddress(signer01, address, ethers.parseEther("1000"));
         }
     }
 }
