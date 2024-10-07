@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 import { deployBridgeContracts } from "./deploy/bridge";
-import { defaultN3TokenAddress, getBridgeFromEnv, getN3DefaultRecipientFromEnv, getN3TokenAddressFromEnv, getNeoXTokenFromEnv } from "./utils/addresses";
+import { defaultN3TokenAddress, getBridgeFromEnv, getN3DefaultRecipientFromEnv, getNeoXTokenFromEnv } from "./utils/addresses";
 import { MAX_FEE_PER_GAS, TokenExecutionType } from "./utils/constants";
 import { fundIfLocalNetwork, isLocalNetwork } from "./utils/network";
 import { getDeployer, getOwner } from "./utils/wallet";
@@ -21,14 +21,14 @@ async function main() {
         await registerToken(bridge, governor, token, TokenExecutionType.ERC20, defaultN3TokenAddress());
     } else {
         bridge = await getBridgeFromEnv(ethers.provider);
-        token = await ethers.getContractAt("TestToken", getNeoXTokenFromEnv());
+        token = await getNeoXTokenFromEnv();
     }
     const tokenAddress = await token.getAddress();
     const amount = ethers.parseEther("10");
     const n3Recipient = getN3DefaultRecipientFromEnv();
     const bridgeAddress = await bridge.getAddress();
 
-    await token.connect(sender).approve(bridgeAddress, amount);
+    await token.connect(sender).approve(bridgeAddress, amount, { maxFeePerGas: MAX_FEE_PER_GAS, maxPriorityFeePerGas: MAX_FEE_PER_GAS });
 
     const tokenConfig = await bridge.getTokenConfig(tokenAddress);
     const withdrawTx = await bridge.connect(sender).withdrawToken(tokenAddress, n3Recipient, amount, { value: tokenConfig.fee, maxFeePerGas: MAX_FEE_PER_GAS, maxPriorityFeePerGas: MAX_FEE_PER_GAS });

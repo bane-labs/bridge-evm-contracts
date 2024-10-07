@@ -26,6 +26,7 @@ const config: HardhatUserConfig = {
       url: "https://testnet.rpc.banelabs.org",
       chainId: 12227332,
       accounts: NEOX_TESTNET_ACCOUNTS,
+      gasPrice: 4000000000,
     },
   },
 };
