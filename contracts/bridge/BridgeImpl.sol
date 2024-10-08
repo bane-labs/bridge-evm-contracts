@@ -408,12 +408,16 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         );
 
         // Execute the token distribution
-        _executeTokenDistribution(_neoXToken, config.executionType, _deposits);
+        _executeTokenDistribution(
+            _neoXToken,
+            config.decimalScalingFactor,
+            _deposits
+        );
     }
 
     function _executeTokenDistribution(
         address _neoXToken,
-        StorageTypes.ExecutionType _executionType,
+        uint8 _decimalScalingFactor,
         BridgeLib.DepositData[] calldata _deposits
     ) private {
         uint256 depositLength = _deposits.length;
@@ -422,14 +426,9 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
             BridgeLib.DepositData calldata depositEntry = _deposits[i];
             address to = depositEntry.to;
             uint256 transferAmount = depositEntry.amount;
-            if (_executionType == StorageTypes.ExecutionType.NEO) {
-                // For NEO tokens, the transfer value needs to be extended with 18 decimals, since it's nondivisible on Neo N3 and it has 18 decimals on Neo X.
-                transferAmount *= 1e18;
+            if (_decimalScalingFactor > 0) {
+                transferAmount *= (10 ** _decimalScalingFactor);
             }
-            assert(
-                _executionType == StorageTypes.ExecutionType.NEO ||
-                    _executionType == StorageTypes.ExecutionType.ERC20
-            );
             bool success = TokenBridgeLib._safeERC20Transfer(
                 IERC20(_neoXToken),
                 to,
@@ -530,11 +529,12 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         StorageTypes.State memory state = _getTokenWithdrawalState(_neoXToken);
         uint256 newNonce = state.nonce + 1;
 
-        if (config.executionType == StorageTypes.ExecutionType.NEO) {
-            if (receivedAmount % 1e18 != 0) {
+        if (config.decimalScalingFactor > 0) {
+            uint256 scalingFactor = 10 ** config.decimalScalingFactor;
+            if (receivedAmount % scalingFactor != 0) {
                 revert InvalidAmount();
             }
-            receivedAmount /= 1e18;
+            receivedAmount /= scalingFactor;
         }
 
         bytes32 withdrawalHash = TokenBridgeLib._hashTokenBridgeOp(

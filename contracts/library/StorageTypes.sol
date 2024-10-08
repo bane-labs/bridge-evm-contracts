@@ -36,17 +36,6 @@ library StorageTypes {
 
     // Token Bridges
 
-    /**
-     * The execution type is used to specifies the behaviour when executing a token distribution from another chain.
-     * Currently, there's only two types of a token distribution, which both use a simple ERC20's "transfer(address,uint256)" function, while the type NEO additionally adds 18 decimal places when depositing, since Neo does not have decimal places on Neo N3.
-     * How the distribution handling for other types will be implemented is still under discussion. However, for ERC721, the functions in mind are "mint(address,uint256)", "safeMint(address,uint256)", "transferFrom(address,uint256)" or "safeTransferFrom(address,uint256)". As seen from these function declarations, similar to ERC20, they all use the same parameter types, i.e., besides the function call, the complete existing execution logic and chain computation can be reused in depositToken().
-     */
-    enum ExecutionType {
-        NEO,
-        ERC20
-        // ERC721
-    }
-
     struct TokenBridge {
         bool paused;
         State depositState;
@@ -56,11 +45,12 @@ library StorageTypes {
 
     struct TokenConfig {
         address neoN3Token;
+        // The decimal scaling factor should be used if the token on this chain has more decimal precision than the token on the other chain.
+        // For example, if the token on this chain has 18 decimals and the token on the other chain has 8 decimals, the decimal scaling factor should be 10.
+        uint8 decimalScalingFactor;
         uint256 fee;
         uint256 minAmount;
         uint256 maxAmount;
         uint256 maxDeposits;
-        // Execution details
-        ExecutionType executionType;
     }
 }
