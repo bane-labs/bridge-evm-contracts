@@ -73,11 +73,11 @@ contract BridgeImplTest is Test, SigUtils {
 
         validConfig = StorageTypes.TokenConfig({
             neoN3Token: neoN3Token,
+            decimalScalingFactor: 18,
             fee: 1,
             minAmount: 100,
             maxAmount: 1000,
-            maxDeposits: 10,
-            executionType: StorageTypes.ExecutionType.NEO
+            maxDeposits: 10
         });
     }
 
@@ -116,11 +116,11 @@ contract BridgeImplTest is Test, SigUtils {
         StorageTypes.TokenConfig memory invalidConfig = StorageTypes
             .TokenConfig({
                 neoN3Token: neoN3Token,
+                decimalScalingFactor: 18,
                 fee: 1,
                 minAmount: 1000,
                 maxAmount: 100,
-                maxDeposits: 10,
-                executionType: StorageTypes.ExecutionType.NEO
+                maxDeposits: 10
             });
         bridgeProxy.registerToken(neoXToken, invalidConfig);
     }
@@ -132,11 +132,11 @@ contract BridgeImplTest is Test, SigUtils {
         StorageTypes.TokenConfig memory invalidConfig = StorageTypes
             .TokenConfig({
                 neoN3Token: neoN3Token,
+                decimalScalingFactor: 18,
                 fee: 0,
                 minAmount: 1,
                 maxAmount: 10000,
-                maxDeposits: 10,
-                executionType: StorageTypes.ExecutionType.NEO
+                maxDeposits: 10
             });
         bridgeProxy.registerToken(neoXToken, invalidConfig);
     }
@@ -148,11 +148,11 @@ contract BridgeImplTest is Test, SigUtils {
         StorageTypes.TokenConfig memory invalidConfig = StorageTypes
             .TokenConfig({
                 neoN3Token: neoN3Token,
+                decimalScalingFactor: 18,
                 fee: 1,
                 minAmount: 0,
                 maxAmount: 100,
-                maxDeposits: 10,
-                executionType: StorageTypes.ExecutionType.NEO
+                maxDeposits: 10
             });
         bridgeProxy.registerToken(neoXToken, invalidConfig);
     }
@@ -164,11 +164,11 @@ contract BridgeImplTest is Test, SigUtils {
         StorageTypes.TokenConfig memory invalidConfig = StorageTypes
             .TokenConfig({
                 neoN3Token: address(0),
+                decimalScalingFactor: 18,
                 fee: 1,
                 minAmount: 100,
                 maxAmount: 1000,
-                maxDeposits: 10,
-                executionType: StorageTypes.ExecutionType.NEO
+                maxDeposits: 10
             });
         bridgeProxy.registerToken(neoXToken, invalidConfig);
     }
