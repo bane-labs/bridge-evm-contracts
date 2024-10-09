@@ -2,8 +2,22 @@
 pragma solidity 0.8.25;
 
 import "../bridge/BridgeImpl.sol";
+import "./interfaces/ITestBridgeManagement.sol";
 
 contract TestBridge is BridgeImpl {
+    modifier onlyOwner() {
+        require(
+            msg.sender == ITestBridgeManagement(address(management)).owner(),
+            "Unauthorized"
+        );
+        _;
+    }
+
+    // Authorize the contract owner to upgrade the contract for testing purposes.
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal virtual override onlyOwner {}
+
     function isRegisteredToken(address neoXToken) public view returns (bool) {
         return _isRegisteredToken(neoXToken);
     }
