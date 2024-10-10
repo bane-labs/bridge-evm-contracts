@@ -21,7 +21,7 @@ describe("Bridge Management", function () {
             funder
         ] = await ethers.getSigners();
         const BridgeManagementFactory = (await ethers.getContractFactory("TestBridgeManagement"));
-        const proxy = await upgrades.deployProxy(BridgeManagementFactory, [
+        const proxyV1 = await upgrades.deployProxy(BridgeManagementFactory, [
             owner.address,
             relayer.address,
             5,
@@ -30,12 +30,17 @@ describe("Bridge Management", function () {
             securityGuard.address,
             funder.address
         ], { kind: "uups", unsafeAllow: ["constructor"] });
-        await proxy.waitForDeployment();
+        await proxyV1.waitForDeployment();
+        const TestManagementFactoryV1ToV2 = (await ethers.getContractFactory("TestManagementV2")).connect(owner);
+        const proxy = await upgrades.upgradeProxy(await proxyV1.getAddress(), TestManagementFactoryV1ToV2, {
+            call: { fn: "upgradeToV2", args: [] },
+            unsafeAllow: ["constructor"]
+        });
 
-        const bridgeManagementImpl = proxy as TestBridgeManagement;
+        const bridgeManagement = proxy as TestBridgeManagement;
 
         return {
-            bridgeManagementImpl,
+            bridgeManagementImpl: bridgeManagement,
             relayer,
             validator1,
             validator2,
