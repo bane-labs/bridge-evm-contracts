@@ -94,19 +94,19 @@ contract TestFungibleToken is Test, SigUtils {
         neoXTokenB = address(new MockERC20("MockB", "MB"));
         validConfigA = StorageTypes.TokenConfig({
             neoN3Token: neoN3TokenA,
+            decimalScalingFactor: 0,
             fee: 1,
             minAmount: 100,
             maxAmount: 1000,
-            maxDeposits: 2,
-            executionType: StorageTypes.ExecutionType.ERC20
+            maxDeposits: 2
         });
         validConfigB = StorageTypes.TokenConfig({
             neoN3Token: neoN3TokenB,
+            decimalScalingFactor: 18,
             fee: 1,
             minAmount: 100,
             maxAmount: 1000 ether,
-            maxDeposits: 2,
-            executionType: StorageTypes.ExecutionType.NEO
+            maxDeposits: 2
         });
 
         // Fund the test accounts with some ether.
@@ -928,11 +928,15 @@ contract TestFungibleToken is Test, SigUtils {
             ),
             allowance
         );
-        
+
         uint256 fee = bridgeProxy.getTokenConfig(neoXTokenA).fee;
         uint256 transferAmount = 200;
         vm.prank(transferUser0);
-        bridgeProxy.withdrawToken{value: fee}(neoXTokenA, transferUser1, transferAmount);
+        bridgeProxy.withdrawToken{value: fee}(
+            neoXTokenA,
+            transferUser1,
+            transferAmount
+        );
         assertEq(
             MockERC20(neoXTokenA).allowance(
                 transferUser0,
@@ -946,25 +950,24 @@ contract TestFungibleToken is Test, SigUtils {
         assertTrue(bridgeProxy.getWithdrawalsPaused());
 
         vm.expectRevert(abi.encodeWithSignature("WithdrawalsPaused()"));
-        bridgeProxy.withdrawToken(
-            neoXTokenA,
-            transferUser0,
-            transferAmount
-        );
+        bridgeProxy.withdrawToken(neoXTokenA, transferUser0, transferAmount);
     }
 
     // Test case: Deposits should be allowed while withdrawals are paused
     function test_DepositsAreAllowedWhileWithdrawalsPaused() public {
         uint256 initialBridgeBalance = 10000;
         MockERC20(neoXTokenA).mint(address(bridgeProxy), initialBridgeBalance);
-        assertEq(MockERC20(neoXTokenA).balanceOf(address(bridgeProxy)), initialBridgeBalance);
+        assertEq(
+            MockERC20(neoXTokenA).balanceOf(address(bridgeProxy)),
+            initialBridgeBalance
+        );
         vm.prank(governor);
         bridgeProxy.registerToken(neoXTokenA, validConfigA);
         assertFalse(bridgeProxy.getWithdrawalsPaused());
         vm.prank(governor);
         bridgeProxy.pauseWithdrawals();
         assertTrue(bridgeProxy.getWithdrawalsPaused());
-        
+
         BridgeLib.DepositData[]
             memory depositData = new BridgeLib.DepositData[](1);
         uint256 depositAmount = 700;
@@ -998,7 +1001,10 @@ contract TestFungibleToken is Test, SigUtils {
             depositData
         );
         // check balance
-        assertEq(MockERC20(neoXTokenA).balanceOf(address(bridgeProxy)), initialBridgeBalance - depositAmount);
+        assertEq(
+            MockERC20(neoXTokenA).balanceOf(address(bridgeProxy)),
+            initialBridgeBalance - depositAmount
+        );
         assertEq(MockERC20(neoXTokenA).balanceOf(transferUser0), depositAmount);
     }
 

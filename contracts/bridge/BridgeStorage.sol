@@ -313,12 +313,6 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         return tokenBridges[_neoXToken].config;
     }
 
-    function _getExecutionType(
-        address _neoXToken
-    ) internal view returns (StorageTypes.ExecutionType) {
-        return tokenBridges[_neoXToken].config.executionType;
-    }
-
     function _getTokenDepositState(
         address _neoXToken
     ) internal view returns (StorageTypes.State memory state) {

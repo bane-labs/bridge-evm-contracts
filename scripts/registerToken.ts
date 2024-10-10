@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 import { N3_TOKEN_ADDRESS, getBridgeFromEnv, getNeoXTokenFromEnv } from "./utils/addresses";
-import { TokenExecutionType, MAX_FEE_PER_GAS, MAX_PRIORITY_FEE_PER_GAS } from "./utils/constants";
+import { MAX_FEE_PER_GAS, MAX_PRIORITY_FEE_PER_GAS } from "./utils/constants";
 import { fundIfLocalNetwork } from "./utils/network";
 import { registerToken } from "./utils/registration";
 import { getDeployer, getOwner } from "./utils/wallet";
@@ -11,7 +11,7 @@ async function main() {
     await fundIfLocalNetwork([deployer.address, governor.address]);
     const bridge = await getBridgeFromEnv(ethers.provider);
     const token = await getNeoXTokenFromEnv();
-    await registerToken(bridge, governor, token, TokenExecutionType.ERC20, N3_TOKEN_ADDRESS);
+    await registerToken(bridge, governor, token, N3_TOKEN_ADDRESS);
     await token.connect(deployer).transfer(await bridge.getAddress(), ethers.parseEther("10000"), { maxFeePerGas: MAX_FEE_PER_GAS, maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS });
 }
 

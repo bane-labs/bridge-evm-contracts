@@ -747,7 +747,7 @@ describe("Bridge Implementation", function () {
 
             await expect(bridgeContract.connect(validator1).pauseBridge()).to.be.revertedWithCustomError(bridgeContract, "NoAuthorization");
             expect(await bridgeContract.bridgePaused()).to.equal(false);
-            
+
             await bridgeContract.connect(governor).pauseBridge();
             expect(await bridgeContract.bridgePaused()).to.equal(true);
             await bridgeContract.connect(governor).unpauseBridge();

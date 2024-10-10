@@ -98,11 +98,11 @@ contract TokenBridgeSyncTest is Test, SigUtils {
 
         neoBridgeConfig = StorageTypes.TokenConfig({
             neoN3Token: neoN3NeoToken,
+            decimalScalingFactor: 18,
             fee: 0.1 ether,
             minAmount: 1,
             maxAmount: 1000 ether,
-            maxDeposits: 2,
-            executionType: StorageTypes.ExecutionType.NEO
+            maxDeposits: 2
         });
 
         // Fund the test accounts with some ether.

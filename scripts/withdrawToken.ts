@@ -1,7 +1,7 @@
 import { ethers } from "hardhat";
 import { deployBridgeContracts } from "./deploy/bridge";
 import { defaultN3TokenAddress, getBridgeFromEnv, getN3DefaultRecipientFromEnv, getNeoXTokenFromEnv } from "./utils/addresses";
-import { MAX_FEE_PER_GAS, TokenExecutionType } from "./utils/constants";
+import { MAX_FEE_PER_GAS } from "./utils/constants";
 import { fundIfLocalNetwork, isLocalNetwork } from "./utils/network";
 import { getDeployer, getOwner } from "./utils/wallet";
 import { deployTokenContract } from "./deploy/token";
@@ -18,7 +18,7 @@ async function main() {
     if (isLocalNetwork(await ethers.provider.getNetwork())) {
         bridge = await deployBridgeContracts();
         token = await deployTokenContract(sender);
-        await registerToken(bridge, governor, token, TokenExecutionType.ERC20, defaultN3TokenAddress());
+        await registerToken(bridge, governor, token, defaultN3TokenAddress());
     } else {
         bridge = await getBridgeFromEnv(ethers.provider);
         token = await getNeoXTokenFromEnv();

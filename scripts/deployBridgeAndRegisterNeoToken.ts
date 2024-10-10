@@ -2,8 +2,7 @@ import { ethers } from "hardhat";
 import { deployBridgeContracts } from "./deploy/bridge";
 import { deployTokenContract } from "./deploy/token";
 import { N3_NEO_ADDRESS } from "./utils/addresses";
-import { TokenExecutionType } from "./utils/constants";
-import { registerToken } from "./utils/registration";
+import { registerToken, registerTokenWithScalingFactor } from "./utils/registration";
 import { getDeployer, getOwner } from "./utils/wallet";
 
 async function main() {
@@ -16,7 +15,7 @@ async function main() {
     const token = await deployTokenContract(deployer);
 
     await token.connect(deployer).transfer(await bridge.getAddress(), ethers.parseEther("10000"));
-    await registerToken(bridge, governor, token, TokenExecutionType.NEO, N3_NEO_ADDRESS);
+    await registerTokenWithScalingFactor(bridge, governor, token, N3_NEO_ADDRESS, 18n);
 
     const balanceFunder = await token.balanceOf(await funder.getAddress());
     const balanceBridge = await token.balanceOf(await bridge.getAddress());
