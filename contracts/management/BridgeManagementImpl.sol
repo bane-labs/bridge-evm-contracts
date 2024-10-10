@@ -48,20 +48,43 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
         return relayer;
     }
 
-    function setValidators(
-        address[] calldata _validators,
-        uint256 threshold
+    function isValidator(address _validator) external view returns (bool) {
+        return _isValidator(_validator);
+    }
+
+    function addValidator(
+        address _validator,
+        bool _increaseThreshold
     ) external onlyOwner {
-        _setValidators(_validators, threshold);
-        emit ValidatorsChange(_validators, threshold);
+        _addValidator(_validator, _increaseThreshold);
+        emit ValidatorAddition(_validator, _increaseThreshold);
+    }
+
+    function removeValidator(
+        uint256 _index,
+        address _validator,
+        bool _decreaseThreshold
+    ) external onlyOwner {
+        _removeValidator(_index, _validator, _decreaseThreshold);
+        emit ValidatorRemoval(_validator, _decreaseThreshold);
+    }
+
+    function replaceValidator(
+        uint256 _index,
+        address _oldValidator,
+        address _newValidator
+    ) external onlyOwner {
+        _replaceValidator(_index, _oldValidator, _newValidator);
+        emit ValidatorReplacement(_oldValidator, _newValidator);
     }
 
     function getValidators() external view returns (address[] memory) {
         return validators;
     }
 
-    function getValidator(uint256 _index) external view returns (address) {
-        return validators[_index];
+    function setValidatorThreshold(uint256 _threshold) external onlyOwner {
+        _setValidatorThreshold(_threshold);
+        emit ValidatorThresholdChange(_threshold);
     }
 
     function getValidatorThreshold() external view returns (uint256) {

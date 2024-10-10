@@ -15,29 +15,69 @@ abstract contract BridgeManagementStorage is
         0x1212000000000000000000000000000000000000;
 
     error InvalidAddress();
+    error InvalidIndex();
+    error IncorrectValidator(address _expected, address _provided);
     error InvalidValidatorArray();
     error InvalidValidatorThreshold();
+    error AlreadyAValidator(address _validator);
+    error NotAValidator(address _validator);
 
-    function _setValidators(
-        address[] calldata _validators,
-        uint256 _threshold
+    function _isValidator(address _validator) internal view returns (bool) {
+        return validatorMap[_validator];
+    }
+
+    function _addValidator(
+        address _validator,
+        bool increaseThreshold
     ) internal {
-        uint256 validatorsLength = _validators.length;
-        // Require at least 2 validators and threshold to be greater than 1.
-        if (validatorsLength <= 1) revert InvalidValidatorArray();
-        if (_threshold <= 1 || _threshold > validatorsLength)
-            revert InvalidValidatorThreshold();
-        for (uint256 i = 0; i < validatorsLength; i++) {
-            if (_validators[i] == address(0)) revert InvalidAddress();
+        if (!_isValidator(_validator)) revert AlreadyAValidator(_validator);
+        if (increaseThreshold) {
+            validatorThreshold++;
         }
-        if (ManagementLib._hasDuplicates(_validators))
-            revert InvalidValidatorArray();
+        validatorMap[_validator] = true;
+        validators.push(_validator);
+    }
 
-        delete validators;
-        for (uint256 i = 0; i < validatorsLength; i++) {
-            if (_validators[i] == address(0)) revert InvalidAddress();
-            validators.push(_validators[i]);
+    function _removeValidator(
+        uint256 _index,
+        address _validator,
+        bool decreaseThreshold
+    ) internal {
+        uint256 nrValidators = validators.length;
+        if (_index > nrValidators) revert InvalidIndex();
+        if (!_isValidator(_validator)) revert NotAValidator(_validator);
+        if (validators[_index] != _validator)
+            revert IncorrectValidator(validators[_index], _validator);
+        if (decreaseThreshold) {
+            validatorThreshold--;
+        } else {
+            if (validatorThreshold == nrValidators) {
+                revert InvalidValidatorThreshold();
+            }
         }
+        validatorMap[_validator] = false;
+        validators[_index] = validators[validators.length - 1];
+        validators.pop();
+    }
+
+    function _replaceValidator(
+        uint256 _index,
+        address _oldValidator,
+        address _newValidator
+    ) internal {
+        if (!_isValidator(_oldValidator)) revert NotAValidator(_oldValidator);
+        if (_isValidator(_newValidator))
+            revert AlreadyAValidator(_newValidator);
+        if (validators[_index] != _oldValidator)
+            revert IncorrectValidator(validators[_index], _oldValidator);
+        validatorMap[_oldValidator] = false;
+        validatorMap[_newValidator] = true;
+        validators[_index] = _newValidator;
+    }
+
+    function _setValidatorThreshold(uint256 _threshold) internal {
+        if (_threshold <= 1) revert InvalidValidatorThreshold();
+        if (_threshold > validators.length) revert InvalidValidatorThreshold();
         validatorThreshold = _threshold;
     }
 
