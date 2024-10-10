@@ -20,32 +20,23 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
         if (_signatures.length != threshold) {
             return false;
         }
+        // Create the message to be signed
         bytes32 signedRootMsg = keccak256(
             abi.encodePacked(
                 "\x19Ethereum Signed Message:\n32",
                 keccak256(abi.encodePacked(block.chainid, _newDepositRoot))
             )
         );
+        // Recover the signing addresses and make sure there are no duplicates
         address[] memory recovered = new address[](threshold);
         for (uint256 i = 0; i < threshold; i++) {
             BridgeLib.Signature calldata sig = _signatures[i];
             recovered[i] = ECDSA.recover(signedRootMsg, sig.v, sig.r, sig.s);
+            // If one of the provided signatures is not from a validator, return false
+            if (!validatorMap[recovered[i]]) return false;
         }
-        // check if all recovered addresses are in the validator set
-        uint256 covered = 0;
-        uint256 n = 0;
-        uint256 j;
-        uint256 validatorsLength = validators.length;
-        for (uint256 i = 0; i < threshold; i++) {
-            for (j = n; j < validatorsLength; j++) {
-                if (recovered[i] == validators[j]) {
-                    covered++;
-                    break;
-                }
-            }
-            n = j + 1;
-        }
-        return covered == threshold;
+        if (ManagementLib._hasDuplicates(recovered)) return false;
+        return true;
     }
 
     function setRelayer(address _relayer) external onlyOwner {

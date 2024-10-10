@@ -26,4 +26,7 @@ abstract contract BridgeManagementStorageV1 is Ownable2StepUpgradeable {
 
     // Slot 105
     address internal funder;
+
+    // Slot 106
+    mapping(address validator => bool isValidator) internal validatorMap;
 }
