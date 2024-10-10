@@ -417,7 +417,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
 
     function _executeTokenDistribution(
         address _neoXToken,
-        uint8 _decimalScalingFactor,
+        uint256 _decimalScalingFactor,
         BridgeLib.DepositData[] calldata _deposits
     ) private {
         uint256 depositLength = _deposits.length;

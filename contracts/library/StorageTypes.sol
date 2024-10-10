@@ -45,12 +45,12 @@ library StorageTypes {
 
     struct TokenConfig {
         address neoN3Token;
-        // The decimal scaling factor should be used if the token on this chain has more decimal precision than the token on the other chain.
-        // For example, if the token on this chain has 18 decimals and the token on the other chain has 8 decimals, the decimal scaling factor should be 10.
-        uint8 decimalScalingFactor;
         uint256 fee;
         uint256 minAmount;
         uint256 maxAmount;
         uint256 maxDeposits;
+        // The decimal scaling factor should be used if the token on this chain has more decimal precision than the token on the other chain.
+        // For example, if the token on this chain has 18 decimals and the token on the other chain has 8 decimals, the decimal scaling factor should be 10.
+        uint256 decimalScalingFactor;
     }
 }
