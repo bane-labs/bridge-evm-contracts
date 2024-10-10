@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import "../lib/forge-std/src/Test.sol";
-import {TestBridge, BridgeImpl} from "../contracts/tests/TestBridge.sol";
-import {IERC20Errors} from "../node_modules/@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
-import {ITokenBridge} from "../contracts/interfaces/ITokenBridge.sol";
-import {BridgeStorage, BridgeLib, GasBridgeLib, StorageTypes, TokenBridgeLib} from "../contracts/bridge/BridgeStorage.sol";
-import "../contracts/management/BridgeManagementImpl.sol";
-import "../contracts/tests/SigUtils.sol";
-import "../contracts/tests/MockERC20.sol";
+import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import {Upgrades, Options} from "openzeppelin-foundry-upgrades/Upgrades.sol";
+import {BridgeStorage, BridgeLib, GasBridgeLib, StorageTypes, TokenBridgeLib} from "../contracts/bridge/BridgeStorage.sol";
+import {ITokenBridge} from "../contracts/interfaces/ITokenBridge.sol";
+import {MockERC20} from "../contracts/tests/MockERC20.sol";
+import {SigUtils} from "../contracts/tests/SigUtils.sol";
+import {TestBridge, BridgeImpl} from "../contracts/tests/TestBridge.sol";
+import {TestBridgeManagement} from "../contracts/tests/TestBridgeManagement.sol";
+import {Test} from "../lib/forge-std/src/Test.sol";
 
 contract TokenBridgeSyncTest is Test, SigUtils {
     TestBridge bridgeProxy;
@@ -23,7 +23,7 @@ contract TokenBridgeSyncTest is Test, SigUtils {
     StorageTypes.TokenConfig neoBridgeConfig;
 
     // set _management
-    BridgeManagementImpl bridgeManagementImpl;
+    TestBridgeManagement bridgeManagement;
     SigUtils sigUtils;
     address public owner = 0xBcd4042DE499D14e55001CcbB24a551F3b954096;
     address public funder = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
@@ -68,9 +68,9 @@ contract TokenBridgeSyncTest is Test, SigUtils {
         opts.unsafeAllow = "constructor";
         // Deploy the bridge management implementation behind a UUPS proxy and initialize it with the provided parameters.
         managementProxyAddress = Upgrades.deployUUPSProxy(
-            "BridgeManagementImpl.sol",
+            "TestBridgeManagement.sol",
             abi.encodeCall(
-                BridgeManagementImpl.initialize,
+                TestBridgeManagement.initialize,
                 (
                     owner,
                     relayer,
@@ -83,13 +83,13 @@ contract TokenBridgeSyncTest is Test, SigUtils {
             ),
             opts
         );
-        bridgeManagementImpl = BridgeManagementImpl(managementProxyAddress);
+        bridgeManagement = TestBridgeManagement(managementProxyAddress);
 
         // Deploy the bridge implementation behind a UUPS proxy and initialize it with the provided parameters.
         bridgeProxyAddress = Upgrades.deployUUPSProxy(
             "TestBridge.sol",
             abi.encodeCall(
-                BridgeImpl.initialize,
+                TestBridge.initialize,
                 (managementProxyAddress, 1e17, 1e18, 1e22, 100)
             ),
             opts
@@ -204,7 +204,7 @@ contract TokenBridgeSyncTest is Test, SigUtils {
 
         // Verify the signatures of 6 validators
         vm.prank(owner);
-        bridgeManagementImpl.setValidators(validatorsAddresses, 6);
+        bridgeManagement.setValidators(validatorsAddresses, 6);
 
         BridgeLib.DepositData[]
             memory depositData = new BridgeLib.DepositData[](2);

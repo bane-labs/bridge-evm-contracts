@@ -20,7 +20,7 @@ describe("Bridge Management", function () {
             deployer,
             funder
         ] = await ethers.getSigners();
-        const BridgeManagementFactory = (await ethers.getContractFactory("BridgeManagementImpl"));
+        const BridgeManagementFactory = (await ethers.getContractFactory("TestBridgeManagement"));
         const proxy = await upgrades.deployProxy(BridgeManagementFactory, [
             owner.address,
             relayer.address,
@@ -32,7 +32,7 @@ describe("Bridge Management", function () {
         ], { kind: "uups", unsafeAllow: ["constructor"] });
         await proxy.waitForDeployment();
 
-        const bridgeManagementImpl = proxy as BridgeManagementImpl;
+        const bridgeManagementImpl = proxy as TestBridgeManagement;
 
         return {
             bridgeManagementImpl,

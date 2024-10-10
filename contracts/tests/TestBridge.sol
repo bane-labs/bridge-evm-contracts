@@ -5,6 +5,31 @@ import "../bridge/BridgeImpl.sol";
 import "./interfaces/ITestBridgeManagement.sol";
 
 contract TestBridge is BridgeImpl {
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() BridgeImpl() {}
+
+    function initialize(
+        address _management,
+        uint256 _fee,
+        uint256 _minAmount,
+        uint256 _maxAmount,
+        uint256 _maxDeposits
+    ) public initializer {
+        __ReentrancyGuard_init();
+        management = IBridgeManagement(_management);
+        gasBridge = StorageTypes.GasBridge({
+            paused: false,
+            depositState: StorageTypes.State({nonce: 0, root: 0x0}),
+            withdrawalState: StorageTypes.State({nonce: 0, root: 0x0}),
+            config: StorageTypes.GasConfig({
+                fee: _fee,
+                minAmount: _minAmount,
+                maxAmount: _maxAmount,
+                maxDeposits: _maxDeposits
+            })
+        });
+    }
+
     modifier onlyOwner() {
         require(
             msg.sender == ITestBridgeManagement(address(management)).owner(),
@@ -17,6 +42,8 @@ contract TestBridge is BridgeImpl {
     function _authorizeUpgrade(
         address newImplementation
     ) internal virtual override onlyOwner {}
+
+    // Additional helper functions for testing purposes.
 
     function isRegisteredToken(address neoXToken) public view returns (bool) {
         return _isRegisteredToken(neoXToken);

@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import "../lib/forge-std/src/Test.sol";
-import {TestBridge, BridgeImpl} from "../contracts/tests/TestBridge.sol";
-import "../contracts/bridge/BridgeStorage.sol";
-import "../contracts/management/BridgeManagementImpl.sol";
-import "../contracts/tests/SigUtils.sol";
-import {ITokenBridge} from "../contracts/interfaces/ITokenBridge.sol";
 import {Upgrades, Options} from "openzeppelin-foundry-upgrades/Upgrades.sol";
+import {TestBridge, BridgeImpl} from "../contracts/tests/TestBridge.sol";
+import {BridgeStorage, StorageTypes} from "../contracts/bridge/BridgeStorage.sol";
+import {SigUtils} from "../contracts/tests/SigUtils.sol";
+import {TestBridgeManagement} from "../contracts/tests/TestBridgeManagement.sol";
+import {ITokenBridge} from "../contracts/interfaces/ITokenBridge.sol";
+import {Test} from "../lib/forge-std/src/Test.sol";
 
 contract BridgeImplTest is Test, SigUtils {
     TestBridge bridgeProxy;
@@ -44,9 +44,9 @@ contract BridgeImplTest is Test, SigUtils {
         opts.unsafeAllow = "constructor";
         // Deploy the bridge management implementation behind a UUPS proxy and initialize it with the provided parameters.
         managementProxyAddress = Upgrades.deployUUPSProxy(
-            "BridgeManagementImpl.sol",
+            "TestBridgeManagement.sol",
             abi.encodeCall(
-                BridgeManagementImpl.initialize,
+                TestBridgeManagement.initialize,
                 (
                     owner,
                     relayer,
@@ -64,7 +64,7 @@ contract BridgeImplTest is Test, SigUtils {
         bridgeProxyAddress = Upgrades.deployUUPSProxy(
             "TestBridge.sol",
             abi.encodeCall(
-                BridgeImpl.initialize,
+                TestBridge.initialize,
                 (managementProxyAddress, 1e17, 1e18, 1e22, 100)
             ),
             opts
