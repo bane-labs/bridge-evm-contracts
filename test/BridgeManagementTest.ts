@@ -193,6 +193,12 @@ describe("Bridge Management", function () {
             await expect((await bridgeManagementImpl.getValidators())[7]).to.be.equal(owner.address);
         });
 
+        it("Fail adding validator without authorization", async function () {
+            const { bridgeManagementImpl, validator1 } = await loadFixture(deployBridgeFixture);
+            const tx = bridgeManagementImpl.connect(validator1).addValidator(validator1.address, true);
+            expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "OwnableUnauthorizedAccount").withArgs(validator1.address);
+        });
+
         it("Fail adding validator that is already a validator ", async function () {
             const { bridgeManagementImpl, owner, validator1 } = await loadFixture(deployBridgeFixture);
             expect(await bridgeManagementImpl.isValidator(validator1)).to.be.true;
@@ -230,6 +236,12 @@ describe("Bridge Management", function () {
             expect(tx).to.emit(bridgeManagementImpl, "ValidatorRemove").withArgs(validator1.address, false);
             expect(await bridgeManagementImpl.getValidators()).to.have.length(6);
             expect(await bridgeManagementImpl.getValidatorThreshold()).to.be.equal(5);
+        });
+
+        it("Fail removing validator without authorization ", async function () {
+            const { bridgeManagementImpl, validator1, validator2 } = await loadFixture(deployBridgeFixture);
+            const tx = bridgeManagementImpl.connect(validator1).removeValidator(1, validator2.address, true);
+            expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "OwnableUnauthorizedAccount").withArgs(validator1.address);
         });
 
         it("Fail removing validator if not a validator with invalid index", async function () {
@@ -345,6 +357,12 @@ describe("Bridge Management", function () {
             expect(await bridgeManagementImpl.isValidator(newValidator.address)).to.be.true;
         });
 
+        it("Fail replacing validator without authorization ", async function () {
+            const { bridgeManagementImpl, owner, validator2, validator5 } = await loadFixture(deployBridgeFixture);
+            const tx = bridgeManagementImpl.connect(validator5).replaceValidator(1, validator2.address, owner.address);
+            expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "OwnableUnauthorizedAccount").withArgs(validator5.address);
+        });
+
         it("Fail replacing validator with zero address", async function () {
             const { bridgeManagementImpl, owner, validator4 } = await loadFixture(deployBridgeFixture);
             const index = 3;
@@ -420,6 +438,12 @@ describe("Bridge Management", function () {
             const tx3 = await bridgeManagementImpl.connect(owner).setValidatorThreshold(2);
             expect(tx3).to.emit(bridgeManagementImpl, "ValidatorThresholdChange").withArgs(2);
             expect(await bridgeManagementImpl.getValidatorThreshold()).to.be.equal(2);
+        });
+
+        it("Fail setting validator threshold without authorization ", async function () {
+            const { bridgeManagementImpl, validator5 } = await loadFixture(deployBridgeFixture);
+            const tx = bridgeManagementImpl.connect(validator5).setValidatorThreshold(4);
+            expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "OwnableUnauthorizedAccount").withArgs(validator5.address);
         });
 
         it("Fail setting validator threshold lower than 2", async function () {
