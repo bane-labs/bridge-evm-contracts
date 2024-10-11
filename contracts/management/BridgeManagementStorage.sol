@@ -19,8 +19,8 @@ abstract contract BridgeManagementStorage is
     error IncorrectValidator(address _expected, address _provided);
     error InvalidValidatorArray();
     error InvalidValidatorThreshold();
-    error AlreadyAValidator(address _validator);
-    error NotAValidator(address _validator);
+    error AlreadyValidator(address _validator);
+    error NotValidator(address _validator);
 
     function _isValidator(address _validator) internal view returns (bool) {
         return validatorMap[_validator];
@@ -30,7 +30,7 @@ abstract contract BridgeManagementStorage is
         address _validator,
         bool increaseThreshold
     ) internal {
-        if (_isValidator(_validator)) revert AlreadyAValidator(_validator);
+        if (_isValidator(_validator)) revert AlreadyValidator(_validator);
         if (increaseThreshold) {
             validatorThreshold++;
         }
@@ -45,7 +45,7 @@ abstract contract BridgeManagementStorage is
     ) internal {
         uint256 nrValidators = validators.length;
         if (_index > nrValidators) revert InvalidIndex();
-        if (!_isValidator(_validator)) revert NotAValidator(_validator);
+        if (!_isValidator(_validator)) revert NotValidator(_validator);
         if (validators[_index] != _validator)
             revert IncorrectValidator(validators[_index], _validator);
         if (decreaseThreshold) {
@@ -65,9 +65,8 @@ abstract contract BridgeManagementStorage is
         address _oldValidator,
         address _newValidator
     ) internal {
-        if (!_isValidator(_oldValidator)) revert NotAValidator(_oldValidator);
-        if (_isValidator(_newValidator))
-            revert AlreadyAValidator(_newValidator);
+        if (!_isValidator(_oldValidator)) revert NotValidator(_oldValidator);
+        if (_isValidator(_newValidator)) revert AlreadyValidator(_newValidator);
         if (validators[_index] != _oldValidator)
             revert IncorrectValidator(validators[_index], _oldValidator);
         validatorMap[_oldValidator] = false;
