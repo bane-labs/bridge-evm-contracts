@@ -348,15 +348,36 @@ describe("Bridge Management", function () {
         });
 
         it("Set validator threshold", async function () {
-            expect(1).to.be.equal(0);
+            const { bridgeManagementImpl, owner } = await loadFixture(deployBridgeFixture);
+            expect(await bridgeManagementImpl.getValidatorThreshold()).to.be.equal(5);
+            expect(await bridgeManagementImpl.getValidators()).to.have.length(7);
+
+            await bridgeManagementImpl.connect(owner).setValidatorThreshold(4);
+            expect(await bridgeManagementImpl.getValidatorThreshold()).to.be.equal(4);
+            await bridgeManagementImpl.connect(owner).setValidatorThreshold(7);
+            expect(await bridgeManagementImpl.getValidatorThreshold()).to.be.equal(7);
+            await bridgeManagementImpl.connect(owner).setValidatorThreshold(2);
+            expect(await bridgeManagementImpl.getValidatorThreshold()).to.be.equal(2);
         });
 
         it("Fail setting validator threshold lower than 2", async function () {
-            expect(1).to.be.equal(0);
+            const { bridgeManagementImpl, owner, validator7 } = await loadFixture(deployBridgeFixture);
+            expect(await bridgeManagementImpl.getValidatorThreshold()).to.be.equal(5);
+            expect(await bridgeManagementImpl.getValidators()).to.have.length(7);
+
+            const tx1 = bridgeManagementImpl.connect(owner).setValidatorThreshold(1);
+            expect(tx1).to.be.revertedWithCustomError(bridgeManagementImpl, "InvalidValidatorThreshold");
+            const tx2 = bridgeManagementImpl.connect(owner).setValidatorThreshold(0);
+            expect(tx2).to.be.revertedWithCustomError(bridgeManagementImpl, "InvalidValidatorThreshold");
         });
 
         it("Fail setting validator threshold higher than number of validators", async function () {
-            expect(1).to.be.equal(0);
+            const { bridgeManagementImpl, owner, validator7 } = await loadFixture(deployBridgeFixture);
+            expect(await bridgeManagementImpl.getValidatorThreshold()).to.be.equal(5);
+            expect(await bridgeManagementImpl.getValidators()).to.have.length(7);
+
+            const tx3 = bridgeManagementImpl.connect(owner).setValidatorThreshold(8);
+            expect(tx3).to.be.revertedWithCustomError(bridgeManagementImpl, "InvalidValidatorThreshold");
         });
 
         it("Set relayer", async function () {
