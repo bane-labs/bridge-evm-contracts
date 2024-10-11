@@ -115,6 +115,66 @@ describe("Bridge Management", function () {
             await expect(await bridgeManagementImpl.owner()).to.be.equal(validator2.address);
         });
 
+        it("Set relayer", async function () {
+            const { bridgeManagementImpl, owner, validator2 } = await loadFixture(deployBridgeFixture);
+            const tx = await bridgeManagementImpl.connect(owner).setRelayer(validator2.address);
+            await expect(tx).to.emit(bridgeManagementImpl, "RelayerChange").withArgs(validator2.address);
+            await expect(await bridgeManagementImpl.getRelayer()).to.be.equal(validator2.address);
+        });
+
+        it("Set governor", async function () {
+            const { bridgeManagementImpl, owner, validator2 } = await loadFixture(deployBridgeFixture);
+            const tx = await bridgeManagementImpl.connect(owner).setGovernor(validator2.address);
+            await expect(tx).to.emit(bridgeManagementImpl, "GovernorChange").withArgs(validator2.address);
+            await expect(await bridgeManagementImpl.getGovernor()).to.be.equal(validator2.address);
+        });
+
+        it("Set securityGuard", async function () {
+            const { bridgeManagementImpl, owner, validator2 } = await loadFixture(deployBridgeFixture);
+            let tx = bridgeManagementImpl.connect(owner).setSecurityGuard(validator2.address);
+            await expect(tx).to.emit(bridgeManagementImpl, "SecurityGuardChange").withArgs(validator2.address);
+            await expect(await bridgeManagementImpl.getSecurityGuard()).to.be.equal(validator2.address);
+        });
+
+        it("Set funder", async function () {
+            const { bridgeManagementImpl, owner, validator2 } = await loadFixture(deployBridgeFixture);
+            let tx = bridgeManagementImpl.connect(owner).setFunder(validator2.address);
+            await expect(tx).to.emit(bridgeManagementImpl, "FunderChange").withArgs(validator2.address);
+            await expect(await bridgeManagementImpl.getFunder()).to.be.equal(validator2.address);
+        });
+
+        it("Non-owner fail to start ownership transfer", async function () {
+            const { bridgeManagementImpl, validator2 } = await loadFixture(deployBridgeFixture);
+            let tx = bridgeManagementImpl.connect(validator2).transferOwnership(validator2.address);
+            await expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "OwnableUnauthorizedAccount");
+        });
+
+        it("Non-owner fail to set relayer", async function () {
+            const { bridgeManagementImpl, validator1, validator2 } = await loadFixture(deployBridgeFixture);
+            let tx = bridgeManagementImpl.connect(validator2).setRelayer(validator1.address);
+            await expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "OwnableUnauthorizedAccount").withArgs(validator2.address);
+        });
+
+        it("Non-owner fail to set governor", async function () {
+            const { bridgeManagementImpl, validator1, validator2 } = await loadFixture(deployBridgeFixture);
+            let tx = bridgeManagementImpl.connect(validator2).setGovernor(validator1.address);
+            await expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "OwnableUnauthorizedAccount").withArgs(validator2.address);
+        });
+
+        it("Non-owner fail to set security guard", async function () {
+            const { bridgeManagementImpl, validator1, validator2 } = await loadFixture(deployBridgeFixture);
+            let tx = bridgeManagementImpl.connect(validator2).setSecurityGuard(validator1.address);
+            await expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "OwnableUnauthorizedAccount").withArgs(validator2.address);
+        });
+
+        it("Non-owner fail to set funder", async function () {
+            const { bridgeManagementImpl, validator1, validator2 } = await loadFixture(deployBridgeFixture);
+            let tx = bridgeManagementImpl.connect(validator2).setFunder(validator1.address);
+            await expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "OwnableUnauthorizedAccount").withArgs(validator2.address);
+        });
+    });
+
+    describe("Bridge validator changes", function () {
         it("Add validator and increase threshold", async function () {
             const { bridgeManagementImpl, owner } = await loadFixture(deployBridgeFixture);
             const tx = await bridgeManagementImpl.connect(owner).addValidator(owner.address, true);
@@ -380,64 +440,6 @@ describe("Bridge Management", function () {
 
             const tx3 = bridgeManagementImpl.connect(owner).setValidatorThreshold(8);
             expect(tx3).to.be.revertedWithCustomError(bridgeManagementImpl, "InvalidValidatorThreshold");
-        });
-
-        it("Set relayer", async function () {
-            const { bridgeManagementImpl, owner, validator2 } = await loadFixture(deployBridgeFixture);
-            const tx = await bridgeManagementImpl.connect(owner).setRelayer(validator2.address);
-            await expect(tx).to.emit(bridgeManagementImpl, "RelayerChange").withArgs(validator2.address);
-            await expect(await bridgeManagementImpl.getRelayer()).to.be.equal(validator2.address);
-        });
-
-        it("Set governor", async function () {
-            const { bridgeManagementImpl, owner, validator2 } = await loadFixture(deployBridgeFixture);
-            const tx = await bridgeManagementImpl.connect(owner).setGovernor(validator2.address);
-            await expect(tx).to.emit(bridgeManagementImpl, "GovernorChange").withArgs(validator2.address);
-            await expect(await bridgeManagementImpl.getGovernor()).to.be.equal(validator2.address);
-        });
-
-        it("Set securityGuard", async function () {
-            const { bridgeManagementImpl, owner, validator2 } = await loadFixture(deployBridgeFixture);
-            let tx = bridgeManagementImpl.connect(owner).setSecurityGuard(validator2.address);
-            await expect(tx).to.emit(bridgeManagementImpl, "SecurityGuardChange").withArgs(validator2.address);
-            await expect(await bridgeManagementImpl.getSecurityGuard()).to.be.equal(validator2.address);
-        });
-
-        it("Set funder", async function () {
-            const { bridgeManagementImpl, owner, validator2 } = await loadFixture(deployBridgeFixture);
-            let tx = bridgeManagementImpl.connect(owner).setFunder(validator2.address);
-            await expect(tx).to.emit(bridgeManagementImpl, "FunderChange").withArgs(validator2.address);
-            await expect(await bridgeManagementImpl.getFunder()).to.be.equal(validator2.address);
-        });
-
-        it("Non-owner fail to start ownership transfer", async function () {
-            const { bridgeManagementImpl, validator2 } = await loadFixture(deployBridgeFixture);
-            let tx = bridgeManagementImpl.connect(validator2).transferOwnership(validator2.address);
-            await expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "OwnableUnauthorizedAccount");
-        });
-
-        it("Non-owner fail to set relayer", async function () {
-            const { bridgeManagementImpl, validator1, validator2 } = await loadFixture(deployBridgeFixture);
-            let tx = bridgeManagementImpl.connect(validator2).setRelayer(validator1.address);
-            await expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "OwnableUnauthorizedAccount").withArgs(validator2.address);
-        });
-
-        it("Non-owner fail to set governor", async function () {
-            const { bridgeManagementImpl, validator1, validator2 } = await loadFixture(deployBridgeFixture);
-            let tx = bridgeManagementImpl.connect(validator2).setGovernor(validator1.address);
-            await expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "OwnableUnauthorizedAccount").withArgs(validator2.address);
-        });
-
-        it("Non-owner fail to set security guard", async function () {
-            const { bridgeManagementImpl, validator1, validator2 } = await loadFixture(deployBridgeFixture);
-            let tx = bridgeManagementImpl.connect(validator2).setSecurityGuard(validator1.address);
-            await expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "OwnableUnauthorizedAccount").withArgs(validator2.address);
-        });
-
-        it("Non-owner fail to set funder", async function () {
-            const { bridgeManagementImpl, validator1, validator2 } = await loadFixture(deployBridgeFixture);
-            let tx = bridgeManagementImpl.connect(validator2).setFunder(validator1.address);
-            await expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "OwnableUnauthorizedAccount").withArgs(validator2.address);
         });
     });
 
