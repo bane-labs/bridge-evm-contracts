@@ -138,6 +138,14 @@ describe("Bridge Management", function () {
             expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "AlreadyValidator");
         });
 
+        it("Fail adding validator with zero address", async function () {
+            const { bridgeManagementImpl, owner } = await loadFixture(deployBridgeFixture);
+            const tx1 = bridgeManagementImpl.connect(owner).addValidator(ZeroAddress, true);
+            expect(tx1).to.be.revertedWithCustomError(bridgeManagementImpl, "InvalidAddress");
+            const tx2 = bridgeManagementImpl.connect(owner).addValidator(ZeroAddress, false);
+            expect(tx2).to.be.revertedWithCustomError(bridgeManagementImpl, "InvalidAddress");
+        });
+
         it("Remove validator and decrease current threshold ", async function () {
             expect(1).to.be.equal(0);
         });
@@ -169,6 +177,10 @@ describe("Bridge Management", function () {
         });
 
         it("Fail replacing validator with new validator already being a validator", async function () {
+            expect(1).to.be.equal(0);
+        });
+
+        it("Fail replacing validator with new validator being the zero address", async function () {
             expect(1).to.be.equal(0);
         });
 
