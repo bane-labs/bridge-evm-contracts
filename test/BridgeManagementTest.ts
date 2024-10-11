@@ -31,13 +31,13 @@ describe("Bridge Management", function () {
             funder.address
         ], { kind: "uups", unsafeAllow: ["constructor"] });
         await proxyV1.waitForDeployment();
-        const TestManagementFactoryV1ToV2 = (await ethers.getContractFactory("TestManagementV2")).connect(owner);
+        const TestManagementFactoryV1ToV2 = (await ethers.getContractFactory("TestManagementV1ToV2")).connect(owner);
         const proxy = await upgrades.upgradeProxy(await proxyV1.getAddress(), TestManagementFactoryV1ToV2, {
             call: { fn: "upgradeToV2", args: [] },
             unsafeAllow: ["constructor"]
         });
 
-        const bridgeManagement = proxy as TestBridgeManagement;
+        const bridgeManagement = proxy as TestManagementV1ToV2;
 
         return {
             bridgeManagementImpl: bridgeManagement,
@@ -64,14 +64,14 @@ describe("Bridge Management", function () {
 
         it("Should have the right validators", async function () {
             const { bridgeManagementImpl, validator1, validator2, validator3, validator4, validator5, validator6, validator7 } = await loadFixture(deployBridgeFixture);
-            expect(await bridgeManagementImpl.getValidator(0)).to.equal(validator1.address);
-            expect(await bridgeManagementImpl.getValidator(1)).to.equal(validator2.address);
-            expect(await bridgeManagementImpl.getValidator(2)).to.equal(validator3.address);
-            expect(await bridgeManagementImpl.getValidator(3)).to.equal(validator4.address);
-            expect(await bridgeManagementImpl.getValidator(4)).to.equal(validator5.address);
-            expect(await bridgeManagementImpl.getValidator(5)).to.equal(validator6.address);
-            expect(await bridgeManagementImpl.getValidator(6)).to.equal(validator7.address);
-            await expect(bridgeManagementImpl.getValidator(7)).to.be.revertedWithPanic();
+            expect((await bridgeManagementImpl.getValidators())).to.have.length(7);
+            expect((await bridgeManagementImpl.getValidators())[0]).to.equal(validator1.address);
+            expect((await bridgeManagementImpl.getValidators())[1]).to.equal(validator2.address);
+            expect((await bridgeManagementImpl.getValidators())[2]).to.equal(validator3.address);
+            expect((await bridgeManagementImpl.getValidators())[3]).to.equal(validator4.address);
+            expect((await bridgeManagementImpl.getValidators())[4]).to.equal(validator5.address);
+            expect((await bridgeManagementImpl.getValidators())[5]).to.equal(validator6.address);
+            expect((await bridgeManagementImpl.getValidators())[6]).to.equal(validator7.address);
         });
 
         it("Should have the right owner", async function () {

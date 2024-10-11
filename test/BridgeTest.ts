@@ -40,12 +40,12 @@ describe("Bridge Implementation", function () {
             funder.address
         ], { kind: "uups", unsafeAllow: ["constructor"] });
         await managementProxyV1.waitForDeployment();
-        const TestManagementFactoryV1ToV2 = (await ethers.getContractFactory("TestManagementV2")).connect(managementOwner);
+        const TestManagementFactoryV1ToV2 = (await ethers.getContractFactory("TestManagementV1ToV2")).connect(managementOwner);
         const managementProxy = await upgrades.upgradeProxy(await managementProxyV1.getAddress(), TestManagementFactoryV1ToV2, {
             call: { fn: "upgradeToV2", args: [] },
             unsafeAllow: ["constructor"]
         });
-        const bridgeManagement = managementProxy as TestBridgeManagement;
+        const bridgeManagement = managementProxy as TestManagementV1ToV2;
 
         const BridgeContractFactory = await ethers.getContractFactory("TestBridge");
 
