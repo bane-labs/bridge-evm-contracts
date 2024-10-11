@@ -1,27 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import "../bridge/BridgeImpl.sol";
-import "./interfaces/ITestBridgeManagement.sol";
+import "./InitializationLib.sol";
+import "./../interfaces/ITestBridgeManagement.sol";
+import "../../bridge/BridgeImplV1ToV2.sol";
 
-contract TestBridge is BridgeImpl {
+/// @custom:oz-upgrades-from TestBridge
+contract TestBridgeV1ToV2 is BridgeImplV1ToV2 {
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() BridgeImpl() {}
+    constructor() BridgeImplV1ToV2() {}
 
-    function initialize(address _management) public initializer {
-        __ReentrancyGuard_init();
-        management = IBridgeManagement(_management);
-        gasBridge = StorageTypes.GasBridge({
-            paused: false,
-            depositState: StorageTypes.State({nonce: 0, root: 0x0}),
-            withdrawalState: StorageTypes.State({nonce: 0, root: 0x0}),
-            config: StorageTypes.GasConfig({
-                fee: 1e17,
-                minAmount: 1e18,
-                maxAmount: 1e22,
-                maxDeposits: 100
-            })
-        });
+    function upgradeToV2(
+        TokenMigrationV1[] calldata _tokenBridgeMigrations
+    ) external override reinitializer(2) onlyOwner {
+        _upgradeToV2(_tokenBridgeMigrations);
     }
 
     modifier onlyOwner() {
@@ -110,5 +102,11 @@ contract TestBridge is BridgeImpl {
                 _neoXToken,
                 _deposits
             );
+    }
+
+    // The following code is just for verifying the initialized state of the contract
+
+    function getCurrentInitializedVersion() external view returns (uint256) {
+        return InitializationLib._getInitializableStorageValue()._initialized;
     }
 }

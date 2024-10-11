@@ -48,9 +48,17 @@ describe("Bridge Implementation", function () {
         const bridgeManagement = managementProxy as TestBridgeManagement;
 
         const BridgeContractFactory = await ethers.getContractFactory("TestBridge");
-        const bridgeProxy = await upgrades.deployProxy(BridgeContractFactory, [await bridgeManagement.getAddress(), ethers.parseEther("0.1"), ethers.parseEther("1"), ethers.parseEther("10000"), 100], { kind: "uups", unsafeAllow: ["constructor"] });
-        await bridgeProxy.waitForDeployment();
-        const bridge = bridgeProxy as TestBridge;
+
+        const bridgeProxyV1 = await upgrades.deployProxy(BridgeContractFactory, [await bridgeManagement.getAddress()], { kind: "uups", unsafeAllow: ["constructor"] });
+        await bridgeProxyV1.waitForDeployment();
+
+        const TestBridgeFactoryV1ToV2 = (await ethers.getContractFactory("TestBridgeV1ToV2")).connect(managementOwner);
+        const tokensToMigrate: TokenMigrationV1[] = [];
+        const bridgeProxyV2 = await upgrades.upgradeProxy(await bridgeProxyV1.getAddress(), TestBridgeFactoryV1ToV2, {
+            call: { fn: "upgradeToV2", args: [tokensToMigrate] },
+            unsafeAllow: ["constructor"]
+        });
+        const bridge = bridgeProxyV2 as TestBridge;
 
         // Fund the bridge contract.
         await funder.sendTransaction({ to: bridge, value: ethers.parseEther("80.0") });

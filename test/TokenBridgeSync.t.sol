@@ -3,16 +3,17 @@ pragma solidity 0.8.25;
 
 import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import {Upgrades, Options} from "openzeppelin-foundry-upgrades/Upgrades.sol";
+import {BridgeMigrations} from "./migrations/BridgeMigrations.sol";
 import {BridgeStorage, BridgeLib, GasBridgeLib, StorageTypes, TokenBridgeLib} from "../contracts/bridge/BridgeStorage.sol";
 import {ITokenBridge} from "../contracts/interfaces/ITokenBridge.sol";
 import {MockERC20} from "../contracts/tests/MockERC20.sol";
 import {SigUtils} from "../contracts/tests/SigUtils.sol";
-import {TestBridge, BridgeImpl} from "../contracts/tests/TestBridge.sol";
 import {TestBridgeManagement} from "../contracts/tests/TestBridgeManagement.sol";
+import {TestBridgeV1ToV2} from "../contracts/tests/migrations/TestBridgeV1ToV2.sol";
 import {Test} from "../lib/forge-std/src/Test.sol";
 
 contract TokenBridgeSyncTest is Test, SigUtils {
-    TestBridge bridgeProxy;
+    TestBridgeV1ToV2 bridgeProxy;
     address managementProxyAddress;
     address bridgeProxyAddress;
 
@@ -85,16 +86,14 @@ contract TokenBridgeSyncTest is Test, SigUtils {
         );
         bridgeManagement = TestBridgeManagement(managementProxyAddress);
 
-        // Deploy the bridge implementation behind a UUPS proxy and initialize it with the provided parameters.
-        bridgeProxyAddress = Upgrades.deployUUPSProxy(
-            "TestBridge.sol",
-            abi.encodeCall(
-                TestBridge.initialize,
-                (managementProxyAddress, 1e17, 1e18, 1e22, 100)
-            ),
+        // Deploy the bridge including upgrade steps to V2.
+        bridgeProxyAddress = BridgeMigrations.deployBridgeV1ToV2(
+            managementProxyAddress,
             opts
         );
-        bridgeProxy = TestBridge(payable(bridgeProxyAddress));
+        bridgeProxy = TestBridgeV1ToV2(payable(bridgeProxyAddress));
+        // Validate that the bridge proxy has been successfully deployed and upgraded to V2.
+        assertEq(bridgeProxy.getCurrentInitializedVersion(), 2);
 
         neoBridgeConfig = StorageTypes.TokenConfig({
             neoN3Token: neoN3NeoToken,
