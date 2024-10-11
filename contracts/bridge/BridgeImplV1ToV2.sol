@@ -12,9 +12,15 @@ contract BridgeImplV1ToV2 is BridgeImpl {
         uint256 decimalScalingFactor;
     }
 
-    function reinitialize(
+    function upgradeToV2(
         TokenMigrationV1[] calldata _tokenBridgeMigrations
-    ) public reinitializer(2) {
+    ) external virtual reinitializer(2) onlyAdmin {
+        _upgradeToV2(_tokenBridgeMigrations);
+    }
+
+    function _upgradeToV2(
+        TokenMigrationV1[] calldata _tokenBridgeMigrations
+    ) internal onlyInitializing {
         for (uint256 i = 0; i < _tokenBridgeMigrations.length; i++) {
             TokenMigrationV1 memory migration = _tokenBridgeMigrations[i];
             if (!_isRegisteredToken(migration.token))
