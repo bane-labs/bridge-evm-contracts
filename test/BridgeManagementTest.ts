@@ -247,6 +247,29 @@ describe("Bridge Management", function () {
             expect(await bridgeManagementImpl.isValidator(validator2.address)).to.be.false;
         });
 
+        it("Fail removing validator if there are only two validators", async function () {
+            const { bridgeManagementImpl, owner, validator2, validator3, validator4, validator5, validator6, validator7 } = await loadFixture(deployBridgeFixture);
+            await bridgeManagementImpl.connect(owner).removeValidator(6, validator7.address, false);
+            await bridgeManagementImpl.connect(owner).removeValidator(5, validator6.address, false);
+            await bridgeManagementImpl.connect(owner).removeValidator(4, validator5.address, true);
+            await bridgeManagementImpl.connect(owner).removeValidator(3, validator4.address, true);
+            await bridgeManagementImpl.connect(owner).removeValidator(2, validator3.address, true);
+
+            expect(await bridgeManagementImpl.getValidators()).to.have.length(2);
+            expect(await bridgeManagementImpl.getValidatorThreshold()).to.be.equal(2);
+
+            expect((await bridgeManagementImpl.getValidators())[1]).to.be.equal(validator2.address);
+
+            const tx1 = bridgeManagementImpl.connect(owner).removeValidator(1, validator2.address, true);
+            const tx2 = bridgeManagementImpl.connect(owner).removeValidator(1, validator2.address, false);
+            expect(tx1).to.be.revertedWithCustomError(bridgeManagementImpl, "InvalidValidatorThreshold");
+            expect(tx2).to.be.revertedWithCustomError(bridgeManagementImpl, "InvalidValidatorThreshold");
+
+            // The threshold should still be 2 and validator2 should still be a validator
+            expect(await bridgeManagementImpl.getValidatorThreshold()).to.be.equal(2);
+            expect(await bridgeManagementImpl.isValidator(validator2.address)).to.be.true;
+        });
+
         it("Replace validator", async function () {
             expect(1).to.be.equal(0);
         });

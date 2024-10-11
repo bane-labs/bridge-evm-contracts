@@ -19,6 +19,7 @@ abstract contract BridgeManagementStorage is
     error IndexValidatorMismatch(address _expected, address _provided);
     error InvalidValidatorArray();
     error InvalidValidatorThreshold();
+    error AlreadyMinimumOfValidators();
     error AlreadyValidator(address _validator);
     error NotValidator(address _validator);
 
@@ -45,6 +46,7 @@ abstract contract BridgeManagementStorage is
         bool decreaseThreshold
     ) internal {
         uint256 nrValidators = validators.length;
+        if (nrValidators <= 2) revert AlreadyMinimumOfValidators();
         if (_index > nrValidators) revert IndexOutOfBounds();
         if (!_isValidator(_validator)) revert NotValidator(_validator);
         if (validators[_index] != _validator)
