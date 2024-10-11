@@ -231,6 +231,24 @@ describe("Bridge Implementation", function () {
             await expect(tx).to.changeEtherBalances([bridgeContract, Depositdata1.to], [-toEthDecimals(Depositdata1.amount), toEthDecimals(Depositdata1.amount)]);
         });
 
+        it("Deposit with signatures out of any order", async function () {
+            const { bridgeContract, relayer } = await loadFixture(deployBridgeFixture);
+            const nonce = 1;
+            const to = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
+            const amount = 100000000n;
+
+            const hashDepositData1 = await hashDepositOrWithdrawal(nonce, to, amount);
+            // Raw deposit hash and root from deposit computed on Neo N3 bridge contract
+            expect(hashDepositData1).to.be.equal("0x7ed36781b8366a590ce568db6712d377c031b9f1a21c44cda2493182b0ff92e5");
+            const root1 = await computeRoot(ethers.ZeroHash, hashDepositData1);
+            expect(root1).to.be.equal("0x70789f5bdb108a6b6dc7d7aa0d31649ab5fa980bbbfd1868eb17821b1f61e0ac");
+
+            const signatures = await getValidatorSignatures(root1, [5, 2, 4, 1, 3]);
+
+            const tx = await bridgeContract.connect(relayer).depositGas(root1, signatures, [Depositdata1]);
+            await expect(tx).to.changeEtherBalances([bridgeContract, Depositdata1.to], [-toEthDecimals(Depositdata1.amount), toEthDecimals(Depositdata1.amount)]);
+        });
+
         it("Deposit with Multiple Continous Nonce", async function () {
             const { bridgeContract, relayer } = await loadFixture(deployBridgeFixture);
             const nonce1 = 1;
@@ -481,16 +499,6 @@ describe("Bridge Implementation", function () {
             const signatures = await getValidatorSignatures(root1, [1, 1, 3, 4, 5]);
 
             await expect(bridgeContract.connect(relayer).depositGas(root1, signatures, [Depositdata1])).to.be.revertedWithCustomError(bridgeContract, "InvalidValidatorSignatures")
-        });
-
-        it("Should revert when signature length is 5 but not with order", async function () {
-            const { bridgeContract, relayer } = await loadFixture(deployBridgeFixture);
-
-            const hashDepositData1 = await hashDepositOrWithdrawal(Depositdata1.nonce, Depositdata1.to, Depositdata1.amount);
-            const root1 = await computeRoot(ethers.ZeroHash, hashDepositData1);
-            const signatures = await getValidatorSignatures(root1, [1, 2, 3, 6, 5]);
-
-            await expect(bridgeContract.connect(relayer).depositGas(root1, signatures, [Depositdata1])).to.be.revertedWithCustomError(bridgeContract, "InvalidValidatorSignatures");
         });
 
         it("Should revert when signature verify failed", async function () {
