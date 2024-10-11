@@ -31,10 +31,6 @@ contract TestBridgeV1ToV2 is BridgeImplV1ToV2 {
 
     // Additional helper functions for testing purposes.
 
-    function isRegisteredToken(address neoXToken) public view returns (bool) {
-        return _isRegisteredToken(neoXToken);
-    }
-
     function getTokenConfig(
         address neoXToken
     ) public view returns (StorageTypes.TokenConfig memory config) {

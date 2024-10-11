@@ -251,6 +251,7 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
             withdrawalState: StorageTypes.State({nonce: 0, root: 0x0}),
             config: _tokenConfig
         });
+        registeredTokens.push(_neoXToken);
     }
 
     function _isRegisteredToken(

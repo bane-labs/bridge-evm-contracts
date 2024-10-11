@@ -70,6 +70,8 @@ interface ITokenBridge {
         StorageTypes.TokenConfig calldata tokenConfig
     ) external;
 
+    function isRegisteredToken(address neoXToken) external view returns (bool);
+
     function pauseTokenBridge(address neoXToken) external;
 
     function unpauseTokenBridge(address neoXToken) external;

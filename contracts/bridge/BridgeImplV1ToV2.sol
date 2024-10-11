@@ -25,6 +25,11 @@ contract BridgeImplV1ToV2 is BridgeImpl {
             TokenMigrationV1 memory migration = _tokenBridgeMigrations[i];
             if (!_isRegisteredToken(migration.token))
                 revert("Token not registered");
+
+            // Add token to registered tokens
+            registeredTokens.push(migration.token);
+
+            // Update the token bridge's config
             StorageTypes.TokenConfig storage config = tokenBridges[
                 migration.token
             ].config;

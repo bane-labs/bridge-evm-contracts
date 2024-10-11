@@ -280,6 +280,16 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     }
 
     /**
+     * @notice Check if a token is registered on the bridge.
+     * @param _neoXToken the address of the token on the Neo X network.
+     */
+    function isRegisteredToken(
+        address _neoXToken
+    ) external view override returns (bool) {
+        return _isRegisteredToken(_neoXToken);
+    }
+
+    /**
      * @notice Pause a token bridge. No deposits, withdrawals, or claims of a token bridge can be made while it is locked.
      * @param _neoXToken the address of the token on the Neo X network.
      */
