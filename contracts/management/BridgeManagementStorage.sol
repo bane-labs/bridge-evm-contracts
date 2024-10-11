@@ -15,8 +15,8 @@ abstract contract BridgeManagementStorage is
         0x1212000000000000000000000000000000000000;
 
     error InvalidAddress();
-    error InvalidIndex();
-    error IncorrectValidator(address _expected, address _provided);
+    error IndexOutOfBounds();
+    error IndexValidatorMismatch(address _expected, address _provided);
     error InvalidValidatorArray();
     error InvalidValidatorThreshold();
     error AlreadyValidator(address _validator);
@@ -45,10 +45,10 @@ abstract contract BridgeManagementStorage is
         bool decreaseThreshold
     ) internal {
         uint256 nrValidators = validators.length;
-        if (_index > nrValidators) revert InvalidIndex();
+        if (_index > nrValidators) revert IndexOutOfBounds();
         if (!_isValidator(_validator)) revert NotValidator(_validator);
         if (validators[_index] != _validator)
-            revert IncorrectValidator(validators[_index], _validator);
+            revert IndexValidatorMismatch(validators[_index], _validator);
         if (decreaseThreshold) {
             validatorThreshold--;
         } else {
@@ -70,7 +70,7 @@ abstract contract BridgeManagementStorage is
         if (!_isValidator(_oldValidator)) revert NotValidator(_oldValidator);
         if (_isValidator(_newValidator)) revert AlreadyValidator(_newValidator);
         if (validators[_index] != _oldValidator)
-            revert IncorrectValidator(validators[_index], _oldValidator);
+            revert IndexValidatorMismatch(validators[_index], _oldValidator);
         validatorMap[_oldValidator] = false;
         validatorMap[_newValidator] = true;
         validators[_index] = _newValidator;

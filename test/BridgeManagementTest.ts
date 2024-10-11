@@ -121,6 +121,8 @@ describe("Bridge Management", function () {
             await expect(await bridgeManagementImpl.getValidators()).to.have.length(8);
             await expect(await bridgeManagementImpl.getValidatorThreshold()).to.be.equal(6);
             await expect((await bridgeManagementImpl.getValidators())[7]).to.be.equal(owner.address);
+
+            // Todo: Check event
         });
 
         it("Add validator and keep current threshold", async function () {
@@ -129,6 +131,8 @@ describe("Bridge Management", function () {
             await expect(await bridgeManagementImpl.getValidators()).to.have.length(8);
             await expect(await bridgeManagementImpl.getValidatorThreshold()).to.be.equal(5);
             await expect((await bridgeManagementImpl.getValidators())[7]).to.be.equal(owner.address);
+
+            // Todo: Check event
         });
 
         it("Fail adding validator that is already a validator ", async function () {
@@ -147,20 +151,100 @@ describe("Bridge Management", function () {
         });
 
         it("Remove validator and decrease current threshold ", async function () {
-            expect(1).to.be.equal(0);
+            const { bridgeManagementImpl, owner, validator1 } = await loadFixture(deployBridgeFixture);
+            expect(await bridgeManagementImpl.isValidator(validator1)).to.be.true;
+            expect(await bridgeManagementImpl.getValidators()).to.have.length(7);
+            expect(await bridgeManagementImpl.getValidatorThreshold()).to.be.equal(5);
+
+            await bridgeManagementImpl.connect(owner).removeValidator(0, validator1.address, true);
+            expect(await bridgeManagementImpl.getValidators()).to.have.length(6);
+            expect(await bridgeManagementImpl.getValidatorThreshold()).to.be.equal(4);
+
+            // Todo: Check event
         });
 
         it("Remove validator and keep current threshold ", async function () {
-            expect(1).to.be.equal(0);
+            const { bridgeManagementImpl, owner, validator1 } = await loadFixture(deployBridgeFixture);
+            expect(await bridgeManagementImpl.isValidator(validator1)).to.be.true;
+            expect(await bridgeManagementImpl.getValidators()).to.have.length(7);
+            expect(await bridgeManagementImpl.getValidatorThreshold()).to.be.equal(5);
+
+            await bridgeManagementImpl.connect(owner).removeValidator(0, validator1.address, false);
+            expect(await bridgeManagementImpl.getValidators()).to.have.length(6);
+            expect(await bridgeManagementImpl.getValidatorThreshold()).to.be.equal(5);
+
+            // Todo: Check event
+        });
+
+        it("Fail removing validator if not a validator with invalid index", async function () {
+            const { bridgeManagementImpl, owner } = await loadFixture(deployBridgeFixture);
+            expect(await bridgeManagementImpl.isValidator(owner.address)).to.be.false;
+            const tx = bridgeManagementImpl.removeValidator(0, owner.address);
+            expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "NotValidator");
+        });
+
+        it("Fail removing validator with index out of bounds", async function () {
+            const { bridgeManagementImpl, owner, validator1 } = await loadFixture(deployBridgeFixture);
+            expect(await bridgeManagementImpl.getValidators()).to.have.length(7);
+            const tx = bridgeManagementImpl.removeValidator(7, validator1.address);
+            expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "IndexOutOfBounds");
+        });
+
+        it("Fail removing validator with incorrect index", async function () {
+            const { bridgeManagementImpl, owner, validator4 } = await loadFixture(deployBridgeFixture);
+            const index = 3;
+            const outOfBoundsIndex = 7;
+            const validatorAddress = validator4.address;
+            const incorrectIndex = 4;
+
+            expect((await bridgeManagementImpl.connect(owner).getValidators())).to.have.length.lessThan(outOfBoundsIndex + 1);
+            expect((await bridgeManagementImpl.connect(owner).getValidators())[index]).to.be.equal(validatorAddress);
+
+            const tx1 = bridgeManagementImpl.connect(owner).removeValidator(incorrectIndex, validatorAddress, false);
+            const tx2 = bridgeManagementImpl.connect(owner).removeValidator(incorrectIndex, validatorAddress, true);
+
+            expect(tx1).to.be.revertedWithCustomError(bridgeManagementImpl, "IndexValidatorMismatch");
+            expect(tx2).to.be.revertedWithCustomError(bridgeManagementImpl, "IndexValidatorMismatch");
+        });
+
+        it("Fail removing validator with incorrect address", async function () {
+            const { bridgeManagementImpl, owner, validator1, validator4 } = await loadFixture(deployBridgeFixture);
+            const index = 3;
+            const validatorAddress = validator4.address;
+            const outOfBoundsIndex = 7;
+            const incorrectValidatorAddress = validator1.address;
+
+            expect((await bridgeManagementImpl.connect(owner).getValidators())).to.have.length.lessThan(outOfBoundsIndex + 1);
+            expect((await bridgeManagementImpl.connect(owner).getValidators())[index]).to.be.equal(validatorAddress);
+
+            const tx1 = bridgeManagementImpl.connect(owner).removeValidator(index, incorrectValidatorAddress, false);
+            const tx2 = bridgeManagementImpl.connect(owner).removeValidator(index, incorrectValidatorAddress, true);
+
+            expect(tx1).to.be.revertedWithCustomError(bridgeManagementImpl, "IndexValidatorMismatch");
+            expect(tx2).to.be.revertedWithCustomError(bridgeManagementImpl, "IndexValidatorMismatch");
         });
 
         it("Fail removing validator and keep current threshold if threshold was equal to number of validators", async function () {
-            expect(1).to.be.equal(0);
-        });
+            const { bridgeManagementImpl, owner, validator2, validator6, validator7 } = await loadFixture(deployBridgeFixture);
+            await bridgeManagementImpl.connect(owner).removeValidator(6, validator7.address, false);
+            await bridgeManagementImpl.connect(owner).removeValidator(5, validator6.address, false);
 
-        it("Fail removing validator with incorrect index or address", async function () {
-            // Also test with index >= validators.length
-            expect(1).to.be.equal(0);
+            expect(await bridgeManagementImpl.getValidators()).to.have.length(5);
+            expect(await bridgeManagementImpl.getValidatorThreshold()).to.be.equal(5);
+
+            expect((await bridgeManagementImpl.getValidators())[1]).to.be.equal(validator2.address);
+
+            const tx = bridgeManagementImpl.connect(owner).removeValidator(1, validator2.address, false);
+            expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "InvalidValidatorThreshold");
+            // The threshold should still be 5 and validator2 should still be a validator
+            expect(await bridgeManagementImpl.getValidatorThreshold()).to.be.equal(5);
+            expect(await bridgeManagementImpl.isValidator(validator2.address)).to.be.true;
+
+            // Verify that the same removal with a decrease of the threshold works
+            await bridgeManagementImpl.connect(owner).removeValidator(1, validator2.address, true);
+            expect(await bridgeManagementImpl.getValidators()).to.have.length(4);
+            expect(await bridgeManagementImpl.getValidatorThreshold()).to.be.equal(4);
+            expect(await bridgeManagementImpl.isValidator(validator2.address)).to.be.false;
         });
 
         it("Replace validator", async function () {
