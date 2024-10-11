@@ -43,7 +43,8 @@ describe("Bridge Implementation", function () {
         const bridgeManagement = bridgeManagementProxy as TestBridgeManagement;
 
         const BridgeContractFactory = await ethers.getContractFactory("TestBridge");
-        const bridgeProxyV1 = await upgrades.deployProxy(BridgeContractFactory, [await bridgeManagement.getAddress(), ethers.parseEther("0.1"), ethers.parseEther("1"), ethers.parseEther("10000"), 100], { kind: "uups", unsafeAllow: ["constructor"] });
+
+        const bridgeProxyV1 = await upgrades.deployProxy(BridgeContractFactory, [await bridgeManagement.getAddress()], { kind: "uups", unsafeAllow: ["constructor"] });
         await bridgeProxyV1.waitForDeployment();
 
         const TestBridgeFactoryV1ToV2 = (await ethers.getContractFactory("TestBridgeV1ToV2")).connect(managementOwner);

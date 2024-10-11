@@ -47,7 +47,7 @@ library BridgeMigrations {
                 "TestBridge.sol",
                 abi.encodeCall(
                     TestBridge.initialize,
-                    (_managementProxyAddress, 1e17, 1e18, 1e22, 100)
+                    (_managementProxyAddress)
                 ),
                 opts
             );
