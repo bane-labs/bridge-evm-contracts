@@ -116,7 +116,7 @@ describe("Bridge Management", function () {
         });
 
         it("Add validator and increase threshold", async function () {
-            const { bridgeManagementImpl, owner, validator1, validator2 } = await loadFixture(deployBridgeFixture);
+            const { bridgeManagementImpl, owner } = await loadFixture(deployBridgeFixture);
             await bridgeManagementImpl.connect(owner).addValidator(owner.address, true);
             await expect(await bridgeManagementImpl.getValidators()).to.have.length(8);
             await expect(await bridgeManagementImpl.getValidatorThreshold()).to.be.equal(6);
@@ -124,11 +124,18 @@ describe("Bridge Management", function () {
         });
 
         it("Add validator and keep current threshold", async function () {
-            expect(1).to.be.equal(0);
+            const { bridgeManagementImpl, owner } = await loadFixture(deployBridgeFixture);
+            await bridgeManagementImpl.connect(owner).addValidator(owner.address, false);
+            await expect(await bridgeManagementImpl.getValidators()).to.have.length(8);
+            await expect(await bridgeManagementImpl.getValidatorThreshold()).to.be.equal(5);
+            await expect((await bridgeManagementImpl.getValidators())[7]).to.be.equal(owner.address);
         });
 
         it("Fail adding validator that is already a validator ", async function () {
-            expect(1).to.be.equal(0);
+            const { bridgeManagementImpl, owner, validator1 } = await loadFixture(deployBridgeFixture);
+            expect(await bridgeManagementImpl.isValidator(validator1)).to.be.true;
+            const tx = bridgeManagementImpl.connect(owner).addValidator(validator1.address, true);
+            expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "AlreadyValidator");
         });
 
         it("Remove validator and decrease current threshold ", async function () {
