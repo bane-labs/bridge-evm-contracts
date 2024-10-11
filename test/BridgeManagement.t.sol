@@ -3,13 +3,15 @@ pragma solidity 0.8.25;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Upgrades, Options} from "openzeppelin-foundry-upgrades/Upgrades.sol";
+import {ManagementMigrations} from "./migrations/ManagementMigrations.sol";
 import {BridgeLib} from "../contracts/library/BridgeLib.sol";
 import {SigUtils} from "../contracts/tests/SigUtils.sol";
 import {TestBridgeManagement} from "../contracts/tests/TestBridgeManagement.sol";
+import {TestManagementV1ToV2} from "../contracts/tests/migrations/TestManagementV1ToV2.sol";
 import {Test} from "../lib/forge-std/src/Test.sol";
 
 contract BridgeManagementImplTest is Test, SigUtils {
-    TestBridgeManagement managementProxy;
+    TestManagementV1ToV2 managementProxy;
     address managementProxyAddress;
 
     SigUtils sigUtils;
@@ -43,24 +45,21 @@ contract BridgeManagementImplTest is Test, SigUtils {
         // The constructor only contains _disableInitializers() which is safe to bypass.
         Options memory opts;
         opts.unsafeAllow = "constructor";
-        // Deploy the bridge management implementation behind a UUPS proxy and initialize it with the provided parameters.
-        managementProxyAddress = Upgrades.deployUUPSProxy(
-            "TestBridgeManagement.sol",
-            abi.encodeCall(
-                TestBridgeManagement.initialize,
-                (
-                    owner,
-                    relayer,
-                    5,
-                    validatorsAddresses,
-                    governor,
-                    securityGuard,
-                    funder
-                )
-            ),
+
+        // Deploy the management behind a proxy and upgrade it to the latest implementation.
+        managementProxyAddress = ManagementMigrations.deployManagementV1ToV2(
+            owner,
+            relayer,
+            5,
+            validatorsAddresses,
+            governor,
+            securityGuard,
+            funder,
             opts
         );
-        managementProxy = TestBridgeManagement(payable(managementProxyAddress));
+        managementProxy = TestManagementV1ToV2(managementProxyAddress);
+        // Validate that the management proxy has been successfully deployed and upgraded to V2.abi
+        assertEq(managementProxy.getCurrentInitializedVersion(), 2);
     }
 
     function testSetOwner() public {

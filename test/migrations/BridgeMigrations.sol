@@ -2,8 +2,9 @@
 pragma solidity ^0.8.25;
 
 import {Upgrades, Options} from "openzeppelin-foundry-upgrades/Upgrades.sol";
+import {TestBridgeV1ToV2} from "../../contracts/tests/migrations/TestBridgeV1ToV2.sol";
 import {TestBridge, BridgeImpl} from "../../contracts/tests/TestBridge.sol";
-import "../../contracts/tests/interfaces/ITestBridgeManagement.sol";
+import {ITestBridgeManagement} from "../../contracts/tests/interfaces/ITestBridgeManagement.sol";
 import {BridgeImplV1ToV2} from "../../contracts/bridge/BridgeImplV1ToV2.sol";
 
 library BridgeMigrations {
@@ -15,8 +16,8 @@ library BridgeMigrations {
             _managementProxyAddress
         );
         address owner = management.owner();
-        address bridgeV1 = deployBridgeV1(_managementProxyAddress, opts);
-        migrateBridgeV1ToV2(
+        address bridgeV1 = _deployBridgeV1(_managementProxyAddress, opts);
+        _migrateBridgeV1ToV2(
             bridgeV1,
             owner,
             new BridgeImplV1ToV2.TokenMigrationV1[](0)
@@ -29,16 +30,16 @@ library BridgeMigrations {
         Options memory opts,
         BridgeImplV1ToV2.TokenMigrationV1[] memory tokenMigrationsV1ToV2
     ) internal returns (address) {
-        address bridgeV1 = deployBridgeV1(_managementProxyAddress, opts);
+        address bridgeV1 = _deployBridgeV1(_managementProxyAddress, opts);
         ITestBridgeManagement management = ITestBridgeManagement(
             _managementProxyAddress
         );
         address owner = management.owner();
-        migrateBridgeV1ToV2(bridgeV1, owner, tokenMigrationsV1ToV2);
+        _migrateBridgeV1ToV2(bridgeV1, owner, tokenMigrationsV1ToV2);
         return bridgeV1;
     }
 
-    function deployBridgeV1(
+    function _deployBridgeV1(
         address _managementProxyAddress,
         Options memory opts
     ) private returns (address) {
@@ -53,13 +54,13 @@ library BridgeMigrations {
             );
     }
 
-    function migrateBridgeV1ToV2(
+    function _migrateBridgeV1ToV2(
         address proxy,
         address owner,
         BridgeImplV1ToV2.TokenMigrationV1[] memory tokenMigrationsV1ToV2
     ) private {
         bytes memory migrationCall = abi.encodeCall(
-            BridgeImplV1ToV2.upgradeToV2,
+            TestBridgeV1ToV2.upgradeToV2,
             (tokenMigrationsV1ToV2)
         );
         Upgrades.upgradeProxy(

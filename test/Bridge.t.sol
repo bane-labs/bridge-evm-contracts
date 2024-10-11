@@ -3,13 +3,13 @@ pragma solidity 0.8.25;
 
 import {Upgrades, Options} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 import {BridgeMigrations} from "./migrations/BridgeMigrations.sol";
-import {TestBridge, BridgeImpl} from "../contracts/tests/TestBridge.sol";
 import {BridgeStorage, StorageTypes} from "../contracts/bridge/BridgeStorage.sol";
 import {BridgeImplV1ToV2} from "../contracts/bridge/BridgeImplV1ToV2.sol";
-import {TestBridgeV1ToV2} from "../contracts/tests/migrations/TestBridgeV1ToV2.sol";
-import {SigUtils} from "../contracts/tests/SigUtils.sol";
-import {TestBridgeManagement} from "../contracts/tests/TestBridgeManagement.sol";
 import {ITokenBridge} from "../contracts/interfaces/ITokenBridge.sol";
+import {SigUtils} from "../contracts/tests/SigUtils.sol";
+import {TestBridge, BridgeImpl} from "../contracts/tests/TestBridge.sol";
+import {TestBridgeManagement} from "../contracts/tests/TestBridgeManagement.sol";
+import {TestBridgeV1ToV2} from "../contracts/tests/migrations/TestBridgeV1ToV2.sol";
 import {Test} from "../lib/forge-std/src/Test.sol";
 
 contract BridgeImplTest is Test, SigUtils {
