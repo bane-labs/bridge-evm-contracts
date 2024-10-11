@@ -7,23 +7,6 @@ import "../library/BridgeLib.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
-    function initialize(
-        address _owner,
-        address _relayer,
-        uint256 _validatorThreshold,
-        address[] calldata _validators,
-        address _governor,
-        address _securityGuard,
-        address _funder
-    ) public initializer {
-        __Ownable_init(_owner);
-        _setRelayer(_relayer);
-        _setValidators(_validators, _validatorThreshold);
-        _setGovernor(_governor);
-        _setSecurityGuard(_securityGuard);
-        _setFunder(_funder);
-    }
-
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();

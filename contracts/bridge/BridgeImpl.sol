@@ -9,28 +9,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
-    function initialize(
-        address _management,
-        uint256 _fee,
-        uint256 _minAmount,
-        uint256 _maxAmount,
-        uint256 _maxDeposits
-    ) public initializer {
-        __ReentrancyGuard_init();
-        management = IBridgeManagement(_management);
-        gasBridge = StorageTypes.GasBridge({
-            paused: false,
-            depositState: StorageTypes.State({nonce: 0, root: 0x0}),
-            withdrawalState: StorageTypes.State({nonce: 0, root: 0x0}),
-            config: StorageTypes.GasConfig({
-                fee: _fee,
-                minAmount: _minAmount,
-                maxAmount: _maxAmount,
-                maxDeposits: _maxDeposits
-            })
-        });
-    }
-
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();

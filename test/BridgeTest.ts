@@ -29,7 +29,7 @@ describe("Bridge Implementation", function () {
             funder
         ] = await ethers.getSigners();
 
-        const BridgeManagementFactory = (await ethers.getContractFactory("BridgeManagementImpl"));
+        const BridgeManagementFactory = (await ethers.getContractFactory("TestBridgeManagement"));
         const bridgeManagementProxy = await upgrades.deployProxy(BridgeManagementFactory, [
             managementOwner.address,
             relayer.address,
@@ -40,12 +40,12 @@ describe("Bridge Implementation", function () {
             funder.address
         ], { kind: "uups", unsafeAllow: ["constructor"] });
         await bridgeManagementProxy.waitForDeployment();
-        const bridgeManagement = bridgeManagementProxy as BridgeManagementImpl;
+        const bridgeManagement = bridgeManagementProxy as TestBridgeManagement;
 
-        const BridgeContractFactory = await ethers.getContractFactory("BridgeImpl");
-        const bridgeProxy = await upgrades.deployProxy(BridgeContractFactory, [await bridgeManagement.getAddress(), ethers.parseEther("0.1"), ethers.parseEther("1"), ethers.parseEther("10000"), 100], { kind: "uups", unsafeAllow: ["constructor"] });
+        const BridgeContractFactory = await ethers.getContractFactory("TestBridge");
+        const bridgeProxy = await upgrades.deployProxy(BridgeContractFactory, [await bridgeManagement.getAddress()], { kind: "uups", unsafeAllow: ["constructor"] });
         await bridgeProxy.waitForDeployment();
-        const bridge = bridgeProxy as BridgeImpl;
+        const bridge = bridgeProxy as TestBridge;
 
         // Fund the bridge contract.
         await funder.sendTransaction({ to: bridge, value: ethers.parseEther("80.0") });

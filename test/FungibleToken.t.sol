@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
-import "../lib/forge-std/src/Test.sol";
-import {TestBridge, BridgeImpl} from "../contracts/tests/TestBridge.sol";
-import {IERC20Errors} from "../node_modules/@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
-import {ITokenBridge} from "../contracts/interfaces/ITokenBridge.sol";
-import {BridgeStorage, BridgeLib, GasBridgeLib, StorageTypes, TokenBridgeLib} from "../contracts/bridge/BridgeStorage.sol";
-import "../contracts/management/BridgeManagementImpl.sol";
-import "../contracts/tests/SigUtils.sol";
-import "../contracts/tests/MockERC20.sol";
+import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import {Upgrades, Options} from "openzeppelin-foundry-upgrades/Upgrades.sol";
+import {BridgeStorage, BridgeLib, GasBridgeLib, StorageTypes, TokenBridgeLib} from "../contracts/bridge/BridgeStorage.sol";
+import {ITokenBridge} from "../contracts/interfaces/ITokenBridge.sol";
+import {MockERC20} from "../contracts/tests/MockERC20.sol";
+import {SigUtils} from "../contracts/tests/SigUtils.sol";
+import {TestBridge, BridgeImpl} from "../contracts/tests/TestBridge.sol";
+import {TestBridgeManagement} from "../contracts/tests/TestBridgeManagement.sol";
+import {Test} from "../lib/forge-std/src/Test.sol";
 
 contract TestFungibleToken is Test, SigUtils {
     TestBridge bridgeProxy;
@@ -23,7 +23,7 @@ contract TestFungibleToken is Test, SigUtils {
     StorageTypes.TokenConfig validConfigB;
 
     // set _management
-    BridgeManagementImpl bridgeManagementImpl;
+    TestBridgeManagement bridgeManagement;
     SigUtils sigUtils;
     address public owner = 0xBcd4042DE499D14e55001CcbB24a551F3b954096;
     address public funder = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
@@ -62,9 +62,9 @@ contract TestFungibleToken is Test, SigUtils {
         opts.unsafeAllow = "constructor";
         // Deploy the bridge management implementation behind a UUPS proxy and initialize it with the provided parameters.
         managementProxyAddress = Upgrades.deployUUPSProxy(
-            "BridgeManagementImpl.sol",
+            "TestBridgeManagement.sol",
             abi.encodeCall(
-                BridgeManagementImpl.initialize,
+                TestBridgeManagement.initialize,
                 (
                     owner,
                     relayer,
@@ -77,15 +77,12 @@ contract TestFungibleToken is Test, SigUtils {
             ),
             opts
         );
-        bridgeManagementImpl = BridgeManagementImpl(managementProxyAddress);
+        bridgeManagement = TestBridgeManagement(managementProxyAddress);
 
         // Deploy the bridge implementation behind a UUPS proxy and initialize it with the provided parameters.
         bridgeProxyAddress = Upgrades.deployUUPSProxy(
             "TestBridge.sol",
-            abi.encodeCall(
-                BridgeImpl.initialize,
-                (managementProxyAddress, 1e17, 1e18, 1e22, 100)
-            ),
+            abi.encodeCall(TestBridge.initialize, (managementProxyAddress)),
             opts
         );
         bridgeProxy = TestBridge(payable(bridgeProxyAddress));
@@ -213,7 +210,7 @@ contract TestFungibleToken is Test, SigUtils {
     function testDepositTokenB() public {
         // Verify the signatures of 6 validators
         vm.prank(owner);
-        bridgeManagementImpl.setValidators(validatorsAddresses, 6);
+        bridgeManagement.setValidators(validatorsAddresses, 6);
 
         MockERC20(neoXTokenB).mint(address(bridgeProxy), 1000 ether);
         vm.prank(governor);
@@ -273,7 +270,7 @@ contract TestFungibleToken is Test, SigUtils {
     function testClaimTokenA() public {
         // Verify the signatures of 7 validators
         vm.prank(owner);
-        bridgeManagementImpl.setValidators(validatorsAddresses, 7);
+        bridgeManagement.setValidators(validatorsAddresses, 7);
         vm.prank(governor);
         bridgeProxy.registerToken(neoXTokenA, validConfigA);
         BridgeLib.DepositData[]
