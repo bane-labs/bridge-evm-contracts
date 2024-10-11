@@ -57,7 +57,7 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
         bool _increaseThreshold
     ) external onlyOwner {
         _addValidator(_validator, _increaseThreshold);
-        emit ValidatorAddition(_validator, _increaseThreshold);
+        emit ValidatorAdd(_validator, _increaseThreshold);
     }
 
     function removeValidator(
@@ -66,7 +66,7 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
         bool _decreaseThreshold
     ) external onlyOwner {
         _removeValidator(_index, _validator, _decreaseThreshold);
-        emit ValidatorRemoval(_validator, _decreaseThreshold);
+        emit ValidatorRemove(_validator, _decreaseThreshold);
     }
 
     function replaceValidator(
@@ -75,7 +75,7 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
         address _newValidator
     ) external onlyOwner {
         _replaceValidator(_index, _oldValidator, _newValidator);
-        emit ValidatorReplacement(_oldValidator, _newValidator);
+        emit ValidatorReplace(_oldValidator, _newValidator);
     }
 
     function getValidators() external view returns (address[] memory) {

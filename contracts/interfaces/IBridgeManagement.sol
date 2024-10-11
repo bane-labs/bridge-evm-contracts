@@ -6,9 +6,9 @@ import "../library/BridgeLib.sol";
 interface IBridgeManagement {
     event OwnerChange(address owner);
     event RelayerChange(address relayer);
-    event ValidatorAddition(address validator, bool thresholdIncreased);
-    event ValidatorRemoval(address validator, bool thresholdDecreased);
-    event ValidatorReplacement(address oldValidator, address newValidator);
+    event ValidatorAdd(address validator, bool thresholdIncreased);
+    event ValidatorRemove(address validator, bool thresholdDecreased);
+    event ValidatorReplace(address oldValidator, address newValidator);
     event ValidatorThresholdChange(uint256 threshold);
     event GovernorChange(address governor);
     event SecurityGuardChange(address securityGuard);
