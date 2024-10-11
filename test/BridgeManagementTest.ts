@@ -271,24 +271,80 @@ describe("Bridge Management", function () {
         });
 
         it("Replace validator", async function () {
-            expect(1).to.be.equal(0);
+            const { bridgeManagementImpl, owner, validator4 } = await loadFixture(deployBridgeFixture);
+            const newValidator = owner;
+            const index = 3;
+            expect(await bridgeManagementImpl.getValidators()).to.have.length(7);
+            expect(await bridgeManagementImpl.getValidatorThreshold()).to.be.equal(5);
+            expect((await bridgeManagementImpl.getValidators())[index]).to.be.equal(validator4.address);
+            expect(await bridgeManagementImpl.isValidator(validator4.address)).to.be.true;
+            expect(await bridgeManagementImpl.isValidator(newValidator.address)).to.be.false;
+
+            await bridgeManagementImpl.connect(owner).replaceValidator(index, validator4.address, newValidator.address);
+            expect(await bridgeManagementImpl.getValidators()).to.have.length(7);
+            expect(await bridgeManagementImpl.getValidatorThreshold()).to.be.equal(5);
+            expect((await bridgeManagementImpl.getValidators())[index]).to.be.equal(newValidator.address);
+            expect(await bridgeManagementImpl.isValidator(validator4.address)).to.be.false;
+            expect(await bridgeManagementImpl.isValidator(newValidator.address)).to.be.true;
         });
 
-        it("Fail replacing validator with incorrect index or address", async function () {
-            // Also test with index >= validators.length
-            expect(1).to.be.equal(0);
+        it("Fail replacing validator with zero address", async function () {
+            const { bridgeManagementImpl, owner, validator4 } = await loadFixture(deployBridgeFixture);
+            const index = 3;
+            expect((await bridgeManagementImpl.getValidators())[index]).to.be.equal(validator4.address);
+            expect(await bridgeManagementImpl.isValidator(validator4.address)).to.be.true;
+            expect(await bridgeManagementImpl.isValidator(ZeroAddress)).to.be.false;
+
+            const tx = bridgeManagementImpl.connect(owner).replaceValidator(4, validator4.address, ZeroAddress);
+            expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "InvalidAddress");
         });
 
-        it("Fail replacing validator with old validator not being a validator", async function () {
-            expect(1).to.be.equal(0);
+        it("Fail replacing a validator address that is no validator", async function () {
+            const { bridgeManagementImpl, owner, relayer } = await loadFixture(deployBridgeFixture);
+            const newValidator = owner;
+            const oldValidator = relayer;
+            const index = 3;
+            expect(await bridgeManagementImpl.isValidator(oldValidator.address)).to.be.false;
+            expect(await bridgeManagementImpl.isValidator(newValidator.address)).to.be.false;
+
+            const tx = bridgeManagementImpl.connect(owner).replaceValidator(index, oldValidator.address, newValidator.address);
+            expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "NotValidator");
         });
 
-        it("Fail replacing validator with new validator already being a validator", async function () {
-            expect(1).to.be.equal(0);
+        it("Fail replacing validator with address that is already a validator", async function () {
+            const { bridgeManagementImpl, owner, validator2, validator4 } = await loadFixture(deployBridgeFixture);
+            const newValidator = validator2;
+            const index = 3;
+            expect((await bridgeManagementImpl.getValidators())[index]).to.be.equal(validator4.address);
+            expect(await bridgeManagementImpl.isValidator(validator4.address)).to.be.true;
+            expect(await bridgeManagementImpl.isValidator(newValidator.address)).to.be.true;
+
+            const tx = bridgeManagementImpl.connect(owner).replaceValidator(index, validator4.address, newValidator.address);
+            expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "AlreadyValidator");
         });
 
-        it("Fail replacing validator with new validator being the zero address", async function () {
-            expect(1).to.be.equal(0);
+        it("Fail replacing validator with incorrect index", async function () {
+            const { bridgeManagementImpl, owner, validator4 } = await loadFixture(deployBridgeFixture);
+            const newValidator = owner;
+            const index = 3;
+            expect((await bridgeManagementImpl.getValidators())[index]).to.be.equal(validator4.address);
+            expect(await bridgeManagementImpl.isValidator(validator4.address)).to.be.true;
+            expect(await bridgeManagementImpl.isValidator(newValidator.address)).to.be.false;
+
+            const tx = bridgeManagementImpl.connect(owner).replaceValidator(4, validator4.address, newValidator.address);
+            expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "IndexValidatorMismatch");
+        });
+
+        it("Fail replacing validator with incorrect address", async function () {
+            const { bridgeManagementImpl, owner, validator4, validator5 } = await loadFixture(deployBridgeFixture);
+            const newValidator = owner;
+            const index = 3;
+            expect((await bridgeManagementImpl.getValidators())[index]).to.be.equal(validator4.address);
+            expect(await bridgeManagementImpl.isValidator(validator4.address)).to.be.true;
+            expect(await bridgeManagementImpl.isValidator(newValidator.address)).to.be.false;
+
+            const tx = bridgeManagementImpl.connect(owner).replaceValidator(3, validator5.address, newValidator.address);
+            expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "IndexValidatorMismatch");
         });
 
         it("Set validator threshold", async function () {
