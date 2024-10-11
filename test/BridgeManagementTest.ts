@@ -115,9 +115,80 @@ describe("Bridge Management", function () {
             await expect(await bridgeManagementImpl.owner()).to.be.equal(validator2.address);
         });
 
+        it("Add validator and increase threshold", async function () {
+            const { bridgeManagementImpl, owner, validator1, validator2 } = await loadFixture(deployBridgeFixture);
+            await bridgeManagementImpl.connect(owner).addValidator(owner.address, true);
+            await expect(await bridgeManagementImpl.getValidators()).to.have.length(8);
+            await expect(await bridgeManagementImpl.getValidatorThreshold()).to.be.equal(6);
+            await expect((await bridgeManagementImpl.getValidators())[7]).to.be.equal(owner.address);
+        });
+
+        it("Add validator and keep current threshold", async function () {
+            expect(1).to.be.equal(0);
+        });
+
+        it("Fail adding validator that is already a validator ", async function () {
+            expect(1).to.be.equal(0);
+        });
+
+        it("Remove validator and decrease current threshold ", async function () {
+            expect(1).to.be.equal(0);
+        });
+
+        it("Remove validator and keep current threshold ", async function () {
+            expect(1).to.be.equal(0);
+        });
+
+        it("Fail removing validator and keep current threshold if threshold was equal to number of validators", async function () {
+            expect(1).to.be.equal(0);
+        });
+
+        it("Fail removing validator with incorrect index or address", async function () {
+            // Also test with index >= validators.length
+            expect(1).to.be.equal(0);
+        });
+
+        it("Replace validator", async function () {
+            expect(1).to.be.equal(0);
+        });
+
+        it("Fail replacing validator with incorrect index or address", async function () {
+            // Also test with index >= validators.length
+            expect(1).to.be.equal(0);
+        });
+
+        it("Fail replacing validator with old validator not being a validator", async function () {
+            expect(1).to.be.equal(0);
+        });
+
+        it("Fail replacing validator with new validator already being a validator", async function () {
+            expect(1).to.be.equal(0);
+        });
+
+        it("Set validator threshold", async function () {
+            expect(1).to.be.equal(0);
+        });
+
+        it("Fail setting validator threshold lower than 2", async function () {
+            expect(1).to.be.equal(0);
+        });
+
+        it("Fail setting validator threshold higher than number of validators", async function () {
+            expect(1).to.be.equal(0);
+        });
+
+
         it("Set validators with unique address", async function () {
-            const { bridgeManagementImpl, owner } = await loadFixture(deployBridgeFixture);
+            const { bridgeManagementImpl, owner, validator1, validator2, validator3, validator4, validator5, validator6, validator7 } = await loadFixture(deployBridgeFixture);
             const new_validators = [ethers.Wallet.createRandom().address, ethers.Wallet.createRandom().address];
+            await bridgeManagementImpl.connect(owner).removeValidator(6, validator7, true);
+            await bridgeManagementImpl.connect(owner).removeValidator(5, validator6, true);
+            await bridgeManagementImpl.connect(owner).removeValidator(4, validator5, true);
+            await bridgeManagementImpl.connect(owner).removeValidator(3, validator4, false); // threshold is 2 now, don't decrease further
+            await bridgeManagementImpl.connect(owner).removeValidator(2, validator3, false);
+            // Only two validators remaining
+            await bridgeManagementImpl.connect(owner).replaceValidator(1, validator2, new_validators[0]);
+            await bridgeManagementImpl.connect(owner).replaceValidator(0, validator1, new_validators[1]);
             const tx = await bridgeManagementImpl.connect(owner).setValidators(new_validators, 2);
             await expect(tx).to.emit(bridgeManagementImpl, "ValidatorsChange").withArgs(new_validators, 2);
             await expect(await bridgeManagementImpl.getValidator(0)).to.be.equal(new_validators[0]);

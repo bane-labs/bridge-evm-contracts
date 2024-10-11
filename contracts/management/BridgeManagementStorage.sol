@@ -30,7 +30,7 @@ abstract contract BridgeManagementStorage is
         address _validator,
         bool increaseThreshold
     ) internal {
-        if (!_isValidator(_validator)) revert AlreadyAValidator(_validator);
+        if (_isValidator(_validator)) revert AlreadyAValidator(_validator);
         if (increaseThreshold) {
             validatorThreshold++;
         }
