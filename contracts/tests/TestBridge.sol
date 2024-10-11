@@ -8,13 +8,7 @@ contract TestBridge is BridgeImpl {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() BridgeImpl() {}
 
-    function initialize(
-        address _management,
-        uint256 _fee,
-        uint256 _minAmount,
-        uint256 _maxAmount,
-        uint256 _maxDeposits
-    ) public initializer {
+    function initialize(address _management) public initializer {
         __ReentrancyGuard_init();
         management = IBridgeManagement(_management);
         gasBridge = StorageTypes.GasBridge({
@@ -22,10 +16,10 @@ contract TestBridge is BridgeImpl {
             depositState: StorageTypes.State({nonce: 0, root: 0x0}),
             withdrawalState: StorageTypes.State({nonce: 0, root: 0x0}),
             config: StorageTypes.GasConfig({
-                fee: _fee,
-                minAmount: _minAmount,
-                maxAmount: _maxAmount,
-                maxDeposits: _maxDeposits
+                fee: 1e17,
+                minAmount: 1e18,
+                maxAmount: 1e22,
+                maxDeposits: 100
             })
         });
     }

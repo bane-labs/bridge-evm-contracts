@@ -82,10 +82,7 @@ contract TestFungibleToken is Test, SigUtils {
         // Deploy the bridge implementation behind a UUPS proxy and initialize it with the provided parameters.
         bridgeProxyAddress = Upgrades.deployUUPSProxy(
             "TestBridge.sol",
-            abi.encodeCall(
-                TestBridge.initialize,
-                (managementProxyAddress, 1e17, 1e18, 1e22, 100)
-            ),
+            abi.encodeCall(TestBridge.initialize, (managementProxyAddress)),
             opts
         );
         bridgeProxy = TestBridge(payable(bridgeProxyAddress));
