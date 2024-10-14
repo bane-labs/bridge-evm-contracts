@@ -79,8 +79,8 @@ abstract contract BridgeManagementStorage is
     }
 
     function _setValidatorThreshold(uint256 _threshold) internal {
-        if (_threshold <= 1) revert InvalidValidatorThreshold();
-        if (_threshold > validators.length) revert InvalidValidatorThreshold();
+        if (_threshold <= 1 || _threshold > validators.length)
+            revert InvalidValidatorThreshold();
         validatorThreshold = _threshold;
     }
 
