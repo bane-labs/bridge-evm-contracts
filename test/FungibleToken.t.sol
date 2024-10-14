@@ -2,19 +2,16 @@
 pragma solidity 0.8.25;
 import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import {Upgrades, Options} from "openzeppelin-foundry-upgrades/Upgrades.sol";
-import {BridgeMigrations} from "./migrations/BridgeMigrations.sol";
-import {ManagementMigrations} from "./migrations/ManagementMigrations.sol";
-import {BridgeStorage, BridgeLib, GasBridgeLib, StorageTypes, TokenBridgeLib} from "../contracts/bridge/BridgeStorage.sol";
+import {BridgeImpl, BridgeStorage, BridgeLib, GasBridgeLib, StorageTypes, TokenBridgeLib} from "../contracts/bridge/BridgeImpl.sol";
 import {ITokenBridge} from "../contracts/interfaces/ITokenBridge.sol";
 import {MockERC20} from "../contracts/tests/MockERC20.sol";
 import {SigUtils} from "../contracts/tests/SigUtils.sol";
+import {TestBridge} from "../contracts/tests/TestBridge.sol";
 import {TestBridgeManagement} from "../contracts/tests/TestBridgeManagement.sol";
-import {TestBridgeV1ToV2} from "../contracts/tests/migrations/TestBridgeV1ToV2.sol";
-import {TestManagementV1ToV2} from "../contracts/tests/migrations/TestManagementV1ToV2.sol";
 import {Test} from "../lib/forge-std/src/Test.sol";
 
 contract TestFungibleToken is Test, SigUtils {
-    TestBridgeV1ToV2 bridgeProxy;
+    TestBridge bridgeProxy;
     address managementProxyAddress;
     address bridgeProxyAddress;
 
@@ -26,7 +23,7 @@ contract TestFungibleToken is Test, SigUtils {
     StorageTypes.TokenConfig validConfigB;
 
     // set _management
-    TestManagementV1ToV2 managementProxy;
+    TestBridgeManagement managementProxy;
     SigUtils sigUtils;
     address public owner = 0xBcd4042DE499D14e55001CcbB24a551F3b954096;
     address public funder = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
@@ -65,28 +62,37 @@ contract TestFungibleToken is Test, SigUtils {
         opts.unsafeAllow = "constructor";
 
         // Deploy the management behind a proxy and upgrade it to the latest implementation.
-        managementProxyAddress = ManagementMigrations.deployManagementV1ToV2(
-            owner,
-            relayer,
-            5,
-            validatorsAddresses,
-            governor,
-            securityGuard,
-            funder,
+        managementProxyAddress = Upgrades.deployUUPSProxy(
+            "TestBridgeManagement.sol",
+            abi.encodeCall(
+                TestBridgeManagement.initialize,
+                (
+                    owner,
+                    relayer,
+                    validatorThreshold,
+                    validatorsAddresses,
+                    governor,
+                    securityGuard,
+                    funder
+                )
+            ),
             opts
         );
-        managementProxy = TestManagementV1ToV2(managementProxyAddress);
+        managementProxy = TestBridgeManagement(managementProxyAddress);
+        vm.prank(owner);
+        managementProxy.upgradeToV2();
         // Validate that the management proxy has been successfully deployed and upgraded to V2.abi
         assertEq(managementProxy.getCurrentInitializedVersion(), 2);
 
         // Deploy the bridge including upgrade steps to V2.
-        bridgeProxyAddress = BridgeMigrations.deployBridgeV1ToV2(
-            managementProxyAddress,
+        bridgeProxyAddress = Upgrades.deployUUPSProxy(
+            "TestBridge.sol",
+            abi.encodeCall(TestBridge.initialize, (managementProxyAddress)),
             opts
         );
-        bridgeProxy = TestBridgeV1ToV2(payable(bridgeProxyAddress));
-        // Validate that the bridge proxy has been successfully deployed and upgraded to V2.
-        assertEq(bridgeProxy.getCurrentInitializedVersion(), 2);
+        bridgeProxy = TestBridge(payable(bridgeProxyAddress));
+        vm.prank(owner);
+        bridgeProxy.upgradeToV2(new BridgeImpl.TokenMigration[](0));
 
         neoXTokenA = address(new MockERC20("MockA", "MA"));
         neoXTokenB = address(new MockERC20("MockB", "MB"));
