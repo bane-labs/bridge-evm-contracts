@@ -8,6 +8,7 @@ import {BridgeManagementImpl} from "../management/BridgeManagementImpl.sol";
 // - Overridden functions with the onlyAdmin modifier are opened to the testing owner (_authorizeUpgrade and _upgrade functions).
 // - Initialization function to initialize the storage slots with the same layout as the layout state of the currently deployed contract.
 // - A function getCurrentInitializedVersion() to verify the initialized version of the contract.
+/// @custom:oz-upgrades-from BridgeManagementImpl
 contract TestBridgeManagement is BridgeManagementImpl {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() BridgeManagementImpl() {}

@@ -11,6 +11,7 @@ import {ITestBridgeManagement} from "./interfaces/ITestBridgeManagement.sol";
 // - Initialization function to initialize the storage slots with the same layout as the layout state of the currently deployed contract.
 // - A function getCurrentInitializedVersion() to verify the initialized version of the contract.
 // - Additional helper functions for testing purposes.
+/// @custom:oz-upgrades-from BridgeImpl
 contract TestBridge is BridgeImpl {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() BridgeImpl() {}
