@@ -2,6 +2,8 @@ import { expect } from "chai";
 import { ethers, upgrades } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { ZeroAddress } from "ethers";
+import { bridge } from "../typechain-types/contracts";
+import { TestBridgeManagement } from "../typechain-types";
 
 describe("Bridge Management", function () {
     async function deployBridgeFixture() {
@@ -21,7 +23,7 @@ describe("Bridge Management", function () {
             funder
         ] = await ethers.getSigners();
         const BridgeManagementFactory = (await ethers.getContractFactory("TestBridgeManagement"));
-        const proxyV1 = await upgrades.deployProxy(BridgeManagementFactory, [
+        const proxy = await upgrades.deployProxy(BridgeManagementFactory, [
             owner.address,
             relayer.address,
             5,
@@ -30,17 +32,14 @@ describe("Bridge Management", function () {
             securityGuard.address,
             funder.address
         ], { kind: "uups", unsafeAllow: ["constructor"] });
-        await proxyV1.waitForDeployment();
-        const TestManagementFactoryV1ToV2 = (await ethers.getContractFactory("TestManagementV1ToV2")).connect(owner);
-        const proxy = await upgrades.upgradeProxy(await proxyV1.getAddress(), TestManagementFactoryV1ToV2, {
-            call: { fn: "upgradeToV2", args: [] },
-            unsafeAllow: ["constructor"]
-        });
+        await proxy.waitForDeployment();
+        const bridgeManagementImpl = await ethers.getContractAt("TestBridgeManagement", await proxy.getAddress());
 
-        const bridgeManagement = proxy as TestManagementV1ToV2;
+        // Upgrade the bridge management contract to V2
+        await bridgeManagementImpl.connect(owner).upgradeToV2();
 
         return {
-            bridgeManagementImpl: bridgeManagement,
+            bridgeManagementImpl,
             relayer,
             validator1,
             validator2,
@@ -247,14 +246,14 @@ describe("Bridge Management", function () {
         it("Fail removing validator if not a validator with invalid index", async function () {
             const { bridgeManagementImpl, owner } = await loadFixture(deployBridgeFixture);
             expect(await bridgeManagementImpl.isValidator(owner.address)).to.be.false;
-            const tx = bridgeManagementImpl.removeValidator(0, owner.address);
+            const tx = bridgeManagementImpl.removeValidator(0, owner.address, false);
             expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "NotValidator");
         });
 
         it("Fail removing validator with index out of bounds", async function () {
             const { bridgeManagementImpl, owner, validator1 } = await loadFixture(deployBridgeFixture);
             expect(await bridgeManagementImpl.getValidators()).to.have.length(7);
-            const tx = bridgeManagementImpl.removeValidator(7, validator1.address);
+            const tx = bridgeManagementImpl.removeValidator(7, validator1.address, false);
             expect(tx).to.be.revertedWithCustomError(bridgeManagementImpl, "IndexOutOfBounds");
         });
 

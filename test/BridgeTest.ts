@@ -30,7 +30,7 @@ describe("Bridge Implementation", function () {
         ] = await ethers.getSigners();
 
         const BridgeManagementFactory = (await ethers.getContractFactory("TestBridgeManagement"));
-        const managementProxyV1 = await upgrades.deployProxy(BridgeManagementFactory, [
+        const managementProxy = await upgrades.deployProxy(BridgeManagementFactory, [
             managementOwner.address,
             relayer.address,
             5,
@@ -39,26 +39,17 @@ describe("Bridge Implementation", function () {
             securityGuard.address,
             funder.address
         ], { kind: "uups", unsafeAllow: ["constructor"] });
-        await managementProxyV1.waitForDeployment();
-        const TestManagementFactoryV1ToV2 = (await ethers.getContractFactory("TestManagementV1ToV2")).connect(managementOwner);
-        const managementProxy = await upgrades.upgradeProxy(await managementProxyV1.getAddress(), TestManagementFactoryV1ToV2, {
-            call: { fn: "upgradeToV2", args: [] },
-            unsafeAllow: ["constructor"]
-        });
-        const bridgeManagement = managementProxy as TestManagementV1ToV2;
+        await managementProxy.waitForDeployment();
+        const bridgeManagement = await ethers.getContractAt("TestBridgeManagement", await managementProxy.getAddress());
+        // Upgrade the bridge management contract to V2
+        await bridgeManagement.connect(managementOwner).upgradeToV2();
 
         const BridgeContractFactory = await ethers.getContractFactory("TestBridge");
-
-        const bridgeProxyV1 = await upgrades.deployProxy(BridgeContractFactory, [await bridgeManagement.getAddress()], { kind: "uups", unsafeAllow: ["constructor"] });
-        await bridgeProxyV1.waitForDeployment();
-
-        const TestBridgeFactoryV1ToV2 = (await ethers.getContractFactory("TestBridgeV1ToV2")).connect(managementOwner);
-        const tokensToMigrate: TokenMigrationV1[] = [];
-        const bridgeProxyV2 = await upgrades.upgradeProxy(await bridgeProxyV1.getAddress(), TestBridgeFactoryV1ToV2, {
-            call: { fn: "upgradeToV2", args: [tokensToMigrate] },
-            unsafeAllow: ["constructor"]
-        });
-        const bridge = bridgeProxyV2 as TestBridge;
+        const bridgeProxy = await upgrades.deployProxy(BridgeContractFactory, [await bridgeManagement.getAddress()], { kind: "uups", unsafeAllow: ["constructor"] });
+        await bridgeProxy.waitForDeployment();
+        const bridge = await ethers.getContractAt("TestBridge", await bridgeProxy.getAddress());
+        // Upgrade the bridge contract to V2
+        await bridge.connect(managementOwner).upgradeToV2([]);
 
         // Fund the bridge contract.
         await funder.sendTransaction({ to: bridge, value: ethers.parseEther("80.0") });

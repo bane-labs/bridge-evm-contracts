@@ -633,4 +633,31 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
             emit MaxTokenDepositsChange(_neoXTokens[i], maxDeposits);
         }
     }
+
+    // Migration functionality v.1.0.0 to v.2.0.0
+
+    struct TokenMigration {
+        address token;
+        uint256 decimalScalingFactor;
+    }
+
+    function upgradeToV2(
+        TokenMigration[] calldata _tokenBridgeMigrations
+    ) external virtual reinitializer(2) onlyAdmin {
+        _upgradeToV2(_tokenBridgeMigrations);
+    }
+
+    function _upgradeToV2(
+        TokenMigration[] calldata _tokenBridgeMigrations
+    ) internal onlyInitializing {
+        for (uint256 i = 0; i < _tokenBridgeMigrations.length; i++) {
+            TokenMigration memory migration = _tokenBridgeMigrations[i];
+            if (!_isRegisteredToken(migration.token))
+                revert("Token not registered");
+            StorageTypes.TokenConfig storage config = tokenBridges[
+                migration.token
+            ].config;
+            config.decimalScalingFactor = migration.decimalScalingFactor;
+        }
+    }
 }
