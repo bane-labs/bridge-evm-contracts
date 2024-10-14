@@ -2,15 +2,18 @@
 pragma solidity 0.8.25;
 
 import {Upgrades, Options} from "openzeppelin-foundry-upgrades/Upgrades.sol";
+import {BridgeMigrations} from "./migrations/BridgeMigrations.sol";
 import {TestBridge, BridgeImpl} from "../contracts/tests/TestBridge.sol";
 import {BridgeStorage, StorageTypes} from "../contracts/bridge/BridgeStorage.sol";
+import {BridgeImplV1ToV2} from "../contracts/bridge/BridgeImplV1ToV2.sol";
+import {TestBridgeV1ToV2} from "../contracts/tests/migrations/TestBridgeV1ToV2.sol";
 import {SigUtils} from "../contracts/tests/SigUtils.sol";
 import {TestBridgeManagement} from "../contracts/tests/TestBridgeManagement.sol";
 import {ITokenBridge} from "../contracts/interfaces/ITokenBridge.sol";
 import {Test} from "../lib/forge-std/src/Test.sol";
 
 contract BridgeImplTest is Test, SigUtils {
-    TestBridge bridgeProxy;
+    TestBridgeV1ToV2 bridgeProxy;
     address bridgeProxyAddress;
 
     address neoXToken = address(0x6789);
@@ -60,13 +63,14 @@ contract BridgeImplTest is Test, SigUtils {
             opts
         );
 
-        // Deploy the bridge implementation behind a UUPS proxy and initialize it with the provided parameters.
-        bridgeProxyAddress = Upgrades.deployUUPSProxy(
-            "TestBridge.sol",
-            abi.encodeCall(TestBridge.initialize, (managementProxyAddress)),
+        // Deploy the bridge including upgrade steps to V2.
+        bridgeProxyAddress = BridgeMigrations.deployBridgeV1ToV2(
+            managementProxyAddress,
             opts
         );
-        bridgeProxy = TestBridge(payable(bridgeProxyAddress));
+        bridgeProxy = TestBridgeV1ToV2(payable(bridgeProxyAddress));
+        // Validate that the bridge proxy has been successfully deployed and upgraded to V2.
+        assertEq(bridgeProxy.getCurrentInitializedVersion(), 2);
 
         validConfig = StorageTypes.TokenConfig({
             neoN3Token: neoN3Token,
