@@ -378,4 +378,30 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     function _authorizeUpgrade(
         address newImplementation
     ) internal virtual override onlyAdmin {}
+
+    // Migration Logic for v1 to v2
+
+    struct TokenMigration {
+        address token;
+        uint256 decimalScalingFactor;
+    }
+
+    // This functionality should be on the lowest level of the inheritance hierarchy. However, since it needs external inputs, it requires a functionality that is not available in the BridgeStorageV1 contract.
+    function _upgradeToV2(
+        TokenMigration[] calldata _tokenBridgeMigrations
+    ) internal onlyInitializing {
+        for (uint256 i = 0; i < _tokenBridgeMigrations.length; i++) {
+            TokenMigration memory migration = _tokenBridgeMigrations[i];
+            if (!_isRegisteredToken(migration.token))
+                revert("Token not registered");
+            // Add token to registered tokens
+            registeredTokens.push(migration.token);
+
+            // Update the token bridge's config
+            StorageTypes.TokenConfig storage config = tokenBridges[
+                migration.token
+            ].config;
+            config.decimalScalingFactor = migration.decimalScalingFactor;
+        }
+    }
 }
