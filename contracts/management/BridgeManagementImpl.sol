@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "./BridgeManagementStorage.sol";
 import "../interfaces/IBridgeManagement.sol";
 import "../library/BridgeLib.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -88,7 +88,7 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
     }
 
     function getValidators() external view returns (address[] memory) {
-        return EnumerableSet.values(validatorSet);
+        return validatorSet.values();
     }
 
     function setValidatorThreshold(uint256 _threshold) external onlyOwner {

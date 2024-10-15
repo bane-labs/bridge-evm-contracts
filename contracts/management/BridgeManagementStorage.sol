@@ -26,29 +26,29 @@ abstract contract BridgeManagementStorage is
     error ValidatorThresholdTooHigh();
 
     function _isValidator(address _validator) internal view returns (bool) {
-        return EnumerableSet.contains(validatorSet, _validator);
+        return validatorSet.contains(_validator);
     }
 
     function _addValidator(address _validator) internal {
         if (_validator == address(0)) revert InvalidAddress();
-        bool isNew = EnumerableSet.add(validatorSet, _validator);
+        bool isNew = validatorSet.add(_validator);
         if (!isNew) revert AlreadyValidator(_validator);
     }
 
     function _removeValidator(address _validator) internal {
         if (_minimumValidatorsReached()) revert MinValidatorsLimitReached();
-        if (EnumerableSet.length(validatorSet) == validatorThreshold)
+        if (validatorSet.length() == validatorThreshold)
             revert ValidatorThresholdTooHigh();
-        bool removed = EnumerableSet.remove(validatorSet, _validator);
+        bool removed = validatorSet.remove(_validator);
         if (!removed) revert NotValidator(_validator);
     }
 
     function _minimumValidatorsReached() internal view returns (bool) {
-        return EnumerableSet.length(validatorSet) == MIN_NR_VALIDATORS;
+        return validatorSet.length() == MIN_NR_VALIDATORS;
     }
 
     function _incrementValidatorThreshold() internal {
-        if (EnumerableSet.length(validatorSet) == validatorThreshold)
+        if (validatorSet.length() == validatorThreshold)
             revert ValidatorThresholdTooHigh();
         validatorThreshold++;
     }
@@ -61,7 +61,7 @@ abstract contract BridgeManagementStorage is
 
     function _setValidatorThreshold(uint256 _threshold) internal {
         if (_threshold <= 1) revert ValidatorThresholdTooLow();
-        if (_threshold > EnumerableSet.length(validatorSet))
+        if (_threshold > validatorSet.length())
             revert ValidatorThresholdTooHigh();
         validatorThreshold = _threshold;
     }
