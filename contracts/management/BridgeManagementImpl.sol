@@ -6,6 +6,8 @@ import "../interfaces/IBridgeManagement.sol";
 import "../library/BridgeLib.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
+using EnumerableSet for EnumerableSet.AddressSet;
+
 contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -33,7 +35,7 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
             BridgeLib.Signature calldata sig = _signatures[i];
             recovered[i] = ECDSA.recover(signedRootMsg, sig.v, sig.r, sig.s);
             // If one of the provided signatures is not from a validator, return false
-            if (!validatorMap[recovered[i]]) return false;
+            if (!_isValidator(recovered[i])) return false;
         }
         if (ManagementLib._hasDuplicates(recovered)) return false;
         return true;
@@ -48,38 +50,45 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
         return relayer;
     }
 
+    function addValidator(
+        address _validator,
+        bool _incrementThreshold
+    ) external onlyOwner {
+        _addValidator(_validator);
+        emit ValidatorAdd(_validator);
+        if (_incrementThreshold) {
+            _incrementValidatorThreshold();
+            emit ValidatorThresholdChange(validatorThreshold);
+        }
+    }
+
+    function removeValidator(
+        address _validator,
+        bool _decrementThreshold
+    ) external onlyOwner {
+        if (_decrementThreshold) {
+            _decrementValidatorThreshold();
+            emit ValidatorThresholdChange(validatorThreshold);
+        }
+        _removeValidator(_validator);
+        emit ValidatorRemove(_validator);
+    }
+
+    function replaceValidator(
+        address _oldValidator,
+        address _newValidator
+    ) external onlyOwner {
+        _removeValidator(_oldValidator);
+        _addValidator(_newValidator);
+        emit ValidatorReplace(_oldValidator, _newValidator);
+    }
+
     function isValidator(address _validator) external view returns (bool) {
         return _isValidator(_validator);
     }
 
-    function addValidator(
-        address _validator,
-        bool _increaseThreshold
-    ) external onlyOwner {
-        _addValidator(_validator, _increaseThreshold);
-        emit ValidatorAdd(_validator, _increaseThreshold);
-    }
-
-    function removeValidator(
-        uint256 _index,
-        address _validator,
-        bool _decreaseThreshold
-    ) external onlyOwner {
-        _removeValidator(_index, _validator, _decreaseThreshold);
-        emit ValidatorRemove(_validator, _decreaseThreshold);
-    }
-
-    function replaceValidator(
-        uint256 _index,
-        address _oldValidator,
-        address _newValidator
-    ) external onlyOwner {
-        _replaceValidator(_index, _oldValidator, _newValidator);
-        emit ValidatorReplace(_oldValidator, _newValidator);
-    }
-
     function getValidators() external view returns (address[] memory) {
-        return validators;
+        return EnumerableSet.values(validatorSet);
     }
 
     function setValidatorThreshold(uint256 _threshold) external onlyOwner {
@@ -122,15 +131,5 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
 
     function upgradeToV2() external virtual reinitializer(2) onlyAdmin {
         _upgradeToV2();
-    }
-
-    function _upgradeToV2() internal onlyInitializing {
-        // Set validators in new version
-        uint256 validatorsLength = validators.length;
-        for (uint256 i = 0; i < validatorsLength; i++) {
-            address validator = validators[i];
-            validatorMap[validator] = true;
-        }
-        // Todo: Implement reinitialization logic
     }
 }

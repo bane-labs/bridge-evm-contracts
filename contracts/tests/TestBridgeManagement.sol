@@ -38,7 +38,7 @@ contract TestBridgeManagement is BridgeManagementImpl {
         // Ignore any safety-checks since this is just used for test setup.
         uint256 validatorsLength = _validators.length;
         for (uint256 i = 0; i < validatorsLength; i++) {
-            validators.push(_validators[i]);
+            _v1_validators.push(_validators[i]);
         }
         validatorThreshold = _validatorThreshold;
     }

@@ -6,8 +6,8 @@ import "../library/BridgeLib.sol";
 interface IBridgeManagement {
     event OwnerChange(address owner);
     event RelayerChange(address relayer);
-    event ValidatorAdd(address validator, bool thresholdIncreased);
-    event ValidatorRemove(address validator, bool thresholdDecreased);
+    event ValidatorAdd(address validator);
+    event ValidatorRemove(address validator);
     event ValidatorReplace(address oldValidator, address newValidator);
     event ValidatorThresholdChange(uint256 threshold);
     event GovernorChange(address governor);
@@ -22,25 +22,26 @@ interface IBridgeManagement {
 
     // Validators
 
-    function addValidator(address _validator, bool _increaseThreshold) external;
+    function addValidator(
+        address _validator,
+        bool _incrementThreshold
+    ) external;
 
     function removeValidator(
-        uint256 _index,
         address _validator,
-        bool _decreaseThreshold
+        bool _decrementThreshold
     ) external;
 
     function replaceValidator(
-        uint256 _index,
         address _oldValidator,
         address _newValidator
     ) external;
 
-    function setValidatorThreshold(uint256 _threshold) external;
+    function isValidator(address _validator) external view returns (bool);
 
     function getValidators() external view returns (address[] memory);
 
-    function isValidator(address _validator) external view returns (bool);
+    function setValidatorThreshold(uint256 _threshold) external;
 
     function getValidatorThreshold() external view returns (uint256);
 

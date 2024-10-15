@@ -4,6 +4,8 @@ pragma solidity 0.8.25;
 import "../library/ManagementLib.sol";
 import "./BridgeManagementStorageV1.sol";
 
+using EnumerableSet for EnumerableSet.AddressSet;
+
 /**
  * @dev This contract holds errors, modifiers, internal view functions and functions that directly modify the storage. The modification functions have logical checks but no access-checks. For example, registering a token should only be viable if there is no entry for that token already. However, checking if the msg.sender is allowed to do so should be handled in a higher-level contract (i.e., in this case the corresponding Impl contract).
  */
@@ -13,74 +15,54 @@ abstract contract BridgeManagementStorage is
 {
     address public constant GOV_ADMIN =
         0x1212000000000000000000000000000000000000;
+    uint256 private constant MIN_VALIDATOR_THRESHOLD = 2;
+    uint256 private constant MIN_NR_VALIDATORS = 2;
 
-    error InvalidAddress();
-    error IndexOutOfBounds();
-    error IndexValidatorMismatch(address _expected, address _provided);
-    error InvalidValidatorArray();
-    error InvalidValidatorThreshold();
-    error AlreadyMinimumOfValidators();
     error AlreadyValidator(address _validator);
+    error InvalidAddress();
     error NotValidator(address _validator);
+    error MinValidatorsLimitReached();
+    error ValidatorThresholdTooLow();
+    error ValidatorThresholdTooHigh();
 
     function _isValidator(address _validator) internal view returns (bool) {
-        return validatorMap[_validator];
+        return EnumerableSet.contains(validatorSet, _validator);
     }
 
-    function _addValidator(
-        address _validator,
-        bool increaseThreshold
-    ) internal {
+    function _addValidator(address _validator) internal {
         if (_validator == address(0)) revert InvalidAddress();
-        if (_isValidator(_validator)) revert AlreadyValidator(_validator);
-        if (increaseThreshold) {
-            validatorThreshold++;
-        }
-        validatorMap[_validator] = true;
-        validators.push(_validator);
+        bool isNew = EnumerableSet.add(validatorSet, _validator);
+        if (!isNew) revert AlreadyValidator(_validator);
     }
 
-    function _removeValidator(
-        uint256 _index,
-        address _validator,
-        bool decreaseThreshold
-    ) internal {
-        uint256 nrValidators = validators.length;
-        if (nrValidators <= 2) revert AlreadyMinimumOfValidators();
-        if (_index > nrValidators) revert IndexOutOfBounds();
-        if (!_isValidator(_validator)) revert NotValidator(_validator);
-        if (validators[_index] != _validator)
-            revert IndexValidatorMismatch(validators[_index], _validator);
-        if (decreaseThreshold) {
-            validatorThreshold--;
-        } else {
-            if (validatorThreshold == nrValidators) {
-                revert InvalidValidatorThreshold();
-            }
-        }
-        validatorMap[_validator] = false;
-        validators[_index] = validators[validators.length - 1];
-        validators.pop();
+    function _removeValidator(address _validator) internal {
+        if (_minimumValidatorsReached()) revert MinValidatorsLimitReached();
+        if (EnumerableSet.length(validatorSet) == validatorThreshold)
+            revert ValidatorThresholdTooHigh();
+        bool removed = EnumerableSet.remove(validatorSet, _validator);
+        if (!removed) revert NotValidator(_validator);
     }
 
-    function _replaceValidator(
-        uint256 _index,
-        address _oldValidator,
-        address _newValidator
-    ) internal {
-        if (_newValidator == address(0)) revert InvalidAddress();
-        if (!_isValidator(_oldValidator)) revert NotValidator(_oldValidator);
-        if (_isValidator(_newValidator)) revert AlreadyValidator(_newValidator);
-        if (validators[_index] != _oldValidator)
-            revert IndexValidatorMismatch(validators[_index], _oldValidator);
-        validatorMap[_oldValidator] = false;
-        validatorMap[_newValidator] = true;
-        validators[_index] = _newValidator;
+    function _minimumValidatorsReached() internal view returns (bool) {
+        return EnumerableSet.length(validatorSet) == MIN_NR_VALIDATORS;
+    }
+
+    function _incrementValidatorThreshold() internal {
+        if (EnumerableSet.length(validatorSet) == validatorThreshold)
+            revert ValidatorThresholdTooHigh();
+        validatorThreshold++;
+    }
+
+    function _decrementValidatorThreshold() internal {
+        if (validatorThreshold == MIN_VALIDATOR_THRESHOLD)
+            revert ValidatorThresholdTooLow();
+        validatorThreshold--;
     }
 
     function _setValidatorThreshold(uint256 _threshold) internal {
-        if (_threshold <= 1 || _threshold > validators.length)
-            revert InvalidValidatorThreshold();
+        if (_threshold <= 1) revert ValidatorThresholdTooLow();
+        if (_threshold > EnumerableSet.length(validatorSet))
+            revert ValidatorThresholdTooHigh();
         validatorThreshold = _threshold;
     }
 
