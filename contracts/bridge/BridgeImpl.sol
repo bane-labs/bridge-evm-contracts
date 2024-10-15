@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import "./BridgeStorage.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../interfaces/IBridge.sol";
 import "../interfaces/IGasBridge.sol";
 import "../interfaces/ITokenBridge.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "./BridgeStorage.sol";
 
 contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     /// @custom:oz-upgrades-unsafe-allow constructor
