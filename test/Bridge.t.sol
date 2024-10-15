@@ -2,25 +2,23 @@
 pragma solidity 0.8.25;
 
 import {Upgrades, Options} from "openzeppelin-foundry-upgrades/Upgrades.sol";
-import {BridgeMigrations} from "./migrations/BridgeMigrations.sol";
-import {TestBridge, BridgeImpl} from "../contracts/tests/TestBridge.sol";
 import {BridgeStorage, StorageTypes} from "../contracts/bridge/BridgeStorage.sol";
-import {BridgeImplV1ToV2} from "../contracts/bridge/BridgeImplV1ToV2.sol";
-import {TestBridgeV1ToV2} from "../contracts/tests/migrations/TestBridgeV1ToV2.sol";
-import {SigUtils} from "../contracts/tests/SigUtils.sol";
-import {TestBridgeManagement} from "../contracts/tests/TestBridgeManagement.sol";
 import {ITokenBridge} from "../contracts/interfaces/ITokenBridge.sol";
+import {SigUtils} from "../contracts/tests/SigUtils.sol";
+import {TestBridge, BridgeImpl} from "../contracts/tests/TestBridge.sol";
+import {TestBridgeManagement} from "../contracts/tests/TestBridgeManagement.sol";
 import {Test} from "../lib/forge-std/src/Test.sol";
 
 contract BridgeImplTest is Test, SigUtils {
-    TestBridgeV1ToV2 bridgeProxy;
+    TestBridge bridgeProxy;
     address bridgeProxyAddress;
 
     address neoXToken = address(0x6789);
     address neoN3Token = address(0x7892);
     StorageTypes.TokenConfig validConfig;
 
-    // set _management
+    // Managment
+    TestBridgeManagement managementProxy;
     address managementProxyAddress;
     SigUtils sigUtils;
     address public owner = 0xBcd4042DE499D14e55001CcbB24a551F3b954096;
@@ -62,13 +60,22 @@ contract BridgeImplTest is Test, SigUtils {
             ),
             opts
         );
+        managementProxy = TestBridgeManagement(payable(managementProxyAddress));
+        vm.prank(owner);
+        managementProxy.upgradeToV2();
+        // Validate that the bridge proxy has been successfully deployed and upgraded to V2.
+        assertEq(managementProxy.getCurrentInitializedVersion(), 2);
 
         // Deploy the bridge including upgrade steps to V2.
-        bridgeProxyAddress = BridgeMigrations.deployBridgeV1ToV2(
-            managementProxyAddress,
+        bridgeProxyAddress = Upgrades.deployUUPSProxy(
+            "TestBridge.sol",
+            abi.encodeCall(TestBridge.initialize, (managementProxyAddress)),
             opts
         );
-        bridgeProxy = TestBridgeV1ToV2(payable(bridgeProxyAddress));
+        bridgeProxy = TestBridge(payable(bridgeProxyAddress));
+        vm.prank(owner);
+        bridgeProxy.upgradeToV2(new BridgeImpl.TokenMigration[](0));
+
         // Validate that the bridge proxy has been successfully deployed and upgraded to V2.
         assertEq(bridgeProxy.getCurrentInitializedVersion(), 2);
 

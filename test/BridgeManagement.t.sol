@@ -43,7 +43,8 @@ contract BridgeManagementImplTest is Test, SigUtils {
         // The constructor only contains _disableInitializers() which is safe to bypass.
         Options memory opts;
         opts.unsafeAllow = "constructor";
-        // Deploy the bridge management implementation behind a UUPS proxy and initialize it with the provided parameters.
+
+        // Deploy the management behind a proxy and upgrade it to the latest implementation.
         managementProxyAddress = Upgrades.deployUUPSProxy(
             "TestBridgeManagement.sol",
             abi.encodeCall(
@@ -51,7 +52,7 @@ contract BridgeManagementImplTest is Test, SigUtils {
                 (
                     owner,
                     relayer,
-                    5,
+                    validatorThreshold,
                     validatorsAddresses,
                     governor,
                     securityGuard,
@@ -60,13 +61,15 @@ contract BridgeManagementImplTest is Test, SigUtils {
             ),
             opts
         );
-        managementProxy = TestBridgeManagement(payable(managementProxyAddress));
+        managementProxy = TestBridgeManagement(managementProxyAddress);
+        vm.prank(owner);
+        managementProxy.upgradeToV2();
+        // Validate that the management proxy has been successfully deployed and upgraded to V2.abi
+        assertEq(managementProxy.getCurrentInitializedVersion(), 2);
     }
 
     function testSetOwner() public {
         assertEq(managementProxy.owner(), owner);
-        // vm.expectRevert("not owner");
-        // vm.expectRevert(bytes("not owner"));
         vm.prank(funder);
         vm.expectRevert(
             abi.encodeWithSelector(
