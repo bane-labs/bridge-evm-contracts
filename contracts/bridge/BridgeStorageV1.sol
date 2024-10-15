@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "../interfaces/IBridgeManagement.sol";
 import "../library/StorageTypes.sol";
-import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
 /**
  * @title BridgeStorageV1
@@ -33,4 +33,7 @@ abstract contract BridgeStorageV1 is ReentrancyGuardUpgradeable {
         public tokenClaimables;
     // Slots 105-113 (9 slots)
     StorageTypes.GasBridge public gasBridge;
+
+    // Slot 114
+    address[] public registeredTokens;
 }

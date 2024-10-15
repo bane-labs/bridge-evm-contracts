@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import "./BridgeStorage.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../interfaces/IBridge.sol";
 import "../interfaces/IGasBridge.sol";
 import "../interfaces/ITokenBridge.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "./BridgeStorage.sol";
 
 contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -277,6 +277,16 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
             revert InvalidTokenConfig();
         _registerToken(_neoXToken, _tokenConfig);
         emit TokenRegister(_neoXToken, _tokenConfig);
+    }
+
+    /**
+     * @notice Check if a token is registered on the bridge.
+     * @param _neoXToken the address of the token on the Neo X network.
+     */
+    function isRegisteredToken(
+        address _neoXToken
+    ) external view override returns (bool) {
+        return _isRegisteredToken(_neoXToken);
     }
 
     /**
@@ -636,28 +646,9 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
 
     // Migration functionality v.1.0.0 to v.2.0.0
 
-    struct TokenMigration {
-        address token;
-        uint256 decimalScalingFactor;
-    }
-
     function upgradeToV2(
         TokenMigration[] calldata _tokenBridgeMigrations
     ) external virtual reinitializer(2) onlyAdmin {
         _upgradeToV2(_tokenBridgeMigrations);
-    }
-
-    function _upgradeToV2(
-        TokenMigration[] calldata _tokenBridgeMigrations
-    ) internal onlyInitializing {
-        for (uint256 i = 0; i < _tokenBridgeMigrations.length; i++) {
-            TokenMigration memory migration = _tokenBridgeMigrations[i];
-            if (!_isRegisteredToken(migration.token))
-                revert("Token not registered");
-            StorageTypes.TokenConfig storage config = tokenBridges[
-                migration.token
-            ].config;
-            config.decimalScalingFactor = migration.decimalScalingFactor;
-        }
     }
 }

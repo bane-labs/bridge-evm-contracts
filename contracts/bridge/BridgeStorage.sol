@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "../interfaces/IBridgeManagement.sol";
 import "../library/BridgeLib.sol";
-import "../library/GasBridgeLib.sol";
 import "../library/StorageTypes.sol";
+import "../library/GasBridgeLib.sol";
 import "../library/TokenBridgeLib.sol";
 import "./BridgeStorageV1.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /**
  * @dev This contract holds errors, modifiers, internal view functions and functions that directly modify the storage. The modification functions have logical checks but no access-checks. For example, registering a token should only be viable if there is no entry for that token already. However, checking if the msg.sender is allowed to do so should be handled in a higher-level contract (i.e., in this case the corresponding Impl contract).
@@ -251,6 +251,7 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
             withdrawalState: StorageTypes.State({nonce: 0, root: 0x0}),
             config: _tokenConfig
         });
+        registeredTokens.push(_neoXToken);
     }
 
     function _isRegisteredToken(
@@ -377,4 +378,30 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     function _authorizeUpgrade(
         address newImplementation
     ) internal virtual override onlyAdmin {}
+
+    // Migration Logic for v1 to v2
+
+    struct TokenMigration {
+        address token;
+        uint256 decimalScalingFactor;
+    }
+
+    // This functionality should be on the lowest level of the inheritance hierarchy. However, since it needs external inputs, it requires a functionality that is not available in the BridgeStorageV1 contract.
+    function _upgradeToV2(
+        TokenMigration[] calldata _tokenBridgeMigrations
+    ) internal onlyInitializing {
+        for (uint256 i = 0; i < _tokenBridgeMigrations.length; i++) {
+            TokenMigration memory migration = _tokenBridgeMigrations[i];
+            if (!_isRegisteredToken(migration.token))
+                revert("Token not registered");
+            // Add token to registered tokens
+            registeredTokens.push(migration.token);
+
+            // Update the token bridge's config
+            StorageTypes.TokenConfig storage config = tokenBridges[
+                migration.token
+            ].config;
+            config.decimalScalingFactor = migration.decimalScalingFactor;
+        }
+    }
 }
