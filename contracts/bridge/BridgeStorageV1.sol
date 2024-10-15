@@ -33,4 +33,7 @@ abstract contract BridgeStorageV1 is ReentrancyGuardUpgradeable {
         public tokenClaimables;
     // Slots 105-113 (9 slots)
     StorageTypes.GasBridge public gasBridge;
+
+    // Slot 114
+    address[] public registeredTokens;
 }
