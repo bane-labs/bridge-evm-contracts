@@ -20,7 +20,8 @@ export async function deployBridgeManagement(deployer: Wallet): Promise<TestBrid
     const managementProxy = await upgrades.deployProxy(ManagementFactory, [owner.address, relayer.address, 2, [validator01.address, validator02.address], governor.address, securityGuard.address, funder.address], { kind: "uups", unsafeAllow: ["constructor"], txOverrides: { maxFeePerGas: MAX_FEE_PER_GAS, maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS } });
     await managementProxy.waitForDeployment();
     const management = await ethers.getContractAt("TestBridgeManagement", await managementProxy.getAddress());
-    await management.connect(owner).upgradeToV2();
+    const upgradeTx = await management.connect(owner).upgradeToV2({ maxFeePerGas: MAX_FEE_PER_GAS, maxPriorityFeePerGas: MAX_FEE_PER_GAS });
+    await upgradeTx.wait();
 
     console.log("\n# Deployment");
     console.log("Management Proxy Address: ", await management.getAddress());

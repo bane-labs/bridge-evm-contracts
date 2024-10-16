@@ -14,7 +14,8 @@ export async function deployBridge(managementAddress: string, deployer: Wallet, 
     const bridgeProxy = await upgrades.deployProxy(BridgeFactory, [managementAddress], { kind: "uups", unsafeAllow: ["constructor"], txOverrides: { maxFeePerGas: MAX_FEE_PER_GAS, maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS } });
     await bridgeProxy.waitForDeployment();
     const bridge = await ethers.getContractAt("TestBridge", await bridgeProxy.getAddress());
-    await bridge.connect(owner).upgradeToV2([]);
+    const upgradeTx = await bridge.connect(owner).upgradeToV2([], { maxFeePerGas: MAX_FEE_PER_GAS, maxPriorityFeePerGas: MAX_FEE_PER_GAS });
+    await upgradeTx.wait();
 
     console.log("\n# Deployment");
     console.log("Bridge Proxy Address:     ", await bridge.getAddress());
