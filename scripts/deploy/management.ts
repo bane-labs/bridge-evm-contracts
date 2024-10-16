@@ -2,6 +2,7 @@ import { ethers, upgrades } from "hardhat";
 import { Wallet } from "ethers";
 import { TestBridgeManagement } from "../../typechain-types/contracts/tests";
 import { MAX_FEE_PER_GAS, MAX_PRIORITY_FEE_PER_GAS } from "../utils/constants";
+import { fundIfLocalNetwork } from "../utils/network";
 import { getOwner, getRelayer, getValidator01, getValdiator02 } from "../utils/wallet";
 
 // IMPORTANT: This script deploys the TestBridgeManagement contract, which is a test contract that is not meant to be used in production.
@@ -13,11 +14,13 @@ export async function deployBridgeManagement(deployer: Wallet): Promise<TestBrid
     const governor = owner;
     const securityGuard = owner;
     const funder = owner;
+    await fundIfLocalNetwork([deployer.address, owner.address]);
     // Deploy the management contract behind a proxy
     const ManagementFactory = (await ethers.getContractFactory("TestBridgeManagement")).connect(deployer);
     const managementProxy = await upgrades.deployProxy(ManagementFactory, [owner.address, relayer.address, 2, [validator01.address, validator02.address], governor.address, securityGuard.address, funder.address], { kind: "uups", unsafeAllow: ["constructor"], txOverrides: { maxFeePerGas: MAX_FEE_PER_GAS, maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS } });
     await managementProxy.waitForDeployment();
     const management = await ethers.getContractAt("TestBridgeManagement", await managementProxy.getAddress());
+    await management.connect(owner).upgradeToV2();
 
     console.log("\n# Deployment");
     console.log("Management Proxy Address: ", await management.getAddress());
