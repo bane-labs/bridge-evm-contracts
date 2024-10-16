@@ -6,6 +6,7 @@ import { fundIfLocalNetwork, printNetworkConfiguration } from "../utils/network"
 import { getDeployer } from "../utils/wallet";
 import { deployBridgeManagement } from "./management";
 
+// IMPORTANT: This script deploys the TestBridge contract, which is a test contract that is not meant to be used in production.
 export async function deployBridge(managementAddress: string, deployer: Wallet): Promise<TestBridge> {
     // Deploy the bridge contract behind a proxy
     const BridgeFactory = (await ethers.getContractFactory("TestBridge")).connect(deployer);
@@ -14,7 +15,7 @@ export async function deployBridge(managementAddress: string, deployer: Wallet):
     const maxAmount = ethers.parseEther("10000");
     const bridgeProxy = await upgrades.deployProxy(BridgeFactory, [managementAddress, fee, minAmount, maxAmount, 100], { kind: "uups", unsafeAllow: ["constructor"], txOverrides: { maxFeePerGas: MAX_FEE_PER_GAS, maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS } });
     await bridgeProxy.waitForDeployment();
-    const bridge = bridgeProxy as TestBridge;
+    const bridge = await ethers.getContractAt("TestBridge", await bridgeProxy.getAddress());
 
     console.log("\n# Deployment");
     console.log("Bridge Proxy Address:     ", await bridge.getAddress());
