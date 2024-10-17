@@ -110,6 +110,7 @@ library TokenBridgeLib {
             _config.fee > 0 &&
             _config.minAmount > 0 &&
             _config.maxAmount > _config.minAmount &&
-            _config.maxDeposits > 0;
+            _config.maxDeposits > 0 &&
+            _config.decimalScalingFactor >= 0;
     }
 }
