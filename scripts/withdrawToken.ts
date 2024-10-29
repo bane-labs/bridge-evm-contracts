@@ -34,7 +34,7 @@ async function main() {
     const withdrawTx = await bridge.connect(sender).withdrawToken(tokenAddress, n3Recipient, amount, { value: tokenConfig.fee, maxFeePerGas: MAX_FEE_PER_GAS, maxPriorityFeePerGas: MAX_FEE_PER_GAS });
 
     const receipt = await withdrawTx.wait();
-    console.log("Withdraw Gas Transaction: ", receipt?.hash);
+    console.log("Withdraw Token Transaction: ", receipt?.hash);
 }
 
 main().catch((error) => {

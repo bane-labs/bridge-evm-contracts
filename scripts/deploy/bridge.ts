@@ -3,18 +3,19 @@ import { Wallet } from "ethers";
 import { TestBridge } from "../../typechain-types/contracts/tests";
 import { printFeeConfiguration, MAX_FEE_PER_GAS, MAX_PRIORITY_FEE_PER_GAS } from "../utils/constants";
 import { fundIfLocalNetwork, printNetworkConfiguration } from "../utils/network";
-import { getDeployer } from "../utils/wallet";
+import { getDeployer, getOwner } from "../utils/wallet";
 import { deployBridgeManagement } from "./management";
 
-export async function deployBridge(managementAddress: string, deployer: Wallet): Promise<TestBridge> {
+// IMPORTANT: This script deploys the TestBridge contract, which is a test contract that is not meant to be used in production.
+export async function deployBridge(managementAddress: string, deployer: Wallet, owner: Wallet): Promise<TestBridge> {
+    await fundIfLocalNetwork([deployer.address, owner.address]);
     // Deploy the bridge contract behind a proxy
     const BridgeFactory = (await ethers.getContractFactory("TestBridge")).connect(deployer);
-    const fee = ethers.parseEther("0.1");
-    const minAmount = ethers.parseEther("1");
-    const maxAmount = ethers.parseEther("10000");
-    const bridgeProxy = await upgrades.deployProxy(BridgeFactory, [managementAddress, fee, minAmount, maxAmount, 100], { kind: "uups", unsafeAllow: ["constructor"], txOverrides: { maxFeePerGas: MAX_FEE_PER_GAS, maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS } });
+    const bridgeProxy = await upgrades.deployProxy(BridgeFactory, [managementAddress], { kind: "uups", unsafeAllow: ["constructor"], txOverrides: { maxFeePerGas: MAX_FEE_PER_GAS, maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS } });
     await bridgeProxy.waitForDeployment();
-    const bridge = bridgeProxy as TestBridge;
+    const bridge = await ethers.getContractAt("TestBridge", await bridgeProxy.getAddress());
+    const upgradeTx = await bridge.connect(owner).upgradeToV2([], { maxFeePerGas: MAX_FEE_PER_GAS, maxPriorityFeePerGas: MAX_FEE_PER_GAS });
+    await upgradeTx.wait();
 
     console.log("\n# Deployment");
     console.log("Bridge Proxy Address:     ", await bridge.getAddress());
@@ -40,8 +41,8 @@ export async function deployBridgeContracts(): Promise<TestBridge> {
     console.log("Max Fee Per Gas (gasTipCap):         ", ethers.formatUnits(MAX_FEE_PER_GAS, "gwei"), "gwei");
 
     const deployer = getDeployer(ethers.provider);
-    await fundIfLocalNetwork([deployer.address]);
+    const owner = getOwner(ethers.provider);
     const management = await deployBridgeManagement(deployer);
-    const bridge = await deployBridge(await management.getAddress(), deployer);
+    const bridge = await deployBridge(await management.getAddress(), deployer, owner);
     return bridge;
 }
