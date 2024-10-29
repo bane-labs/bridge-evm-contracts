@@ -111,6 +111,10 @@ library TokenBridgeLib {
             _config.minAmount > 0 &&
             _config.maxAmount > _config.minAmount &&
             _config.maxDeposits > 0 &&
-            _config.decimalScalingFactor >= 0;
+            _config.decimalScalingFactor >= 0 &&
+            _config.decimalScalingFactor <= MAX_DECIMAL_DIFFERENCE;
     }
+
+    // The maximum difference in decimal precision between the two tokens on both chains. The bridge contract on N3 enforces a maximum transfer amount of 10^41. Together with this value, the maximum amount that can be used in a transfer is 10^77, protecting from any potential overflow.
+    uint256 constant MAX_DECIMAL_DIFFERENCE = 36;
 }
