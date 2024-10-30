@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import "../lib/forge-std/src/Test.sol";
-import {TestBridge, BridgeImpl} from "../contracts/tests/TestBridge.sol";
-import "../contracts/bridge/BridgeStorage.sol";
-import "../contracts/management/BridgeManagementImpl.sol";
-import "../contracts/tests/SigUtils.sol";
-import {ITokenBridge} from "../contracts/interfaces/ITokenBridge.sol";
 import {Upgrades, Options} from "openzeppelin-foundry-upgrades/Upgrades.sol";
+import {BridgeStorage, StorageTypes} from "../contracts/bridge/BridgeStorage.sol";
+import {ITokenBridge} from "../contracts/interfaces/ITokenBridge.sol";
+import {SigUtils} from "../contracts/tests/SigUtils.sol";
+import {TestBridge, BridgeImpl} from "../contracts/tests/TestBridge.sol";
+import {TestBridgeManagement} from "../contracts/tests/TestBridgeManagement.sol";
+import {Test} from "../lib/forge-std/src/Test.sol";
 
 contract BridgeImplTest is Test, SigUtils {
     TestBridge bridgeProxy;
@@ -17,7 +17,8 @@ contract BridgeImplTest is Test, SigUtils {
     address neoN3Token = address(0x7892);
     StorageTypes.TokenConfig validConfig;
 
-    // set _management
+    // Managment
+    TestBridgeManagement managementProxy;
     address managementProxyAddress;
     SigUtils sigUtils;
     address public owner = 0xBcd4042DE499D14e55001CcbB24a551F3b954096;
@@ -44,9 +45,9 @@ contract BridgeImplTest is Test, SigUtils {
         opts.unsafeAllow = "constructor";
         // Deploy the bridge management implementation behind a UUPS proxy and initialize it with the provided parameters.
         managementProxyAddress = Upgrades.deployUUPSProxy(
-            "BridgeManagementImpl.sol",
+            "TestBridgeManagement.sol",
             abi.encodeCall(
-                BridgeManagementImpl.initialize,
+                TestBridgeManagement.initialize,
                 (
                     owner,
                     relayer,
@@ -59,17 +60,24 @@ contract BridgeImplTest is Test, SigUtils {
             ),
             opts
         );
+        managementProxy = TestBridgeManagement(payable(managementProxyAddress));
+        vm.prank(owner);
+        managementProxy.upgradeToV2();
+        // Validate that the bridge proxy has been successfully deployed and upgraded to V2.
+        assertEq(managementProxy.getCurrentInitializedVersion(), 2);
 
-        // Deploy the bridge implementation behind a UUPS proxy and initialize it with the provided parameters.
+        // Deploy the bridge including upgrade steps to V2.
         bridgeProxyAddress = Upgrades.deployUUPSProxy(
             "TestBridge.sol",
-            abi.encodeCall(
-                BridgeImpl.initialize,
-                (managementProxyAddress, 1e17, 1e18, 1e22, 100)
-            ),
+            abi.encodeCall(TestBridge.initialize, (managementProxyAddress)),
             opts
         );
         bridgeProxy = TestBridge(payable(bridgeProxyAddress));
+        vm.prank(owner);
+        bridgeProxy.upgradeToV2(new BridgeImpl.TokenMigration[](0));
+
+        // Validate that the bridge proxy has been successfully deployed and upgraded to V2.
+        assertEq(bridgeProxy.getCurrentInitializedVersion(), 2);
 
         validConfig = StorageTypes.TokenConfig({
             neoN3Token: neoN3Token,
@@ -77,7 +85,7 @@ contract BridgeImplTest is Test, SigUtils {
             minAmount: 100,
             maxAmount: 1000,
             maxDeposits: 10,
-            executionType: StorageTypes.ExecutionType.NEO
+            decimalScalingFactor: 18
         });
     }
 
@@ -120,7 +128,7 @@ contract BridgeImplTest is Test, SigUtils {
                 minAmount: 1000,
                 maxAmount: 100,
                 maxDeposits: 10,
-                executionType: StorageTypes.ExecutionType.NEO
+                decimalScalingFactor: 18
             });
         bridgeProxy.registerToken(neoXToken, invalidConfig);
     }
@@ -136,7 +144,7 @@ contract BridgeImplTest is Test, SigUtils {
                 minAmount: 1,
                 maxAmount: 10000,
                 maxDeposits: 10,
-                executionType: StorageTypes.ExecutionType.NEO
+                decimalScalingFactor: 18
             });
         bridgeProxy.registerToken(neoXToken, invalidConfig);
     }
@@ -152,7 +160,7 @@ contract BridgeImplTest is Test, SigUtils {
                 minAmount: 0,
                 maxAmount: 100,
                 maxDeposits: 10,
-                executionType: StorageTypes.ExecutionType.NEO
+                decimalScalingFactor: 18
             });
         bridgeProxy.registerToken(neoXToken, invalidConfig);
     }
@@ -160,7 +168,7 @@ contract BridgeImplTest is Test, SigUtils {
     // test case: register token bridge, with an invalid neoN3Token:0 address
     function test_RegisterTokenWithInvalidNeoN3TokenAddress() public {
         vm.prank(governor);
-        vm.expectRevert(BridgeStorage.InvalidAddress.selector);
+        vm.expectRevert(BridgeStorage.InvalidTokenConfig.selector);
         StorageTypes.TokenConfig memory invalidConfig = StorageTypes
             .TokenConfig({
                 neoN3Token: address(0),
@@ -168,7 +176,7 @@ contract BridgeImplTest is Test, SigUtils {
                 minAmount: 100,
                 maxAmount: 1000,
                 maxDeposits: 10,
-                executionType: StorageTypes.ExecutionType.NEO
+                decimalScalingFactor: 18
             });
         bridgeProxy.registerToken(neoXToken, invalidConfig);
     }
@@ -199,7 +207,7 @@ contract BridgeImplTest is Test, SigUtils {
         vm.prank(governor);
         bridgeProxy.registerToken(neoXToken, validConfig);
         bool tokenBridgePaused = bridgeProxy.getTokenbridgePaused(neoXToken);
-        // Ensure the token bridge is unpaused
+        // Ensure the token bridge is not paused
         assertFalse(tokenBridgePaused);
 
         // check pause token successful event
@@ -254,7 +262,7 @@ contract BridgeImplTest is Test, SigUtils {
         // Attempt to pause the token bridge by a non-security guard
         address nonSecurityGuard = address(0x654);
         vm.prank(nonSecurityGuard);
-        vm.expectRevert("not securityGuard");
+        vm.expectRevert(BridgeStorage.NoAuthorization.selector);
         bridgeProxy.pauseTokenBridge(neoXToken);
     }
 
@@ -263,7 +271,7 @@ contract BridgeImplTest is Test, SigUtils {
         vm.prank(governor);
         bridgeProxy.registerToken(neoXToken, validConfig);
         bool tokenBridgePaused = bridgeProxy.getTokenbridgePaused(neoXToken);
-        // Ensure the token bridge is unpaused
+        // Ensure the token bridge is not paused
         assertFalse(tokenBridgePaused);
 
         // Pause the token bridge
@@ -296,13 +304,13 @@ contract BridgeImplTest is Test, SigUtils {
         vm.prank(governor);
         bridgeProxy.registerToken(neoXToken, validConfig);
         bool tokenBridgePaused = bridgeProxy.getTokenbridgePaused(neoXToken);
-        // Ensure the token bridge is unpaused
+        // Ensure the token bridge is not paused
         assertFalse(tokenBridgePaused);
 
         // Attempt to unpause the token bridge
         vm.prank(governor);
         vm.expectRevert(
-            abi.encodeWithSignature("TokenBridgeUnpaused(address)", neoXToken)
+            abi.encodeWithSignature("TokenBridgeNotPaused(address)", neoXToken)
         );
         bridgeProxy.unpauseTokenBridge(neoXToken);
     }

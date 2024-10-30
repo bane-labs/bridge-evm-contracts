@@ -1,29 +1,28 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "../interfaces/IBridgeManagement.sol";
 import "../library/BridgeLib.sol";
-import "../library/GasBridgeLib.sol";
 import "../library/StorageTypes.sol";
+import "../library/GasBridgeLib.sol";
 import "../library/TokenBridgeLib.sol";
 import "./BridgeStorageV1.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /**
  * @dev This contract holds errors, modifiers, internal view functions and functions that directly modify the storage. The modification functions have logical checks but no access-checks. For example, registering a token should only be viable if there is no entry for that token already. However, checking if the msg.sender is allowed to do so should be handled in a higher-level contract (i.e., in this case the corresponding Impl contract).
  */
 abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
-    address public constant SELF = 0x1212100000000000000000000000000000000004;
     address public constant GOV_ADMIN =
         0x1212000000000000000000000000000000000000;
 
     error AmountBelowMinAmount(uint256 minAmount, uint256 provided);
     error AmountExceedsMaxAmount(uint256 maxAmount, uint256 provided);
     error BridgePaused();
-    error BridgeUnpaused();
+    error BridgeNotPaused();
     error ExactFeeRequired(uint256 feeExpected, uint256 feeProvided);
     error GasBridgePaused();
-    error GasBridgeUnpaused();
+    error GasBridgeNotPaused();
     error InsufficientFee(uint256 minExpected, uint256 provided);
     error InvalidAddress();
     error InvalidAmount();
@@ -38,12 +37,15 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     error InvalidValue();
     error LengthMismatch();
     error MaxFeeExceeded(uint256 maxFeeAllowed, uint256 actualFee);
+    error NoAuthorization();
     error NonexistentClaimable();
     error TokenBridgeAlreadyRegistered(address neoXToken);
     error TokenBridgePaused(address neoXToken);
-    error TokenBridgeUnpaused(address neoXToken);
+    error TokenBridgeNotPaused(address neoXToken);
     error TokenBridgeNotRegistered(address neoXToken);
     error TransferFailed();
+    error WithdrawalsPaused();
+    error WithdrawalsNotPaused();
 
     // Modifiers for Role Restriction
 
@@ -57,11 +59,11 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         _;
     }
 
-    modifier onlySecurityGuard() {
-        require(
-            msg.sender == management.getSecurityGuard(),
-            "not securityGuard"
-        );
+    modifier onlyGovernorOrSecurityGuard() {
+        if (
+            msg.sender != management.getGovernor() &&
+            msg.sender != management.getSecurityGuard()
+        ) revert NoAuthorization();
         _;
     }
 
@@ -70,23 +72,33 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         _;
     }
 
-    modifier onlyBridgeUnpaused() {
+    modifier whenBridgeNotPaused() {
         if (bridgePaused) revert BridgePaused();
         _;
     }
 
-    modifier onlyBridgePaused() {
-        if (!bridgePaused) revert BridgeUnpaused();
+    modifier whenBridgePaused() {
+        if (!bridgePaused) revert BridgeNotPaused();
         _;
     }
 
-    modifier onlyGasBridgeUnpaused() {
+    modifier whenWithdrawalsPaused() {
+        if (!withdrawalsPaused) revert WithdrawalsNotPaused();
+        _;
+    }
+
+    modifier whenWithdrawalsNotPaused() {
+        if (withdrawalsPaused) revert WithdrawalsPaused();
+        _;
+    }
+
+    modifier whenGasBridgeNotPaused() {
         if (gasBridge.paused) revert GasBridgePaused();
         _;
     }
 
-    modifier onlyGasBridgePaused() {
-        if (!gasBridge.paused) revert GasBridgeUnpaused();
+    modifier whenGasBridgePaused() {
+        if (!gasBridge.paused) revert GasBridgeNotPaused();
         _;
     }
 
@@ -96,15 +108,15 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         _;
     }
 
-    modifier onlyTokenBridgeUnpaused(address _neoXToken) {
+    modifier whenTokenBridgeNotPaused(address _neoXToken) {
         if (tokenBridges[_neoXToken].paused)
             revert TokenBridgePaused(_neoXToken);
         _;
     }
 
-    modifier onlyTokenBridgePaused(address _neoXToken) {
+    modifier whenTokenBridgePaused(address _neoXToken) {
         if (!tokenBridges[_neoXToken].paused)
-            revert TokenBridgeUnpaused(_neoXToken);
+            revert TokenBridgeNotPaused(_neoXToken);
         _;
     }
 
@@ -116,6 +128,14 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
 
     function _unpauseBridge() internal {
         bridgePaused = false;
+    }
+
+    function _pauseWithdrawals() internal {
+        withdrawalsPaused = true;
+    }
+
+    function _unpauseWithdrawals() internal {
+        withdrawalsPaused = false;
     }
 
     // Unclaimed Rewards functions
@@ -223,8 +243,6 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         // Check if token bridge is already registered
         if (_isRegisteredToken(_neoXToken))
             revert TokenBridgeAlreadyRegistered(_neoXToken);
-        if (!TokenBridgeLib._isValidConfig(_tokenConfig))
-            revert InvalidTokenConfig();
 
         // Add token bridge to storage
         tokenBridges[_neoXToken] = StorageTypes.TokenBridge({
@@ -233,6 +251,7 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
             withdrawalState: StorageTypes.State({nonce: 0, root: 0x0}),
             config: _tokenConfig
         });
+        registeredTokens.push(_neoXToken);
     }
 
     function _isRegisteredToken(
@@ -293,12 +312,6 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         address _neoXToken
     ) internal view returns (StorageTypes.TokenConfig memory config) {
         return tokenBridges[_neoXToken].config;
-    }
-
-    function _getExecutionType(
-        address _neoXToken
-    ) internal view returns (StorageTypes.ExecutionType) {
-        return tokenBridges[_neoXToken].config.executionType;
     }
 
     function _getTokenDepositState(
@@ -366,36 +379,29 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         address newImplementation
     ) internal virtual override onlyAdmin {}
 
-    // UUPSUpgradeable-specific functions required for precompiled version.
+    // Migration Logic for v1 to v2
 
-    /**
-     * @dev Reverts if the execution is not performed via delegatecall or the execution
-     * context is not of a proxy with an ERC-1967 compliant implementation pointing to self.
-     * See the modifier {onlyProxy} in UUPSUpgradeable.sol.
-     *
-     * Only for precompiled uups implementation in genesis file, need to be removed when upgrading the contract.
-     * This override is added because "immutable __self" in UUPSUpgradeable is not avaliable in precompiled contract.
-     */
-    function _checkProxy() internal view virtual override {
-        if (
-            address(this) == SELF || // Must be called through delegatecall
-            ERC1967Utils.getImplementation() != SELF // Must be called through an active proxy
-        ) {
-            revert UUPSUnauthorizedCallContext();
-        }
+    struct TokenMigration {
+        address token;
+        uint256 decimalScalingFactor;
     }
 
-    /**
-     * @dev Reverts if the execution is performed via delegatecall.
-     * See the modifier {notDelegated} in UUPSUpgradeable.sol.
-     *
-     * Only for precompiled uups implementation in genesis file, need to be removed when upgrading the contract.
-     * This override is added because "immutable __self" in UUPSUpgradeable is not avaliable in precompiled contract.
-     */
-    function _checkNotDelegated() internal view virtual override {
-        if (address(this) != SELF) {
-            // Must not be called through delegatecall
-            revert UUPSUnauthorizedCallContext();
+    // This functionality should be on the lowest level of the inheritance hierarchy. However, since it needs external inputs, it requires a functionality that is not available in the BridgeStorageV1 contract.
+    function _upgradeToV2(
+        TokenMigration[] calldata _tokenBridgeMigrations
+    ) internal onlyInitializing {
+        for (uint256 i = 0; i < _tokenBridgeMigrations.length; i++) {
+            TokenMigration memory migration = _tokenBridgeMigrations[i];
+            if (!_isRegisteredToken(migration.token))
+                revert("Token not registered");
+            // Add token to registered tokens
+            registeredTokens.push(migration.token);
+
+            // Update the token bridge's config
+            StorageTypes.TokenConfig storage config = tokenBridges[
+                migration.token
+            ].config;
+            config.decimalScalingFactor = migration.decimalScalingFactor;
         }
     }
 }

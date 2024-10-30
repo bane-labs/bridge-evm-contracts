@@ -1,36 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import "./BridgeStorage.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../interfaces/IBridge.sol";
 import "../interfaces/IGasBridge.sol";
 import "../interfaces/ITokenBridge.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "./BridgeStorage.sol";
 
 contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
-    function initialize(
-        address _management,
-        uint256 _fee,
-        uint256 _minAmount,
-        uint256 _maxAmount,
-        uint256 _maxDeposits
-    ) public initializer {
-        __ReentrancyGuard_init();
-        management = IBridgeManagement(_management);
-        gasBridge = StorageTypes.GasBridge({
-            paused: false,
-            depositState: StorageTypes.State({nonce: 0, root: 0x0}),
-            withdrawalState: StorageTypes.State({nonce: 0, root: 0x0}),
-            config: StorageTypes.GasConfig({
-                fee: _fee,
-                minAmount: _minAmount,
-                maxAmount: _maxAmount,
-                maxDeposits: _maxDeposits
-            })
-        });
-    }
-
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -42,14 +20,34 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
 
     // Contract Pausing
 
-    function pauseBridge() external onlySecurityGuard onlyBridgeUnpaused {
+    /**
+     * @notice Pauses the bridge. No deposits or withdrawals can be made while the bridge is paused. This feature is useful to halt any interaction with the contract besides governor actions, such as updating parameters or registering new token bridges, or contract updates.
+     */
+    function pauseBridge()
+        external
+        onlyGovernorOrSecurityGuard
+        whenBridgeNotPaused
+    {
         _pauseBridge();
         emit BridgePause();
     }
 
-    function unpauseBridge() external onlyGovernor onlyBridgePaused {
+    function unpauseBridge() external onlyGovernor whenBridgePaused {
         _unpauseBridge();
         emit BridgeUnpause();
+    }
+
+    /**
+     * @notice Pauses withdrawals. No withdrawals can be made while withdrawals are paused. This feature is useful in the case of a planned contract update that involves a change in the computation of the hash chain roots. By pausing the deposits, there will be no new deposits and the relayer can be given time to catch-up with relaying everything that is currently in progress (i.e., the relayer can still use the withdrawal functions) before the bridge is completely paused (i.e., with {@link #pauseBridge()}) and the contract is updated.
+     */
+    function pauseWithdrawals() external onlyGovernor whenWithdrawalsNotPaused {
+        _pauseWithdrawals();
+        emit WithdrawalPause();
+    }
+
+    function unpauseWithdrawals() external onlyGovernor whenWithdrawalsPaused {
+        _unpauseWithdrawals();
+        emit WithdrawalUnpause();
     }
 
     // IGasBridge Implementation
@@ -57,8 +55,8 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     function pauseGasBridge()
         external
         override
-        onlySecurityGuard
-        onlyGasBridgeUnpaused
+        onlyGovernorOrSecurityGuard
+        whenGasBridgeNotPaused
     {
         _pauseGasBridge();
         emit GasBridgePause();
@@ -68,7 +66,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         external
         override
         onlyGovernor
-        onlyGasBridgePaused
+        whenGasBridgePaused
     {
         _unpauseGasBridge();
         emit GasBridgeUnpause();
@@ -94,8 +92,8 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     )
         external
         onlyRelayer
-        onlyBridgeUnpaused
-        onlyGasBridgeUnpaused
+        whenBridgeNotPaused
+        whenGasBridgeNotPaused
         nonReentrant
     {
         StorageTypes.State memory state = _getGasBridgeDepositState();
@@ -170,7 +168,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
      */
     function claimGas(
         uint256 _nonce
-    ) external onlyBridgeUnpaused onlyGasBridgeUnpaused nonReentrant {
+    ) external whenBridgeNotPaused whenGasBridgeNotPaused nonReentrant {
         StorageTypes.Claimable memory claimable = _getGasClaimable(_nonce);
         uint256 amount = claimable.amount;
         address to = claimable.to;
@@ -193,7 +191,13 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     function withdrawGas(
         address _to,
         uint256 _maxFee
-    ) external payable onlyBridgeUnpaused onlyGasBridgeUnpaused {
+    )
+        external
+        payable
+        whenBridgeNotPaused
+        whenWithdrawalsNotPaused
+        whenGasBridgeNotPaused
+    {
         if (_to == address(0)) revert InvalidAddress();
         StorageTypes.GasConfig memory config = _getGasBridgeConfig();
         uint256 fee = config.fee;
@@ -269,10 +273,20 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         StorageTypes.TokenConfig calldata _tokenConfig
     ) external override onlyGovernor {
         if (_neoXToken == address(0)) revert InvalidTokenAddress();
-        if (_tokenConfig.neoN3Token == address(0)) revert InvalidAddress();
-
+        if (!TokenBridgeLib._isValidConfig(_tokenConfig))
+            revert InvalidTokenConfig();
         _registerToken(_neoXToken, _tokenConfig);
         emit TokenRegister(_neoXToken, _tokenConfig);
+    }
+
+    /**
+     * @notice Check if a token is registered on the bridge.
+     * @param _neoXToken the address of the token on the Neo X network.
+     */
+    function isRegisteredToken(
+        address _neoXToken
+    ) external view override returns (bool) {
+        return _isRegisteredToken(_neoXToken);
     }
 
     /**
@@ -284,9 +298,9 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     )
         external
         override
-        onlySecurityGuard
+        onlyGovernorOrSecurityGuard
         onlyIfTokenRegistered(_neoXToken)
-        onlyTokenBridgeUnpaused(_neoXToken)
+        whenTokenBridgeNotPaused(_neoXToken)
     {
         _pauseToken(_neoXToken);
         emit TokenBridgePause(_neoXToken, _getNeoN3Token(_neoXToken));
@@ -303,7 +317,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         override
         onlyGovernor
         onlyIfTokenRegistered(_neoXToken)
-        onlyTokenBridgePaused(_neoXToken)
+        whenTokenBridgePaused(_neoXToken)
     {
         _unpauseToken(_neoXToken);
         emit TokenBridgeUnpause(_neoXToken, _getNeoN3Token(_neoXToken));
@@ -332,9 +346,9 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         external
         override
         onlyRelayer
-        onlyBridgeUnpaused
+        whenBridgeNotPaused
         onlyIfTokenRegistered(_neoXToken)
-        onlyTokenBridgeUnpaused(_neoXToken)
+        whenTokenBridgeNotPaused(_neoXToken)
         nonReentrant
     {
         StorageTypes.State memory depositState = _getTokenDepositState(
@@ -382,12 +396,16 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         );
 
         // Execute the token distribution
-        _executeTokenDistribution(_neoXToken, config.executionType, _deposits);
+        _executeTokenDistribution(
+            _neoXToken,
+            config.decimalScalingFactor,
+            _deposits
+        );
     }
 
     function _executeTokenDistribution(
         address _neoXToken,
-        StorageTypes.ExecutionType _executionType,
+        uint256 _decimalScalingFactor,
         BridgeLib.DepositData[] calldata _deposits
     ) private {
         uint256 depositLength = _deposits.length;
@@ -396,14 +414,9 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
             BridgeLib.DepositData calldata depositEntry = _deposits[i];
             address to = depositEntry.to;
             uint256 transferAmount = depositEntry.amount;
-            if (_executionType == StorageTypes.ExecutionType.NEO) {
-                // For NEO tokens, the transfer value needs to be extended with 18 decimals, since it's nondivisible on Neo N3 and it has 18 decimals on Neo X.
-                transferAmount *= 1e18;
+            if (_decimalScalingFactor > 0) {
+                transferAmount *= (10 ** _decimalScalingFactor);
             }
-            assert(
-                _executionType == StorageTypes.ExecutionType.NEO ||
-                    _executionType == StorageTypes.ExecutionType.ERC20
-            );
             bool success = TokenBridgeLib._safeERC20Transfer(
                 IERC20(_neoXToken),
                 to,
@@ -431,9 +444,9 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         external
         override
         nonReentrant
-        onlyBridgeUnpaused
+        whenBridgeNotPaused
         onlyIfTokenRegistered(_neoXToken)
-        onlyTokenBridgeUnpaused(_neoXToken)
+        whenTokenBridgeNotPaused(_neoXToken)
     {
         StorageTypes.Claimable memory claimable = _getTokenClaimable(
             _neoXToken,
@@ -479,9 +492,10 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         payable
         override
         nonReentrant
-        onlyBridgeUnpaused
+        whenBridgeNotPaused
+        whenWithdrawalsNotPaused
         onlyIfTokenRegistered(_neoXToken)
-        onlyTokenBridgeUnpaused(_neoXToken)
+        whenTokenBridgeNotPaused(_neoXToken)
     {
         if (_to == address(0)) revert InvalidAddress();
         StorageTypes.TokenConfig memory config = _getTokenConfig(_neoXToken);
@@ -503,11 +517,12 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         StorageTypes.State memory state = _getTokenWithdrawalState(_neoXToken);
         uint256 newNonce = state.nonce + 1;
 
-        if (config.executionType == StorageTypes.ExecutionType.NEO) {
-            if (receivedAmount % 1e18 != 0) {
+        if (config.decimalScalingFactor > 0) {
+            uint256 scalingFactor = 10 ** config.decimalScalingFactor;
+            if (receivedAmount % scalingFactor != 0) {
                 revert InvalidAmount();
             }
-            receivedAmount /= 1e18;
+            receivedAmount /= scalingFactor;
         }
 
         bytes32 withdrawalHash = TokenBridgeLib._hashTokenBridgeOp(
@@ -627,5 +642,13 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
             _setMaxTokenDeposits(_neoXTokens[i], maxDeposits);
             emit MaxTokenDepositsChange(_neoXTokens[i], maxDeposits);
         }
+    }
+
+    // Migration functionality v.1.0.0 to v.2.0.0
+
+    function upgradeToV2(
+        TokenMigration[] calldata _tokenBridgeMigrations
+    ) external virtual reinitializer(2) onlyAdmin {
+        _upgradeToV2(_tokenBridgeMigrations);
     }
 }

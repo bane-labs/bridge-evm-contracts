@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import "../lib/forge-std/src/Test.sol";
-import "../contracts/management/BridgeManagementImpl.sol";
-import "../contracts/tests/SigUtils.sol";
-import "../contracts/library/BridgeLib.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Upgrades, Options} from "openzeppelin-foundry-upgrades/Upgrades.sol";
+import {BridgeLib} from "../contracts/library/BridgeLib.sol";
+import {SigUtils} from "../contracts/tests/SigUtils.sol";
+import {TestBridgeManagement} from "../contracts/tests/TestBridgeManagement.sol";
+import {Test} from "../lib/forge-std/src/Test.sol";
 
 contract BridgeManagementImplTest is Test, SigUtils {
-    BridgeManagementImpl managementProxy;
+    TestBridgeManagement managementProxy;
     address managementProxyAddress;
 
     SigUtils sigUtils;
@@ -43,15 +43,16 @@ contract BridgeManagementImplTest is Test, SigUtils {
         // The constructor only contains _disableInitializers() which is safe to bypass.
         Options memory opts;
         opts.unsafeAllow = "constructor";
-        // Deploy the bridge management implementation behind a UUPS proxy and initialize it with the provided parameters.
+
+        // Deploy the management behind a proxy and upgrade it to the latest implementation.
         managementProxyAddress = Upgrades.deployUUPSProxy(
-            "BridgeManagementImpl.sol",
+            "TestBridgeManagement.sol",
             abi.encodeCall(
-                BridgeManagementImpl.initialize,
+                TestBridgeManagement.initialize,
                 (
                     owner,
                     relayer,
-                    5,
+                    validatorThreshold,
                     validatorsAddresses,
                     governor,
                     securityGuard,
@@ -60,13 +61,15 @@ contract BridgeManagementImplTest is Test, SigUtils {
             ),
             opts
         );
-        managementProxy = BridgeManagementImpl(payable(managementProxyAddress));
+        managementProxy = TestBridgeManagement(managementProxyAddress);
+        vm.prank(owner);
+        managementProxy.upgradeToV2();
+        // Validate that the management proxy has been successfully deployed and upgraded to V2.abi
+        assertEq(managementProxy.getCurrentInitializedVersion(), 2);
     }
 
     function testSetOwner() public {
         assertEq(managementProxy.owner(), owner);
-        // vm.expectRevert("not owner");
-        // vm.expectRevert(bytes("not owner"));
         vm.prank(funder);
         vm.expectRevert(
             abi.encodeWithSelector(

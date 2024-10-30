@@ -1,4 +1,4 @@
-import { HardhatUserConfig } from "hardhat/config";
+import { HardhatUserConfig, vars } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-solhint";
 import '@typechain/hardhat'
@@ -7,6 +7,7 @@ import '@nomicfoundation/hardhat-chai-matchers'
 import 'hardhat-storage-layout'
 import "@nomicfoundation/hardhat-foundry";
 
+const NEOX_TESTNET_ACCOUNTS = vars.has("NEOX_TESTNET_PRIVATE_KEY") ? [vars.get("NEOX_TESTNET_PRIVATE_KEY")] : [];
 
 /** @type import('hardhat/config').HardhatUserConfig */
 const config: HardhatUserConfig = {
@@ -18,6 +19,14 @@ const config: HardhatUserConfig = {
         enabled: true,
         runs: 200,
       },
+    },
+  },
+  networks: {
+    neoxTestnet: {
+      url: "https://testnet.rpc.banelabs.org",
+      chainId: 12227332,
+      accounts: NEOX_TESTNET_ACCOUNTS,
+      gasPrice: 4000000000,
     },
   },
 };

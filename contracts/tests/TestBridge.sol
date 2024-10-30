@@ -1,12 +1,62 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import "../bridge/BridgeImpl.sol";
+import {BridgeImpl, BridgeLib, StorageTypes, TokenBridgeLib} from "../bridge/BridgeImpl.sol";
+import {IBridgeManagement} from "../interfaces/IBridgeManagement.sol";
+import {InitializationLib} from "./InitializationLib.sol";
+import {ITestBridgeManagement} from "./interfaces/ITestBridgeManagement.sol";
 
+// This TestBridge contract contains additional or overridden functions as an extension of the BridgeImpl contract. This includes:
+// - Overridden functions with the onlyAdmin modifier are opened to the testing owner (_authorizeUpgrade and _upgrade functions).
+// - Initialization function to initialize the storage slots with the same layout as the layout state of the currently deployed contract.
+// - A function getCurrentInitializedVersion() to verify the initialized version of the contract.
+// - Additional helper functions for testing purposes.
+/// @custom:oz-upgrades-from BridgeImpl
 contract TestBridge is BridgeImpl {
-    function isRegisteredToken(address neoXToken) public view returns (bool) {
-        return _isRegisteredToken(neoXToken);
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() BridgeImpl() {}
+
+    modifier onlyOwner() {
+        require(
+            msg.sender == ITestBridgeManagement(address(management)).owner(),
+            "Unauthorized"
+        );
+        _;
     }
+
+    function initialize(address _management) public initializer {
+        __ReentrancyGuard_init();
+        management = IBridgeManagement(_management);
+        gasBridge = StorageTypes.GasBridge({
+            paused: false,
+            depositState: StorageTypes.State({nonce: 0, root: 0x0}),
+            withdrawalState: StorageTypes.State({nonce: 0, root: 0x0}),
+            config: StorageTypes.GasConfig({
+                fee: 1e17,
+                minAmount: 1e18,
+                maxAmount: 1e22,
+                maxDeposits: 100
+            })
+        });
+    }
+
+    function upgradeToV2(
+        TokenMigration[] calldata _tokenBridgeMigrations
+    ) external override reinitializer(2) onlyOwner {
+        _upgradeToV2(_tokenBridgeMigrations);
+    }
+
+    // Authorize the contract owner to upgrade the contract for testing purposes.
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal virtual override onlyOwner {}
+
+    // This function can be used for verifying the initialized state of the contract
+    function getCurrentInitializedVersion() external view returns (uint256) {
+        return InitializationLib._getInitializableStorageValue()._initialized;
+    }
+
+    // Additional helper functions for testing purposes.
 
     function getTokenConfig(
         address neoXToken
@@ -27,6 +77,10 @@ contract TestBridge is BridgeImpl {
 
     function getbridgePaused() public view returns (bool) {
         return bridgePaused;
+    }
+
+    function getWithdrawalsPaused() public view returns (bool) {
+        return withdrawalsPaused;
     }
 
     function getTokenDepositState(

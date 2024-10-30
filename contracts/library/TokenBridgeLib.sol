@@ -92,7 +92,7 @@ library TokenBridgeLib {
         uint256 _value
     ) internal pure returns (bytes32) {
         return
-            sha256(
+            keccak256(
                 abi.encodePacked(_neoN3Token, _neoXToken, _nonce, _to, _value)
             );
     }
@@ -106,9 +106,15 @@ library TokenBridgeLib {
     ) internal pure returns (bool) {
         // The fee must always be greater than 0.
         return
+            _config.neoN3Token != address(0) &&
             _config.fee > 0 &&
             _config.minAmount > 0 &&
             _config.maxAmount > _config.minAmount &&
-            _config.maxDeposits > 0;
+            _config.maxDeposits > 0 &&
+            _config.decimalScalingFactor >= 0 &&
+            _config.decimalScalingFactor <= MAX_DECIMAL_DIFFERENCE;
     }
+
+    // The maximum difference in decimal precision between the two tokens on both chains. The bridge contract on N3 enforces a maximum transfer amount of 10^41. Together with this value, the maximum amount that can be used in a transfer is 10^77, protecting from any potential overflow.
+    uint256 constant MAX_DECIMAL_DIFFERENCE = 36;
 }

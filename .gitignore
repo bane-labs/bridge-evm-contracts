@@ -128,3 +128,7 @@ crytic-export
 
 
 .deps/npm/@openzeppelin
+
+# Wallets for testing
+wallets/
+.openzeppelin

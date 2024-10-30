@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import "../lib/forge-std/src/Test.sol";
-import {TestBridge, BridgeImpl} from "../contracts/tests/TestBridge.sol";
-import {IERC20Errors} from "../node_modules/@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
-import {ITokenBridge} from "../contracts/interfaces/ITokenBridge.sol";
-import {BridgeStorage, BridgeLib, GasBridgeLib, StorageTypes, TokenBridgeLib} from "../contracts/bridge/BridgeStorage.sol";
-import "../contracts/management/BridgeManagementImpl.sol";
-import "../contracts/tests/SigUtils.sol";
-import "../contracts/tests/MockERC20.sol";
+import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import {Upgrades, Options} from "openzeppelin-foundry-upgrades/Upgrades.sol";
+import {BridgeImpl, BridgeStorage, BridgeLib, GasBridgeLib, StorageTypes, TokenBridgeLib} from "../contracts/bridge/BridgeImpl.sol";
+import {ITokenBridge} from "../contracts/interfaces/ITokenBridge.sol";
+import {MockERC20} from "../contracts/tests/MockERC20.sol";
+import {SigUtils} from "../contracts/tests/SigUtils.sol";
+import {TestBridge} from "../contracts/tests/TestBridge.sol";
+import {TestBridgeManagement} from "../contracts/tests/TestBridgeManagement.sol";
+import {Test} from "../lib/forge-std/src/Test.sol";
 
 contract TokenBridgeSyncTest is Test, SigUtils {
     TestBridge bridgeProxy;
@@ -23,7 +23,7 @@ contract TokenBridgeSyncTest is Test, SigUtils {
     StorageTypes.TokenConfig neoBridgeConfig;
 
     // set _management
-    BridgeManagementImpl bridgeManagementImpl;
+    TestBridgeManagement managementProxy;
     SigUtils sigUtils;
     address public owner = 0xBcd4042DE499D14e55001CcbB24a551F3b954096;
     address public funder = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
@@ -66,15 +66,16 @@ contract TokenBridgeSyncTest is Test, SigUtils {
         // The constructor only contains _disableInitializers() which is safe to bypass.
         Options memory opts;
         opts.unsafeAllow = "constructor";
-        // Deploy the bridge management implementation behind a UUPS proxy and initialize it with the provided parameters.
+
+        // Deploy the management behind a proxy and upgrade it to the latest implementation.
         managementProxyAddress = Upgrades.deployUUPSProxy(
-            "BridgeManagementImpl.sol",
+            "TestBridgeManagement.sol",
             abi.encodeCall(
-                BridgeManagementImpl.initialize,
+                TestBridgeManagement.initialize,
                 (
                     owner,
                     relayer,
-                    5,
+                    validatorThreshold,
                     validatorsAddresses,
                     governor,
                     securityGuard,
@@ -83,26 +84,32 @@ contract TokenBridgeSyncTest is Test, SigUtils {
             ),
             opts
         );
-        bridgeManagementImpl = BridgeManagementImpl(managementProxyAddress);
+        managementProxy = TestBridgeManagement(managementProxyAddress);
+        vm.prank(owner);
+        managementProxy.upgradeToV2();
+        // Validate that the management proxy has been successfully deployed and upgraded to V2.abi
+        assertEq(managementProxy.getCurrentInitializedVersion(), 2);
 
-        // Deploy the bridge implementation behind a UUPS proxy and initialize it with the provided parameters.
+        // Deploy the bridge including upgrade steps to V2.
         bridgeProxyAddress = Upgrades.deployUUPSProxy(
             "TestBridge.sol",
-            abi.encodeCall(
-                BridgeImpl.initialize,
-                (managementProxyAddress, 1e17, 1e18, 1e22, 100)
-            ),
+            abi.encodeCall(TestBridge.initialize, (managementProxyAddress)),
             opts
         );
         bridgeProxy = TestBridge(payable(bridgeProxyAddress));
+        vm.prank(owner);
+        bridgeProxy.upgradeToV2(new BridgeImpl.TokenMigration[](0));
+
+        // Validate that the bridge proxy has been successfully deployed and upgraded to V2.
+        assertEq(bridgeProxy.getCurrentInitializedVersion(), 2);
 
         neoBridgeConfig = StorageTypes.TokenConfig({
             neoN3Token: neoN3NeoToken,
+            decimalScalingFactor: 18,
             fee: 0.1 ether,
             minAmount: 1,
             maxAmount: 1000 ether,
-            maxDeposits: 2,
-            executionType: StorageTypes.ExecutionType.NEO
+            maxDeposits: 2
         });
 
         // Fund the test accounts with some ether.
@@ -190,11 +197,11 @@ contract TokenBridgeSyncTest is Test, SigUtils {
             concatenated,
             hex"Ef4073A0F2b305a38EC4050e4d3d28bC40eA63F55615dEB798BB3E4dFa0139dFa1b3D433Cc23b72f0000000000000000000000000000000000000000000000000000000000050b04D44304966f6e74cfd0E2215649D5C57892BfBAaB00000000000000000000000000000000000000000000000000000000499602d2"
         );
-        bytes32 expected = sha256(concatenated);
+        bytes32 expected = keccak256(concatenated);
         assertEq(hashedBridgeOp, expected);
         assertEq(
             hashedBridgeOp,
-            hex"5dcc8d59cfb9446288dc79f3e2a776d05e7bce0b82efe28ec554d6dcb08acda4"
+            hex"5df56ac9c1a3c018a83c763c211f89c7c5c5dc4b121c960452f8cfe802cdc631"
         );
     }
 
@@ -204,7 +211,8 @@ contract TokenBridgeSyncTest is Test, SigUtils {
 
         // Verify the signatures of 6 validators
         vm.prank(owner);
-        bridgeManagementImpl.setValidators(validatorsAddresses, 6);
+        managementProxy.setValidatorThreshold(6);
+        // managementProxy.setValidators(validatorsAddresses, 6);
 
         BridgeLib.DepositData[]
             memory depositData = new BridgeLib.DepositData[](2);
@@ -260,7 +268,7 @@ contract TokenBridgeSyncTest is Test, SigUtils {
         assertEq(neoXNeoTokenContract.balanceOf(recipientOnNeoX_2), 445 ether);
         assertEq(
             tokenDepositRoot,
-            0x6c995cd010e797f62716b58053fbfbf4834c68d96c5f0361bf49186cbef6d457
+            0x30bd66fcd30d5e4759d2a5af3833f418c2960e3552bf93e9f296b433257b2134
         );
     }
 
@@ -305,7 +313,7 @@ contract TokenBridgeSyncTest is Test, SigUtils {
         assertEq(state.nonce, 3);
         assertEq(
             state.root,
-            0x2b1eb8388620f2ba81eeecda0b88c41a35d8aef678cb1eb22ecc488b087d9c99
+            0xe7bcedec3503f013e96c2656b3ea841f62787a06afd3a3df004635ec9a1432e7
         );
     }
 }

@@ -46,10 +46,10 @@ export async function fundContract(contract: any, funder: HardhatEthersSigner) {
 
 export async function hashDepositOrWithdrawal(nonce: number, to: string, amount: bigint): Promise<string> {
     const packData = ethers.solidityPacked(["uint256", "address", "uint256"], [nonce, to, amount]);
-    const hashData = ethers.sha256(packData);
+    const hashData = ethers.keccak256(packData);
     return hashData;
 }
 
 export async function computeRoot(previouRoot: string, newHash: string): Promise<string> {
-    return ethers.sha256(ethers.solidityPacked(["bytes32", "bytes32"], [ethers.getBytes(previouRoot), ethers.getBytes(newHash)]));
+    return ethers.keccak256(ethers.solidityPacked(["bytes32", "bytes32"], [ethers.getBytes(previouRoot), ethers.getBytes(newHash)]));
 }
