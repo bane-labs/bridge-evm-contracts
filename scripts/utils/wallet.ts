@@ -11,6 +11,13 @@ export const RELAYER_PASSWORD = vars.has("BRIDGE_RELAYER_PASSWORD") ? vars.get("
 export const VALIDATOR01_PASSWORD = vars.has("BRIDGE_VALIDATOR01_PASSWORD") ? vars.get("BRIDGE_VALIDATOR01_PASSWORD") : "";
 export const VALIDATOR02_PASSWORD = vars.has("BRIDGE_VALIDATOR02_PASSWORD") ? vars.get("BRIDGE_VALIDATOR02_PASSWORD") : "";
 
+export const PERSONAL_WALLET_PASSWORD = vars.has("PERSONAL_WALLET_PASSWORD") ? vars.get("PERSONAL_WALLET_PASSWORD") : "";
+export const PERSONAL_WALLET_FILENAME = vars.has("PERSONAL_WALLET_FILENAME") ? vars.get("PERSONAL_WALLET_FILENAME") : "personal-wallet";
+
+export function getPersonalWallet(provider: Provider): Wallet {
+    return getWalletFromFile("wallets/" + PERSONAL_WALLET_FILENAME + ".json", PERSONAL_WALLET_PASSWORD).connect(provider);
+}
+
 export function getDeployer(provider: Provider): Wallet {
     return getWalletFromFile("wallets/deployer.json", DEPLOYER_PASSWORD).connect(provider);
 }
