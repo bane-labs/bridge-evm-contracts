@@ -15,11 +15,11 @@ export async function registerTokenWithScalingFactor(bridge: TestBridge, governo
     console.log("#####################################################################");
     const tokenConfig = {
         neoN3Token: n3TokenAddress,
-        decimalScalingFactor: decimalScalingFactor,
         fee: ethers.parseEther("0.1"),
         minAmount: ethers.parseEther("1"),
         maxAmount: ethers.parseEther("10000"),
         maxDeposits: 100,
+        decimalScalingFactor: decimalScalingFactor,
     }
 
     const registration = await bridge.connect(governor).registerToken(await token.getAddress(), tokenConfig, { maxFeePerGas: MAX_FEE_PER_GAS, maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS });
