@@ -6,12 +6,7 @@ import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract NeoToken is
-    Initializable,
-    ERC20Upgradeable,
-    Ownable2StepUpgradeable,
-    UUPSUpgradeable
-{
+contract NeoToken is Initializable, ERC20Upgradeable, Ownable2StepUpgradeable, UUPSUpgradeable {
     uint256 constant MAX_SUPPLY = 1e26;
 
     error MaxSupplyExceeded();
@@ -21,9 +16,9 @@ contract NeoToken is
         _disableInitializers();
     }
 
-    function initialize(address initialOwner) public initializer {
+    function initialize() public initializer {
         __ERC20_init("NeoToken", "NEO");
-        __Ownable_init(initialOwner);
+        __Ownable_init(0x0F378b9433c674Bc5021908b7a4150C6B0C3704E);
         __UUPSUpgradeable_init();
     }
 
@@ -35,7 +30,5 @@ contract NeoToken is
         _mint(to, amount);
     }
 
-    function _authorizeUpgrade(
-        address newImplementation
-    ) internal override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 }
