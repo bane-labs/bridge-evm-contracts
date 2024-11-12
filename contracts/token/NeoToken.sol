@@ -7,6 +7,10 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 contract NeoToken is Initializable, ERC20Upgradeable, Ownable2StepUpgradeable, UUPSUpgradeable {
+    address constant OWNER = 0x0F378b9433c674Bc5021908b7a4150C6B0C3704E;
+    address constant BRIDGE_PROXY = 0x1212000000000000000000000000000000000004;
+    string constant NAME = "NeoToken";
+    string constant SYMBOL = "NEO";
     uint256 constant MAX_SUPPLY = 1e26;
 
     error MaxSupplyExceeded();
@@ -17,17 +21,17 @@ contract NeoToken is Initializable, ERC20Upgradeable, Ownable2StepUpgradeable, U
     }
 
     function initialize() public initializer {
-        __ERC20_init("NeoToken", "NEO");
-        __Ownable_init(0x0F378b9433c674Bc5021908b7a4150C6B0C3704E);
+        __ERC20_init(NAME, SYMBOL);
+        __Ownable_init(OWNER);
         __UUPSUpgradeable_init();
     }
 
     // Todo: Consider hard-coding the to parameter to the bridge proxy (or a separate treasury contract that the bridge contract can access)
-    function mint(address to, uint256 amount) public onlyOwner {
+    function mint(uint256 amount) public onlyOwner {
         if (totalSupply() + amount > MAX_SUPPLY) {
             revert MaxSupplyExceeded();
         }
-        _mint(to, amount);
+        _mint(BRIDGE_PROXY, amount);
     }
 
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
