@@ -26,7 +26,6 @@ contract NeoToken is Initializable, ERC20Upgradeable, Ownable2StepUpgradeable, U
         __UUPSUpgradeable_init();
     }
 
-    // Todo: Consider hard-coding the to parameter to the bridge proxy (or a separate treasury contract that the bridge contract can access)
     function mint(uint256 amount) public onlyOwner {
         if (totalSupply() + amount > MAX_SUPPLY) {
             revert MaxSupplyExceeded();
