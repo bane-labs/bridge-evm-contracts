@@ -41,15 +41,11 @@ describe("Bridge Implementation", function () {
         ], { kind: "uups", unsafeAllow: ["constructor"] });
         await managementProxy.waitForDeployment();
         const bridgeManagement = await ethers.getContractAt("TestBridgeManagement", await managementProxy.getAddress());
-        // Upgrade the bridge management contract to V2
-        await bridgeManagement.connect(managementOwner).upgradeToV2();
 
         const BridgeContractFactory = await ethers.getContractFactory("TestBridge");
         const bridgeProxy = await upgrades.deployProxy(BridgeContractFactory, [await bridgeManagement.getAddress()], { kind: "uups", unsafeAllow: ["constructor"] });
         await bridgeProxy.waitForDeployment();
         const bridge = await ethers.getContractAt("TestBridge", await bridgeProxy.getAddress());
-        // Upgrade the bridge contract to V2
-        await bridge.connect(managementOwner).upgradeToV2([]);
 
         // Fund the bridge contract.
         await funder.sendTransaction({ to: bridge, value: ethers.parseEther("80.0") });
@@ -72,6 +68,18 @@ describe("Bridge Implementation", function () {
             funder
         }
     }
+
+    describe("Deployment", function () {
+        it("Bridge should be initialized to the correct version", async function () {
+            const { bridgeContract } = await loadFixture(deployBridgeFixture);
+            expect(await bridgeContract.getCurrentInitializedVersion()).to.equal(2);
+        });
+
+        it("Bridge Management should be initialized to the correct version", async function () {
+            const { bridgeManagementContract } = await loadFixture(deployBridgeFixture);
+            expect(await bridgeManagementContract.getCurrentInitializedVersion()).to.equal(2);
+        });
+    });
 
     describe("Parameter setters", function () {
         it("Set withdrawal fee", async function () {

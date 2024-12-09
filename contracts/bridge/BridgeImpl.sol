@@ -534,15 +534,4 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
             emit MaxTokenDepositsChange(_neoXTokens[i], maxDeposits);
         }
     }
-
-    // Migration functionality v.1.0.0 to v.2.0.0
-
-    function upgradeToV2(TokenMigration[] calldata _tokenBridgeMigrations)
-        external
-        virtual
-        reinitializer(2)
-        onlyAdmin
-    {
-        _upgradeToV2(_tokenBridgeMigrations);
-    }
 }
