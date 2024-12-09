@@ -17,10 +17,7 @@ contract TestBridge is BridgeImpl {
     constructor() BridgeImpl() {}
 
     modifier onlyOwner() {
-        require(
-            msg.sender == ITestBridgeManagement(address(management)).owner(),
-            "Unauthorized"
-        );
+        require(msg.sender == ITestBridgeManagement(address(management)).owner(), "Unauthorized");
         _;
     }
 
@@ -31,25 +28,21 @@ contract TestBridge is BridgeImpl {
             paused: false,
             depositState: StorageTypes.State({nonce: 0, root: 0x0}),
             withdrawalState: StorageTypes.State({nonce: 0, root: 0x0}),
-            config: StorageTypes.GasConfig({
-                fee: 1e17,
-                minAmount: 1e18,
-                maxAmount: 1e22,
-                maxDeposits: 100
-            })
+            config: StorageTypes.GasConfig({fee: 1e17, minAmount: 1e18, maxAmount: 1e22, maxDeposits: 100})
         });
     }
 
-    function upgradeToV2(
-        TokenMigration[] calldata _tokenBridgeMigrations
-    ) external override reinitializer(2) onlyOwner {
+    function upgradeToV2(TokenMigration[] calldata _tokenBridgeMigrations)
+        external
+        override
+        reinitializer(2)
+        onlyOwner
+    {
         _upgradeToV2(_tokenBridgeMigrations);
     }
 
     // Authorize the contract owner to upgrade the contract for testing purposes.
-    function _authorizeUpgrade(
-        address newImplementation
-    ) internal virtual override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation) internal virtual override onlyOwner {}
 
     // This function can be used for verifying the initialized state of the contract
     function getCurrentInitializedVersion() external view returns (uint256) {
@@ -58,16 +51,12 @@ contract TestBridge is BridgeImpl {
 
     // Additional helper functions for testing purposes.
 
-    function getTokenConfig(
-        address neoXToken
-    ) public view returns (StorageTypes.TokenConfig memory config) {
+    function getTokenConfig(address neoXToken) public view returns (StorageTypes.TokenConfig memory config) {
         config = _getTokenConfig(neoXToken);
         return config;
     }
 
-    function getTokenbridgePaused(
-        address neoXToken
-    ) public view returns (bool) {
+    function getTokenbridgePaused(address neoXToken) public view returns (bool) {
         return tokenBridges[neoXToken].paused;
     }
 
@@ -83,15 +72,15 @@ contract TestBridge is BridgeImpl {
         return withdrawalsPaused;
     }
 
-    function getTokenDepositState(
-        address neoXToken
-    ) public view returns (StorageTypes.State memory depositState) {
+    function getTokenDepositState(address neoXToken) public view returns (StorageTypes.State memory depositState) {
         return _getTokenDepositState(neoXToken);
     }
 
-    function getTokenWithdrawalState(
-        address _neoXToken
-    ) public view returns (StorageTypes.State memory withdrawalState) {
+    function getTokenWithdrawalState(address _neoXToken)
+        public
+        view
+        returns (StorageTypes.State memory withdrawalState)
+    {
         return _getTokenWithdrawalState(_neoXToken);
     }
 
@@ -101,15 +90,12 @@ contract TestBridge is BridgeImpl {
         uint256 _nonce,
         address _to,
         uint256 _amount
-    ) public pure returns (bytes32) {
-        return
-            TokenBridgeLib._hashTokenBridgeOp(
-                _neoN3Token,
-                _neoXToken,
-                _nonce,
-                _to,
-                _amount
-            );
+    )
+        public
+        pure
+        returns (bytes32)
+    {
+        return TokenBridgeLib._hashTokenBridgeOp(_neoN3Token, _neoXToken, _nonce, _to, _amount);
     }
 
     function computeTokenRoot(
@@ -117,13 +103,11 @@ contract TestBridge is BridgeImpl {
         address _neoN3Token,
         address _neoXToken,
         BridgeLib.DepositData[] calldata _deposits
-    ) public pure returns (bytes32) {
-        return
-            TokenBridgeLib._computeNewTopRoot(
-                _previousRoot,
-                _neoN3Token,
-                _neoXToken,
-                _deposits
-            );
+    )
+        public
+        pure
+        returns (bytes32)
+    {
+        return TokenBridgeLib._computeNewTopRoot(_previousRoot, _neoN3Token, _neoXToken, _deposits);
     }
 }

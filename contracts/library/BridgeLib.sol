@@ -15,23 +15,15 @@ library BridgeLib {
     }
 
     // Makes sure the proofs have subsequent nonces.
-    function _subsequentNonces(
-        DepositData[] calldata _deposits,
-        uint256 _startNonce
-    ) internal pure returns (bool) {
-        uint depositsLength = _deposits.length;
+    function _subsequentNonces(DepositData[] calldata _deposits, uint256 _startNonce) internal pure returns (bool) {
+        uint256 depositsLength = _deposits.length;
         for (uint256 i = 1; i <= depositsLength; i++) {
-            if (_deposits[i - 1].nonce != _startNonce + i) {
-                return false;
-            }
+            if (_deposits[i - 1].nonce != _startNonce + i) return false;
         }
         return true;
     }
 
-    function _computeNewRoot(
-        bytes32 _formerRoot,
-        bytes32 _depositHash
-    ) internal pure returns (bytes32) {
+    function _computeNewRoot(bytes32 _formerRoot, bytes32 _depositHash) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(_formerRoot, _depositHash));
     }
 

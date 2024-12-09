@@ -38,10 +38,7 @@ abstract contract BridgeManagementStorageV1 is Ownable2StepUpgradeable {
         // Set validators in new version
         uint256 validatorsLength = _v1_validators.length;
         for (uint256 i = 0; i < validatorsLength; i++) {
-            require(
-                validatorSet.add(_v1_validators[i]),
-                "Validator already added"
-            );
+            require(validatorSet.add(_v1_validators[i]), "Validator already added");
         }
     }
 }

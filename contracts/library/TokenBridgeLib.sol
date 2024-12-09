@@ -13,17 +13,13 @@ library TokenBridgeLib {
      * @param _to The address of the recipient.
      * @param _amount The amount to transfer.
      */
-    function _safeERC20Transfer(
-        IERC20 _token,
-        address _to,
-        uint256 _amount
-    ) internal returns (bool) {
+    function _safeERC20Transfer(IERC20 _token, address _to, uint256 _amount) internal returns (bool) {
         return _callOptionalReturnBool(_token, abi.encodeCall(_token.transfer, (_to, _amount)));
     }
 
     /**
      * This function has been copied from the OpenZeppelin SafeERC20.sol library.
-     * 
+     *
      * @dev Imitates a Solidity high-level call (i.e. a regular function call to a contract), relaxing the requirement
      * on the return value: the return value is optional (but if data is returned, it must not be false).
      * @param token The token targeted by the call.
@@ -58,18 +54,17 @@ library TokenBridgeLib {
         address _neoN3Token,
         address _neoXToken,
         BridgeLib.DepositData[] calldata _deposits
-    ) internal pure returns (bytes32) {
+    )
+        internal
+        pure
+        returns (bytes32)
+    {
         bytes32 parent = _previousRoot;
         uint256 depositsLength = _deposits.length;
         for (uint256 i = 0; i < depositsLength; i++) {
             BridgeLib.DepositData calldata depositData = _deposits[i];
-            bytes32 depositHash = _hashTokenBridgeOp(
-                _neoN3Token,
-                _neoXToken,
-                depositData.nonce,
-                depositData.to,
-                depositData.amount
-            );
+            bytes32 depositHash =
+                _hashTokenBridgeOp(_neoN3Token, _neoXToken, depositData.nonce, depositData.to, depositData.amount);
             parent = BridgeLib._computeNewRoot(parent, depositHash);
         }
         return parent;
@@ -90,29 +85,23 @@ library TokenBridgeLib {
         uint256 _nonce,
         address _to,
         uint256 _value
-    ) internal pure returns (bytes32) {
-        return
-            keccak256(
-                abi.encodePacked(_neoN3Token, _neoXToken, _nonce, _to, _value)
-            );
+    )
+        internal
+        pure
+        returns (bytes32)
+    {
+        return keccak256(abi.encodePacked(_neoN3Token, _neoXToken, _nonce, _to, _value));
     }
 
     /**
      * @dev Validates the token configuration.
      * @param _config The token configuration.
      */
-    function _isValidConfig(
-        StorageTypes.TokenConfig memory _config
-    ) internal pure returns (bool) {
+    function _isValidConfig(StorageTypes.TokenConfig memory _config) internal pure returns (bool) {
         // The fee must always be greater than 0.
-        return
-            _config.neoN3Token != address(0) &&
-            _config.fee > 0 &&
-            _config.minAmount > 0 &&
-            _config.maxAmount > _config.minAmount &&
-            _config.maxDeposits > 0 &&
-            _config.decimalScalingFactor >= 0 &&
-            _config.decimalScalingFactor <= MAX_DECIMAL_DIFFERENCE;
+        return _config.neoN3Token != address(0) && _config.fee > 0 && _config.minAmount > 0
+            && _config.maxAmount > _config.minAmount && _config.maxDeposits > 0 && _config.decimalScalingFactor >= 0
+            && _config.decimalScalingFactor <= MAX_DECIMAL_DIFFERENCE;
     }
 
     // The maximum difference in decimal precision between the two tokens on both chains. The bridge contract on N3 enforces a maximum transfer amount of 10^41. Together with this value, the maximum amount that can be used in a transfer is 10^77, protecting from any potential overflow.

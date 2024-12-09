@@ -17,16 +17,17 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
     function verifyValidatorSignatures(
         bytes32 _newDepositRoot,
         BridgeLib.Signature[] calldata _signatures
-    ) external view returns (bool) {
+    )
+        external
+        view
+        returns (bool)
+    {
         uint256 threshold = validatorThreshold;
-        if (_signatures.length != threshold) {
-            return false;
-        }
+        if (_signatures.length != threshold) return false;
         // Create the message to be signed
         bytes32 signedRootMsg = keccak256(
             abi.encodePacked(
-                "\x19Ethereum Signed Message:\n32",
-                keccak256(abi.encodePacked(block.chainid, _newDepositRoot))
+                "\x19Ethereum Signed Message:\n32", keccak256(abi.encodePacked(block.chainid, _newDepositRoot))
             )
         );
         // Recover the signing addresses and make sure there are no duplicates
@@ -50,10 +51,7 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
         return relayer;
     }
 
-    function addValidator(
-        address _validator,
-        bool _incrementThreshold
-    ) external onlyOwner {
+    function addValidator(address _validator, bool _incrementThreshold) external onlyOwner {
         _addValidator(_validator);
         emit ValidatorAdd(_validator);
         if (_incrementThreshold) {
@@ -62,10 +60,7 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
         }
     }
 
-    function removeValidator(
-        address _validator,
-        bool _decrementThreshold
-    ) external onlyOwner {
+    function removeValidator(address _validator, bool _decrementThreshold) external onlyOwner {
         if (_decrementThreshold) {
             _decrementValidatorThreshold();
             emit ValidatorThresholdChange(validatorThreshold);
@@ -74,10 +69,7 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
         emit ValidatorRemove(_validator);
     }
 
-    function replaceValidator(
-        address _oldValidator,
-        address _newValidator
-    ) external onlyOwner {
+    function replaceValidator(address _oldValidator, address _newValidator) external onlyOwner {
         _removeValidator(_oldValidator);
         _addValidator(_newValidator);
         emit ValidatorReplace(_oldValidator, _newValidator);

@@ -13,8 +13,7 @@ import "./BridgeStorageV1.sol";
  * @dev This contract holds errors, modifiers, internal view functions and functions that directly modify the storage. The modification functions have logical checks but no access-checks. For example, registering a token should only be viable if there is no entry for that token already. However, checking if the msg.sender is allowed to do so should be handled in a higher-level contract (i.e., in this case the corresponding Impl contract).
  */
 abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
-    address public constant GOV_ADMIN =
-        0x1212000000000000000000000000000000000000;
+    address public constant GOV_ADMIN = 0x1212000000000000000000000000000000000000;
 
     error AmountBelowMinAmount(uint256 minAmount, uint256 provided);
     error AmountExceedsMaxAmount(uint256 maxAmount, uint256 provided);
@@ -60,10 +59,9 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     }
 
     modifier onlyGovernorOrSecurityGuard() {
-        if (
-            msg.sender != management.getGovernor() &&
-            msg.sender != management.getSecurityGuard()
-        ) revert NoAuthorization();
+        if (msg.sender != management.getGovernor() && msg.sender != management.getSecurityGuard()) {
+            revert NoAuthorization();
+        }
         _;
     }
 
@@ -103,20 +101,17 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     }
 
     modifier onlyIfTokenRegistered(address _neoXToken) {
-        if (!_isRegisteredToken(_neoXToken))
-            revert TokenBridgeNotRegistered(_neoXToken);
+        if (!_isRegisteredToken(_neoXToken)) revert TokenBridgeNotRegistered(_neoXToken);
         _;
     }
 
     modifier whenTokenBridgeNotPaused(address _neoXToken) {
-        if (tokenBridges[_neoXToken].paused)
-            revert TokenBridgePaused(_neoXToken);
+        if (tokenBridges[_neoXToken].paused) revert TokenBridgePaused(_neoXToken);
         _;
     }
 
     modifier whenTokenBridgePaused(address _neoXToken) {
-        if (!tokenBridges[_neoXToken].paused)
-            revert TokenBridgeNotPaused(_neoXToken);
+        if (!tokenBridges[_neoXToken].paused) revert TokenBridgeNotPaused(_neoXToken);
         _;
     }
 
@@ -154,20 +149,11 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         gasBridge.paused = false;
     }
 
-    function _addClaimableGas(
-        uint256 _nonce,
-        address _to,
-        uint256 _amount
-    ) internal {
-        claimableGas[_nonce] = StorageTypes.Claimable({
-            to: _to,
-            amount: _amount
-        });
+    function _addClaimableGas(uint256 _nonce, address _to, uint256 _amount) internal {
+        claimableGas[_nonce] = StorageTypes.Claimable({to: _to, amount: _amount});
     }
 
-    function _getGasClaimable(
-        uint256 _nonce
-    ) internal view returns (StorageTypes.Claimable memory) {
+    function _getGasClaimable(uint256 _nonce) internal view returns (StorageTypes.Claimable memory) {
         return claimableGas[_nonce];
     }
 
@@ -175,39 +161,23 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         delete claimableGas[_nonce];
     }
 
-    function _getGasBridgeConfig()
-        internal
-        view
-        returns (StorageTypes.GasConfig memory config)
-    {
+    function _getGasBridgeConfig() internal view returns (StorageTypes.GasConfig memory config) {
         return gasBridge.config;
     }
 
-    function _getGasBridgeDepositState()
-        internal
-        view
-        returns (StorageTypes.State memory state)
-    {
+    function _getGasBridgeDepositState() internal view returns (StorageTypes.State memory state) {
         return gasBridge.depositState;
     }
 
-    function _setGasBridgeDepositState(
-        StorageTypes.State memory state
-    ) internal {
+    function _setGasBridgeDepositState(StorageTypes.State memory state) internal {
         gasBridge.depositState = state;
     }
 
-    function _getGasBridgeWithdrawalState()
-        internal
-        view
-        returns (StorageTypes.State memory state)
-    {
+    function _getGasBridgeWithdrawalState() internal view returns (StorageTypes.State memory state) {
         return gasBridge.withdrawalState;
     }
 
-    function _setGasBridgeWithdrawalState(
-        StorageTypes.State memory state
-    ) internal {
+    function _setGasBridgeWithdrawalState(StorageTypes.State memory state) internal {
         gasBridge.withdrawalState = state;
     }
 
@@ -236,13 +206,9 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
 
     // Token Bridge functions
 
-    function _registerToken(
-        address _neoXToken,
-        StorageTypes.TokenConfig memory _tokenConfig
-    ) internal {
+    function _registerToken(address _neoXToken, StorageTypes.TokenConfig memory _tokenConfig) internal {
         // Check if token bridge is already registered
-        if (_isRegisteredToken(_neoXToken))
-            revert TokenBridgeAlreadyRegistered(_neoXToken);
+        if (_isRegisteredToken(_neoXToken)) revert TokenBridgeAlreadyRegistered(_neoXToken);
 
         // Add token bridge to storage
         tokenBridges[_neoXToken] = StorageTypes.TokenBridge({
@@ -254,9 +220,7 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         registeredTokens.push(_neoXToken);
     }
 
-    function _isRegisteredToken(
-        address _neoXToken
-    ) internal view returns (bool) {
+    function _isRegisteredToken(address _neoXToken) internal view returns (bool) {
         return tokenBridges[_neoXToken].config.neoN3Token != address(0);
     }
 
@@ -268,10 +232,7 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         tokenBridges[_neoXToken].paused = false;
     }
 
-    function _setTokenWithdrawalFee(
-        address _neoXToken,
-        uint256 _fee
-    ) internal onlyIfTokenRegistered(_neoXToken) {
+    function _setTokenWithdrawalFee(address _neoXToken, uint256 _fee) internal onlyIfTokenRegistered(_neoXToken) {
         if (_fee == 0) revert InvalidFee();
         tokenBridges[_neoXToken].config.fee = _fee;
     }
@@ -279,65 +240,58 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     function _setTokenMinWithdrawalAmount(
         address _neoXToken,
         uint256 _amount
-    ) internal onlyIfTokenRegistered(_neoXToken) {
-        if (_amount >= tokenBridges[_neoXToken].config.maxAmount)
-            revert InvalidAmount();
+    )
+        internal
+        onlyIfTokenRegistered(_neoXToken)
+    {
+        if (_amount >= tokenBridges[_neoXToken].config.maxAmount) revert InvalidAmount();
         tokenBridges[_neoXToken].config.minAmount = _amount;
     }
 
     function _setTokenMaxWithdrawalAmount(
         address _neoXToken,
         uint256 _amount
-    ) internal onlyIfTokenRegistered(_neoXToken) {
-        if (_amount <= tokenBridges[_neoXToken].config.minAmount)
-            revert InvalidAmount();
+    )
+        internal
+        onlyIfTokenRegistered(_neoXToken)
+    {
+        if (_amount <= tokenBridges[_neoXToken].config.minAmount) revert InvalidAmount();
         tokenBridges[_neoXToken].config.maxAmount = _amount;
     }
 
     function _setMaxTokenDeposits(
         address _neoXToken,
         uint256 _maxDeposits
-    ) internal onlyIfTokenRegistered(_neoXToken) {
+    )
+        internal
+        onlyIfTokenRegistered(_neoXToken)
+    {
         if (_maxDeposits == 0) revert InvalidValue();
         tokenBridges[_neoXToken].config.maxDeposits = _maxDeposits;
     }
 
-    function _getNeoN3Token(
-        address _neoXToken
-    ) internal view returns (address) {
+    function _getNeoN3Token(address _neoXToken) internal view returns (address) {
         return tokenBridges[_neoXToken].config.neoN3Token;
     }
 
-    function _getTokenConfig(
-        address _neoXToken
-    ) internal view returns (StorageTypes.TokenConfig memory config) {
+    function _getTokenConfig(address _neoXToken) internal view returns (StorageTypes.TokenConfig memory config) {
         return tokenBridges[_neoXToken].config;
     }
 
-    function _getTokenDepositState(
-        address _neoXToken
-    ) internal view returns (StorageTypes.State memory state) {
+    function _getTokenDepositState(address _neoXToken) internal view returns (StorageTypes.State memory state) {
         return tokenBridges[_neoXToken].depositState;
     }
 
-    function _setTokenDepositState(
-        address _neoXToken,
-        StorageTypes.State memory _state
-    ) internal {
+    function _setTokenDepositState(address _neoXToken, StorageTypes.State memory _state) internal {
         assert(tokenBridges[_neoXToken].depositState.nonce < _state.nonce);
         tokenBridges[_neoXToken].depositState = _state;
     }
 
-    function _getTokenWithdrawalState(
-        address _neoXToken
-    ) internal view returns (StorageTypes.State memory state) {
+    function _getTokenWithdrawalState(address _neoXToken) internal view returns (StorageTypes.State memory state) {
         return tokenBridges[_neoXToken].withdrawalState;
     }
 
-    function _setTokenWithdrawalState(
-        address _neoXToken,
-        StorageTypes.State memory _state
-    ) internal {
+    function _setTokenWithdrawalState(address _neoXToken, StorageTypes.State memory _state) internal {
         assert(tokenBridges[_neoXToken].withdrawalState.nonce < _state.nonce);
         tokenBridges[_neoXToken].withdrawalState = _state;
     }
@@ -345,26 +299,19 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     function _getTokenClaimable(
         address _neoXToken,
         uint256 _nonce
-    ) internal view returns (StorageTypes.Claimable memory) {
+    )
+        internal
+        view
+        returns (StorageTypes.Claimable memory)
+    {
         return tokenClaimables[_neoXToken][_nonce];
     }
 
-    function _addTokenClaimable(
-        address _neoXToken,
-        uint256 _nonce,
-        address _to,
-        uint256 _amount
-    ) internal {
-        tokenClaimables[_neoXToken][_nonce] = StorageTypes.Claimable({
-            to: _to,
-            amount: _amount
-        });
+    function _addTokenClaimable(address _neoXToken, uint256 _nonce, address _to, uint256 _amount) internal {
+        tokenClaimables[_neoXToken][_nonce] = StorageTypes.Claimable({to: _to, amount: _amount});
     }
 
-    function _deleteTokenClaimable(
-        address _neoXToken,
-        uint256 _nonce
-    ) internal {
+    function _deleteTokenClaimable(address _neoXToken, uint256 _nonce) internal {
         delete tokenClaimables[_neoXToken][_nonce];
     }
 
@@ -375,9 +322,7 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         _;
     }
 
-    function _authorizeUpgrade(
-        address newImplementation
-    ) internal virtual override onlyAdmin {}
+    function _authorizeUpgrade(address newImplementation) internal virtual override onlyAdmin {}
 
     // Migration Logic for v1 to v2
 
@@ -387,20 +332,15 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     }
 
     // This functionality should be on the lowest level of the inheritance hierarchy. However, since it needs external inputs, it requires a functionality that is not available in the BridgeStorageV1 contract.
-    function _upgradeToV2(
-        TokenMigration[] calldata _tokenBridgeMigrations
-    ) internal onlyInitializing {
+    function _upgradeToV2(TokenMigration[] calldata _tokenBridgeMigrations) internal onlyInitializing {
         for (uint256 i = 0; i < _tokenBridgeMigrations.length; i++) {
             TokenMigration memory migration = _tokenBridgeMigrations[i];
-            if (!_isRegisteredToken(migration.token))
-                revert("Token not registered");
+            if (!_isRegisteredToken(migration.token)) revert("Token not registered");
             // Add token to registered tokens
             registeredTokens.push(migration.token);
 
             // Update the token bridge's config
-            StorageTypes.TokenConfig storage config = tokenBridges[
-                migration.token
-            ].config;
+            StorageTypes.TokenConfig storage config = tokenBridges[migration.token].config;
             config.decimalScalingFactor = migration.decimalScalingFactor;
         }
     }

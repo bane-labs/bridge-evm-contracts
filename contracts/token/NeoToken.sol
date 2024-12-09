@@ -27,9 +27,7 @@ contract NeoToken is Initializable, ERC20Upgradeable, Ownable2StepUpgradeable, U
     }
 
     function mint(uint256 amount) public onlyOwner {
-        if (totalSupply() + amount > MAX_SUPPLY) {
-            revert MaxSupplyExceeded();
-        }
+        if (totalSupply() + amount > MAX_SUPPLY) revert MaxSupplyExceeded();
         _mint(BRIDGE_PROXY, amount);
     }
 

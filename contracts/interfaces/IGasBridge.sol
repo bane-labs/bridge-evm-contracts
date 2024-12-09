@@ -8,11 +8,7 @@ interface IGasBridge {
     event GasBridgeUnpause();
     event GasDeposit(uint256 indexed nonce, address indexed to, uint256 amount);
     event GasDepositRootUpdate(uint256 indexed nonce, bytes32 depositRoot);
-    event GasClaimable(
-        uint256 indexed nonce,
-        address indexed to,
-        uint256 amount
-    );
+    event GasClaimable(uint256 indexed nonce, address indexed to, uint256 amount);
     event GasClaim(uint256 indexed nonce, address indexed to, uint256 amount);
     event GasWithdrawal(
         uint256 indexed nonce,
@@ -35,7 +31,8 @@ interface IGasBridge {
         bytes32 _depositRoot,
         BridgeLib.Signature[] calldata _signatures,
         BridgeLib.DepositData[] calldata _deposits
-    ) external;
+    )
+        external;
 
     function claimGas(uint256 _nonce) external;
 

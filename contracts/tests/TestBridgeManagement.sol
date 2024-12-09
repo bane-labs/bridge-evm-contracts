@@ -25,7 +25,10 @@ contract TestBridgeManagement is BridgeManagementImpl {
         address _governor,
         address _securityGuard,
         address _funder
-    ) public reinitializer(1) {
+    )
+        public
+        reinitializer(1)
+    {
         // Set storage slots based on currently deployed contract's storage slot layout
         __Ownable_init(_owner);
 
@@ -49,9 +52,7 @@ contract TestBridgeManagement is BridgeManagementImpl {
     }
 
     // Authorize the contract owner to upgrade the contract for testing purposes.
-    function _authorizeUpgrade(
-        address newImplementation
-    ) internal virtual override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation) internal virtual override onlyOwner {}
 
     // This function can be used for verifying the initialized state of the contract
     function getCurrentInitializedVersion() external view returns (uint256) {

@@ -23,14 +23,12 @@ abstract contract BridgeStorageV1 is ReentrancyGuardUpgradeable {
     // Slot 101
     uint256 public unclaimedRewards;
     // Slot 102
-    mapping(uint256 nonce => StorageTypes.Claimable claimable)
-        public claimableGas;
+    mapping(uint256 nonce => StorageTypes.Claimable claimable) public claimableGas;
     // Slot 103
-    mapping(address tokenAddress => StorageTypes.TokenBridge tokenBridge)
-        public tokenBridges;
+    mapping(address tokenAddress => StorageTypes.TokenBridge tokenBridge) public tokenBridges;
     // Slot 104
-    mapping(address tokenAddress => mapping(uint256 nonce => StorageTypes.Claimable claimable) claimableTokens)
-        public tokenClaimables;
+    mapping(address tokenAddress => mapping(uint256 nonce => StorageTypes.Claimable claimable) claimableTokens) public
+        tokenClaimables;
     // Slots 105-113 (9 slots)
     StorageTypes.GasBridge public gasBridge;
 

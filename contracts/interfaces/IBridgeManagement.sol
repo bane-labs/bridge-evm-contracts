@@ -22,20 +22,11 @@ interface IBridgeManagement {
 
     // Validators
 
-    function addValidator(
-        address _validator,
-        bool _incrementThreshold
-    ) external;
+    function addValidator(address _validator, bool _incrementThreshold) external;
 
-    function removeValidator(
-        address _validator,
-        bool _decrementThreshold
-    ) external;
+    function removeValidator(address _validator, bool _decrementThreshold) external;
 
-    function replaceValidator(
-        address _oldValidator,
-        address _newValidator
-    ) external;
+    function replaceValidator(address _oldValidator, address _newValidator) external;
 
     function isValidator(address _validator) external view returns (bool);
 
@@ -48,7 +39,10 @@ interface IBridgeManagement {
     function verifyValidatorSignatures(
         bytes32 _newDepositRoot,
         BridgeLib.Signature[] calldata _signatures
-    ) external view returns (bool);
+    )
+        external
+        view
+        returns (bool);
 
     // Governor
 
