@@ -43,7 +43,7 @@ contract BridgeImplTest is Test, SigUtils {
         // The constructor only contains _disableInitializers() which is safe to bypass.
         Options memory opts;
         opts.unsafeAllow = "constructor";
-        // Deploy the bridge management implementation behind a UUPS proxy and initialize it with the provided parameters.
+        // Deploy the bridge management implementation and make sure it's initialized to the latest implementation.
         managementProxyAddress = Upgrades.deployUUPSProxy(
             "TestBridgeManagement.sol",
             abi.encodeCall(
@@ -53,20 +53,16 @@ contract BridgeImplTest is Test, SigUtils {
             opts
         );
         managementProxy = TestBridgeManagement(payable(managementProxyAddress));
-        vm.prank(owner);
-        managementProxy.upgradeToV2();
-        // Validate that the bridge proxy has been successfully deployed and upgraded to V2.
+        // Validate that the bridge proxy has been successfully deployed and initialized to version 2.
         assertEq(managementProxy.getCurrentInitializedVersion(), 2);
 
-        // Deploy the bridge including upgrade steps to V2.
+        // Deploy the bridge and make sure it's initialized to the latest implementation.
         bridgeProxyAddress = Upgrades.deployUUPSProxy(
             "TestBridge.sol", abi.encodeCall(TestBridge.initialize, (managementProxyAddress)), opts
         );
         bridgeProxy = TestBridge(payable(bridgeProxyAddress));
-        vm.prank(owner);
-        bridgeProxy.upgradeToV2(new BridgeImpl.TokenMigration[](0));
 
-        // Validate that the bridge proxy has been successfully deployed and upgraded to V2.
+        // Validate that the bridge proxy has been successfully deployed and initialized to version 2.
         assertEq(bridgeProxy.getCurrentInitializedVersion(), 2);
 
         validConfig = StorageTypes.TokenConfig({

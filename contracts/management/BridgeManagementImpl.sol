@@ -118,10 +118,4 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
     function getFunder() external view override returns (address) {
         return funder;
     }
-
-    // Migration functionality v.1.0.0 to v.2.0.0
-
-    function upgradeToV2() external virtual reinitializer(2) onlyAdmin {
-        _upgradeToV2();
-    }
 }

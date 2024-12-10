@@ -21,34 +21,6 @@ contract TestBridge is BridgeImpl {
         _;
     }
 
-    function initialize(address _management) public initializer {
-        __ReentrancyGuard_init();
-        management = IBridgeManagement(_management);
-        gasBridge = StorageTypes.GasBridge({
-            paused: false,
-            depositState: StorageTypes.State({nonce: 0, root: 0x0}),
-            withdrawalState: StorageTypes.State({nonce: 0, root: 0x0}),
-            config: StorageTypes.GasConfig({fee: 1e17, minAmount: 1e18, maxAmount: 1e22, maxDeposits: 100})
-        });
-    }
-
-    function upgradeToV2(TokenMigration[] calldata _tokenBridgeMigrations)
-        external
-        override
-        reinitializer(2)
-        onlyOwner
-    {
-        _upgradeToV2(_tokenBridgeMigrations);
-    }
-
-    // Authorize the contract owner to upgrade the contract for testing purposes.
-    function _authorizeUpgrade(address newImplementation) internal virtual override onlyOwner {}
-
-    // This function can be used for verifying the initialized state of the contract
-    function getCurrentInitializedVersion() external view returns (uint256) {
-        return InitializationLib._getInitializableStorageValue()._initialized;
-    }
-
     // Additional helper functions for testing purposes.
 
     function getTokenConfig(address neoXToken) public view returns (StorageTypes.TokenConfig memory config) {
@@ -109,5 +81,32 @@ contract TestBridge is BridgeImpl {
         returns (bytes32)
     {
         return TokenBridgeLib._computeNewTopRoot(_previousRoot, _neoN3Token, _neoXToken, _deposits);
+    }
+
+    //////////////////////////////
+    // Proxy and Initialization //
+    //////////////////////////////
+
+    // Authorize the contract owner to upgrade the contract for testing purposes.
+    function _authorizeUpgrade(address newImplementation) internal virtual override onlyOwner {}
+
+    // This function can be used for verifying the initialized state of the contract
+    function getCurrentInitializedVersion() external view returns (uint256) {
+        return InitializationLib._getInitializableStorageValue()._initialized;
+    }
+
+    // Previous initialization functions used to arrive at the current storage slot layout should be summarized here.
+    // The initialization version should reflect the latest release version of the contract that required a reinitialization.
+
+    // Allow non-admins to call the upgrade function for testing purposes.
+    function initialize(address _management) external reinitializer(2) {
+        __ReentrancyGuard_init();
+        management = IBridgeManagement(_management);
+        gasBridge = StorageTypes.GasBridge({
+            paused: false,
+            depositState: StorageTypes.State({nonce: 0, root: 0x0}),
+            withdrawalState: StorageTypes.State({nonce: 0, root: 0x0}),
+            config: StorageTypes.GasConfig({fee: 1e17, minAmount: 1e18, maxAmount: 1e22, maxDeposits: 100})
+        });
     }
 }

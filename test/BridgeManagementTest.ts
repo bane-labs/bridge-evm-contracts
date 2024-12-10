@@ -33,9 +33,6 @@ describe("Bridge Management", function () {
         await proxy.waitForDeployment();
         const bridgeManagementImpl = await ethers.getContractAt("TestBridgeManagement", await proxy.getAddress());
 
-        // Upgrade the bridge management contract to V2
-        await bridgeManagementImpl.connect(owner).upgradeToV2();
-
         return {
             bridgeManagementImpl,
             relayer,
@@ -54,6 +51,11 @@ describe("Bridge Management", function () {
     }
 
     describe("Deployment", function () {
+        it("Should be initialized to the correct version", async function () {
+            const { bridgeManagementImpl } = await loadFixture(deployBridgeFixture);
+            expect(await bridgeManagementImpl.getCurrentInitializedVersion()).to.equal(2);
+        });
+
         it("Should have the right relayer", async function () {
             const { bridgeManagementImpl, relayer } = await loadFixture(deployBridgeFixture);
             expect(await bridgeManagementImpl.getRelayer()).to.equal(relayer.address);
