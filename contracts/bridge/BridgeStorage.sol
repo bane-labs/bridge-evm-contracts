@@ -5,7 +5,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "../interfaces/IBridgeManagement.sol";
 import "../library/BridgeLib.sol";
 import "../library/StorageTypes.sol";
-import "../library/GasBridgeLib.sol";
+import "../library/NativeBridgeLib.sol";
 import "../library/TokenBridgeLib.sol";
 import "./BridgeStorageV1.sol";
 
@@ -20,8 +20,8 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     error BridgePaused();
     error BridgeNotPaused();
     error ExactFeeRequired(uint256 feeExpected, uint256 feeProvided);
-    error GasBridgePaused();
-    error GasBridgeNotPaused();
+    error NativeBridgePaused();
+    error NativeBridgeNotPaused();
     error InsufficientFee(uint256 minExpected, uint256 provided);
     error InvalidAddress();
     error InvalidAmount();
@@ -90,13 +90,13 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         _;
     }
 
-    modifier whenGasBridgeNotPaused() {
-        if (gasBridge.paused) revert GasBridgePaused();
+    modifier whenNativeBridgeNotPaused() {
+        if (nativeBridge.paused) revert NativeBridgePaused();
         _;
     }
 
-    modifier whenGasBridgePaused() {
-        if (!gasBridge.paused) revert GasBridgeNotPaused();
+    modifier whenNativeBridgePaused() {
+        if (!nativeBridge.paused) revert NativeBridgeNotPaused();
         _;
     }
 
@@ -139,69 +139,69 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         unclaimedRewards += _amount;
     }
 
-    // Gas Bridge functions
+    // Native Coin Bridge functions
 
-    function _pauseGasBridge() internal {
-        gasBridge.paused = true;
+    function _pauseNativeBridge() internal {
+        nativeBridge.paused = true;
     }
 
-    function _unpauseGasBridge() internal {
-        gasBridge.paused = false;
+    function _unpauseNativeBridge() internal {
+        nativeBridge.paused = false;
     }
 
-    function _addClaimableGas(uint256 _nonce, address _to, uint256 _amount) internal {
-        claimableGas[_nonce] = StorageTypes.Claimable({to: _to, amount: _amount});
+    function _addClaimableNative(uint256 _nonce, address _to, uint256 _amount) internal {
+        claimableNative[_nonce] = StorageTypes.Claimable({to: _to, amount: _amount});
     }
 
-    function _getGasClaimable(uint256 _nonce) internal view returns (StorageTypes.Claimable memory) {
-        return claimableGas[_nonce];
+    function _getNativeClaimable(uint256 _nonce) internal view returns (StorageTypes.Claimable memory) {
+        return claimableNative[_nonce];
     }
 
-    function _deleteGasClaimable(uint256 _nonce) internal {
-        delete claimableGas[_nonce];
+    function _deleteNativeClaimable(uint256 _nonce) internal {
+        delete claimableNative[_nonce];
     }
 
-    function _getGasBridgeConfig() internal view returns (StorageTypes.GasConfig memory config) {
-        return gasBridge.config;
+    function _getNativeBridgeConfig() internal view returns (StorageTypes.NativeConfig memory config) {
+        return nativeBridge.config;
     }
 
-    function _getGasBridgeDepositState() internal view returns (StorageTypes.State memory state) {
-        return gasBridge.depositState;
+    function _getNativeBridgeDepositState() internal view returns (StorageTypes.State memory state) {
+        return nativeBridge.depositState;
     }
 
-    function _setGasBridgeDepositState(StorageTypes.State memory state) internal {
-        gasBridge.depositState = state;
+    function _setNativeBridgeDepositState(StorageTypes.State memory state) internal {
+        nativeBridge.depositState = state;
     }
 
-    function _getGasBridgeWithdrawalState() internal view returns (StorageTypes.State memory state) {
-        return gasBridge.withdrawalState;
+    function _getNativeBridgeWithdrawalState() internal view returns (StorageTypes.State memory state) {
+        return nativeBridge.withdrawalState;
     }
 
-    function _setGasBridgeWithdrawalState(StorageTypes.State memory state) internal {
-        gasBridge.withdrawalState = state;
+    function _setNativeBridgeWithdrawalState(StorageTypes.State memory state) internal {
+        nativeBridge.withdrawalState = state;
     }
 
-    function _setGasWithdrawalFee(uint256 _fee) internal {
+    function _setNativeWithdrawalFee(uint256 _fee) internal {
         if (_fee == 0) revert InvalidFee();
         if ((_fee % 1e10) != 0) revert InvalidFee();
-        gasBridge.config.fee = _fee;
+        nativeBridge.config.fee = _fee;
     }
 
-    function _setGasWithdrawalMinAmount(uint256 _amount) internal {
+    function _setNativeWithdrawalMinAmount(uint256 _amount) internal {
         if ((_amount % 1e10) != 0) revert InvalidAmount();
-        if (_amount >= gasBridge.config.maxAmount) revert InvalidAmount();
-        gasBridge.config.minAmount = _amount;
+        if (_amount >= nativeBridge.config.maxAmount) revert InvalidAmount();
+        nativeBridge.config.minAmount = _amount;
     }
 
-    function _setGasWithdrawalMaxAmount(uint256 _amount) internal {
+    function _setNativeWithdrawalMaxAmount(uint256 _amount) internal {
         if ((_amount % 1e10) != 0) revert InvalidAmount();
-        if (_amount <= gasBridge.config.minAmount) revert InvalidAmount();
-        gasBridge.config.maxAmount = _amount;
+        if (_amount <= nativeBridge.config.minAmount) revert InvalidAmount();
+        nativeBridge.config.maxAmount = _amount;
     }
 
-    function _setMaxGasDeposits(uint256 _maxDeposits) internal {
+    function _setMaxNativeDeposits(uint256 _maxDeposits) internal {
         if (_maxDeposits == 0) revert InvalidAmount();
-        gasBridge.config.maxDeposits = _maxDeposits;
+        nativeBridge.config.maxDeposits = _maxDeposits;
     }
 
     // Token Bridge functions

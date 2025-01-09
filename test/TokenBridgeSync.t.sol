@@ -7,7 +7,7 @@ import {
     BridgeImpl,
     BridgeStorage,
     BridgeLib,
-    GasBridgeLib,
+    NativeBridgeLib,
     StorageTypes,
     TokenBridgeLib
 } from "../contracts/bridge/BridgeImpl.sol";

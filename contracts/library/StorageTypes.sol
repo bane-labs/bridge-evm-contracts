@@ -2,7 +2,7 @@
 pragma solidity 0.8.25;
 
 // Currently supported bridge types:
-// - Gas (native transfer)
+// - Native Coin (native transfer)
 // - Neo (ERC20 transfer)
 // - ERC20 (transfer(address to, uint256 value))
 // Future supported bridge types:
@@ -13,13 +13,13 @@ library StorageTypes {
         uint256 amount;
     }
 
-    // Gas Bridge
+    // Native Bridge
 
-    struct GasBridge {
+    struct NativeBridge {
         bool paused;
         State depositState;
         State withdrawalState;
-        GasConfig config;
+        NativeConfig config;
     }
 
     struct State {
@@ -27,7 +27,7 @@ library StorageTypes {
         bytes32 root;
     }
 
-    struct GasConfig {
+    struct NativeConfig {
         uint256 fee;
         uint256 minAmount;
         uint256 maxAmount;
