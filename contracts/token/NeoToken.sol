@@ -13,6 +13,7 @@ contract NeoToken is Initializable, ERC20Upgradeable, Ownable2StepUpgradeable, U
     string constant SYMBOL = "NEO";
     uint256 constant MAX_SUPPLY = 1e26;
 
+    //0x8a164f63
     error MaxSupplyExceeded();
 
     /// @custom:oz-upgrades-unsafe-allow constructor

@@ -15,35 +15,65 @@ import "./BridgeStorageV1.sol";
 abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     address public constant GOV_ADMIN = 0x1212000000000000000000000000000000000000;
 
+    //0xf6a1af31
     error AmountBelowMinAmount(uint256 minAmount, uint256 provided);
+    //0x030e0197
     error AmountExceedsMaxAmount(uint256 maxAmount, uint256 provided);
+    //0xa792dfa3
     error BridgePaused();
+    //0x733169a2
     error BridgeNotPaused();
+    //0x038d5f7b
     error ExactFeeRequired(uint256 feeExpected, uint256 feeProvided);
+    //0x3988a48c
     error NativeBridgePaused();
+    //0x00bb2a95
     error NativeBridgeNotPaused();
+    //0xa458261b
     error InsufficientFee(uint256 minExpected, uint256 provided);
+    //0xe6c4247b
     error InvalidAddress();
+    //0x2c5211c6
     error InvalidAmount();
+    //0xe7795849
     error InvalidDepositsLength();
+    //0x58d620b3
     error InvalidFee();
+    //0x1eb00b06
     error InvalidTokenAddress();
+    //0x07fe7bae
     error InvalidTokenConfig();
+    //0x2f352531
     error InvalidTransfer();
+    //0xd7c2b571
     error InvalidNonceSequence();
+    //0x504570e3
     error InvalidRoot();
+    //0xc48c8e48
     error InvalidValidatorSignatures();
+    //0xaa7feadc
     error InvalidValue();
+    //0xff633a38
     error LengthMismatch();
+    //0xa85293eb
     error MaxFeeExceeded(uint256 maxFeeAllowed, uint256 actualFee);
+    //0x79828e03
     error NoAuthorization();
+    //0x475a97bd
     error NonexistentClaimable();
+    //0x156f3496
     error TokenBridgeAlreadyRegistered(address neoXToken);
+    //0xa913676a
     error TokenBridgePaused(address neoXToken);
+    //0x817bff80
     error TokenBridgeNotPaused(address neoXToken);
+    //0x32febabe
     error TokenBridgeNotRegistered(address neoXToken);
+    //0x90b8ec18
     error TransferFailed();
+    //0x6022a9e7
     error WithdrawalsPaused();
+    //0x65b32663
     error WithdrawalsNotPaused();
 
     // Modifiers for Role Restriction

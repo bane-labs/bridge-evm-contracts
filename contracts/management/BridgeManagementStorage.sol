@@ -14,11 +14,17 @@ abstract contract BridgeManagementStorage is BridgeManagementStorageV1, UUPSUpgr
     uint256 private constant MIN_VALIDATOR_THRESHOLD = 2;
     uint256 private constant MIN_NR_VALIDATORS = 2;
 
+    //0x59615ad3
     error AlreadyValidator(address _validator);
+    //0xe6c4247b
     error InvalidAddress();
+    //0xed3db8ac
     error NotValidator(address _validator);
+    //0xc204d59d
     error MinValidatorsLimitReached();
+    //0x79257cdd
     error ValidatorThresholdTooLow();
+    //0x848ae3f3
     error ValidatorThresholdTooHigh();
 
     function _isValidator(address _validator) internal view returns (bool) {
