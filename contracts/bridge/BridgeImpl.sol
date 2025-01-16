@@ -4,11 +4,11 @@ pragma solidity 0.8.25;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../interfaces/IBridge.sol";
-import "../interfaces/IGasBridge.sol";
+import "../interfaces/INativeBridge.sol";
 import "../interfaces/ITokenBridge.sol";
 import "./BridgeStorage.sol";
 
-contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
+contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -46,21 +46,21 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         emit WithdrawalUnpause();
     }
 
-    // IGasBridge Implementation
+    // INativeBridge Implementation
 
-    function pauseGasBridge() external override onlyGovernorOrSecurityGuard whenGasBridgeNotPaused {
-        _pauseGasBridge();
-        emit GasBridgePause();
+    function pauseNativeBridge() external override onlyGovernorOrSecurityGuard whenNativeBridgeNotPaused {
+        _pauseNativeBridge();
+        emit NativeBridgePause();
     }
 
-    function unpauseGasBridge() external override onlyGovernor whenGasBridgePaused {
-        _unpauseGasBridge();
-        emit GasBridgeUnpause();
+    function unpauseNativeBridge() external override onlyGovernor whenNativeBridgePaused {
+        _unpauseNativeBridge();
+        emit NativeBridgeUnpause();
     }
 
     /**
-     * @notice Distributes Gas that has been locked on Neo N3.
-     * @dev The depositGas function is used to distribute Gas that has been locked on Neo N3.
+     * @notice Distributes native coins that have been locked on Neo N3.
+     * @dev The depositNative function is used to distribute native coins that have been locked on Neo N3.
      *      The deposits data need to be provided ordered based on their nonces.
      *      Before the deposits are distributed, the following steps are executed:
      *      - Check if the provided deposits are subsequent to the current nonce in storage and each other.
@@ -71,7 +71,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
      * @param _signatures the signatures of the validators. The signatures need to be ordered based on the order they have been stored in storage.
      * @param _deposits the deposit data.
      */
-    function depositGas(
+    function depositNative(
         bytes32 _depositRoot,
         BridgeLib.Signature[] calldata _signatures,
         BridgeLib.DepositData[] calldata _deposits
@@ -79,71 +79,74 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         external
         onlyRelayer
         whenBridgeNotPaused
-        whenGasBridgeNotPaused
+        whenNativeBridgeNotPaused
         nonReentrant
     {
-        StorageTypes.State memory state = _getGasBridgeDepositState();
-        StorageTypes.GasConfig memory config = _getGasBridgeConfig();
+        StorageTypes.State memory state = _getNativeBridgeDepositState();
+        StorageTypes.NativeConfig memory config = _getNativeBridgeConfig();
         uint256 depositLength = _deposits.length;
         if (depositLength == 0) revert InvalidDepositsLength();
         if (depositLength > config.maxDeposits) revert InvalidDepositsLength();
         if (!BridgeLib._subsequentNonces(_deposits, state.nonce)) revert InvalidNonceSequence();
-        if (GasBridgeLib._computeNewTopRoot(state.root, _deposits) != _depositRoot) revert InvalidRoot();
+        if (NativeBridgeLib._computeNewTopRoot(state.root, _deposits) != _depositRoot) revert InvalidRoot();
         if (!management.verifyValidatorSignatures(_depositRoot, _signatures)) revert InvalidValidatorSignatures();
 
-        _setGasBridgeDepositState(StorageTypes.State({nonce: _deposits[depositLength - 1].nonce, root: _depositRoot}));
-        emit GasDepositRootUpdate(_deposits[depositLength - 1].nonce, _depositRoot);
+        _setNativeBridgeDepositState(
+            StorageTypes.State({nonce: _deposits[depositLength - 1].nonce, root: _depositRoot})
+        );
+        emit NativeDepositRootUpdate(_deposits[depositLength - 1].nonce, _depositRoot);
 
         // Execution data interface
-        _executeGasTransfers(_deposits);
+        _executeNativeTransfers(_deposits);
     }
 
-    function _executeGasTransfers(BridgeLib.DepositData[] calldata _deposits) private {
+    function _executeNativeTransfers(BridgeLib.DepositData[] calldata _deposits) private {
         uint256 depositLength = _deposits.length;
         for (uint256 i = 0; i < depositLength; i++) {
             BridgeLib.DepositData calldata depositEntry = _deposits[i];
             address to = depositEntry.to;
             if (BridgeLib._isContract(to)) {
-                _addClaimableGas(depositEntry.nonce, to, depositEntry.amount);
-                emit GasClaimable(depositEntry.nonce, to, depositEntry.amount);
+                _addClaimableNative(depositEntry.nonce, to, depositEntry.amount);
+                emit NativeClaimable(depositEntry.nonce, to, depositEntry.amount);
             } else {
-                uint256 sendValue = GasBridgeLib._addTenDecimals(depositEntry.amount);
+                uint256 sendValue = NativeBridgeLib._addTenDecimals(depositEntry.amount);
                 (bool success,) = to.call{value: sendValue}("");
                 if (success) {
-                    emit GasDeposit(depositEntry.nonce, to, depositEntry.amount);
+                    emit NativeDeposit(depositEntry.nonce, to, depositEntry.amount);
                 } else {
-                    _addClaimableGas(depositEntry.nonce, to, depositEntry.amount);
-                    emit GasClaimable(depositEntry.nonce, to, depositEntry.amount);
+                    _addClaimableNative(depositEntry.nonce, to, depositEntry.amount);
+                    emit NativeClaimable(depositEntry.nonce, to, depositEntry.amount);
                 }
             }
         }
     }
 
     /**
-     * @notice Claim Gas that has been deposited to Neo X and was not distributed. Anyone can execute a claim. The funds of a claimable will be sent to the defined address in storage regardless of who claims it.
+     * @notice Claim native coins that have been deposited to this chain and was not distributed. Anyone can execute a claim. The funds of a claimable will be sent to the defined address in storage regardless of who claims it.
      * @param _nonce the nonce of the claimable.
      */
-    function claimGas(uint256 _nonce) external whenBridgeNotPaused whenGasBridgeNotPaused nonReentrant {
-        StorageTypes.Claimable memory claimable = _getGasClaimable(_nonce);
+    function claimNative(uint256 _nonce) external whenBridgeNotPaused whenNativeBridgeNotPaused nonReentrant {
+        StorageTypes.Claimable memory claimable = _getNativeClaimable(_nonce);
         uint256 amount = claimable.amount;
         address to = claimable.to;
         if (amount == 0) revert NonexistentClaimable();
         if (to == address(0)) revert NonexistentClaimable();
 
-        _deleteGasClaimable(_nonce);
-        uint256 sendValue = GasBridgeLib._addTenDecimals(amount);
+        _deleteNativeClaimable(_nonce);
+        uint256 sendValue = NativeBridgeLib._addTenDecimals(amount);
         (bool success,) = to.call{value: sendValue}("");
         if (!success) revert TransferFailed();
-        emit GasClaim(_nonce, to, amount);
+        emit NativeClaim(_nonce, to, amount);
     }
 
+    // Todo (mialbu): Add decimal to NativeConfig
     /**
-     * @notice Withdraw Gas to provided address on Neo N3. The provided amount of Gas after the fee deduction must have a precision of maximal 8 decimal points matching the 8 decimals of the GAS token on Neo N3.
-     * @dev When invoking this function provide the amount of Gas to withdraw to Neo N3 as msg.value.
-     * @param _to the address to which the Gas should be sent on Neo N3.
+     * @notice Withdraw native coins to the provided address on Neo N3. The provided amount of native coins after the fee deduction must have a precision of maximal 8 decimal points matching the 8 decimals of the GAS token on Neo N3.
+     * @dev When invoking this function provide the amount of native coins to withdraw to Neo N3 as msg.value.
+     * @param _to the address to which the native coin's representative should be sent on Neo N3.
      * @param _maxFee the maximum fee that the sender is willing to pay for the withdrawal. If the actual fee is higher than this value, the withdrawal is aborted.
      */
-    function withdrawGas(
+    function withdrawNative(
         address _to,
         uint256 _maxFee
     )
@@ -151,10 +154,10 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         payable
         whenBridgeNotPaused
         whenWithdrawalsNotPaused
-        whenGasBridgeNotPaused
+        whenNativeBridgeNotPaused
     {
         if (_to == address(0)) revert InvalidAddress();
-        StorageTypes.GasConfig memory config = _getGasBridgeConfig();
+        StorageTypes.NativeConfig memory config = _getNativeBridgeConfig();
         uint256 fee = config.fee;
         if (msg.value < fee) revert InsufficientFee(fee, msg.value); // Prevents underflow and provides clear feedback
         // Revert if the actual fee is higher than the provided max fee.
@@ -169,34 +172,34 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         if (withdrawalAmount > config.maxAmount) revert AmountExceedsMaxAmount(config.maxAmount, withdrawalAmount);
 
         // The actual withdrawal amount is the sent value minus the fee.
-        uint256 amountForHashing = GasBridgeLib._removeTenDecimals(withdrawalAmount);
+        uint256 amountForHashing = NativeBridgeLib._removeTenDecimals(withdrawalAmount);
 
-        StorageTypes.State memory state = _getGasBridgeWithdrawalState();
+        StorageTypes.State memory state = _getNativeBridgeWithdrawalState();
         uint256 newNonce = state.nonce + 1;
-        bytes32 withdrawalHash = GasBridgeLib._hashGasBrideOp(newNonce, _to, amountForHashing);
+        bytes32 withdrawalHash = NativeBridgeLib._hashNativeBrideOp(newNonce, _to, amountForHashing);
         bytes32 newRoot = BridgeLib._computeNewRoot(state.root, withdrawalHash);
-        _setGasBridgeWithdrawalState(StorageTypes.State({nonce: newNonce, root: newRoot}));
-        emit GasWithdrawal(newNonce, _to, amountForHashing, msg.sender, withdrawalHash, newRoot);
+        _setNativeBridgeWithdrawalState(StorageTypes.State({nonce: newNonce, root: newRoot}));
+        emit NativeWithdrawal(newNonce, _to, amountForHashing, msg.sender, withdrawalHash, newRoot);
     }
 
-    function setGasWithdrawalFee(uint256 _fee) external onlyGovernor {
-        _setGasWithdrawalFee(_fee);
-        emit GasWithdrawalFeeChange(_fee);
+    function setNativeWithdrawalFee(uint256 _fee) external onlyGovernor {
+        _setNativeWithdrawalFee(_fee);
+        emit NativeWithdrawalFeeChange(_fee);
     }
 
-    function setMinGasWithdrawalAmount(uint256 _amount) external onlyGovernor {
-        _setGasWithdrawalMinAmount(_amount);
-        emit MinGasWithdrawalChange(_amount);
+    function setMinNativeWithdrawalAmount(uint256 _amount) external onlyGovernor {
+        _setNativeWithdrawalMinAmount(_amount);
+        emit MinNativeWithdrawalChange(_amount);
     }
 
-    function setMaxGasWithdrawalAmount(uint256 _amount) external onlyGovernor {
-        _setGasWithdrawalMaxAmount(_amount);
-        emit MaxGasWithdrawalChange(_amount);
+    function setMaxNativeWithdrawalAmount(uint256 _amount) external onlyGovernor {
+        _setNativeWithdrawalMaxAmount(_amount);
+        emit MaxNativeWithdrawalChange(_amount);
     }
 
-    function setMaxGasDeposits(uint256 _maxNrDeposits) external onlyGovernor {
-        _setMaxGasDeposits(_maxNrDeposits);
-        emit MaxGasDepositsChange(_maxNrDeposits);
+    function setMaxNativeDeposits(uint256 _maxNrDeposits) external onlyGovernor {
+        _setMaxNativeDeposits(_maxNrDeposits);
+        emit MaxNativeDepositsChange(_maxNrDeposits);
     }
 
     // ITokenBridge Implementation

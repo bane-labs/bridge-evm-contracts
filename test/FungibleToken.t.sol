@@ -7,7 +7,7 @@ import {
     BridgeImpl,
     BridgeStorage,
     BridgeLib,
-    GasBridgeLib,
+    NativeBridgeLib,
     StorageTypes,
     TokenBridgeLib
 } from "../contracts/bridge/BridgeImpl.sol";
@@ -670,12 +670,12 @@ contract TestFungibleToken is Test, SigUtils {
         // Set an excess fee
         uint256 excessFee = 0.5 ether;
         uint256 providedFee = validConfigA.fee + excessFee;
-        uint256 gasBalanceBridgeBefore = address(bridgeProxy).balance;
+        uint256 nativeBalanceBridgeBefore = address(bridgeProxy).balance;
 
         vm.prank(transferUser0);
         bridgeProxy.withdrawToken{value: providedFee}(neoXTokenA, transferUser0, 100);
 
-        assertEq(address(bridgeProxy).balance, gasBalanceBridgeBefore + validConfigA.fee);
+        assertEq(address(bridgeProxy).balance, nativeBalanceBridgeBefore + validConfigA.fee);
         assertEq(bridgeProxy.unclaimedRewards(), validConfigA.fee);
     }
 
