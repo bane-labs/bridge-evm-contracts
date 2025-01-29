@@ -102,11 +102,15 @@ contract TestBridge is BridgeImpl {
     function initialize(address _management) external reinitializer(2) {
         __ReentrancyGuard_init();
         management = IBridgeManagement(_management);
-        nativeBridge = StorageTypes.NativeBridge({
+        nativeBridgeV2 = StorageTypes.NativeBridgeV2({
             paused: false,
             depositState: StorageTypes.State({nonce: 0, root: 0x0}),
             withdrawalState: StorageTypes.State({nonce: 0, root: 0x0}),
-            config: StorageTypes.NativeConfig({fee: 1e17, minAmount: 1e18, maxAmount: 1e22, maxDeposits: 100})
+            config: StorageTypes.NativeConfigV2({fee: 1e17, minAmount: 1e18, maxAmount: 1e22, maxDeposits: 100})
         });
+    }
+
+    function upgradeToV3() external override reinitializer(3) onlyOwner {
+        _upgradeToV3();
     }
 }

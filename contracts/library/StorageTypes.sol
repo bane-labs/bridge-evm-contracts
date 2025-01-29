@@ -15,11 +15,18 @@ library StorageTypes {
 
     // Native Bridge
 
-    struct NativeBridge {
+    struct NativeBridgeV2 {
         bool paused;
         State depositState;
         State withdrawalState;
-        NativeConfig config;
+        NativeConfigV2 config;
+    }
+
+    struct NativeBridgeV3 {
+        bool paused;
+        State depositState;
+        State withdrawalState;
+        NativeConfigV3 config;
     }
 
     struct State {
@@ -27,11 +34,19 @@ library StorageTypes {
         bytes32 root;
     }
 
-    struct NativeConfig {
+    struct NativeConfigV2 {
         uint256 fee;
         uint256 minAmount;
         uint256 maxAmount;
         uint256 maxDeposits; // This should be used by the validators to decide for which deposit to sign if there are lots of deposits in a single block on the source chain, e.g., if this value is 50 and on the source chain there's 60 deposits in a single block, the resulting roots of deposit 50 and 60 should be signed and provided to the relayer.
+    }
+
+    struct NativeConfigV3 {
+        uint256 fee;
+        uint256 minAmount;
+        uint256 maxAmount;
+        uint256 maxDeposits; // This should be used by the validators to decide for which deposit to sign if there are lots of deposits in a single block on the source chain, e.g., if this value is 50 and on the source chain there's 60 deposits in a single block, the resulting roots of deposit 50 and 60 should be signed and provided to the relayer.
+        uint256 decimalScalingFactor;
     }
 
     // Token Bridges

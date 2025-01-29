@@ -46,6 +46,8 @@ describe("Bridge Implementation", function () {
         const bridgeProxy = await upgrades.deployProxy(BridgeContractFactory, [await bridgeManagement.getAddress()], { kind: "uups", unsafeAllow: ["constructor"] });
         await bridgeProxy.waitForDeployment();
         const bridge = await ethers.getContractAt("TestBridge", await bridgeProxy.getAddress());
+        // Upgrade the bridge contract to V3
+        await bridge.connect(managementOwner).upgradeToV3();
 
         // Fund the bridge contract.
         await funder.sendTransaction({ to: bridge, value: ethers.parseEther("80.0") });
@@ -72,7 +74,7 @@ describe("Bridge Implementation", function () {
     describe("Deployment", function () {
         it("Bridge should be initialized to the correct version", async function () {
             const { bridgeContract } = await loadFixture(deployBridgeFixture);
-            expect(await bridgeContract.getCurrentInitializedVersion()).to.equal(2);
+            expect(await bridgeContract.getCurrentInitializedVersion()).to.equal(3);
         });
 
         it("Bridge Management should be initialized to the correct version", async function () {

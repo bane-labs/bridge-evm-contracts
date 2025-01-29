@@ -191,7 +191,7 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         delete claimableNative[_nonce];
     }
 
-    function _getNativeBridgeConfig() internal view returns (StorageTypes.NativeConfig memory config) {
+    function _getNativeBridgeConfig() internal view returns (StorageTypes.NativeConfigV3 memory config) {
         return nativeBridge.config;
     }
 

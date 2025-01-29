@@ -83,7 +83,7 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
         nonReentrant
     {
         StorageTypes.State memory state = _getNativeBridgeDepositState();
-        StorageTypes.NativeConfig memory config = _getNativeBridgeConfig();
+        StorageTypes.NativeConfigV3 memory config = _getNativeBridgeConfig();
         uint256 depositLength = _deposits.length;
         if (depositLength == 0) revert InvalidDepositsLength();
         if (depositLength > config.maxDeposits) revert InvalidDepositsLength();
@@ -97,10 +97,15 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
         emit NativeDepositRootUpdate(_deposits[depositLength - 1].nonce, _depositRoot);
 
         // Execution data interface
-        _executeNativeTransfers(_deposits);
+        _executeNativeTransfers(_deposits, config.decimalScalingFactor);
     }
 
-    function _executeNativeTransfers(BridgeLib.DepositData[] calldata _deposits) private {
+    function _executeNativeTransfers(
+        BridgeLib.DepositData[] calldata _deposits,
+        uint256 _decimalScalingFactor
+    )
+        private
+    {
         uint256 depositLength = _deposits.length;
         for (uint256 i = 0; i < depositLength; i++) {
             BridgeLib.DepositData calldata depositEntry = _deposits[i];
@@ -109,7 +114,7 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
                 _addClaimableNative(depositEntry.nonce, to, depositEntry.amount);
                 emit NativeClaimable(depositEntry.nonce, to, depositEntry.amount);
             } else {
-                uint256 sendValue = NativeBridgeLib._addTenDecimals(depositEntry.amount);
+                uint256 sendValue = depositEntry.amount * (10 ** _decimalScalingFactor);
                 (bool success,) = to.call{value: sendValue}("");
                 if (success) {
                     emit NativeDeposit(depositEntry.nonce, to, depositEntry.amount);
@@ -133,7 +138,7 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
         if (to == address(0)) revert NonexistentClaimable();
 
         _deleteNativeClaimable(_nonce);
-        uint256 sendValue = NativeBridgeLib._addTenDecimals(amount);
+        uint256 sendValue = amount * (10 ** _getNativeBridgeConfig().decimalScalingFactor);
         (bool success,) = to.call{value: sendValue}("");
         if (!success) revert TransferFailed();
         emit NativeClaim(_nonce, to, amount);
@@ -157,13 +162,14 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
         whenNativeBridgeNotPaused
     {
         if (_to == address(0)) revert InvalidAddress();
-        StorageTypes.NativeConfig memory config = _getNativeBridgeConfig();
+        StorageTypes.NativeConfigV3 memory config = _getNativeBridgeConfig();
         uint256 fee = config.fee;
         if (msg.value < fee) revert InsufficientFee(fee, msg.value); // Prevents underflow and provides clear feedback
         // Revert if the actual fee is higher than the provided max fee.
         if (fee > _maxFee) revert MaxFeeExceeded(_maxFee, fee);
         _addUnclaimedRewards(fee);
 
+        // The actual withdrawal amount is the sent value minus the fee.
         uint256 withdrawalAmount = msg.value - fee;
         // Revert if the withdrawal amount is not a multiple of 1e10, matching the 8 decimals of Gas on Neo N3.
         if ((withdrawalAmount % 1e10) != 0) revert InvalidAmount();
@@ -171,8 +177,7 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
         if (withdrawalAmount < config.minAmount) revert AmountBelowMinAmount(config.minAmount, withdrawalAmount);
         if (withdrawalAmount > config.maxAmount) revert AmountExceedsMaxAmount(config.maxAmount, withdrawalAmount);
 
-        // The actual withdrawal amount is the sent value minus the fee.
-        uint256 amountForHashing = NativeBridgeLib._removeTenDecimals(withdrawalAmount);
+        uint256 amountForHashing = withdrawalAmount / (10 ** config.decimalScalingFactor);
 
         StorageTypes.State memory state = _getNativeBridgeWithdrawalState();
         uint256 newNonce = state.nonce + 1;
@@ -536,5 +541,11 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
             _setMaxTokenDeposits(_neoXTokens[i], maxDeposits);
             emit MaxTokenDepositsChange(_neoXTokens[i], maxDeposits);
         }
+    }
+
+    // Migration functionality v2 to v3
+
+    function upgradeToV3() external virtual reinitializer(3) onlyAdmin {
+        _upgradeToV3();
     }
 }
