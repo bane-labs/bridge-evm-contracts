@@ -171,8 +171,8 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
 
         // The actual withdrawal amount is the sent value minus the fee.
         uint256 withdrawalAmount = msg.value - fee;
-        // Revert if the withdrawal amount is not a multiple of 1e10, matching the 8 decimals of Gas on Neo N3.
-        if ((withdrawalAmount % 1e10) != 0) revert InvalidAmount();
+        // Revert if the withdrawal amount does not match the required decimal scaling factor.
+        if ((withdrawalAmount % (10 ** config.decimalScalingFactor)) != 0) revert InvalidAmount();
         // Revert if the withdrawal amount is outside the allowed range.
         if (withdrawalAmount < config.minAmount) revert AmountBelowMinAmount(config.minAmount, withdrawalAmount);
         if (withdrawalAmount > config.maxAmount) revert AmountExceedsMaxAmount(config.maxAmount, withdrawalAmount);

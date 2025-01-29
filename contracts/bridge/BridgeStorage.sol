@@ -213,18 +213,18 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
 
     function _setNativeWithdrawalFee(uint256 _fee) internal {
         if (_fee == 0) revert InvalidFee();
-        if ((_fee % 1e10) != 0) revert InvalidFee();
+        if ((_fee % (10 ** nativeBridge.config.decimalScalingFactor)) != 0) revert InvalidFee();
         nativeBridge.config.fee = _fee;
     }
 
     function _setNativeWithdrawalMinAmount(uint256 _amount) internal {
-        if ((_amount % 1e10) != 0) revert InvalidAmount();
+        if ((_amount % (10 ** nativeBridge.config.decimalScalingFactor)) != 0) revert InvalidAmount();
         if (_amount >= nativeBridge.config.maxAmount) revert InvalidAmount();
         nativeBridge.config.minAmount = _amount;
     }
 
     function _setNativeWithdrawalMaxAmount(uint256 _amount) internal {
-        if ((_amount % 1e10) != 0) revert InvalidAmount();
+        if ((_amount % (10 ** nativeBridge.config.decimalScalingFactor)) != 0) revert InvalidAmount();
         if (_amount <= nativeBridge.config.minAmount) revert InvalidAmount();
         nativeBridge.config.maxAmount = _amount;
     }
