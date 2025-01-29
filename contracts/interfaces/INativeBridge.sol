@@ -23,6 +23,16 @@ interface INativeBridge {
     event MaxNativeWithdrawalChange(uint256 amount);
     event MaxNativeDepositsChange(uint256 amount);
 
+    function setNativeBridge(
+        uint256 _fee,
+        uint256 _minAmount,
+        uint256 _maxAmount,
+        uint256 _maxDeposits,
+        uint256 _decimalsHere,
+        uint256 _decimalsOnN3
+    )
+        external;
+
     function pauseNativeBridge() external;
 
     function unpauseNativeBridge() external;

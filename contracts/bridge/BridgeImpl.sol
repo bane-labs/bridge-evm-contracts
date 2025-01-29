@@ -48,12 +48,33 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
 
     // INativeBridge Implementation
 
-    function pauseNativeBridge() external override onlyGovernorOrSecurityGuard whenNativeBridgeNotPaused {
+    function setNativeBridge(
+        uint256 _fee,
+        uint256 _minAmount,
+        uint256 _maxAmount,
+        uint256 _maxDeposits,
+        uint256 _decimalsHere,
+        uint256 _decimalsOnN3
+    )
+        external
+        onlyGovernor
+        onlyIfNativeBridgeNotSet
+    {
+        _setNativeBridge(_fee, _minAmount, _maxAmount, _maxDeposits, _decimalsHere, _decimalsOnN3);
+    }
+
+    function pauseNativeBridge()
+        external
+        override
+        onlyGovernorOrSecurityGuard
+        onlyIfNativeBridgeSet
+        whenNativeBridgeNotPaused
+    {
         _pauseNativeBridge();
         emit NativeBridgePause();
     }
 
-    function unpauseNativeBridge() external override onlyGovernor whenNativeBridgePaused {
+    function unpauseNativeBridge() external override onlyGovernor onlyIfNativeBridgeSet whenNativeBridgePaused {
         _unpauseNativeBridge();
         emit NativeBridgeUnpause();
     }
@@ -79,6 +100,7 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
         external
         onlyRelayer
         whenBridgeNotPaused
+        onlyIfNativeBridgeSet
         whenNativeBridgeNotPaused
         nonReentrant
     {
@@ -130,7 +152,13 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
      * @notice Claim native coins that have been deposited to this chain and was not distributed. Anyone can execute a claim. The funds of a claimable will be sent to the defined address in storage regardless of who claims it.
      * @param _nonce the nonce of the claimable.
      */
-    function claimNative(uint256 _nonce) external whenBridgeNotPaused whenNativeBridgeNotPaused nonReentrant {
+    function claimNative(uint256 _nonce)
+        external
+        whenBridgeNotPaused
+        onlyIfNativeBridgeSet
+        whenNativeBridgeNotPaused
+        nonReentrant
+    {
         StorageTypes.Claimable memory claimable = _getNativeClaimable(_nonce);
         uint256 amount = claimable.amount;
         address to = claimable.to;
@@ -159,6 +187,7 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
         payable
         whenBridgeNotPaused
         whenWithdrawalsNotPaused
+        onlyIfNativeBridgeSet
         whenNativeBridgeNotPaused
     {
         if (_to == address(0)) revert InvalidAddress();

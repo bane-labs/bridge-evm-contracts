@@ -63,6 +63,10 @@ contract BridgeImplTest is Test, SigUtils {
         bridgeProxy = TestBridge(payable(bridgeProxyAddress));
         vm.prank(owner);
         bridgeProxy.upgradeToV3();
+        vm.prank(governor);
+        bridgeProxy.setNativeBridge(1e17, 1e18, 1e22, 100, 18, 8);
+        vm.prank(governor);
+        bridgeProxy.unpauseNativeBridge();
 
         // Validate that the bridge proxy has been successfully deployed and initialized to version 3.
         assertEq(bridgeProxy.getCurrentInitializedVersion(), 3);

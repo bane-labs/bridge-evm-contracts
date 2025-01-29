@@ -48,6 +48,9 @@ describe("Bridge Implementation", function () {
         const bridge = await ethers.getContractAt("TestBridge", await bridgeProxy.getAddress());
         // Upgrade the bridge contract to V3
         await bridge.connect(managementOwner).upgradeToV3();
+        // Only use setNativeBridge on v3.
+        await bridge.connect(governor).setNativeBridge(ethers.parseEther("0.1"), ethers.parseEther("1"), ethers.parseEther("10000"), 100, 18, 8);
+        await bridge.connect(governor).unpauseNativeBridge();
 
         // Fund the bridge contract.
         await funder.sendTransaction({ to: bridge, value: ethers.parseEther("80.0") });
