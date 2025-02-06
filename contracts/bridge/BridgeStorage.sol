@@ -57,6 +57,10 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     error LengthMismatch();
     //0xa85293eb
     error MaxFeeExceeded(uint256 maxFeeAllowed, uint256 actualFee);
+    //0x5df7f28a
+    error NativeBridgeAlreadySet();
+    //0x2e56a1ef
+    error NativeBridgeNotSet();
     //0x79828e03
     error NoAuthorization();
     //0x475a97bd
@@ -120,6 +124,16 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         _;
     }
 
+    modifier onlyIfNativeBridgeSet() {
+        if (nativeBridge.config.maxAmount == 0) revert NativeBridgeNotSet();
+        _;
+    }
+
+    modifier onlyIfNativeBridgeNotSet() {
+        if (nativeBridge.config.maxAmount != 0) revert NativeBridgeAlreadySet();
+        _;
+    }
+
     modifier whenNativeBridgeNotPaused() {
         if (nativeBridge.paused) revert NativeBridgePaused();
         _;
@@ -170,6 +184,37 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     }
 
     // Native Coin Bridge functions
+
+    function _setNativeBridge(
+        uint256 _fee,
+        uint256 _minAmount,
+        uint256 _maxAmount,
+        uint256 _maxDeposits,
+        uint256 _decimalsHere,
+        uint256 _decimalsOnN3
+    )
+        internal
+    {
+        if (_fee == 0) revert InvalidFee();
+        if (_maxAmount == 0 || _minAmount >= _maxAmount) revert InvalidAmount();
+        if (_maxDeposits == 0) revert InvalidValue();
+        if (_decimalsHere > 36 || _decimalsOnN3 > 36) revert InvalidValue();
+
+        uint256 decimalScalingFactor = 0;
+        if (_decimalsHere > _decimalsOnN3) decimalScalingFactor = _decimalsHere - _decimalsOnN3;
+        nativeBridge = StorageTypes.NativeBridgeV3({
+            paused: true,
+            depositState: StorageTypes.State({nonce: 0, root: 0x0}),
+            withdrawalState: StorageTypes.State({nonce: 0, root: 0x0}),
+            config: StorageTypes.NativeConfigV3({
+                fee: _fee,
+                minAmount: _minAmount,
+                maxAmount: _maxAmount,
+                maxDeposits: _maxDeposits,
+                decimalScalingFactor: decimalScalingFactor
+            })
+        });
+    }
 
     function _pauseNativeBridge() internal {
         nativeBridge.paused = true;
@@ -225,7 +270,7 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
 
     function _setNativeWithdrawalMaxAmount(uint256 _amount) internal {
         if ((_amount % (10 ** nativeBridge.config.decimalScalingFactor)) != 0) revert InvalidAmount();
-        if (_amount <= nativeBridge.config.minAmount) revert InvalidAmount();
+        if (_amount == 0 || _amount <= nativeBridge.config.minAmount) revert InvalidAmount();
         nativeBridge.config.maxAmount = _amount;
     }
 
