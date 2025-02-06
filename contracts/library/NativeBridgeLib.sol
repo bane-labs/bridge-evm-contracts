@@ -25,14 +25,4 @@ library NativeBridgeLib {
     function _hashNativeBrideOp(uint256 _nonce, address _to, uint256 _amount) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(_nonce, _to, _amount));
     }
-
-    // Adds 10 decimals to the amount. GasToken originally has 8 decimals and on this chain it has 18 decimals.
-    function _addTenDecimals(uint256 _value) internal pure returns (uint256) {
-        return _value * 1e10;
-    }
-
-    // Removes 10 decimal points from the amount. GasToken originally has 8 decimals and on this chain it has 18 decimals.
-    function _removeTenDecimals(uint256 _value) internal pure returns (uint256) {
-        return _value / 1e10;
-    }
 }

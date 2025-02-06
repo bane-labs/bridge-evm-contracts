@@ -87,8 +87,11 @@ contract TestFungibleToken is Test, SigUtils {
             "TestBridge.sol", abi.encodeCall(TestBridge.initialize, (managementProxyAddress)), opts
         );
         bridgeProxy = TestBridge(payable(bridgeProxyAddress));
-        // Validate that the bridge proxy has been successfully deployed and initialized to version 2.
-        assertEq(bridgeProxy.getCurrentInitializedVersion(), 2);
+        vm.prank(owner);
+        bridgeProxy.upgradeToV3();
+
+        // Validate that the bridge proxy has been successfully deployed and initialized to version 3.
+        assertEq(bridgeProxy.getCurrentInitializedVersion(), 3);
 
         neoXTokenA = address(new MockERC20("MockA", "MA"));
         neoXTokenB = address(new MockERC20("MockB", "MB"));
