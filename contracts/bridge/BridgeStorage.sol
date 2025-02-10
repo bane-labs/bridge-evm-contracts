@@ -125,12 +125,12 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     }
 
     modifier onlyIfNativeBridgeSet() {
-        if (nativeBridge.config.maxAmount == 0) revert NativeBridgeNotSet();
+        if (!_nativeBridgeIsSet()) revert NativeBridgeNotSet();
         _;
     }
 
     modifier onlyIfNativeBridgeNotSet() {
-        if (nativeBridge.config.maxAmount != 0) revert NativeBridgeAlreadySet();
+        if (_nativeBridgeIsSet()) revert NativeBridgeAlreadySet();
         _;
     }
 
@@ -184,6 +184,10 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     }
 
     // Native Coin Bridge functions
+
+    function _nativeBridgeIsSet() internal view returns (bool) {
+        return nativeBridge.config.maxAmount != 0;
+    }
 
     function _setNativeBridge(
         uint256 _fee,
