@@ -287,7 +287,7 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
 
         // Add token bridge to storage
         tokenBridges[_neoXToken] = StorageTypes.TokenBridge({
-            paused: false,
+            paused: true,
             depositState: StorageTypes.State({nonce: 0, root: 0x0}),
             withdrawalState: StorageTypes.State({nonce: 0, root: 0x0}),
             config: _tokenConfig
