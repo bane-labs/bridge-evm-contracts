@@ -53,8 +53,10 @@ contract BridgeImplTest is Test, SigUtils {
             opts
         );
         managementProxy = TestBridgeManagement(payable(managementProxyAddress));
-        // Validate that the bridge proxy has been successfully deployed and initialized to version 2.
-        assertEq(managementProxy.getCurrentInitializedVersion(), 2);
+        vm.prank(owner);
+        managementProxy.upgradeToV3();
+        // Validate that the bridge proxy has been successfully deployed and initialized to version 3.
+        assertEq(managementProxy.getCurrentInitializedVersion(), 3);
 
         // Deploy the bridge and make sure it's initialized to the latest implementation.
         bridgeProxyAddress = Upgrades.deployUUPSProxy(

@@ -32,6 +32,8 @@ describe("Bridge Management", function () {
         ], { kind: "uups", unsafeAllow: ["constructor"] });
         await proxy.waitForDeployment();
         const bridgeManagementImpl = await ethers.getContractAt("TestBridgeManagement", await proxy.getAddress());
+        // Upgrade the bridge management contract to V3
+        await bridgeManagementImpl.connect(owner).upgradeToV3();
 
         return {
             bridgeManagementImpl,

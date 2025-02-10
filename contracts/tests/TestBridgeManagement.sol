@@ -59,4 +59,8 @@ contract TestBridgeManagement is BridgeManagementImpl {
         }
         validatorThreshold = _validatorThreshold;
     }
+
+    function upgradeToV3() external override reinitializer(3) onlyOwner {
+        _upgradeToV3();
+    }
 }
