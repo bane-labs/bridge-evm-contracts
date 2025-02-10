@@ -81,6 +81,13 @@ contract BridgeImplTest is Test, SigUtils {
         });
     }
 
+    function registerTokenAndUnpause(address token, StorageTypes.TokenConfig memory config) public {
+        vm.prank(governor);
+        bridgeProxy.registerToken(token, config);
+        vm.prank(governor);
+        bridgeProxy.unpauseTokenBridge(token);
+    }
+
     // test case: successful register token bridge, check result and event
     function testRegisterToken() public {
         // check register token successful event
@@ -185,8 +192,7 @@ contract BridgeImplTest is Test, SigUtils {
 
     // test case: successful pause token bridge, check result and event
     function testPauseTokenBridge() public {
-        vm.prank(governor);
-        bridgeProxy.registerToken(neoXToken, validConfig);
+        registerTokenAndUnpause(neoXToken, validConfig);
         bool tokenBridgePaused = bridgeProxy.getTokenbridgePaused(neoXToken);
         // Ensure the token bridge is not paused
         assertFalse(tokenBridgePaused);
@@ -207,8 +213,7 @@ contract BridgeImplTest is Test, SigUtils {
 
     // test case: pause token when token is already paused
     function test_PauseTokenBridgeWhenAlreadyPaused() public {
-        vm.prank(governor);
-        bridgeProxy.registerToken(neoXToken, validConfig);
+        registerTokenAndUnpause(neoXToken, validConfig);
         // Pause the token bridge first
         vm.prank(securityGuard);
         bridgeProxy.pauseTokenBridge(neoXToken);
@@ -240,8 +245,7 @@ contract BridgeImplTest is Test, SigUtils {
 
     // test case: successful unpause token bridge, check result and event
     function testUnpauseTokenBridge() public {
-        vm.prank(governor);
-        bridgeProxy.registerToken(neoXToken, validConfig);
+        registerTokenAndUnpause(neoXToken, validConfig);
         bool tokenBridgePaused = bridgeProxy.getTokenbridgePaused(neoXToken);
         // Ensure the token bridge is not paused
         assertFalse(tokenBridgePaused);
@@ -269,8 +273,7 @@ contract BridgeImplTest is Test, SigUtils {
     // test case: unpause token bridge when token bridge is not paused
     function test_UnpauseTokenBridgeWhenNotPaused() public {
         // Ensure the token bridge is not paused
-        vm.prank(governor);
-        bridgeProxy.registerToken(neoXToken, validConfig);
+        registerTokenAndUnpause(neoXToken, validConfig);
         bool tokenBridgePaused = bridgeProxy.getTokenbridgePaused(neoXToken);
         // Ensure the token bridge is not paused
         assertFalse(tokenBridgePaused);
@@ -293,8 +296,7 @@ contract BridgeImplTest is Test, SigUtils {
     function test_UnpauseTokenBridgeByNonGovernor() public {
         vm.prank(governor);
         bridgeProxy.registerToken(neoXToken, validConfig);
-        vm.prank(securityGuard);
-        bridgeProxy.pauseTokenBridge(neoXToken);
+        assertTrue(bridgeProxy.getTokenbridgePaused(neoXToken));
 
         // Attempt to unpause the token bridge by a non-governor
         address nonGovernor = address(0x222);

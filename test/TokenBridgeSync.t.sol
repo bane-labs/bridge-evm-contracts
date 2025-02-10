@@ -121,6 +121,8 @@ contract TokenBridgeSyncTest is Test, SigUtils {
 
         vm.prank(governor);
         bridgeProxy.registerToken(neoXNeoToken, neoBridgeConfig);
+        vm.prank(governor);
+        bridgeProxy.unpauseTokenBridge(neoXNeoToken);
     }
 
     // Get the correct signatures of the five validators
