@@ -20,12 +20,12 @@ export async function deployBridge(managementAddress: string, deployer: Wallet, 
     console.log("Bridge Logic Address:     ", await upgrades.erc1967.getImplementationAddress(await bridge.getAddress()));
 
     console.log("\n# Bridge Configuration");
-    console.log("Linked Management:       ", await bridge.management());
-    const gasBridge = await bridge.gasBridge();
-    console.log("Gas Bridge Fee:          ", ethers.formatEther(gasBridge.config.fee));
-    console.log("Gas Bridge Min Amount:   ", ethers.formatEther(gasBridge.config.minAmount));
-    console.log("Gas Bridge Max Amount:   ", ethers.formatEther(gasBridge.config.maxAmount));
-    console.log("Gas Bridge Max Deposits: ", gasBridge.config.maxDeposits.toString());
+    console.log("Linked Management:          ", await bridge.management());
+    const nativeBridge = await bridge.nativeBridge();
+    console.log("Native Bridge Fee:          ", ethers.formatEther(nativeBridge.config.fee));
+    console.log("Native Bridge Min Amount:   ", ethers.formatEther(nativeBridge.config.minAmount));
+    console.log("Native Bridge Max Amount:   ", ethers.formatEther(nativeBridge.config.maxAmount));
+    console.log("Native Bridge Max Deposits: ", nativeBridge.config.maxDeposits.toString());
     return bridge;
 }
 
