@@ -84,8 +84,10 @@ contract TokenBridgeSyncTest is Test, SigUtils {
             opts
         );
         managementProxy = TestBridgeManagement(managementProxyAddress);
-        // Validate that the management proxy has been successfully deployed and initialized to version 2.
-        assertEq(managementProxy.getCurrentInitializedVersion(), 2);
+        vm.prank(owner);
+        managementProxy.upgradeToV3();
+        // Validate that the management proxy has been successfully deployed and initialized to version 3.
+        assertEq(managementProxy.getCurrentInitializedVersion(), 3);
 
         // Deploy the bridge and make sure it's initialized to the latest implementation.
         bridgeProxyAddress = Upgrades.deployUUPSProxy(

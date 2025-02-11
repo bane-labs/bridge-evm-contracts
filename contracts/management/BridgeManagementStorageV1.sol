@@ -19,8 +19,7 @@ abstract contract BridgeManagementStorageV1 is Ownable2StepUpgradeable {
     uint256 internal validatorThreshold;
 
     // Slot 102 - in slot 102 the size of the address array is stored. The first value is stored at keccak256(uint256(104)) and the rest are stored in subsequent slots.
-    // Deprecated in V2
-    address[] internal _v1_validators; // Todo: The values in this array should be removed when upgrading to version 3.
+    address[] internal _v1_validators; // Deprecated in v2 (deleted in v3 upgrade)
 
     // Slot 103
     address internal governor;
@@ -33,4 +32,10 @@ abstract contract BridgeManagementStorageV1 is Ownable2StepUpgradeable {
 
     // Slot 106-107
     EnumerableSet.AddressSet internal validatorSet;
+
+    function _upgradeToV3() internal onlyInitializing {
+        // The _v1_validators array was deprecated in v2. However, it was not deleted in the v2 upgrade function.
+        // The slots should not be non-zero if they're no longer used, thus, they are emptied now in this upgrade.
+        delete _v1_validators;
+    }
 }
