@@ -23,6 +23,8 @@ interface INativeBridge {
     event MaxNativeWithdrawalChange(uint256 amount);
     event MaxNativeDepositsChange(uint256 amount);
 
+    function nativeBridgeIsSet() external view returns (bool);
+
     function setNativeBridge(
         uint256 _fee,
         uint256 _minAmount,

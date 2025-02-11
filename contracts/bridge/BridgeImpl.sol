@@ -48,6 +48,10 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
 
     // INativeBridge Implementation
 
+    function nativeBridgeIsSet() external view returns (bool) {
+        return _nativeBridgeIsSet();
+    }
+
     function setNativeBridge(
         uint256 _fee,
         uint256 _minAmount,
