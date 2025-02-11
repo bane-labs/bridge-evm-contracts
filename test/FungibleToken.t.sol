@@ -165,11 +165,17 @@ contract TestFungibleToken is Test, SigUtils {
         return _signatures;
     }
 
+    function registerTokenAndUnpause(address token, StorageTypes.TokenConfig memory config) public {
+        vm.prank(governor);
+        bridgeProxy.registerToken(token, config);
+        vm.prank(governor);
+        bridgeProxy.unpauseTokenBridge(token);
+    }
+
     // test case: successful deposit token, token type is ERC20, Let's call it deposit token A, takes the signatures of the first 5 validators，and check the event
     function testDepositTokenA() public {
         MockERC20(neoXTokenA).mint(address(bridgeProxy), 100 ether);
-        vm.prank(governor);
-        bridgeProxy.registerToken(neoXTokenA, validConfigA);
+        registerTokenAndUnpause(neoXTokenA, validConfigA);
         BridgeLib.DepositData[] memory depositData = new BridgeLib.DepositData[](2);
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({to: payable(transferUser0), amount: 700, nonce: 1});
         BridgeLib.DepositData memory d1 = BridgeLib.DepositData({to: payable(transferUser1), amount: 800, nonce: 2});
@@ -198,8 +204,7 @@ contract TestFungibleToken is Test, SigUtils {
         // managementProxy.setValidators(validatorsAddresses, 6);
 
         MockERC20(neoXTokenB).mint(address(bridgeProxy), 1000 ether);
-        vm.prank(governor);
-        bridgeProxy.registerToken(neoXTokenB, validConfigB);
+        registerTokenAndUnpause(neoXTokenB, validConfigB);
         BridgeLib.DepositData[] memory depositData = new BridgeLib.DepositData[](2);
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({to: payable(transferUser0), amount: 355, nonce: 1});
         BridgeLib.DepositData memory d1 = BridgeLib.DepositData({to: payable(transferUser1), amount: 445, nonce: 2});
@@ -232,8 +237,7 @@ contract TestFungibleToken is Test, SigUtils {
         vm.prank(owner);
         managementProxy.setValidatorThreshold(7);
         // managementProxy.setValidators(validatorsAddresses, 7);
-        vm.prank(governor);
-        bridgeProxy.registerToken(neoXTokenA, validConfigA);
+        registerTokenAndUnpause(neoXTokenA, validConfigA);
         BridgeLib.DepositData[] memory depositData = new BridgeLib.DepositData[](2);
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({to: payable(transferUser0), amount: 199, nonce: 1});
         BridgeLib.DepositData memory d1 = BridgeLib.DepositData({to: payable(transferUser1), amount: 299, nonce: 2});
@@ -280,8 +284,7 @@ contract TestFungibleToken is Test, SigUtils {
 
     // some test case, token type is NEO, Let's call it claim token B, takes the signatures of the random 5 validators
     function testClaimTokenB() public {
-        vm.prank(governor);
-        bridgeProxy.registerToken(neoXTokenB, validConfigB);
+        registerTokenAndUnpause(neoXTokenB, validConfigB);
         BridgeLib.DepositData[] memory depositData = new BridgeLib.DepositData[](2);
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({to: payable(transferUser0), amount: 438, nonce: 1});
         BridgeLib.DepositData memory d1 = BridgeLib.DepositData({to: payable(transferUser1), amount: 439, nonce: 2});
@@ -331,8 +334,7 @@ contract TestFungibleToken is Test, SigUtils {
     // test case: successful withdraw token, token type is ERC20, Let's call it withdraw token A
     function testWithdrawTokenA() public {
         assertEq(bridgeProxy.isRegisteredToken(neoXTokenA), false);
-        vm.prank(governor);
-        bridgeProxy.registerToken(neoXTokenA, validConfigA);
+        registerTokenAndUnpause(neoXTokenA, validConfigA);
         uint256 balance = 1000;
         MockERC20(neoXTokenA).mint(transferUser0, balance);
         MockERC20(neoXTokenA).mint(transferUser1, balance);
@@ -357,8 +359,7 @@ contract TestFungibleToken is Test, SigUtils {
     // test case: successful withdraw token, token type is NEO, Let's call it withdraw token B
     function testWithdrawTokenB() public {
         assertEq(bridgeProxy.isRegisteredToken(neoXTokenB), false);
-        vm.prank(governor);
-        bridgeProxy.registerToken(neoXTokenB, validConfigB);
+        registerTokenAndUnpause(neoXTokenB, validConfigB);
         uint256 balance = 1000 ether;
         MockERC20(neoXTokenB).mint(transferUser0, balance);
         MockERC20(neoXTokenB).mint(transferUser1, balance);
@@ -415,8 +416,7 @@ contract TestFungibleToken is Test, SigUtils {
     // test case: successful withdraw token, token type is NEO, Let's call it withdraw token B
     function test_DepositTokenWithInvalidNonceSequence() public {
         MockERC20(neoXTokenA).mint(address(bridgeProxy), 100 ether);
-        vm.prank(governor);
-        bridgeProxy.registerToken(neoXTokenA, validConfigA);
+        registerTokenAndUnpause(neoXTokenA, validConfigA);
         BridgeLib.DepositData[] memory depositData = new BridgeLib.DepositData[](2);
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({to: payable(transferUser0), amount: 100, nonce: 2});
         BridgeLib.DepositData memory d1 = BridgeLib.DepositData({
@@ -439,8 +439,7 @@ contract TestFungibleToken is Test, SigUtils {
     // test case: deposit token failed when DepositRoot is invalid
     function test_DepositTokenWithInvalidRoot() public {
         MockERC20(neoXTokenA).mint(address(bridgeProxy), 100 ether);
-        vm.prank(governor);
-        bridgeProxy.registerToken(neoXTokenA, validConfigA);
+        registerTokenAndUnpause(neoXTokenA, validConfigA);
         BridgeLib.DepositData[] memory depositData = new BridgeLib.DepositData[](2);
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({to: payable(transferUser0), amount: 45, nonce: 1});
         BridgeLib.DepositData memory d1 = BridgeLib.DepositData({to: payable(transferUser1), amount: 65, nonce: 2});
@@ -461,8 +460,7 @@ contract TestFungibleToken is Test, SigUtils {
     // test case: deposit token failed when signatures is invalid
     function test_DepositTokenWithInvalidSignatures() public {
         MockERC20(neoXTokenA).mint(address(bridgeProxy), 100 ether);
-        vm.prank(governor);
-        bridgeProxy.registerToken(neoXTokenA, validConfigA);
+        registerTokenAndUnpause(neoXTokenA, validConfigA);
         BridgeLib.DepositData[] memory depositData = new BridgeLib.DepositData[](2);
 
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({to: payable(transferUser0), amount: 65, nonce: 1});
@@ -486,8 +484,7 @@ contract TestFungibleToken is Test, SigUtils {
     // test case: deposit token failed because it is not relayer
     function test_DepositTokenByNonRelayer() public {
         MockERC20(neoXTokenA).mint(address(bridgeProxy), 100 ether);
-        vm.prank(governor);
-        bridgeProxy.registerToken(neoXTokenA, validConfigA);
+        registerTokenAndUnpause(neoXTokenA, validConfigA);
         BridgeLib.DepositData[] memory depositData = new BridgeLib.DepositData[](2);
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({to: payable(transferUser0), amount: 100, nonce: 1});
         BridgeLib.DepositData memory d1 = BridgeLib.DepositData({to: payable(transferUser1), amount: 200, nonce: 2});
@@ -505,8 +502,7 @@ contract TestFungibleToken is Test, SigUtils {
     // test case: deposit token failed when depositData is null
     function test_DepositTokenWithInvalidLength() public {
         MockERC20(neoXTokenA).mint(address(bridgeProxy), 100 ether);
-        vm.prank(governor);
-        bridgeProxy.registerToken(neoXTokenA, validConfigA);
+        registerTokenAndUnpause(neoXTokenA, validConfigA);
         BridgeLib.DepositData[] memory depositData = new BridgeLib.DepositData[](0); // Invalid length
         bytes32 tokenDepositRoot = bridgeProxy.computeTokenRoot(
             bridgeProxy.getTokenDepositState(neoXTokenA).root, neoN3TokenA, neoXTokenA, depositData
@@ -520,8 +516,7 @@ contract TestFungibleToken is Test, SigUtils {
     // Test case: Deposit token failed when depositData length exceeds bridge configuration
     function test_DepositTokenWithExceedMaxDeposits() public {
         MockERC20(neoXTokenA).mint(address(bridgeProxy), 100 ether);
-        vm.prank(governor);
-        bridgeProxy.registerToken(neoXTokenA, validConfigA);
+        registerTokenAndUnpause(neoXTokenA, validConfigA);
         BridgeLib.DepositData[] memory depositData = new BridgeLib.DepositData[](3);
         BridgeLib.DepositData memory d0 = BridgeLib.DepositData({to: payable(transferUser0), amount: 55, nonce: 1});
         BridgeLib.DepositData memory d1 = BridgeLib.DepositData({to: payable(transferUser1), amount: 65, nonce: 2});
@@ -543,8 +538,6 @@ contract TestFungibleToken is Test, SigUtils {
         MockERC20(neoXTokenA).mint(address(bridgeProxy), 100 ether);
         vm.prank(governor);
         bridgeProxy.registerToken(neoXTokenA, validConfigA);
-        vm.prank(securityGuard);
-        bridgeProxy.pauseTokenBridge(neoXTokenA);
         // Verify the token bridge is paused
         bool tokenBridgePaused = bridgeProxy.getTokenbridgePaused(neoXTokenA);
         assertTrue(tokenBridgePaused);
@@ -596,8 +589,7 @@ contract TestFungibleToken is Test, SigUtils {
     // Test case: Withdrawals should be rejected while withdrawals are paused
     function test_RejectWithdrawalsWhileWithdrawalsPaused() public {
         MockERC20(neoXTokenA).mint(address(transferUser0), 10000);
-        vm.prank(governor);
-        bridgeProxy.registerToken(neoXTokenA, validConfigA);
+        registerTokenAndUnpause(neoXTokenA, validConfigA);
         assertFalse(bridgeProxy.getWithdrawalsPaused());
 
         uint256 allowance = 500;
@@ -624,8 +616,7 @@ contract TestFungibleToken is Test, SigUtils {
         uint256 initialBridgeBalance = 10000;
         MockERC20(neoXTokenA).mint(address(bridgeProxy), initialBridgeBalance);
         assertEq(MockERC20(neoXTokenA).balanceOf(address(bridgeProxy)), initialBridgeBalance);
-        vm.prank(governor);
-        bridgeProxy.registerToken(neoXTokenA, validConfigA);
+        registerTokenAndUnpause(neoXTokenA, validConfigA);
         assertFalse(bridgeProxy.getWithdrawalsPaused());
         vm.prank(governor);
         bridgeProxy.pauseWithdrawals();
@@ -652,8 +643,7 @@ contract TestFungibleToken is Test, SigUtils {
     // test case: withdraw token failed when insufficient fee
     function testWithdrawToken_InsufficientFee() public {
         assertEq(bridgeProxy.isRegisteredToken(neoXTokenA), false);
-        vm.prank(governor);
-        bridgeProxy.registerToken(neoXTokenA, validConfigA);
+        registerTokenAndUnpause(neoXTokenA, validConfigA);
         uint256 balance = 1000;
         MockERC20(neoXTokenA).mint(transferUser0, balance);
         vm.prank(transferUser0);
@@ -669,8 +659,7 @@ contract TestFungibleToken is Test, SigUtils {
     // test case: withdraw token with too high fee - refunded
     function testWithdrawToken_refundExcessFee() public {
         assertEq(bridgeProxy.isRegisteredToken(neoXTokenA), false);
-        vm.prank(governor);
-        bridgeProxy.registerToken(neoXTokenA, validConfigA);
+        registerTokenAndUnpause(neoXTokenA, validConfigA);
         uint256 balance = 1000;
         MockERC20(neoXTokenA).mint(transferUser0, balance);
         vm.prank(transferUser0);
@@ -691,8 +680,7 @@ contract TestFungibleToken is Test, SigUtils {
     // test case: withdraw token failed when amount < minAmount
     function testWithdrawToken_InvalidAmount_LessThanMin() public {
         assertEq(bridgeProxy.isRegisteredToken(neoXTokenA), false);
-        vm.prank(governor);
-        bridgeProxy.registerToken(neoXTokenA, validConfigA);
+        registerTokenAndUnpause(neoXTokenA, validConfigA);
         uint256 balance = 1000;
         MockERC20(neoXTokenA).mint(transferUser0, balance);
         vm.prank(transferUser0);
@@ -709,8 +697,7 @@ contract TestFungibleToken is Test, SigUtils {
     // test case: withdraw token failed when amount > maxAmount
     function testWithdrawToken_InvalidAmount_MoreThanMaxl() public {
         assertEq(bridgeProxy.isRegisteredToken(neoXTokenA), false);
-        vm.prank(governor);
-        bridgeProxy.registerToken(neoXTokenA, validConfigA);
+        registerTokenAndUnpause(neoXTokenA, validConfigA);
         uint256 balance = 1001;
         MockERC20(neoXTokenA).mint(transferUser0, balance);
         vm.prank(transferUser0);
@@ -727,8 +714,7 @@ contract TestFungibleToken is Test, SigUtils {
     // test case: withdraw token failed when amount > approveAmount
     function testWithdrawToken_TransferFailed() public {
         assertEq(bridgeProxy.isRegisteredToken(neoXTokenA), false);
-        vm.prank(governor);
-        bridgeProxy.registerToken(neoXTokenA, validConfigA);
+        registerTokenAndUnpause(neoXTokenA, validConfigA);
         uint256 balance = 1000;
         uint256 approveAmount = 100;
         MockERC20(neoXTokenA).mint(transferUser0, balance);
@@ -754,8 +740,7 @@ contract TestFungibleToken is Test, SigUtils {
     // test case:  withdraw token B failed , token type is NEO,tokenvalue < 1e18
     function testWithdrawTokenB_TransferFailed() public {
         assertEq(bridgeProxy.isRegisteredToken(neoXTokenB), false);
-        vm.prank(governor);
-        bridgeProxy.registerToken(neoXTokenB, validConfigB);
+        registerTokenAndUnpause(neoXTokenB, validConfigB);
         uint256 balance = 1000 ether;
         MockERC20(neoXTokenB).mint(transferUser0, balance);
         vm.prank(transferUser0);
@@ -769,8 +754,7 @@ contract TestFungibleToken is Test, SigUtils {
     // test case: Check the event that withdraw token A succeeds
     function testWithdrawATokenEvent() public {
         assertEq(bridgeProxy.isRegisteredToken(neoXTokenA), false);
-        vm.prank(governor);
-        bridgeProxy.registerToken(neoXTokenA, validConfigA);
+        registerTokenAndUnpause(neoXTokenA, validConfigA);
         uint256 balance = 1000;
         MockERC20(neoXTokenA).mint(transferUser0, balance);
         vm.prank(transferUser0);
@@ -792,8 +776,7 @@ contract TestFungibleToken is Test, SigUtils {
     // test case: Check the event that withdraw token B succeeds
     function testWithdrawBTokenEvent() public {
         assertEq(bridgeProxy.isRegisteredToken(neoXTokenB), false);
-        vm.prank(governor);
-        bridgeProxy.registerToken(neoXTokenB, validConfigB);
+        registerTokenAndUnpause(neoXTokenB, validConfigB);
         uint256 balance = 1000 ether;
         MockERC20(neoXTokenB).mint(transferUser0, balance);
         vm.prank(transferUser0);
