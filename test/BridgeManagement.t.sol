@@ -44,39 +44,26 @@ contract BridgeManagementImplTest is Test, SigUtils {
         Options memory opts;
         opts.unsafeAllow = "constructor";
 
-        // Deploy the management behind a proxy and upgrade it to the latest implementation.
+        // Deploy the management behind a proxy and make sure it's initialized to the latest implementation.
         managementProxyAddress = Upgrades.deployUUPSProxy(
             "TestBridgeManagement.sol",
             abi.encodeCall(
                 TestBridgeManagement.initialize,
-                (
-                    owner,
-                    relayer,
-                    validatorThreshold,
-                    validatorsAddresses,
-                    governor,
-                    securityGuard,
-                    funder
-                )
+                (owner, relayer, validatorThreshold, validatorsAddresses, governor, securityGuard, funder)
             ),
             opts
         );
         managementProxy = TestBridgeManagement(managementProxyAddress);
         vm.prank(owner);
-        managementProxy.upgradeToV2();
-        // Validate that the management proxy has been successfully deployed and upgraded to V2.abi
-        assertEq(managementProxy.getCurrentInitializedVersion(), 2);
+        managementProxy.upgradeToV3();
+        // Validate that the management proxy has been successfully deployed and initialized to version 3.
+        assertEq(managementProxy.getCurrentInitializedVersion(), 3);
     }
 
     function testSetOwner() public {
         assertEq(managementProxy.owner(), owner);
         vm.prank(funder);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Ownable.OwnableUnauthorizedAccount.selector,
-                funder
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, funder));
         managementProxy.transferOwnership(funder);
         vm.prank(owner);
         managementProxy.transferOwnership(funder);
@@ -87,25 +74,16 @@ contract BridgeManagementImplTest is Test, SigUtils {
     }
 
     function testVerifyValidatorSignatures() public view {
-        BridgeLib.DepositData memory d = BridgeLib.DepositData({
-            nonce: 1,
-            to: payable(funder),
-            amount: 100
-        });
+        BridgeLib.DepositData memory d = BridgeLib.DepositData({nonce: 1, to: payable(funder), amount: 100});
         bytes32 _depositRoot = getStructHash(d);
         BridgeLib.Signature[] memory _signatures = new BridgeLib.Signature[](5);
         bytes32 ethHash = getSignedHash(_depositRoot);
-        for (uint i = 0; i < 5; i++) {
-            (uint8 v, bytes32 r, bytes32 s) = vm.sign(
-                validatorsKeys[i],
-                ethHash
-            );
+        for (uint256 i = 0; i < 5; i++) {
+            (uint8 v, bytes32 r, bytes32 s) = vm.sign(validatorsKeys[i], ethHash);
             address recoveredAddr = ecrecover(ethHash, v, r, s);
             _signatures[i] = BridgeLib.Signature(v, r, s);
             assertEq(recoveredAddr, validatorsAddresses[i]);
         }
-        assert(
-            managementProxy.verifyValidatorSignatures(_depositRoot, _signatures)
-        );
+        assert(managementProxy.verifyValidatorSignatures(_depositRoot, _signatures));
     }
 }

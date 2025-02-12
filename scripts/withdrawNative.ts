@@ -18,10 +18,10 @@ async function main() {
     }
 
     const amount = ethers.parseEther("10");
-    const withdrawTx = await bridge.connect(sender).withdrawGas(sender.address, amount, { value: amount, maxFeePerGas: MAX_FEE_PER_GAS, maxPriorityFeePerGas: MAX_FEE_PER_GAS });
+    const withdrawTx = await bridge.connect(sender).withdrawNative(sender.address, amount, { value: amount, maxFeePerGas: MAX_FEE_PER_GAS, maxPriorityFeePerGas: MAX_FEE_PER_GAS });
 
     const receipt = await withdrawTx.wait();
-    console.log("Withdraw Gas Transaction Receipt: ", receipt);
+    console.log("Withdraw Native Transaction Receipt: ", receipt);
 }
 
 main().catch((error) => {

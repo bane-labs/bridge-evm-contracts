@@ -2,7 +2,9 @@
 pragma solidity 0.8.25;
 
 import {InitializationLib} from "./InitializationLib.sol";
-import {BridgeManagementImpl} from "../management/BridgeManagementImpl.sol";
+import {BridgeManagementImpl, EnumerableSet} from "../management/BridgeManagementImpl.sol";
+
+using EnumerableSet for EnumerableSet.AddressSet;
 
 // This TestBridgeManagement contract contains additional or overridden functions as an extension of the BridgeManagementImpl contract. This includes:
 // - Overridden functions with the onlyAdmin modifier are opened to the testing owner (_authorizeUpgrade and _upgrade functions).
@@ -13,10 +15,22 @@ contract TestBridgeManagement is BridgeManagementImpl {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() BridgeManagementImpl() {}
 
-    // Contract storage setup for testing purposes. This setup should mock the currently deployed contract's storage slot layout.
-    // Previous initialization functions used to arrive at the current storage slot layout should be summarized here.
-    // For example, if a slot allocation was used in version 1 but then removed in version 2's re-initialization, this allocation can just be ignored here since it is not allocated in version 2.
+    //////////////////////////////
+    // Proxy and Initialization //
+    //////////////////////////////
 
+    // Authorize the contract owner to upgrade the contract for testing purposes.
+    function _authorizeUpgrade(address newImplementation) internal virtual override onlyOwner {}
+
+    // This function can be used for verifying the initialized state of the contract
+    function getCurrentInitializedVersion() external view returns (uint256) {
+        return InitializationLib._getInitializableStorageValue()._initialized;
+    }
+
+    // Previous initialization functions used to arrive at the current storage slot layout should be summarized here.
+    // The initialization version should reflect the latest release version of the contract that required a reinitialization.
+
+    // Allow non-admins to initialize the contract for testing purposes.
     function initialize(
         address _owner,
         address _relayer,
@@ -25,7 +39,10 @@ contract TestBridgeManagement is BridgeManagementImpl {
         address _governor,
         address _securityGuard,
         address _funder
-    ) public reinitializer(1) {
+    )
+        external
+        reinitializer(2)
+    {
         // Set storage slots based on currently deployed contract's storage slot layout
         __Ownable_init(_owner);
 
@@ -38,23 +55,12 @@ contract TestBridgeManagement is BridgeManagementImpl {
         // Ignore any safety-checks since this is just used for test setup.
         uint256 validatorsLength = _validators.length;
         for (uint256 i = 0; i < validatorsLength; i++) {
-            _v1_validators.push(_validators[i]);
+            require(validatorSet.add(_validators[i]), "Validator already added");
         }
         validatorThreshold = _validatorThreshold;
     }
 
-    // Authorize the test owner address to upgrade the contract for testing purposes.
-    function upgradeToV2() external override reinitializer(2) onlyOwner {
-        _upgradeToV2();
-    }
-
-    // Authorize the contract owner to upgrade the contract for testing purposes.
-    function _authorizeUpgrade(
-        address newImplementation
-    ) internal virtual override onlyOwner {}
-
-    // This function can be used for verifying the initialized state of the contract
-    function getCurrentInitializedVersion() external view returns (uint256) {
-        return InitializationLib._getInitializableStorageValue()._initialized;
+    function upgradeToV3() external override reinitializer(3) onlyOwner {
+        _upgradeToV3();
     }
 }

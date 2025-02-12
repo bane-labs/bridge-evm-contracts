@@ -23,17 +23,40 @@ abstract contract BridgeStorageV1 is ReentrancyGuardUpgradeable {
     // Slot 101
     uint256 public unclaimedRewards;
     // Slot 102
-    mapping(uint256 nonce => StorageTypes.Claimable claimable)
-        public claimableGas;
+    mapping(uint256 nonce => StorageTypes.Claimable claimable) public claimableNative;
     // Slot 103
-    mapping(address tokenAddress => StorageTypes.TokenBridge tokenBridge)
-        public tokenBridges;
+    mapping(address tokenAddress => StorageTypes.TokenBridge tokenBridge) public tokenBridges;
     // Slot 104
-    mapping(address tokenAddress => mapping(uint256 nonce => StorageTypes.Claimable claimable) claimableTokens)
-        public tokenClaimables;
+    mapping(address tokenAddress => mapping(uint256 nonce => StorageTypes.Claimable claimable) claimableTokens) public
+        tokenClaimables;
+
+    // Deprecated in V3 (slots will be cleared in V3 reinitialization)
     // Slots 105-113 (9 slots)
-    StorageTypes.GasBridge public gasBridge;
+    StorageTypes.NativeBridgeV2 public nativeBridgeV2;
 
     // Slot 114
     address[] public registeredTokens;
+
+    // Slot 115
+    StorageTypes.NativeBridgeV3 public nativeBridge;
+
+    function _upgradeToV3() internal onlyInitializing {
+        nativeBridge = StorageTypes.NativeBridgeV3(
+            nativeBridgeV2.paused,
+            nativeBridgeV2.depositState,
+            nativeBridgeV2.withdrawalState,
+            StorageTypes.NativeConfigV3(
+                nativeBridgeV2.config.fee,
+                nativeBridgeV2.config.minAmount,
+                nativeBridgeV2.config.maxAmount,
+                nativeBridgeV2.config.maxDeposits,
+                10
+            )
+        );
+        // Reset all values of the slots used by the deprecated nativeBridgeV2
+        nativeBridgeV2.paused = false;
+        nativeBridgeV2.depositState = StorageTypes.State(0, 0);
+        nativeBridgeV2.withdrawalState = StorageTypes.State(0, 0);
+        nativeBridgeV2.config = StorageTypes.NativeConfigV2(0, 0, 0, 0);
+    }
 }

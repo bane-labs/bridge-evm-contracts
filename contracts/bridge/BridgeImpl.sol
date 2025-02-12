@@ -4,11 +4,11 @@ pragma solidity 0.8.25;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../interfaces/IBridge.sol";
-import "../interfaces/IGasBridge.sol";
+import "../interfaces/INativeBridge.sol";
 import "../interfaces/ITokenBridge.sol";
 import "./BridgeStorage.sol";
 
-contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
+contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -23,11 +23,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     /**
      * @notice Pauses the bridge. No deposits or withdrawals can be made while the bridge is paused. This feature is useful to halt any interaction with the contract besides governor actions, such as updating parameters or registering new token bridges, or contract updates.
      */
-    function pauseBridge()
-        external
-        onlyGovernorOrSecurityGuard
-        whenBridgeNotPaused
-    {
+    function pauseBridge() external onlyGovernorOrSecurityGuard whenBridgeNotPaused {
         _pauseBridge();
         emit BridgePause();
     }
@@ -50,31 +46,46 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         emit WithdrawalUnpause();
     }
 
-    // IGasBridge Implementation
+    // INativeBridge Implementation
 
-    function pauseGasBridge()
+    function nativeBridgeIsSet() external view returns (bool) {
+        return _nativeBridgeIsSet();
+    }
+
+    function setNativeBridge(
+        uint256 _fee,
+        uint256 _minAmount,
+        uint256 _maxAmount,
+        uint256 _maxDeposits,
+        uint256 _decimalsHere,
+        uint256 _decimalsOnN3
+    )
+        external
+        onlyGovernor
+        onlyIfNativeBridgeNotSet
+    {
+        _setNativeBridge(_fee, _minAmount, _maxAmount, _maxDeposits, _decimalsHere, _decimalsOnN3);
+    }
+
+    function pauseNativeBridge()
         external
         override
         onlyGovernorOrSecurityGuard
-        whenGasBridgeNotPaused
+        onlyIfNativeBridgeSet
+        whenNativeBridgeNotPaused
     {
-        _pauseGasBridge();
-        emit GasBridgePause();
+        _pauseNativeBridge();
+        emit NativeBridgePause();
     }
 
-    function unpauseGasBridge()
-        external
-        override
-        onlyGovernor
-        whenGasBridgePaused
-    {
-        _unpauseGasBridge();
-        emit GasBridgeUnpause();
+    function unpauseNativeBridge() external override onlyGovernor onlyIfNativeBridgeSet whenNativeBridgePaused {
+        _unpauseNativeBridge();
+        emit NativeBridgeUnpause();
     }
 
     /**
-     * @notice Distributes Gas that has been locked on Neo N3.
-     * @dev The depositGas function is used to distribute Gas that has been locked on Neo N3.
+     * @notice Distributes native coins that have been locked on Neo N3.
+     * @dev The depositNative function is used to distribute native coins that have been locked on Neo N3.
      *      The deposits data need to be provided ordered based on their nonces.
      *      Before the deposits are distributed, the following steps are executed:
      *      - Check if the provided deposits are subsequent to the current nonce in storage and each other.
@@ -85,7 +96,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
      * @param _signatures the signatures of the validators. The signatures need to be ordered based on the order they have been stored in storage.
      * @param _deposits the deposit data.
      */
-    function depositGas(
+    function depositNative(
         bytes32 _depositRoot,
         BridgeLib.Signature[] calldata _signatures,
         BridgeLib.DepositData[] calldata _deposits
@@ -93,102 +104,86 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         external
         onlyRelayer
         whenBridgeNotPaused
-        whenGasBridgeNotPaused
+        onlyIfNativeBridgeSet
+        whenNativeBridgeNotPaused
         nonReentrant
     {
-        StorageTypes.State memory state = _getGasBridgeDepositState();
-        StorageTypes.GasConfig memory config = _getGasBridgeConfig();
+        StorageTypes.State memory state = _getNativeBridgeDepositState();
+        StorageTypes.NativeConfigV3 memory config = _getNativeBridgeConfig();
         uint256 depositLength = _deposits.length;
         if (depositLength == 0) revert InvalidDepositsLength();
         if (depositLength > config.maxDeposits) revert InvalidDepositsLength();
-        if (!BridgeLib._subsequentNonces(_deposits, state.nonce))
-            revert InvalidNonceSequence();
-        if (
-            GasBridgeLib._computeNewTopRoot(state.root, _deposits) !=
-            _depositRoot
-        ) revert InvalidRoot();
-        if (!management.verifyValidatorSignatures(_depositRoot, _signatures))
-            revert InvalidValidatorSignatures();
+        if (!BridgeLib._subsequentNonces(_deposits, state.nonce)) revert InvalidNonceSequence();
+        if (NativeBridgeLib._computeNewTopRoot(state.root, _deposits) != _depositRoot) revert InvalidRoot();
+        if (!management.verifyValidatorSignatures(_depositRoot, _signatures)) revert InvalidValidatorSignatures();
 
-        _setGasBridgeDepositState(
-            StorageTypes.State({
-                nonce: _deposits[depositLength - 1].nonce,
-                root: _depositRoot
-            })
+        _setNativeBridgeDepositState(
+            StorageTypes.State({nonce: _deposits[depositLength - 1].nonce, root: _depositRoot})
         );
-        emit GasDepositRootUpdate(
-            _deposits[depositLength - 1].nonce,
-            _depositRoot
-        );
+        emit NativeDepositRootUpdate(_deposits[depositLength - 1].nonce, _depositRoot);
 
         // Execution data interface
-        _executeGasTransfers(_deposits);
+        _executeNativeTransfers(_deposits, config.decimalScalingFactor);
     }
 
-    function _executeGasTransfers(
-        BridgeLib.DepositData[] calldata _deposits
-    ) private {
+    function _executeNativeTransfers(
+        BridgeLib.DepositData[] calldata _deposits,
+        uint256 _decimalScalingFactor
+    )
+        private
+    {
         uint256 depositLength = _deposits.length;
         for (uint256 i = 0; i < depositLength; i++) {
             BridgeLib.DepositData calldata depositEntry = _deposits[i];
             address to = depositEntry.to;
             if (BridgeLib._isContract(to)) {
-                _addClaimableGas(depositEntry.nonce, to, depositEntry.amount);
-                emit GasClaimable(depositEntry.nonce, to, depositEntry.amount);
+                _addClaimableNative(depositEntry.nonce, to, depositEntry.amount);
+                emit NativeClaimable(depositEntry.nonce, to, depositEntry.amount);
             } else {
-                uint256 sendValue = GasBridgeLib._addTenDecimals(
-                    depositEntry.amount
-                );
-                (bool success, ) = to.call{value: sendValue}("");
+                uint256 sendValue = depositEntry.amount * (10 ** _decimalScalingFactor);
+                (bool success,) = to.call{value: sendValue}("");
                 if (success) {
-                    emit GasDeposit(
-                        depositEntry.nonce,
-                        to,
-                        depositEntry.amount
-                    );
+                    emit NativeDeposit(depositEntry.nonce, to, depositEntry.amount);
                 } else {
-                    _addClaimableGas(
-                        depositEntry.nonce,
-                        to,
-                        depositEntry.amount
-                    );
-                    emit GasClaimable(
-                        depositEntry.nonce,
-                        to,
-                        depositEntry.amount
-                    );
+                    _addClaimableNative(depositEntry.nonce, to, depositEntry.amount);
+                    emit NativeClaimable(depositEntry.nonce, to, depositEntry.amount);
                 }
             }
         }
     }
 
     /**
-     * @notice Claim Gas that has been deposited to Neo X and was not distributed. Anyone can execute a claim. The funds of a claimable will be sent to the defined address in storage regardless of who claims it.
+     * @notice Claim native coins that have been deposited to this chain and was not distributed. Anyone can execute a claim. The funds of a claimable will be sent to the defined address in storage regardless of who claims it.
      * @param _nonce the nonce of the claimable.
      */
-    function claimGas(
-        uint256 _nonce
-    ) external whenBridgeNotPaused whenGasBridgeNotPaused nonReentrant {
-        StorageTypes.Claimable memory claimable = _getGasClaimable(_nonce);
+    function claimNative(uint256 _nonce)
+        external
+        whenBridgeNotPaused
+        onlyIfNativeBridgeSet
+        whenNativeBridgeNotPaused
+        nonReentrant
+    {
+        StorageTypes.Claimable memory claimable = _getNativeClaimable(_nonce);
         uint256 amount = claimable.amount;
         address to = claimable.to;
         if (amount == 0) revert NonexistentClaimable();
         if (to == address(0)) revert NonexistentClaimable();
 
-        _deleteGasClaimable(_nonce);
-        uint256 sendValue = GasBridgeLib._addTenDecimals(amount);
-        (bool success, ) = to.call{value: sendValue}("");
+        _deleteNativeClaimable(_nonce);
+        uint256 sendValue = amount * (10 ** _getNativeBridgeConfig().decimalScalingFactor);
+        (bool success,) = to.call{value: sendValue}("");
         if (!success) revert TransferFailed();
-        emit GasClaim(_nonce, to, amount);
+        emit NativeClaim(_nonce, to, amount);
     }
 
+    // Todo (mialbu): Add decimal to NativeConfig
     /**
-     * @notice Withdraw Gas to provided address on Neo N3. The provided amount of Gas after the fee deduction must have a precision of maximal 8 decimal points matching the 8 decimals of the GAS token on Neo N3.
-     * @dev When invoking this function provide the amount of Gas to withdraw to Neo N3 as msg.value.
-     * @param _to the address to which the Gas should be sent on Neo N3.
+     * @notice Withdraw native coins to the provided address on Neo N3. The provided amount of native coins after the fee deduction must have a precision of maximal 8 decimal points matching the 8 decimals of the GAS token on Neo N3.
+     * @dev When invoking this function provide the amount of native coins to withdraw to Neo N3 as msg.value.
+     * @param _to the address to which the native coin's representative should be sent on Neo N3.
      * @param _maxFee the maximum fee that the sender is willing to pay for the withdrawal. If the actual fee is higher than this value, the withdrawal is aborted.
      */
-    function withdrawGas(
+    function withdrawNative(
         address _to,
         uint256 _maxFee
     )
@@ -196,69 +191,53 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         payable
         whenBridgeNotPaused
         whenWithdrawalsNotPaused
-        whenGasBridgeNotPaused
+        onlyIfNativeBridgeSet
+        whenNativeBridgeNotPaused
     {
         if (_to == address(0)) revert InvalidAddress();
-        StorageTypes.GasConfig memory config = _getGasBridgeConfig();
+        StorageTypes.NativeConfigV3 memory config = _getNativeBridgeConfig();
         uint256 fee = config.fee;
         if (msg.value < fee) revert InsufficientFee(fee, msg.value); // Prevents underflow and provides clear feedback
         // Revert if the actual fee is higher than the provided max fee.
         if (fee > _maxFee) revert MaxFeeExceeded(_maxFee, fee);
         _addUnclaimedRewards(fee);
 
-        uint256 withdrawalAmount = msg.value - fee;
-        // Revert if the withdrawal amount is not a multiple of 1e10, matching the 8 decimals of Gas on Neo N3.
-        if ((withdrawalAmount % 1e10) != 0) revert InvalidAmount();
-        // Revert if the withdrawal amount is outside the allowed range.
-        if (withdrawalAmount < config.minAmount)
-            revert AmountBelowMinAmount(config.minAmount, withdrawalAmount);
-        if (withdrawalAmount > config.maxAmount)
-            revert AmountExceedsMaxAmount(config.maxAmount, withdrawalAmount);
-
         // The actual withdrawal amount is the sent value minus the fee.
-        uint256 amountForHashing = GasBridgeLib._removeTenDecimals(
-            withdrawalAmount
-        );
+        uint256 withdrawalAmount = msg.value - fee;
+        // Revert if the withdrawal amount does not match the required decimal scaling factor.
+        if ((withdrawalAmount % (10 ** config.decimalScalingFactor)) != 0) revert InvalidAmount();
+        // Revert if the withdrawal amount is outside the allowed range.
+        if (withdrawalAmount < config.minAmount) revert AmountBelowMinAmount(config.minAmount, withdrawalAmount);
+        if (withdrawalAmount > config.maxAmount) revert AmountExceedsMaxAmount(config.maxAmount, withdrawalAmount);
 
-        StorageTypes.State memory state = _getGasBridgeWithdrawalState();
+        uint256 amountForHashing = withdrawalAmount / (10 ** config.decimalScalingFactor);
+
+        StorageTypes.State memory state = _getNativeBridgeWithdrawalState();
         uint256 newNonce = state.nonce + 1;
-        bytes32 withdrawalHash = GasBridgeLib._hashGasBrideOp(
-            newNonce,
-            _to,
-            amountForHashing
-        );
+        bytes32 withdrawalHash = NativeBridgeLib._hashNativeBrideOp(newNonce, _to, amountForHashing);
         bytes32 newRoot = BridgeLib._computeNewRoot(state.root, withdrawalHash);
-        _setGasBridgeWithdrawalState(
-            StorageTypes.State({nonce: newNonce, root: newRoot})
-        );
-        emit GasWithdrawal(
-            newNonce,
-            _to,
-            amountForHashing,
-            msg.sender,
-            withdrawalHash,
-            newRoot
-        );
+        _setNativeBridgeWithdrawalState(StorageTypes.State({nonce: newNonce, root: newRoot}));
+        emit NativeWithdrawal(newNonce, _to, amountForHashing, msg.sender, withdrawalHash, newRoot);
     }
 
-    function setGasWithdrawalFee(uint256 _fee) external onlyGovernor {
-        _setGasWithdrawalFee(_fee);
-        emit GasWithdrawalFeeChange(_fee);
+    function setNativeWithdrawalFee(uint256 _fee) external onlyGovernor {
+        _setNativeWithdrawalFee(_fee);
+        emit NativeWithdrawalFeeChange(_fee);
     }
 
-    function setMinGasWithdrawalAmount(uint256 _amount) external onlyGovernor {
-        _setGasWithdrawalMinAmount(_amount);
-        emit MinGasWithdrawalChange(_amount);
+    function setMinNativeWithdrawalAmount(uint256 _amount) external onlyGovernor {
+        _setNativeWithdrawalMinAmount(_amount);
+        emit MinNativeWithdrawalChange(_amount);
     }
 
-    function setMaxGasWithdrawalAmount(uint256 _amount) external onlyGovernor {
-        _setGasWithdrawalMaxAmount(_amount);
-        emit MaxGasWithdrawalChange(_amount);
+    function setMaxNativeWithdrawalAmount(uint256 _amount) external onlyGovernor {
+        _setNativeWithdrawalMaxAmount(_amount);
+        emit MaxNativeWithdrawalChange(_amount);
     }
 
-    function setMaxGasDeposits(uint256 _maxNrDeposits) external onlyGovernor {
-        _setMaxGasDeposits(_maxNrDeposits);
-        emit MaxGasDepositsChange(_maxNrDeposits);
+    function setMaxNativeDeposits(uint256 _maxNrDeposits) external onlyGovernor {
+        _setMaxNativeDeposits(_maxNrDeposits);
+        emit MaxNativeDepositsChange(_maxNrDeposits);
     }
 
     // ITokenBridge Implementation
@@ -271,10 +250,13 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     function registerToken(
         address _neoXToken,
         StorageTypes.TokenConfig calldata _tokenConfig
-    ) external override onlyGovernor {
+    )
+        external
+        override
+        onlyGovernor
+    {
         if (_neoXToken == address(0)) revert InvalidTokenAddress();
-        if (!TokenBridgeLib._isValidConfig(_tokenConfig))
-            revert InvalidTokenConfig();
+        if (!TokenBridgeLib._isValidConfig(_tokenConfig)) revert InvalidTokenConfig();
         _registerToken(_neoXToken, _tokenConfig);
         emit TokenRegister(_neoXToken, _tokenConfig);
     }
@@ -283,9 +265,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
      * @notice Check if a token is registered on the bridge.
      * @param _neoXToken the address of the token on the Neo X network.
      */
-    function isRegisteredToken(
-        address _neoXToken
-    ) external view override returns (bool) {
+    function isRegisteredToken(address _neoXToken) external view override returns (bool) {
         return _isRegisteredToken(_neoXToken);
     }
 
@@ -293,9 +273,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
      * @notice Pause a token bridge. No deposits, withdrawals, or claims of a token bridge can be made while it is locked.
      * @param _neoXToken the address of the token on the Neo X network.
      */
-    function pauseTokenBridge(
-        address _neoXToken
-    )
+    function pauseTokenBridge(address _neoXToken)
         external
         override
         onlyGovernorOrSecurityGuard
@@ -310,9 +288,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
      * @notice Unpause a token bridge. Deposits, withdrawals, or claims of a token bridge can only be made while it is unlocked.
      * @param _neoXToken the address of the token on the Neo X network.
      */
-    function unpauseTokenBridge(
-        address _neoXToken
-    )
+    function unpauseTokenBridge(address _neoXToken)
         external
         override
         onlyGovernor
@@ -351,9 +327,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         whenTokenBridgeNotPaused(_neoXToken)
         nonReentrant
     {
-        StorageTypes.State memory depositState = _getTokenDepositState(
-            _neoXToken
-        );
+        StorageTypes.State memory depositState = _getTokenDepositState(_neoXToken);
         StorageTypes.TokenConfig memory config = _getTokenConfig(_neoXToken);
 
         // Check parameter validity
@@ -361,74 +335,43 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         if (depositLength == 0) revert InvalidDepositsLength();
         if (depositLength > config.maxDeposits) revert InvalidDepositsLength();
         // Check if provided deposit data's nonces are subsequent to the current nonce and each other.
-        if (!BridgeLib._subsequentNonces(_deposits, depositState.nonce))
-            revert InvalidNonceSequence();
+        if (!BridgeLib._subsequentNonces(_deposits, depositState.nonce)) revert InvalidNonceSequence();
         // Validate that the provided token deposit root is equal to the new computed root based on the provided deposits.
         if (
-            TokenBridgeLib._computeNewTopRoot(
-                depositState.root,
-                _getNeoN3Token(_neoXToken),
-                _neoXToken,
-                _deposits
-            ) != _tokenDepositRoot
+            TokenBridgeLib._computeNewTopRoot(depositState.root, _getNeoN3Token(_neoXToken), _neoXToken, _deposits)
+                != _tokenDepositRoot
         ) revert InvalidRoot();
         // Verify that the provided signatures are valid given the provided deposit root and the current validators.
-        if (
-            !management.verifyValidatorSignatures(
-                _tokenDepositRoot,
-                _signatures
-            )
-        ) revert InvalidValidatorSignatures();
+        if (!management.verifyValidatorSignatures(_tokenDepositRoot, _signatures)) revert InvalidValidatorSignatures();
 
         // Update the token's deposit state
         _setTokenDepositState(
-            _neoXToken,
-            StorageTypes.State({
-                nonce: _deposits[depositLength - 1].nonce,
-                root: _tokenDepositRoot
-            })
+            _neoXToken, StorageTypes.State({nonce: _deposits[depositLength - 1].nonce, root: _tokenDepositRoot})
         );
         emit TokenDepositRootUpdate(
-            _neoXToken,
-            config.neoN3Token,
-            _deposits[depositLength - 1].nonce,
-            _tokenDepositRoot
+            _neoXToken, config.neoN3Token, _deposits[depositLength - 1].nonce, _tokenDepositRoot
         );
 
         // Execute the token distribution
-        _executeTokenDistribution(
-            _neoXToken,
-            config.decimalScalingFactor,
-            _deposits
-        );
+        _executeTokenDistribution(_neoXToken, config.decimalScalingFactor, _deposits);
     }
 
     function _executeTokenDistribution(
         address _neoXToken,
         uint256 _decimalScalingFactor,
         BridgeLib.DepositData[] calldata _deposits
-    ) private {
+    )
+        private
+    {
         uint256 depositLength = _deposits.length;
         // Execute the token distribution for each deposit entry
         for (uint256 i = 0; i < depositLength; i++) {
             BridgeLib.DepositData calldata depositEntry = _deposits[i];
             address to = depositEntry.to;
             uint256 transferAmount = depositEntry.amount;
-            if (_decimalScalingFactor > 0) {
-                transferAmount *= (10 ** _decimalScalingFactor);
-            }
-            bool success = TokenBridgeLib._safeERC20Transfer(
-                IERC20(_neoXToken),
-                to,
-                transferAmount
-            );
-            _emitTransferEventOrAddNewTokenClaimable(
-                success,
-                _neoXToken,
-                depositEntry.nonce,
-                to,
-                transferAmount
-            );
+            if (_decimalScalingFactor > 0) transferAmount *= (10 ** _decimalScalingFactor);
+            bool success = TokenBridgeLib._safeERC20Transfer(IERC20(_neoXToken), to, transferAmount);
+            _emitTransferEventOrAddNewTokenClaimable(success, _neoXToken, depositEntry.nonce, to, transferAmount);
         }
     }
 
@@ -448,10 +391,7 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         onlyIfTokenRegistered(_neoXToken)
         whenTokenBridgeNotPaused(_neoXToken)
     {
-        StorageTypes.Claimable memory claimable = _getTokenClaimable(
-            _neoXToken,
-            _nonce
-        );
+        StorageTypes.Claimable memory claimable = _getTokenClaimable(_neoXToken, _nonce);
         // Check if the claimable exists.
         address to = claimable.to;
         if (to == address(0)) revert NonexistentClaimable();
@@ -467,7 +407,9 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         uint256 _nonce,
         address _to,
         uint256 _amount
-    ) private {
+    )
+        private
+    {
         if (_success) {
             emit TokenDeposit(_neoXToken, _nonce, _to, _amount);
         } else {
@@ -502,16 +444,10 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         address from = msg.sender;
         _processTokenWithdrawalFee(from, msg.value, config.fee);
 
-        uint256 receivedAmount = _transferERC20TokenToBridge(
-            _neoXToken,
-            from,
-            _amount
-        );
+        uint256 receivedAmount = _transferERC20TokenToBridge(_neoXToken, from, _amount);
         // Check that the received amount is in the allowed range.
-        if (receivedAmount < config.minAmount)
-            revert AmountBelowMinAmount(config.minAmount, receivedAmount);
-        if (receivedAmount > config.maxAmount)
-            revert AmountExceedsMaxAmount(config.maxAmount, receivedAmount);
+        if (receivedAmount < config.minAmount) revert AmountBelowMinAmount(config.minAmount, receivedAmount);
+        if (receivedAmount > config.maxAmount) revert AmountExceedsMaxAmount(config.maxAmount, receivedAmount);
 
         // Compute the new root and update the token withdrawal state.
         StorageTypes.State memory state = _getTokenWithdrawalState(_neoXToken);
@@ -519,33 +455,16 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
 
         if (config.decimalScalingFactor > 0) {
             uint256 scalingFactor = 10 ** config.decimalScalingFactor;
-            if (receivedAmount % scalingFactor != 0) {
-                revert InvalidAmount();
-            }
+            if (receivedAmount % scalingFactor != 0) revert InvalidAmount();
             receivedAmount /= scalingFactor;
         }
 
-        bytes32 withdrawalHash = TokenBridgeLib._hashTokenBridgeOp(
-            config.neoN3Token,
-            _neoXToken,
-            newNonce,
-            _to,
-            receivedAmount
-        );
+        bytes32 withdrawalHash =
+            TokenBridgeLib._hashTokenBridgeOp(config.neoN3Token, _neoXToken, newNonce, _to, receivedAmount);
         bytes32 newRoot = BridgeLib._computeNewRoot(state.root, withdrawalHash);
-        _setTokenWithdrawalState(
-            _neoXToken,
-            StorageTypes.State({nonce: newNonce, root: newRoot})
-        );
+        _setTokenWithdrawalState(_neoXToken, StorageTypes.State({nonce: newNonce, root: newRoot}));
         emit TokenWithdrawal(
-            _neoXToken,
-            config.neoN3Token,
-            newNonce,
-            _to,
-            receivedAmount,
-            from,
-            withdrawalHash,
-            newRoot
+            _neoXToken, config.neoN3Token, newNonce, _to, receivedAmount, from, withdrawalHash, newRoot
         );
     }
 
@@ -556,20 +475,14 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
      * @param _msgValue the value sent with the transaction.
      * @param _fee the required fee.
      */
-    function _processTokenWithdrawalFee(
-        address _from,
-        uint256 _msgValue,
-        uint256 _fee
-    ) private {
+    function _processTokenWithdrawalFee(address _from, uint256 _msgValue, uint256 _fee) private {
         // Revert if the provided value is lower than the required fee.
         if (_msgValue < _fee) revert InsufficientFee(_fee, _msgValue);
         // Refund the sender (only EOAs) if the provided value is higher than the required fee.
         if (_msgValue > _fee) {
             // Revert if the sender is a contract.
-            if (BridgeLib._isContract(_from)) {
-                revert ExactFeeRequired(_fee, _msgValue);
-            }
-            (bool success, ) = payable(_from).call{value: _msgValue - _fee}("");
+            if (BridgeLib._isContract(_from)) revert ExactFeeRequired(_fee, _msgValue);
+            (bool success,) = payable(_from).call{value: _msgValue - _fee}("");
             if (!success) revert TransferFailed();
         }
         _addUnclaimedRewards(_fee);
@@ -579,7 +492,10 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         address _neoXToken,
         address _from,
         uint256 _amount
-    ) private returns (uint256 actualReceivedAmount) {
+    )
+        private
+        returns (uint256 actualReceivedAmount)
+    {
         IERC20 erc20Token = IERC20(_neoXToken);
         uint256 bridgeBalanceBefore = erc20Token.balanceOf(address(this));
         SafeERC20.safeTransferFrom(erc20Token, _from, address(this), _amount);
@@ -595,7 +511,11 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     function setTokenWithdrawalFee(
         address[] calldata _neoXTokens,
         uint256[] calldata _fees
-    ) external override onlyGovernor {
+    )
+        external
+        override
+        onlyGovernor
+    {
         uint256 nrTokens = _neoXTokens.length;
         if (nrTokens != _fees.length) revert LengthMismatch();
         for (uint256 i = 0; i < nrTokens; i++) {
@@ -608,7 +528,11 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     function setMinTokenWithdrawalAmount(
         address[] calldata _neoXTokens,
         uint256[] calldata _minAmounts
-    ) external override onlyGovernor {
+    )
+        external
+        override
+        onlyGovernor
+    {
         uint256 nrTokens = _neoXTokens.length;
         if (nrTokens != _minAmounts.length) revert LengthMismatch();
         for (uint256 i = 0; i < nrTokens; i++) {
@@ -621,7 +545,11 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     function setMaxTokenWithdrawalAmount(
         address[] calldata _neoXTokens,
         uint256[] calldata _maxAmounts
-    ) external override onlyGovernor {
+    )
+        external
+        override
+        onlyGovernor
+    {
         uint256 nrTokens = _neoXTokens.length;
         if (nrTokens != _maxAmounts.length) revert LengthMismatch();
         for (uint256 i = 0; i < nrTokens; i++) {
@@ -634,7 +562,11 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
     function setMaxTokenDeposits(
         address[] calldata _neoXTokens,
         uint256[] calldata _maxDeposits
-    ) external override onlyGovernor {
+    )
+        external
+        override
+        onlyGovernor
+    {
         uint256 nrTokens = _neoXTokens.length;
         if (nrTokens != _maxDeposits.length) revert LengthMismatch();
         for (uint256 i = 0; i < nrTokens; i++) {
@@ -644,11 +576,9 @@ contract BridgeImpl is BridgeStorage, IBridge, IGasBridge, ITokenBridge {
         }
     }
 
-    // Migration functionality v.1.0.0 to v.2.0.0
+    // Migration functionality v2 to v3
 
-    function upgradeToV2(
-        TokenMigration[] calldata _tokenBridgeMigrations
-    ) external virtual reinitializer(2) onlyAdmin {
-        _upgradeToV2(_tokenBridgeMigrations);
+    function upgradeToV3() external virtual reinitializer(3) onlyAdmin {
+        _upgradeToV3();
     }
 }

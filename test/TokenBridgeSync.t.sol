@@ -3,7 +3,14 @@ pragma solidity 0.8.25;
 
 import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import {Upgrades, Options} from "openzeppelin-foundry-upgrades/Upgrades.sol";
-import {BridgeImpl, BridgeStorage, BridgeLib, GasBridgeLib, StorageTypes, TokenBridgeLib} from "../contracts/bridge/BridgeImpl.sol";
+import {
+    BridgeImpl,
+    BridgeStorage,
+    BridgeLib,
+    NativeBridgeLib,
+    StorageTypes,
+    TokenBridgeLib
+} from "../contracts/bridge/BridgeImpl.sol";
 import {ITokenBridge} from "../contracts/interfaces/ITokenBridge.sol";
 import {MockERC20} from "../contracts/tests/MockERC20.sol";
 import {SigUtils} from "../contracts/tests/SigUtils.sol";
@@ -67,41 +74,35 @@ contract TokenBridgeSyncTest is Test, SigUtils {
         Options memory opts;
         opts.unsafeAllow = "constructor";
 
-        // Deploy the management behind a proxy and upgrade it to the latest implementation.
+        // Deploy the management behind a proxy and make sure it's initialized to the latest implementation.
         managementProxyAddress = Upgrades.deployUUPSProxy(
             "TestBridgeManagement.sol",
             abi.encodeCall(
                 TestBridgeManagement.initialize,
-                (
-                    owner,
-                    relayer,
-                    validatorThreshold,
-                    validatorsAddresses,
-                    governor,
-                    securityGuard,
-                    funder
-                )
+                (owner, relayer, validatorThreshold, validatorsAddresses, governor, securityGuard, funder)
             ),
             opts
         );
         managementProxy = TestBridgeManagement(managementProxyAddress);
         vm.prank(owner);
-        managementProxy.upgradeToV2();
-        // Validate that the management proxy has been successfully deployed and upgraded to V2.abi
-        assertEq(managementProxy.getCurrentInitializedVersion(), 2);
+        managementProxy.upgradeToV3();
+        // Validate that the management proxy has been successfully deployed and initialized to version 3.
+        assertEq(managementProxy.getCurrentInitializedVersion(), 3);
 
-        // Deploy the bridge including upgrade steps to V2.
+        // Deploy the bridge and make sure it's initialized to the latest implementation.
         bridgeProxyAddress = Upgrades.deployUUPSProxy(
-            "TestBridge.sol",
-            abi.encodeCall(TestBridge.initialize, (managementProxyAddress)),
-            opts
+            "TestBridge.sol", abi.encodeCall(TestBridge.initialize, (managementProxyAddress)), opts
         );
         bridgeProxy = TestBridge(payable(bridgeProxyAddress));
         vm.prank(owner);
-        bridgeProxy.upgradeToV2(new BridgeImpl.TokenMigration[](0));
+        bridgeProxy.upgradeToV3();
+        vm.prank(governor);
+        bridgeProxy.setNativeBridge(1e17, 1e18, 1e22, 100, 18, 8);
+        vm.prank(governor);
+        bridgeProxy.unpauseNativeBridge();
 
-        // Validate that the bridge proxy has been successfully deployed and upgraded to V2.
-        assertEq(bridgeProxy.getCurrentInitializedVersion(), 2);
+        // Validate that the bridge proxy has been successfully deployed and initialized to version 3.
+        assertEq(bridgeProxy.getCurrentInitializedVersion(), 3);
 
         neoBridgeConfig = StorageTypes.TokenConfig({
             neoN3Token: neoN3NeoToken,
@@ -118,21 +119,18 @@ contract TokenBridgeSyncTest is Test, SigUtils {
         vm.deal(withdrawingAccount, 1 ether);
 
         MockERC20(neoXNeoToken).mint(address(bridgeProxy), 1000 ether);
-        assertEq(
-            neoXNeoTokenContract.balanceOf(address(bridgeProxy)),
-            1000 ether
-        );
+        assertEq(neoXNeoTokenContract.balanceOf(address(bridgeProxy)), 1000 ether);
 
         vm.prank(governor);
         bridgeProxy.registerToken(neoXNeoToken, neoBridgeConfig);
+        vm.prank(governor);
+        bridgeProxy.unpauseTokenBridge(neoXNeoToken);
     }
 
     // Get the correct signatures of the five validators
-    function getSignatures(
-        bytes32 _depositRoot
-    ) public view returns (BridgeLib.Signature[] memory) {
-        uint[] memory defaultIndices = new uint[](5);
-        for (uint i = 0; i < 5; i++) {
+    function getSignatures(bytes32 _depositRoot) public view returns (BridgeLib.Signature[] memory) {
+        uint256[] memory defaultIndices = new uint256[](5);
+        for (uint256 i = 0; i < 5; i++) {
             defaultIndices[i] = i;
         }
         return getSignatures(_depositRoot, defaultIndices);
@@ -141,29 +139,26 @@ contract TokenBridgeSyncTest is Test, SigUtils {
     // Get the correct signatures of the five/six/seven validators
     function getSignatures(
         bytes32 _depositRoot,
-        uint[] memory validatorIndices
-    ) public view returns (BridgeLib.Signature[] memory) {
+        uint256[] memory validatorIndices
+    )
+        public
+        view
+        returns (BridgeLib.Signature[] memory)
+    {
         // Ensure that the length of the validatorIndices array passed in is 5,6,7, otherwise an exception is thrown
         require(
-            validatorIndices.length == 5 ||
-                validatorIndices.length == 6 ||
-                validatorIndices.length == 7,
+            validatorIndices.length == 5 || validatorIndices.length == 6 || validatorIndices.length == 7,
             "five-seven validator indexes must be provided"
         );
 
-        BridgeLib.Signature[] memory _signatures = new BridgeLib.Signature[](
-            validatorIndices.length
-        );
+        BridgeLib.Signature[] memory _signatures = new BridgeLib.Signature[](validatorIndices.length);
         bytes32 ethHash = getSignedHash(_depositRoot);
 
-        for (uint i = 0; i < validatorIndices.length; i++) {
-            uint validatorIndex = validatorIndices[i];
+        for (uint256 i = 0; i < validatorIndices.length; i++) {
+            uint256 validatorIndex = validatorIndices[i];
             require(validatorIndex < validatorsKeys.length, "Invalid index");
 
-            (uint8 v, bytes32 r, bytes32 s) = vm.sign(
-                validatorsKeys[validatorIndex],
-                ethHash
-            );
+            (uint8 v, bytes32 r, bytes32 s) = vm.sign(validatorsKeys[validatorIndex], ethHash);
 
             address recoverAddress = ecrecover(ethHash, v, r, s);
             _signatures[i] = BridgeLib.Signature(v, r, s);
@@ -179,30 +174,15 @@ contract TokenBridgeSyncTest is Test, SigUtils {
         assertEq(neoXNeoToken, 0x5615dEB798BB3E4dFa0139dFa1b3D433Cc23b72f);
         assertEq(neoN3NeoToken, 0xEf4073A0F2b305a38EC4050e4d3d28bC40eA63F5);
 
-        bytes32 hashedBridgeOp = bridgeProxy.hashTokenBridgeOp(
-            neoXNeoToken,
-            neoN3NeoToken,
-            nonce,
-            to,
-            value
-        );
-        bytes memory concatenated = abi.encodePacked(
-            neoN3NeoToken,
-            neoXNeoToken,
-            nonce,
-            to,
-            value
-        );
+        bytes32 hashedBridgeOp = bridgeProxy.hashTokenBridgeOp(neoXNeoToken, neoN3NeoToken, nonce, to, value);
+        bytes memory concatenated = abi.encodePacked(neoN3NeoToken, neoXNeoToken, nonce, to, value);
         assertEq(
             concatenated,
             hex"Ef4073A0F2b305a38EC4050e4d3d28bC40eA63F55615dEB798BB3E4dFa0139dFa1b3D433Cc23b72f0000000000000000000000000000000000000000000000000000000000050b04D44304966f6e74cfd0E2215649D5C57892BfBAaB00000000000000000000000000000000000000000000000000000000499602d2"
         );
         bytes32 expected = keccak256(concatenated);
         assertEq(hashedBridgeOp, expected);
-        assertEq(
-            hashedBridgeOp,
-            hex"5df56ac9c1a3c018a83c763c211f89c7c5c5dc4b121c960452f8cfe802cdc631"
-        );
+        assertEq(hashedBridgeOp, hex"5df56ac9c1a3c018a83c763c211f89c7c5c5dc4b121c960452f8cfe802cdc631");
     }
 
     function testDepositNeo() public {
@@ -214,62 +194,34 @@ contract TokenBridgeSyncTest is Test, SigUtils {
         managementProxy.setValidatorThreshold(6);
         // managementProxy.setValidators(validatorsAddresses, 6);
 
-        BridgeLib.DepositData[]
-            memory depositData = new BridgeLib.DepositData[](2);
+        BridgeLib.DepositData[] memory depositData = new BridgeLib.DepositData[](2);
 
-        BridgeLib.DepositData memory d0 = BridgeLib.DepositData({
-            nonce: 1,
-            to: payable(recipientOnNeoX_1),
-            amount: 355
-        });
-        BridgeLib.DepositData memory d1 = BridgeLib.DepositData({
-            nonce: 2,
-            to: payable(recipientOnNeoX_2),
-            amount: 445
-        });
+        BridgeLib.DepositData memory d0 = BridgeLib.DepositData({nonce: 1, to: payable(recipientOnNeoX_1), amount: 355});
+        BridgeLib.DepositData memory d1 = BridgeLib.DepositData({nonce: 2, to: payable(recipientOnNeoX_2), amount: 445});
 
         depositData[0] = d0;
         depositData[1] = d1;
         bytes32 tokenDepositRoot = bridgeProxy.computeTokenRoot(
-            bridgeProxy.getTokenDepositState(neoXNeoToken).root,
-            neoN3NeoToken,
-            neoXNeoToken,
-            depositData
+            bridgeProxy.getTokenDepositState(neoXNeoToken).root, neoN3NeoToken, neoXNeoToken, depositData
         );
 
         // takes the signatures of the random 6 validators
-        uint[] memory validatorIndices = new uint[](6);
+        uint256[] memory validatorIndices = new uint256[](6);
         validatorIndices[0] = 0;
         validatorIndices[1] = 1;
         validatorIndices[2] = 3;
         validatorIndices[3] = 4;
         validatorIndices[4] = 5;
         validatorIndices[5] = 6;
-        BridgeLib.Signature[] memory signatures = getSignatures(
-            tokenDepositRoot,
-            validatorIndices
-        );
+        BridgeLib.Signature[] memory signatures = getSignatures(tokenDepositRoot, validatorIndices);
         vm.prank(relayer);
         // check event
-        emit ITokenBridge.TokenDepositRootUpdate(
-            neoXNeoToken,
-            neoN3NeoToken,
-            d1.nonce,
-            tokenDepositRoot
-        );
-        bridgeProxy.depositToken(
-            neoXNeoToken,
-            tokenDepositRoot,
-            signatures,
-            depositData
-        );
+        emit ITokenBridge.TokenDepositRootUpdate(neoXNeoToken, neoN3NeoToken, d1.nonce, tokenDepositRoot);
+        bridgeProxy.depositToken(neoXNeoToken, tokenDepositRoot, signatures, depositData);
         // check balances
         assertEq(neoXNeoTokenContract.balanceOf(recipientOnNeoX_1), 355 ether);
         assertEq(neoXNeoTokenContract.balanceOf(recipientOnNeoX_2), 445 ether);
-        assertEq(
-            tokenDepositRoot,
-            0x30bd66fcd30d5e4759d2a5af3833f418c2960e3552bf93e9f296b433257b2134
-        );
+        assertEq(tokenDepositRoot, 0x30bd66fcd30d5e4759d2a5af3833f418c2960e3552bf93e9f296b433257b2134);
     }
 
     function testWithdrawNeo() public {
@@ -287,33 +239,16 @@ contract TokenBridgeSyncTest is Test, SigUtils {
         vm.prank(withdrawingAccount);
         neoXNeoTokenContract.approve(address(bridgeProxy), 209 ether);
         vm.prank(withdrawingAccount);
-        bridgeProxy.withdrawToken{value: withdrawalFee}(
-            neoXNeoToken,
-            recipientOnNeoN3_1,
-            amount_1
-        );
+        bridgeProxy.withdrawToken{value: withdrawalFee}(neoXNeoToken, recipientOnNeoN3_1, amount_1);
 
         vm.prank(withdrawingAccount);
-        bridgeProxy.withdrawToken{value: withdrawalFee}(
-            neoXNeoToken,
-            recipientOnNeoN3_2,
-            amount_2
-        );
+        bridgeProxy.withdrawToken{value: withdrawalFee}(neoXNeoToken, recipientOnNeoN3_2, amount_2);
 
         vm.prank(withdrawingAccount);
-        bridgeProxy.withdrawToken{value: withdrawalFee}(
-            neoXNeoToken,
-            recipientOnNeoN3_3,
-            amount_3
-        );
+        bridgeProxy.withdrawToken{value: withdrawalFee}(neoXNeoToken, recipientOnNeoN3_3, amount_3);
 
-        StorageTypes.State memory state = bridgeProxy.getTokenWithdrawalState(
-            neoXNeoToken
-        );
+        StorageTypes.State memory state = bridgeProxy.getTokenWithdrawalState(neoXNeoToken);
         assertEq(state.nonce, 3);
-        assertEq(
-            state.root,
-            0xe7bcedec3503f013e96c2656b3ea841f62787a06afd3a3df004635ec9a1432e7
-        );
+        assertEq(state.root, 0xe7bcedec3503f013e96c2656b3ea841f62787a06afd3a3df004635ec9a1432e7);
     }
 }

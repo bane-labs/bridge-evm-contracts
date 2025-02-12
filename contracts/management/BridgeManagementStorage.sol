@@ -9,20 +9,22 @@ using EnumerableSet for EnumerableSet.AddressSet;
 /**
  * @dev This contract holds errors, modifiers, internal view functions and functions that directly modify the storage. The modification functions have logical checks but no access-checks. For example, registering a token should only be viable if there is no entry for that token already. However, checking if the msg.sender is allowed to do so should be handled in a higher-level contract (i.e., in this case the corresponding Impl contract).
  */
-abstract contract BridgeManagementStorage is
-    BridgeManagementStorageV1,
-    UUPSUpgradeable
-{
-    address public constant GOV_ADMIN =
-        0x1212000000000000000000000000000000000000;
+abstract contract BridgeManagementStorage is BridgeManagementStorageV1, UUPSUpgradeable {
+    address public constant GOV_ADMIN = 0x1212000000000000000000000000000000000000;
     uint256 private constant MIN_VALIDATOR_THRESHOLD = 2;
     uint256 private constant MIN_NR_VALIDATORS = 2;
 
+    //0x59615ad3
     error AlreadyValidator(address _validator);
+    //0xe6c4247b
     error InvalidAddress();
+    //0xed3db8ac
     error NotValidator(address _validator);
+    //0xc204d59d
     error MinValidatorsLimitReached();
+    //0x79257cdd
     error ValidatorThresholdTooLow();
+    //0x848ae3f3
     error ValidatorThresholdTooHigh();
 
     function _isValidator(address _validator) internal view returns (bool) {
@@ -37,8 +39,7 @@ abstract contract BridgeManagementStorage is
 
     function _removeValidator(address _validator) internal {
         if (_minimumValidatorsReached()) revert MinValidatorsLimitReached();
-        if (validatorSet.length() == validatorThreshold)
-            revert ValidatorThresholdTooHigh();
+        if (validatorSet.length() == validatorThreshold) revert ValidatorThresholdTooHigh();
         bool removed = validatorSet.remove(_validator);
         if (!removed) revert NotValidator(_validator);
     }
@@ -48,21 +49,18 @@ abstract contract BridgeManagementStorage is
     }
 
     function _incrementValidatorThreshold() internal {
-        if (validatorSet.length() == validatorThreshold)
-            revert ValidatorThresholdTooHigh();
+        if (validatorSet.length() == validatorThreshold) revert ValidatorThresholdTooHigh();
         validatorThreshold++;
     }
 
     function _decrementValidatorThreshold() internal {
-        if (validatorThreshold == MIN_VALIDATOR_THRESHOLD)
-            revert ValidatorThresholdTooLow();
+        if (validatorThreshold == MIN_VALIDATOR_THRESHOLD) revert ValidatorThresholdTooLow();
         validatorThreshold--;
     }
 
     function _setValidatorThreshold(uint256 _threshold) internal {
         if (_threshold <= 1) revert ValidatorThresholdTooLow();
-        if (_threshold > validatorSet.length())
-            revert ValidatorThresholdTooHigh();
+        if (_threshold > validatorSet.length()) revert ValidatorThresholdTooHigh();
         validatorThreshold = _threshold;
     }
 
@@ -93,7 +91,5 @@ abstract contract BridgeManagementStorage is
         _;
     }
 
-    function _authorizeUpgrade(
-        address newImplementation
-    ) internal virtual override onlyAdmin {}
+    function _authorizeUpgrade(address newImplementation) internal virtual override onlyAdmin {}
 }

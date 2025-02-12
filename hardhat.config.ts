@@ -8,6 +8,7 @@ import 'hardhat-storage-layout'
 import "@nomicfoundation/hardhat-foundry";
 
 const NEOX_TESTNET_ACCOUNTS = vars.has("NEOX_TESTNET_PRIVATE_KEY") ? [vars.get("NEOX_TESTNET_PRIVATE_KEY")] : [];
+const NEOX_MAINNET_ACCOUNTS = vars.has("NEOX_MAINNET_PRIVATE_KEY") ? [vars.get("NEOX_MAINNET_PRIVATE_KEY")] : [];
 
 /** @type import('hardhat/config').HardhatUserConfig */
 const config: HardhatUserConfig = {
@@ -26,6 +27,12 @@ const config: HardhatUserConfig = {
       url: "https://testnet.rpc.banelabs.org",
       chainId: 12227332,
       accounts: NEOX_TESTNET_ACCOUNTS,
+      gasPrice: 4000000000,
+    },
+    neoxMainnet: {
+      url: "https://mainnet-1.rpc.banelabs.org",
+      chainId: 47763,
+      accounts: NEOX_MAINNET_ACCOUNTS,
       gasPrice: 4000000000,
     },
   },
