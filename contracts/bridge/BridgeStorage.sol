@@ -15,6 +15,12 @@ import "./BridgeStorageV1.sol";
 abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     address public constant GOV_ADMIN = 0x1212000000000000000000000000000000000000;
 
+    //0x944c2c78
+    error MessageAlreadyExists(uint256 nonce);
+    //0x03290dc9
+    error MessageNotFound(uint256 nonce);
+    //0xa5fa8d2b
+    error CallFailed(bytes reason);
     //0xf6a1af31
     error AmountBelowMinAmount(uint256 minAmount, uint256 provided);
     //0x030e0197

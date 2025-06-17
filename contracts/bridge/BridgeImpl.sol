@@ -405,17 +405,21 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
 
     function storeMessage(bytes calldata message) external returns (uint256) {
         uint nonce = uint(keccak256(message));
-        if (messages[nonce].length != 0) revert("Message already exists");
+        if (messages[nonce].length != 0) revert MessageAlreadyExists(nonce);
         messages[nonce] = message;
         return nonce;
     }
 
     function executeMessage(uint nonce) public payable returns (StorageTypes.Result memory) {
-        if (messages[nonce].length == 0) revert("Message does not exist");
+        if (messages[nonce].length == 0) revert MessageNotFound(nonce);
         StorageTypes.Call memory call = abi.decode(messages[nonce], (StorageTypes.Call));
         StorageTypes.Result memory result;
-        (result.success, result.returnData) = call.target.call(call.callData);
-        if (!call.allowFailure && !result.success) revert("Call failed");
+
+        (result.success, result.returnData) = call.target.call{value: call.value}(call.callData);
+
+        // forward the reason for failure if the call was not allowed to fail
+        if (!call.allowFailure && !result.success) revert CallFailed(result.returnData);
+
         return result;
     }
 
