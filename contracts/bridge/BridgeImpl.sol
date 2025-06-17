@@ -413,6 +413,10 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
     function executeMessage(uint nonce) public payable returns (StorageTypes.Result memory) {
         if (messages[nonce].length == 0) revert MessageNotFound(nonce);
         StorageTypes.Call memory call = abi.decode(messages[nonce], (StorageTypes.Call));
+
+        // Verify that the msg.value matches the call.value from the message
+        if (msg.value != call.value) revert ValueMismatch(call.value, msg.value);
+
         StorageTypes.Result memory result;
 
         (result.success, result.returnData) = call.target.call{value: call.value}(call.callData);

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-contract TestContract {
+contract TestMessageContract {
     uint256 public counter;
 
     event TestEvent(uint256 indexed counter, address indexed caller);
