@@ -353,4 +353,278 @@ contract BridgeImplTest is Test, SigUtils {
         uint256 returnedCounter = abi.decode(result.returnData, (uint256));
         assertEq(returnedCounter, 1, "Returned counter should be 1");
     }
+
+    function test_StoreAndExecuteMessageWithTestContractPayment() public {
+        // Deploy test contract
+        TestContract testContract = new TestContract();
+
+        // Create Call struct with receivePayment encoded
+        uint256 paymentAmount = 1 ether;
+        bytes memory callData = abi.encodeWithSelector(TestContract.receivePayment.selector, paymentAmount);
+
+        StorageTypes.Call memory call = StorageTypes.Call({
+            target: address(testContract),
+            callData: callData,
+            allowFailure: false,
+            value: paymentAmount
+        });
+
+        // Encode the Call struct into a message
+        bytes memory message = abi.encode(call);
+
+        // Store the message and get the nonce
+        uint256 nonce = bridgeProxy.storeMessage(message);
+
+        // Verify the nonce is the keccak256 hash of the message
+        assertEq(uint(keccak256(message)), nonce, "Nonce should be the keccak256 hash of the message");
+
+        // Expect the PaymentReceived event to be emitted with correct parameters
+        vm.expectEmit(true, true, true, true, address(testContract));
+        emit TestContract.PaymentReceived(paymentAmount, address(bridgeProxy));
+
+        // Execute the message
+        StorageTypes.Result memory result = bridgeProxy.executeMessage{value: paymentAmount}(nonce);
+
+        // Verify execution was successful
+        assertTrue(result.success, "Message execution should succeed");
+
+        // Decode the result data to verify the return value
+        bool returnedSuccess = abi.decode(result.returnData, (bool));
+        assertTrue(returnedSuccess, "Should return true");
+    }
+
+    function test_StoreAndExecuteMessageWithTestContractPaymentMismatch() public {
+        // Deploy test contract
+        TestContract testContract = new TestContract();
+
+        // Create Call struct with receivePayment encoded but with mismatched values
+        uint256 declaredAmount = 1 ether;
+        uint256 actualAmount = 0.5 ether; // Mismatched amount
+        bytes memory callData = abi.encodeWithSelector(TestContract.receivePayment.selector, declaredAmount);
+
+        StorageTypes.Call memory call = StorageTypes.Call({
+            target: address(testContract),
+            callData: callData,
+            allowFailure: true, // Allow failure so we can check the error
+            value: actualAmount
+        });
+
+        // Encode the Call struct into a message
+        bytes memory message = abi.encode(call);
+
+        // Store the message and get the nonce
+        uint256 nonce = bridgeProxy.storeMessage(message);
+
+        // Execute the message - this should fail but not revert the transaction
+        StorageTypes.Result memory result = bridgeProxy.executeMessage{value: actualAmount}(nonce);
+
+        // Verify execution failed as expected
+        assertFalse(result.success, "Message execution should fail due to value mismatch");
+
+        bytes memory errorBytes = result.returnData;
+
+        // Verify that the error is a ValueMismatch error
+        bytes4 errorSelector;
+        assembly {
+            errorSelector := mload(add(errorBytes, 0x20))
+        }
+        bytes4 expectedSelector = TestContract.ValueMismatch.selector;
+        assertEq(errorSelector, expectedSelector, "Error selector should match ValueMismatch");
+
+        // Decode and verify the error parameters using assembly
+        uint256 expected;
+        uint256 received;
+        assembly {
+        // Load the parameters after the selector (4 bytes)
+        // Each parameter is 32 bytes
+            expected := mload(add(errorBytes, 0x24))  // 0x20 (length prefix) + 0x04 (selector)
+            received := mload(add(errorBytes, 0x44))  // 0x20 + 0x04 + 0x20 (first parameter)
+        }
+
+        assertEq(expected, declaredAmount, "Expected amount in error should match declared amount");
+        assertEq(received, actualAmount, "Received amount in error should match actual amount sent");
+    }
+
+    function test_StoreAndExecuteMessageWithTestContractDirectEth() public {
+        // Deploy test contract
+        TestContract testContract = new TestContract();
+
+        // Create Call struct with empty callData to trigger receive() function
+        bytes memory callData = "";
+
+        StorageTypes.Call memory call = StorageTypes.Call({
+            target: address(testContract),
+            callData: callData,
+            allowFailure: false,
+            value: 1 ether
+        });
+
+        // Encode the Call struct into a message
+        bytes memory message = abi.encode(call);
+
+        // Store the message and get the nonce
+        uint256 nonce = bridgeProxy.storeMessage(message);
+
+        // Expect the DirectEthReceived event to be emitted with correct sender
+        vm.expectEmit(true, true, true, true, address(testContract));
+        emit TestContract.DirectEthReceived(address(bridgeProxy));
+
+        // Execute the message
+        StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 1 ether}(nonce);
+
+        // Verify execution was successful
+        assertTrue(result.success, "Message execution should succeed");
+    }
+
+    function test_StoreAndExecuteMessageWithTestContractFallback() public {
+        // Deploy test contract
+        TestContract testContract = new TestContract();
+
+        // Create a valid address to send in the calldata
+        bytes memory addressBytes = abi.encodePacked(address(this));
+
+        StorageTypes.Call memory call = StorageTypes.Call({
+            target: address(testContract),
+            callData: addressBytes,
+            allowFailure: false,
+            value: 1 ether
+        });
+
+        // Encode the Call struct into a message
+        bytes memory message = abi.encode(call);
+
+        // Store the message and get the nonce
+        uint256 nonce = bridgeProxy.storeMessage(message);
+
+        // Expect the FallbackCalled event to be emitted with correct parameters
+        vm.expectEmit(true, true, true, true, address(testContract));
+        emit TestContract.FallbackCalled(address(bridgeProxy), 1 ether, addressBytes);
+
+        // Execute the message
+        StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 1 ether}(nonce);
+
+        // Verify execution was successful
+        assertTrue(result.success, "Message execution should succeed");
+    }
+
+    function test_StoreAndExecuteMessageWithZeroValuePayment() public {
+        // Deploy test contract
+        TestContract testContract = new TestContract();
+
+        // Test 1: Zero value with receivePayment function
+        {
+            uint256 declaredAmount = 1 ether;
+            uint256 actualAmount = 0; // Zero value
+            bytes memory callData = abi.encodeWithSelector(TestContract.receivePayment.selector, declaredAmount);
+
+            StorageTypes.Call memory call = StorageTypes.Call({
+                target: address(testContract),
+                callData: callData,
+                allowFailure: true, // Allow failure so we can check the error
+                value: actualAmount
+            });
+
+            bytes memory message = abi.encode(call);
+            uint256 nonce = bridgeProxy.storeMessage(message);
+            StorageTypes.Result memory result = bridgeProxy.executeMessage{value: actualAmount}(nonce);
+
+            // Verify execution failed as expected
+            assertFalse(result.success, "Message execution should fail due to zero value");
+
+            // Verify the error is ZeroValueNotAllowed
+            bytes memory errorData = result.returnData;
+            bytes4 errorSelector;
+            assembly {
+                errorSelector := mload(add(errorData, 0x20))
+            }
+            bytes4 expectedSelector = TestContract.ZeroValueNotAllowed.selector;
+            assertEq(errorSelector, expectedSelector, "Error selector should match ZeroValueNotAllowed");
+        }
+
+        // Test 2: Zero value with fallback function
+        {
+            bytes memory addressBytes = abi.encodePacked(address(this));
+
+            StorageTypes.Call memory call = StorageTypes.Call({
+                target: address(testContract),
+                callData: addressBytes,
+                allowFailure: true,
+                value: 0 // Zero value
+            });
+
+            bytes memory message = abi.encode(call);
+            uint256 nonce = bridgeProxy.storeMessage(message);
+            StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 0}(nonce);
+
+            // Verify execution failed as expected
+            assertFalse(result.success, "Message execution should fail due to zero value in fallback");
+
+            // Verify the error is ZeroValueNotAllowed
+            bytes memory errorData = result.returnData;
+            bytes4 errorSelector;
+            assembly {
+                errorSelector := mload(add(errorData, 0x20))
+            }
+            bytes4 expectedSelector = TestContract.ZeroValueNotAllowed.selector;
+            assertEq(errorSelector, expectedSelector, "Error selector should match ZeroValueNotAllowed");
+        }
+
+        // Test 3: Zero value with receive function
+        {
+            bytes memory callData = "";
+
+            StorageTypes.Call memory call = StorageTypes.Call({
+                target: address(testContract),
+                callData: callData,
+                allowFailure: true,
+                value: 0 // Zero value
+            });
+
+            bytes memory message = abi.encode(call);
+            uint256 nonce = bridgeProxy.storeMessage(message);
+            StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 0}(nonce);
+
+            // Verify execution failed as expected
+            assertFalse(result.success, "Message execution should fail due to zero value in receive");
+
+            // Verify the error is ZeroValueNotAllowed
+            bytes memory errorData = result.returnData;
+            bytes4 errorSelector;
+            assembly {
+                errorSelector := mload(add(errorData, 0x20))
+            }
+            bytes4 expectedSelector = TestContract.ZeroValueNotAllowed.selector;
+            assertEq(errorSelector, expectedSelector, "Error selector should match ZeroValueNotAllowed");
+        }
+    }
+
+    function test_StoreAndExecuteMessageWithTestContractInvalidCallData() public {
+        // Deploy test contract
+        TestContract testContract = new TestContract();
+
+        // Create an invalid payload that's not 20 bytes (not a valid address)
+        bytes memory invalidCallData = hex"1234"; // Just 2 bytes instead of 20
+
+        StorageTypes.Call memory call = StorageTypes.Call({
+            target: address(testContract),
+            callData: invalidCallData,
+            allowFailure: false, // This will cause CallFailed error
+            value: 1 ether
+        });
+
+        // Encode the Call struct into a message
+        bytes memory message = abi.encode(call);
+
+        // Store the message and get the nonce
+        uint256 nonce = bridgeProxy.storeMessage(message);
+
+        // Execution should revert with CallFailed(InvalidCallData())
+        vm.expectRevert(abi.encodeWithSelector(
+            BridgeStorage.CallFailed.selector,
+            abi.encodeWithSelector(TestContract.InvalidCallData.selector))
+        );
+
+        // Execute the message
+        bridgeProxy.executeMessage{value: 1 ether}(nonce);
+    }
 }
