@@ -8,7 +8,9 @@ import {SigUtils} from "../contracts/tests/SigUtils.sol";
 import {TestBridge, BridgeImpl} from "../contracts/tests/TestBridge.sol";
 import {TestBridgeManagement} from "../contracts/tests/TestBridgeManagement.sol";
 import {Test} from "../lib/forge-std/src/Test.sol";
-import {TestContract} from "../contracts/tests/TestContract.sol";
+import {TestMessageContract} from "../contracts/tests/TestMessageContract.sol";
+import {TestPayableContract} from "../contracts/tests/TestPayableContract.sol";
+import {console2} from "../lib/openzeppelin-foundry-upgrades/lib/forge-std/src/console2.sol";
 
 contract BridgeImplTest is Test, SigUtils {
     TestBridge bridgeProxy;
@@ -311,14 +313,14 @@ contract BridgeImplTest is Test, SigUtils {
         bridgeProxy.unpauseTokenBridge(neoXToken);
     }
 
-    function test_StoreAndExecuteMessageWithTestContract() public {
+    function test_StoreAndExecuteMessageWithTestMessageContract() public {
         // Deploy test contract
-        TestContract testContract = new TestContract();
+        TestMessageContract testContract = new TestMessageContract();
 
         assertEq(testContract.counter(), 0, "Counter should be initialized to 0");
 
         // Create Call struct with testFunction encoded
-        bytes memory callData = abi.encodeWithSelector(TestContract.testFunction.selector);
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
 
         StorageTypes.Call memory call = StorageTypes.Call({
             target: address(testContract),
@@ -338,7 +340,7 @@ contract BridgeImplTest is Test, SigUtils {
 
         // Expect the TestEvent to be emitted with correct parameters
         vm.expectEmit(true, true, true, true, address(testContract));
-        emit TestContract.TestEvent(1, address(bridgeProxy));
+        emit TestMessageContract.TestEvent(1, address(bridgeProxy));
 
         // Execute the message
         StorageTypes.Result memory result = bridgeProxy.executeMessage(nonce);
@@ -356,11 +358,13 @@ contract BridgeImplTest is Test, SigUtils {
 
     function test_StoreAndExecuteMessageWithTestContractPayment() public {
         // Deploy test contract
-        TestContract testContract = new TestContract();
+        TestMessageContract testContract = new TestMessageContract();
+        // Verify the contract did not receive any ETH
+        assertEq(address(testContract).balance, 0, "Test contract should not have received ETH");
 
         // Create Call struct with receivePayment encoded
         uint256 paymentAmount = 1 ether;
-        bytes memory callData = abi.encodeWithSelector(TestContract.receivePayment.selector, paymentAmount);
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.receivePayment.selector, paymentAmount);
 
         StorageTypes.Call memory call = StorageTypes.Call({
             target: address(testContract),
@@ -380,7 +384,7 @@ contract BridgeImplTest is Test, SigUtils {
 
         // Expect the PaymentReceived event to be emitted with correct parameters
         vm.expectEmit(true, true, true, true, address(testContract));
-        emit TestContract.PaymentReceived(paymentAmount, address(bridgeProxy));
+        emit TestMessageContract.PaymentReceived(paymentAmount, address(bridgeProxy));
 
         // Execute the message
         StorageTypes.Result memory result = bridgeProxy.executeMessage{value: paymentAmount}(nonce);
@@ -391,16 +395,20 @@ contract BridgeImplTest is Test, SigUtils {
         // Decode the result data to verify the return value
         bool returnedSuccess = abi.decode(result.returnData, (bool));
         assertTrue(returnedSuccess, "Should return true");
+
+        // Verify the contract received the 1 ETH
+        assertEq(address(testContract).balance, call.value, "Payable contract should have received 1 ETH");
     }
 
     function test_StoreAndExecuteMessageWithTestContractPaymentMismatch() public {
         // Deploy test contract
-        TestContract testContract = new TestContract();
+        TestMessageContract testContract = new TestMessageContract();
+        assertEq(address(testContract).balance, 0, "Test contract should not have ETH");
 
         // Create Call struct with receivePayment encoded but with mismatched values
         uint256 declaredAmount = 1 ether;
         uint256 actualAmount = 0.5 ether; // Mismatched amount
-        bytes memory callData = abi.encodeWithSelector(TestContract.receivePayment.selector, declaredAmount);
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.receivePayment.selector, declaredAmount);
 
         StorageTypes.Call memory call = StorageTypes.Call({
             target: address(testContract),
@@ -428,7 +436,7 @@ contract BridgeImplTest is Test, SigUtils {
         assembly {
             errorSelector := mload(add(errorBytes, 0x20))
         }
-        bytes4 expectedSelector = TestContract.ValueMismatch.selector;
+        bytes4 expectedSelector = TestMessageContract.ValueMismatch.selector;
         assertEq(errorSelector, expectedSelector, "Error selector should match ValueMismatch");
 
         // Decode and verify the error parameters using assembly
@@ -443,11 +451,15 @@ contract BridgeImplTest is Test, SigUtils {
 
         assertEq(expected, declaredAmount, "Expected amount in error should match declared amount");
         assertEq(received, actualAmount, "Received amount in error should match actual amount sent");
+
+        // Verify the contract did not receive any ETH
+        assertEq(address(testContract).balance, 0, "Test contract should not have received ETH");
     }
 
     function test_StoreAndExecuteMessageWithTestContractDirectEth() public {
         // Deploy test contract
-        TestContract testContract = new TestContract();
+        TestMessageContract testContract = new TestMessageContract();
+        assertEq(address(testContract).balance, 0, "Test contract should not have ETH");
 
         // Create Call struct with empty callData to trigger receive() function
         bytes memory callData = "";
@@ -467,20 +479,24 @@ contract BridgeImplTest is Test, SigUtils {
 
         // Expect the DirectEthReceived event to be emitted with correct sender
         vm.expectEmit(true, true, true, true, address(testContract));
-        emit TestContract.DirectEthReceived(address(bridgeProxy));
+        emit TestMessageContract.DirectEthReceived(address(bridgeProxy));
 
         // Execute the message
         StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 1 ether}(nonce);
 
         // Verify execution was successful
         assertTrue(result.success, "Message execution should succeed");
+
+        // Verify the contract received the 1 ETH
+        assertEq(address(testContract).balance, call.value, "Payable contract should have received 1 ETH");
     }
 
     function test_StoreAndExecuteMessageWithTestContractFallback() public {
         // Deploy test contract
-        TestContract testContract = new TestContract();
+        TestMessageContract testContract = new TestMessageContract();
+        assertEq(address(testContract).balance, 0, "Test contract should not have ETH");
 
-        // Create a valid address to send in the calldata
+        // Create a valid address payload to send in the calldata
         bytes memory addressBytes = abi.encodePacked(address(this));
 
         StorageTypes.Call memory call = StorageTypes.Call({
@@ -498,24 +514,28 @@ contract BridgeImplTest is Test, SigUtils {
 
         // Expect the FallbackCalled event to be emitted with correct parameters
         vm.expectEmit(true, true, true, true, address(testContract));
-        emit TestContract.FallbackCalled(address(bridgeProxy), 1 ether, addressBytes);
+        emit TestMessageContract.FallbackCalled(address(bridgeProxy), 1 ether, addressBytes);
 
         // Execute the message
         StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 1 ether}(nonce);
 
         // Verify execution was successful
         assertTrue(result.success, "Message execution should succeed");
+
+        // Verify the contract received the 1 ETH
+        assertEq(address(testContract).balance, call.value, "Test contract should have received 1 ETH");
     }
 
     function test_StoreAndExecuteMessageWithZeroValuePayment() public {
         // Deploy test contract
-        TestContract testContract = new TestContract();
+        TestMessageContract testContract = new TestMessageContract();
+        assertEq(address(testContract).balance, 0, "Test contract should not have ETH");
 
         // Test 1: Zero value with receivePayment function
         {
             uint256 declaredAmount = 1 ether;
             uint256 actualAmount = 0; // Zero value
-            bytes memory callData = abi.encodeWithSelector(TestContract.receivePayment.selector, declaredAmount);
+            bytes memory callData = abi.encodeWithSelector(TestMessageContract.receivePayment.selector, declaredAmount);
 
             StorageTypes.Call memory call = StorageTypes.Call({
                 target: address(testContract),
@@ -537,8 +557,11 @@ contract BridgeImplTest is Test, SigUtils {
             assembly {
                 errorSelector := mload(add(errorData, 0x20))
             }
-            bytes4 expectedSelector = TestContract.ZeroValueNotAllowed.selector;
+            bytes4 expectedSelector = TestMessageContract.ZeroValueNotAllowed.selector;
             assertEq(errorSelector, expectedSelector, "Error selector should match ZeroValueNotAllowed");
+
+            // Verify the contract did not receive any ETH
+            assertEq(address(testContract).balance, 0, "Test contract should not have received ETH");
         }
 
         // Test 2: Zero value with fallback function
@@ -565,8 +588,11 @@ contract BridgeImplTest is Test, SigUtils {
             assembly {
                 errorSelector := mload(add(errorData, 0x20))
             }
-            bytes4 expectedSelector = TestContract.ZeroValueNotAllowed.selector;
+            bytes4 expectedSelector = TestMessageContract.ZeroValueNotAllowed.selector;
             assertEq(errorSelector, expectedSelector, "Error selector should match ZeroValueNotAllowed");
+
+            // Verify the contract did not receive any ETH
+            assertEq(address(testContract).balance, 0, "Test contract should not have received ETH");
         }
 
         // Test 3: Zero value with receive function
@@ -593,17 +619,20 @@ contract BridgeImplTest is Test, SigUtils {
             assembly {
                 errorSelector := mload(add(errorData, 0x20))
             }
-            bytes4 expectedSelector = TestContract.ZeroValueNotAllowed.selector;
+            bytes4 expectedSelector = TestMessageContract.ZeroValueNotAllowed.selector;
             assertEq(errorSelector, expectedSelector, "Error selector should match ZeroValueNotAllowed");
+            // Verify the contract did not receive any ETH
+            assertEq(address(testContract).balance, 0, "Test contract should not have received ETH");
         }
     }
 
     function test_StoreAndExecuteMessageWithTestContractInvalidCallData() public {
         // Deploy test contract
-        TestContract testContract = new TestContract();
+        TestMessageContract testContract = new TestMessageContract();
+        assertEq(address(testContract).balance, 0, "Test contract should not have ETH");
 
-        // Create an invalid payload that's not 20 bytes (not a valid address)
-        bytes memory invalidCallData = hex"1234"; // Just 2 bytes instead of 20
+        // Create an invalid payload that's not a valid function of this contract or an address (20 bytes)
+        bytes memory invalidCallData = abi.encodeWithSignature("someFunction(uint256)", 123);
 
         StorageTypes.Call memory call = StorageTypes.Call({
             target: address(testContract),
@@ -621,10 +650,135 @@ contract BridgeImplTest is Test, SigUtils {
         // Execution should revert with CallFailed(InvalidCallData())
         vm.expectRevert(abi.encodeWithSelector(
             BridgeStorage.CallFailed.selector,
-            abi.encodeWithSelector(TestContract.InvalidCallData.selector))
+            abi.encodeWithSelector(TestMessageContract.InvalidCallData.selector))
         );
 
         // Execute the message
         bridgeProxy.executeMessage{value: 1 ether}(nonce);
+
+        // Verify the contract did not receive any ETH
+        assertEq(address(testContract).balance, 0, "Test contract should not have received ETH");
+    }
+
+    function test_StoreAndExecuteMessageWithEOACall() public {
+        // Create a random address that doesn't have any contract deployed
+        address nonExistentContract = address(0x1234567890123456789012345678901234567890);
+
+        // Verify the address has no code - i.e. EOA, not a contract
+        uint256 codeSize;
+        assembly {
+            codeSize := extcodesize(nonExistentContract)
+        }
+        assertEq(codeSize, 0, "Target should not have any code");
+        assertEq(address(nonExistentContract).balance, 0, "Test contract should not have ETH");
+
+        // Create some random calldata
+        bytes memory callData = abi.encodeWithSignature("someFunction(uint256)", 123);
+
+        StorageTypes.Call memory call = StorageTypes.Call({
+            target: nonExistentContract,
+            callData: callData,
+            allowFailure: true,
+            value: 0.1 ether
+        });
+
+        // Encode the Call struct into a message
+        bytes memory message = abi.encode(call);
+
+        // Store the message and get the nonce
+        uint256 nonce = bridgeProxy.storeMessage(message);
+
+        // Execute the message - this should succeed when calling an EOA
+        StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 0.1 ether}(nonce);
+
+        // Verify execution succeeded as expected when calling an EOA
+        assertTrue(result.success, "Message execution should succeed when calling an EOA");
+
+        // The return data should be empty since it's an EOA
+        assertEq(result.returnData.length, 0, "Return data should be empty for an EOA");
+
+        // Verify the contract received the 1 ETH
+        assertEq(address(nonExistentContract).balance, call.value, "EOA should have received 0.1 ETH");
+
+        // Even with allowFailure set to false, it should still succeed
+        call.allowFailure = false;
+        message = abi.encode(call);
+        nonce = bridgeProxy.storeMessage(message);
+
+        // This should not revert
+        result = bridgeProxy.executeMessage{value: 0.1 ether}(nonce);
+        assertTrue(result.success, "Message execution should succeed when calling an EOA with allowFailure=false");
+        // Verify the contract received the 1 ETH
+        assertEq(address(nonExistentContract).balance, 2 * call.value, "EOA should have received another 0.1 ETH");
+    }
+
+    function test_StoreAndExecuteMessageStorageErrors() public {
+        // Create a test message
+        TestMessageContract testContract = new TestMessageContract();
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        StorageTypes.Call memory call = StorageTypes.Call({
+            target: address(testContract),
+            callData: callData,
+            allowFailure: false,
+            value: 0
+        });
+        bytes memory message = abi.encode(call);
+
+        // First store: should succeed
+        uint256 nonce = bridgeProxy.storeMessage(message);
+        assertEq(uint(keccak256(message)), nonce, "Nonce should match the hash of the message");
+
+        // Try to store the same message again: should revert with MessageAlreadyExists
+        vm.expectRevert(abi.encodeWithSelector(BridgeStorage.MessageAlreadyExists.selector, nonce));
+        bridgeProxy.storeMessage(message);
+
+        // Execute the stored message: should succeed
+        StorageTypes.Result memory result = bridgeProxy.executeMessage(nonce);
+        assertTrue(result.success, "Message execution should succeed");
+
+        // Try to execute a non-existent message: should revert with MessageNotFound
+        uint256 nonExistentNonce = uint256(keccak256("non-existent-message"));
+        vm.expectRevert(abi.encodeWithSelector(BridgeStorage.MessageNotFound.selector, nonExistentNonce));
+        bridgeProxy.executeMessage(nonExistentNonce);
+    }
+
+    function test_StoreAndExecuteMessageNonExistentPayableFunction() public {
+        // Deploy TestPayableContract (which doesn't have testFunction)
+        TestPayableContract payableContract = new TestPayableContract();
+        assertEq(address(payableContract).balance, 0, "Payable contract should not have received ETH");
+
+        // Create Call struct with testFunction selector (which TestPayableContract doesn't implement)
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+
+        StorageTypes.Call memory call = StorageTypes.Call({
+            target: address(payableContract),
+            callData: callData,
+            allowFailure: true,
+            value: 0.1 ether
+        });
+
+        // Encode the Call struct into a message
+        bytes memory message = abi.encode(call);
+
+        // Store the message and get the nonce
+        uint256 nonce = bridgeProxy.storeMessage(message);
+
+        // Execute the message - this should fail but not revert since allowFailure is true
+        StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 0.1 ether}(nonce);
+
+        // Verify execution failed as expected - TestPayableContract doesn't implement this function
+        assertFalse(result.success, "Message execution should fail when calling non-existent function");
+
+        // Now try with allowFailure set to false - should revert
+        call.allowFailure = false;
+        message = abi.encode(call);
+        nonce = bridgeProxy.storeMessage(message);
+
+        // This should revert with CallFailed error
+        vm.expectRevert(abi.encodeWithSelector(BridgeStorage.CallFailed.selector, ""));
+        bridgeProxy.executeMessage{value: 0.1 ether}(nonce);
+
+        // Check that payableContract did not receive funds when the function call failed
+        assertEq(address(payableContract).balance, 0, "Payable contract should not have received ETH");
     }
 }
