@@ -68,4 +68,16 @@ library StorageTypes {
         // For example, if the token on this chain has 18 decimals and the token on the other chain has 8 decimals, the decimal scaling factor should be 10.
         uint256 decimalScalingFactor;
     }
+
+    struct Call {
+        address target;
+        bytes callData;
+        bool allowFailure;
+        uint256 value;
+    }
+
+    struct Result {
+        bool success;
+        bytes returnData;
+    }
 }

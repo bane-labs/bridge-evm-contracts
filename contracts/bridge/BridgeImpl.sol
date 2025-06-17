@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../interfaces/IBridge.sol";
 import "../interfaces/INativeBridge.sol";
 import "../interfaces/ITokenBridge.sol";
+import "../library/StorageTypes.sol";
+import "../library/StorageTypes.sol";
 import "./BridgeStorage.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -399,6 +401,22 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
         // Note: For NEO tokens, the transfer value has already been extended with 18 decimals in the deposit function.
         // If no value is returned, non-reverting calls are assumed to be successful.
         SafeERC20.safeTransfer(IERC20(_neoXToken), to, claimable.amount);
+    }
+
+    function storeMessage(bytes calldata message) external returns (uint256) {
+        uint nonce = uint(keccak256(message));
+        if (messages[nonce].length != 0) revert("Message already exists");
+        messages[nonce] = message;
+        return nonce;
+    }
+
+    function executeMessage(uint nonce) public payable returns (StorageTypes.Result memory) {
+        if (messages[nonce].length == 0) revert("Message does not exist");
+        StorageTypes.Call memory call = abi.decode(messages[nonce], (StorageTypes.Call));
+        StorageTypes.Result memory result;
+        (result.success, result.returnData) = call.target.call(call.callData);
+        if (!call.allowFailure && !result.success) revert("Call failed");
+        return result;
     }
 
     function _emitTransferEventOrAddNewTokenClaimable(

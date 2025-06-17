@@ -8,6 +8,7 @@ import {SigUtils} from "../contracts/tests/SigUtils.sol";
 import {TestBridge, BridgeImpl} from "../contracts/tests/TestBridge.sol";
 import {TestBridgeManagement} from "../contracts/tests/TestBridgeManagement.sol";
 import {Test} from "../lib/forge-std/src/Test.sol";
+import {TestContract} from "../contracts/tests/TestContract.sol";
 
 contract BridgeImplTest is Test, SigUtils {
     TestBridge bridgeProxy;
@@ -308,5 +309,48 @@ contract BridgeImplTest is Test, SigUtils {
         vm.prank(nonGovernor);
         vm.expectRevert("not governor");
         bridgeProxy.unpauseTokenBridge(neoXToken);
+    }
+
+    function test_StoreAndExecuteMessageWithTestContract() public {
+        // Deploy test contract
+        TestContract testContract = new TestContract();
+
+        assertEq(testContract.counter(), 0, "Counter should be initialized to 0");
+
+        // Create Call struct with testFunction encoded
+        bytes memory callData = abi.encodeWithSelector(TestContract.testFunction.selector);
+
+        StorageTypes.Call memory call = StorageTypes.Call({
+            target: address(testContract),
+            callData: callData,
+            allowFailure: false,
+            value: 0
+        });
+
+        // Encode the Call struct into a message
+        bytes memory message = abi.encode(call);
+
+        // Store the message and get the nonce
+        uint256 nonce = bridgeProxy.storeMessage(message);
+
+        // Verify the nonce is the keccak256 hash of the message
+        assertEq(uint(keccak256(message)), nonce, "Nonce should be the keccak256 hash of the message");
+
+        // Expect the TestEvent to be emitted with correct parameters
+        vm.expectEmit(true, true, true, true, address(testContract));
+        emit TestContract.TestEvent(1, address(bridgeProxy));
+
+        // Execute the message
+        StorageTypes.Result memory result = bridgeProxy.executeMessage(nonce);
+
+        // Verify execution was successful
+        assertTrue(result.success, "Message execution should succeed");
+
+        // Verify the counter was incremented
+        assertEq(testContract.counter(), 1, "Counter should be incremented to 1");
+
+        // Decode the result data to verify the return value
+        uint256 returnedCounter = abi.decode(result.returnData, (uint256));
+        assertEq(returnedCounter, 1, "Returned counter should be 1");
     }
 }
