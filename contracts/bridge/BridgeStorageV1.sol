@@ -12,8 +12,10 @@ import "../library/StorageTypes.sol";
  */
 abstract contract BridgeStorageV1 is ReentrancyGuardUpgradeable {
     // Slots 0-99 remain empty for future upgrades (if further storage extension is needed, e.g., similar to ReentrancyGuard's _status var, this contract can easily be extended and the new var can use the next slot from _gap0, so that the other storage variables can remain in this file)
-    uint256[100] private _gap0;
+    uint256[99] private _gap0;
 
+    // Slot 99
+    mapping(uint256 => bytes) public messages;
     // Slot 100
     IBridgeManagement public management;
     // Slot 100 - offset 20
