@@ -13,6 +13,7 @@ interface IMessageBridge {
     event MessageWithdrawalFeeChange(uint256 fee);
     event MaxMessageSizeChange(uint256 maxSize);
     event MaxNrMessagesChange(uint256 maxDeposits);
+    event MessageExecutorSet(address indexed executor);
 
     function setMessageBridge(uint256 fee, uint256 maxMessageSize, uint256 maxDeposits) external;
     function messageBridgeIsSet() external view returns (bool);
@@ -22,10 +23,10 @@ interface IMessageBridge {
         bytes32 depositRoot,
         BridgeLib.Signature[] calldata signatures,
         StorageTypes.MessageData[] calldata messages
-    )
-        external;
+    ) external;
     function executeMessage(uint256 nonce) external payable returns (StorageTypes.Result memory);
     function setMessageBridgeFee(uint256 fee) external;
     function setMaxMessageSize(uint256 maxSize) external;
     function setMaxNrMessages(uint256 maxDeposits) external;
+    function setMessageExecutor(address _executor) external;
 }

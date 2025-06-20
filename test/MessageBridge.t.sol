@@ -12,6 +12,7 @@ import {TestBridgeManagement} from "../contracts/tests/TestBridgeManagement.sol"
 import {Test} from "../lib/forge-std/src/Test.sol";
 import {TestMessageContract} from "../contracts/tests/TestMessageContract.sol";
 import {TestPayableContract} from "../contracts/tests/TestPayableContract.sol";
+import {TestMessageExecutor} from "../contracts/tests/TestMessageExecutor.sol";
 import {console2} from "../lib/openzeppelin-foundry-upgrades/lib/forge-std/src/console2.sol";
 
 contract MessageBridgeTest is Test, SigUtils {
@@ -29,6 +30,9 @@ contract MessageBridgeTest is Test, SigUtils {
     address[] public validatorsAddresses;
     address internal governor = 0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f;
     address internal securityGuard = 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720;
+
+    // Message Executor
+    TestMessageExecutor public messageExecutor;
 
     // Message Bridge Config
     uint256 messageFee = 0.01 ether;
@@ -83,6 +87,13 @@ contract MessageBridgeTest is Test, SigUtils {
         vm.prank(governor);
         bridgeProxy.setMessageBridge(messageFee, maxMessageSize, maxDeposits);
         assertTrue(bridgeProxy.messageBridgeIsSet(), "Message bridge should be set");
+
+        // Deploy and set up the Message Executor
+        messageExecutor = new TestMessageExecutor(owner, bridgeProxyAddress);
+
+        // Set the message executor in the bridge
+        vm.prank(governor);
+        bridgeProxy.setMessageExecutor(address(messageExecutor));
 
         // Unpause the message bridge
         vm.prank(governor);
@@ -162,7 +173,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Expect the TestEvent to be emitted with correct parameters
         vm.expectEmit(true, true, true, true, address(testContract));
-        emit TestMessageContract.TestEvent(1, address(bridgeProxy));
+        emit TestMessageContract.TestEvent(1, address(messageExecutor));
 
         // Execute the message
         StorageTypes.Result memory result = bridgeProxy.executeMessage(nonce);
@@ -203,7 +214,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Expect the PaymentReceived event to be emitted with correct parameters
         vm.expectEmit(true, true, true, true, address(testContract));
-        emit TestMessageContract.PaymentReceived(paymentAmount, address(bridgeProxy));
+        emit TestMessageContract.PaymentReceived(paymentAmount, address(messageExecutor));
 
         // Execute the message
         StorageTypes.Result memory result = bridgeProxy.executeMessage{value: paymentAmount}(nonce);
@@ -298,7 +309,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Expect the DirectEthReceived event to be emitted with correct sender
         vm.expectEmit(true, true, true, true, address(testContract));
-        emit TestMessageContract.DirectEthReceived(address(bridgeProxy));
+        emit TestMessageContract.DirectEthReceived(address(messageExecutor));
 
         // Execute the message
         StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 1 ether}(nonce);
@@ -336,7 +347,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Expect the FallbackCalled event to be emitted with correct parameters
         vm.expectEmit(true, true, true, true, address(testContract));
-        emit TestMessageContract.FallbackCalled(address(bridgeProxy), 1 ether, addressBytes);
+        emit TestMessageContract.FallbackCalled(address(messageExecutor), 1 ether, addressBytes);
 
         // Execute the message
         StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 1 ether}(nonce);

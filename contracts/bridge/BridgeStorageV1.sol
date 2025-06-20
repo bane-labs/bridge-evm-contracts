@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "../interfaces/IBridgeManagement.sol";
+import "../interfaces/IMessageExecutor.sol";
 import "../library/StorageTypes.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
 /**
  * @title BridgeStorageV1
@@ -51,6 +52,9 @@ abstract contract BridgeStorageV1 is ReentrancyGuardUpgradeable {
 
     // Slot 133 - Combined storage for messages and metadata
     mapping(uint256 => StorageTypes.StoredMessage) public n3ToEvmMessages;
+
+    // Slot 118
+    IMessageExecutor public messageExecutor;
 
     // commented until a reinitialization is needed
     // function _upgradeToV<version_nr>() internal onlyInitializing {

@@ -2,12 +2,16 @@
 pragma solidity 0.8.25;
 
 import "../interfaces/IBridge.sol";
+import "../interfaces/IMessageBridge.sol";
+import "../interfaces/IMessageExecutor.sol";
 import "../interfaces/INativeBridge.sol";
 import "../interfaces/ITokenBridge.sol";
 import "../interfaces/IMessageBridge.sol";
 import "../library/StorageTypes.sol";
 import "../library/BridgeLib.sol";
+import "../library/MessageBridgeLib.sol";
 import "../library/NativeBridgeLib.sol";
+import "../library/StorageTypes.sol";
 import "../library/TokenBridgeLib.sol";
 import "../library/MessageBridgeLib.sol";
 import "./BridgeStorage.sol";
@@ -590,6 +594,12 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
 
     // IMessageBridge Implementation
 
+    // Function to set the message executor
+    function setMessageExecutor(address _executor) external override onlyGovernor {
+        messageExecutor = IMessageExecutor(_executor);
+        emit MessageExecutorSet(_executor);
+    }
+
     /**
      * @notice Check if the message bridge is set up.
      */
@@ -710,7 +720,7 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
         emit MessageDeposit(messageData.nonce, messageData.message);
     }
 
-    function executeMessage(uint256 nonce) external payable returns (StorageTypes.Result memory) {
+    function executeMessage(uint256 nonce) public payable returns (StorageTypes.Result memory) {
         bytes memory storedMessage = n3ToEvmMessages[nonce].message;
         if (storedMessage.length == 0) revert MessageNotFound(nonce);
         // TODO: decode this in the executor
@@ -719,11 +729,14 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
         // Verify that the msg.value matches the call.value from the message
         if (msg.value != call.value) revert ValueMismatch(call.value, msg.value);
 
-        StorageTypes.Result memory result;
+        // Check if we have an executor configured
+        if (address(messageExecutor) == address(0)) revert MessageExecutorNotSet();
 
-        (result.success, result.returnData) = call.target.call{value: call.value}(call.callData);
+        // Forward execution to the dedicated executor
+        StorageTypes.Result memory result =
+                            messageExecutor.executeMessage{value: call.value}(call.target, call.callData, call.value);
 
-        // forward the reason for failure if the call was not allowed to fail
+        // Handle failure if not allowed to fail
         if (!call.allowFailure && !result.success) revert CallFailed(result.returnData);
 
         return result;
