@@ -650,11 +650,9 @@ contract MessageBridgeTest is Test, SigUtils {
         bridgeProxy.depositMessage(depositRoot, signatures, messages);
 
         // Verify messages were stored
-        uint256 nonce1 = uint256(keccak256(testMessage1));
-        uint256 nonce2 = uint256(keccak256(testMessage2));
 
-        bytes memory storedMessage1 = bridgeProxy.n3ToEvmMessages(nonce1);
-        bytes memory storedMessage2 = bridgeProxy.n3ToEvmMessages(nonce2);
+        bytes memory storedMessage1 = bridgeProxy.n3ToEvmMessages(messages[0].nonce);
+        bytes memory storedMessage2 = bridgeProxy.n3ToEvmMessages(messages[1].nonce);
 
         assertEq(storedMessage1, testMessage1, "First message should be stored correctly");
         assertEq(storedMessage2, testMessage2, "Second message should be stored correctly");
@@ -782,12 +780,8 @@ contract MessageBridgeTest is Test, SigUtils {
         vm.prank(relayer);
         bridgeProxy.depositMessage(depositRoot2, signatures2, messages2);
 
-        // Verify both messages are stored
-        uint256 nonce1 = uint256(keccak256(testMessage1));
-        uint256 nonce2 = uint256(keccak256(testMessage2));
-
-        bytes memory storedMessage1 = bridgeProxy.n3ToEvmMessages(nonce1);
-        bytes memory storedMessage2 = bridgeProxy.n3ToEvmMessages(nonce2);
+        bytes memory storedMessage1 = bridgeProxy.n3ToEvmMessages(messages1[0].nonce);
+        bytes memory storedMessage2 = bridgeProxy.n3ToEvmMessages(messages2[0].nonce);
 
         assertEq(storedMessage1, testMessage1, "First message should be stored correctly");
         assertEq(storedMessage2, testMessage2, "Second message should be stored correctly");
