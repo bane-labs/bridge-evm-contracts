@@ -590,12 +590,6 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
 
     // IMessageBridge Implementation
 
-    function storeMessage(uint nonce, bytes calldata message) public {
-        if (n3ToEvmMessages[nonce].length != 0) revert MessageAlreadyExists(nonce);
-        n3ToEvmMessages[nonce] = message;
-        emit MessageDeposit(nonce, message);
-    }
-
     function executeMessage(uint nonce) public payable returns (StorageTypes.Result memory) {
         if (n3ToEvmMessages[nonce].length == 0) revert MessageNotFound(nonce);
         StorageTypes.Call memory call = abi.decode(n3ToEvmMessages[nonce], (StorageTypes.Call));
@@ -684,7 +678,7 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
      * @param _signatures the signatures of the validators. The signatures need to be ordered.
      * @param _messages the message data containing nonces and message contents.
      */
-    function depositMessage(
+    function storeMessage(
         bytes32 _depositRoot,
         BridgeLib.Signature[] calldata _signatures,
         StorageTypes.MessageData[] calldata _messages
@@ -730,7 +724,9 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
         // Store each message
         for (uint256 i = 0; i < messageLength; i++) {
             StorageTypes.MessageData calldata messageData = _messages[i];
-            storeMessage(messageData.nonce, messageData.message);
+            if (n3ToEvmMessages[messageData.nonce].length != 0) revert MessageAlreadyExists(messageData.nonce);
+            n3ToEvmMessages[messageData.nonce] = messageData.message;
+            emit MessageDeposit(messageData.nonce, messageData.message);
         }
     }
 
