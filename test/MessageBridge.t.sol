@@ -653,13 +653,25 @@ contract MessageBridgeTest is Test, SigUtils {
         vm.prank(relayer);
         bridgeProxy.storeMessage(depositRoot, signatures, messages);
 
-        // Verify messages were stored
+        // Verify messages were stored correctly
+        // We need to decode the original messages to compare with what's stored
+        StorageTypes.Call memory expectedCall1 = abi.decode(testMessage1, (StorageTypes.Call));
+        StorageTypes.Call memory expectedCall2 = abi.decode(testMessage2, (StorageTypes.Call));
 
-        bytes memory storedMessage1 = bridgeProxy.n3ToEvmMessages(messages[0].nonce);
-        bytes memory storedMessage2 = bridgeProxy.n3ToEvmMessages(messages[1].nonce);
+        // Get the stored Call struct components - public mappings return struct components, not the struct itself
+        (address target, bytes memory callData, bool allowFailure, uint256 value) = bridgeProxy.n3ToEvmMessages(messages[0].nonce);
 
-        assertEq(storedMessage1, testMessage1, "First message should be stored correctly");
-        assertEq(storedMessage2, testMessage2, "Second message should be stored correctly");
+        // Verify that stored Call struct components match the expected ones
+        assertEq(target, expectedCall1.target, "First message target should match");
+        assertEq(value, expectedCall1.value, "First message value should match");
+        assertEq(allowFailure, expectedCall1.allowFailure, "First message allowFailure should match");
+        assertEq(callData, expectedCall1.callData, "First message callData should match");
+
+        (target, callData, allowFailure, value) = bridgeProxy.n3ToEvmMessages(messages[1].nonce);
+        assertEq(target, expectedCall2.target, "Second message target should match");
+        assertEq(value, expectedCall2.value, "Second message value should match");
+        assertEq(allowFailure, expectedCall2.allowFailure, "Second message allowFailure should match");
+        assertEq(callData, expectedCall2.callData, "Second message callData should match");
     }
 
     function test_StoreMessageInvalidRoot() public {
@@ -784,11 +796,24 @@ contract MessageBridgeTest is Test, SigUtils {
         vm.prank(relayer);
         bridgeProxy.storeMessage(depositRoot2, signatures2, messages2);
 
-        bytes memory storedMessage1 = bridgeProxy.n3ToEvmMessages(messages1[0].nonce);
-        bytes memory storedMessage2 = bridgeProxy.n3ToEvmMessages(messages2[0].nonce);
+        // Decode the expected Call structs
+        StorageTypes.Call memory expectedCall1 = abi.decode(testMessage1, (StorageTypes.Call));
+        StorageTypes.Call memory expectedCall2 = abi.decode(testMessage2, (StorageTypes.Call));
 
-        assertEq(storedMessage1, testMessage1, "First message should be stored correctly");
-        assertEq(storedMessage2, testMessage2, "Second message should be stored correctly");
+        // Get the stored Call struct components - public mappings return struct components, not the struct itself
+        (address target1, bytes memory callData1, bool allowFailure1, uint256 value1) = bridgeProxy.n3ToEvmMessages(messages1[0].nonce);
+        (address target2, bytes memory callData2, bool allowFailure2, uint256 value2) = bridgeProxy.n3ToEvmMessages(messages2[0].nonce);
+
+        // Verify that stored Call struct components match the expected ones
+        assertEq(target1, expectedCall1.target, "First message target should match");
+        assertEq(value1, expectedCall1.value, "First message value should match");
+        assertEq(allowFailure1, expectedCall1.allowFailure, "First message allowFailure should match");
+        assertEq(callData1, expectedCall1.callData, "First message callData should match");
+
+        assertEq(target2, expectedCall2.target, "Second message target should match");
+        assertEq(value2, expectedCall2.value, "Second message value should match");
+        assertEq(allowFailure2, expectedCall2.allowFailure, "Second message allowFailure should match");
+        assertEq(callData2, expectedCall2.callData, "Second message callData should match");
     }
 
     // Helper function to generate valid signatures from validators

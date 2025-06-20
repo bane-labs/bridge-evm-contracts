@@ -44,7 +44,7 @@ abstract contract BridgeStorageV1 is ReentrancyGuardUpgradeable {
     StorageTypes.MessageBridge public messageBridge;
 
     // Slot 117
-    mapping(uint256 => bytes) public n3ToEvmMessages;
+    mapping(uint256 => StorageTypes.Call) public n3ToEvmMessages;
 
     function _upgradeToV3() internal onlyInitializing {
         nativeBridge = StorageTypes.NativeBridgeV3(
