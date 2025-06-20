@@ -97,7 +97,7 @@ contract MessageBridgeTest is Test, SigUtils {
         bridgeProxy.unpauseMessageBridge();
     }
 
-    function testSetMessageBridge() public {
+    function test_SetMessageBridge() public {
         // Test that the message bridge is correctly set up
         assertTrue(bridgeProxy.messageBridgeIsSet(), "Message bridge should be set");
 
@@ -114,7 +114,7 @@ contract MessageBridgeTest is Test, SigUtils {
         assertTrue(bridgeProxy.messageBridgeIsSet(), "Message bridge should still be set after config change");
     }
 
-    function testMessageBridgePauseUnpause() public {
+    function test_MessageBridgePauseUnpause() public {
         // Test pausing
         vm.prank(governor);
         bridgeProxy.pauseMessageBridge();
@@ -133,7 +133,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
         vm.prank(relayer);
         vm.expectRevert(); // Should revert since bridge is paused
-        bridgeProxy.depositMessage(depositRoot, signatures, messages);
+        bridgeProxy.storeMessage(depositRoot, signatures, messages);
 
         // Unpause and try again
         vm.prank(governor);
@@ -141,7 +141,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Now it should work (not reverting)
         vm.prank(relayer);
-        bridgeProxy.depositMessage(depositRoot, signatures, messages);
+        bridgeProxy.storeMessage(depositRoot, signatures, messages);
     }
 
     function test_StoreAndExecuteMessageWithTestMessageContract() public {
@@ -165,7 +165,7 @@ contract MessageBridgeTest is Test, SigUtils {
         bytes memory message = abi.encode(call);
 
         // Store the message and get the nonce
-        bridgeProxy.storeMessage(nonce, message);
+        storeMessage(nonce, message);
 
         // Expect the TestEvent to be emitted with correct parameters
         vm.expectEmit(true, true, true, true, address(testContract));
@@ -206,7 +206,7 @@ contract MessageBridgeTest is Test, SigUtils {
         bytes memory message = abi.encode(call);
 
         // Store the message and get the nonce
-        bridgeProxy.storeMessage(nonce, message);
+        storeMessage(nonce, message);
 
         // Expect the PaymentReceived event to be emitted with correct parameters
         vm.expectEmit(true, true, true, true, address(testContract));
@@ -248,7 +248,7 @@ contract MessageBridgeTest is Test, SigUtils {
         bytes memory message = abi.encode(call);
 
         // Store the message and get the nonce
-        bridgeProxy.storeMessage(nonce, message);
+        storeMessage(nonce, message);
 
         // Execute the message - this should fail but not revert the transaction
         StorageTypes.Result memory result = bridgeProxy.executeMessage{value: actualAmount}(nonce);
@@ -301,11 +301,11 @@ contract MessageBridgeTest is Test, SigUtils {
         // Encode the Call struct into a message
         bytes memory message = abi.encode(call);
 
-        // Generate nonce based on message hash
-        uint256 nonce = uint(keccak256(message));
+        (,StorageTypes.State memory n3ToEvmState,,) = bridgeProxy.messageBridge();
+        uint256 nonce = n3ToEvmState.nonce + 1;
 
         // Store the message with the nonce
-        bridgeProxy.storeMessage(nonce, message);
+        storeMessage(nonce, message);
 
         // Expect the DirectEthReceived event to be emitted with correct sender
         vm.expectEmit(true, true, true, true, address(testContract));
@@ -339,11 +339,11 @@ contract MessageBridgeTest is Test, SigUtils {
         // Encode the Call struct into a message
         bytes memory message = abi.encode(call);
 
-        // Generate nonce based on message hash
-        uint256 nonce = uint(keccak256(message));
+        (,StorageTypes.State memory n3ToEvmState,,) = bridgeProxy.messageBridge();
+        uint256 nonce = n3ToEvmState.nonce + 1;
 
         // Store the message with the nonce
-        bridgeProxy.storeMessage(nonce, message);
+        storeMessage(nonce, message);
 
         // Expect the FallbackCalled event to be emitted with correct parameters
         vm.expectEmit(true, true, true, true, address(testContract));
@@ -379,7 +379,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
             bytes memory message = abi.encode(call);
             uint256 nonce = 1;
-            bridgeProxy.storeMessage(nonce, message);
+            storeMessage(nonce, message);
             StorageTypes.Result memory result = bridgeProxy.executeMessage{value: actualAmount}(nonce);
 
             // Verify execution failed as expected
@@ -411,7 +411,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
             bytes memory message = abi.encode(call);
             uint256 nonce = 2;
-            bridgeProxy.storeMessage(nonce, message);
+            storeMessage(nonce, message);
             StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 0}(nonce);
 
             // Verify execution failed as expected
@@ -443,7 +443,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
             bytes memory message = abi.encode(call);
             uint256 nonce = 3;
-            bridgeProxy.storeMessage(nonce, message);
+            storeMessage(nonce, message);
             StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 0}(nonce);
 
             // Verify execution failed as expected
@@ -482,7 +482,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Store the message with a specific nonce
         uint256 nonce = 1;
-        bridgeProxy.storeMessage(nonce, message);
+        storeMessage(nonce, message);
 
         // Execution should revert with CallFailed(InvalidCallData())
         vm.expectRevert(abi.encodeWithSelector(
@@ -524,7 +524,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Store the message with a specific nonce
         uint256 nonce = 1;
-        bridgeProxy.storeMessage(nonce, message);
+        storeMessage(nonce, message);
 
         // Execute the message - this should succeed when calling an EOA
         StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 0.1 ether}(nonce);
@@ -542,7 +542,7 @@ contract MessageBridgeTest is Test, SigUtils {
         call.allowFailure = false;
         message = abi.encode(call);
         nonce = 2;
-        bridgeProxy.storeMessage(nonce, message);
+        storeMessage(nonce, message);
 
         // This should not revert
         result = bridgeProxy.executeMessage{value: 0.1 ether}(nonce);
@@ -563,13 +563,17 @@ contract MessageBridgeTest is Test, SigUtils {
         });
         bytes memory message = abi.encode(call);
 
-        // First store: should succeed
-        uint256 nonce = 1;
-        bridgeProxy.storeMessage(nonce, message);
+        // Get current state and nonce
+        (,StorageTypes.State memory n3ToEvmState,,) = bridgeProxy.messageBridge();
+        uint256 nonce = n3ToEvmState.nonce + 1;
 
-        // Try to store the same message again: should revert with MessageAlreadyExists
+        // Store the message with the nonce
+        storeMessage(nonce, message);
+
+        // Try to store the same message with the same nonce again: should revert with MessageAlreadyExists
         vm.expectRevert(abi.encodeWithSelector(BridgeStorage.MessageAlreadyExists.selector, nonce));
-        bridgeProxy.storeMessage(nonce, message);
+        vm.prank(relayer);
+        storeMessage(nonce, message);
 
         // Execute the stored message: should succeed
         StorageTypes.Result memory result = bridgeProxy.executeMessage(nonce);
@@ -601,7 +605,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Store the message with a specific nonce
         uint256 nonce = 1;
-        bridgeProxy.storeMessage(nonce, message);
+        storeMessage(nonce, message);
 
         // Execute the message - this should fail but not revert since allowFailure is true
         StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 0.1 ether}(nonce);
@@ -613,7 +617,7 @@ contract MessageBridgeTest is Test, SigUtils {
         call.allowFailure = false;
         message = abi.encode(call);
         nonce = 2;
-        bridgeProxy.storeMessage(nonce, message);
+        storeMessage(nonce, message);
 
         // This should revert with CallFailed error
         vm.expectRevert(abi.encodeWithSelector(BridgeStorage.CallFailed.selector, ""));
@@ -625,7 +629,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
     // Test depositMessage function with random messages
 
-    function testDepositMessage() public {
+    function test_StoreRandomMessages() public {
         // Prepare message data
         StorageTypes.MessageData[] memory messages = new StorageTypes.MessageData[](2);
         messages[0] = StorageTypes.MessageData({
@@ -647,7 +651,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Perform deposit
         vm.prank(relayer);
-        bridgeProxy.depositMessage(depositRoot, signatures, messages);
+        bridgeProxy.storeMessage(depositRoot, signatures, messages);
 
         // Verify messages were stored
 
@@ -658,7 +662,7 @@ contract MessageBridgeTest is Test, SigUtils {
         assertEq(storedMessage2, testMessage2, "Second message should be stored correctly");
     }
 
-    function testDepositMessageInvalidRoot() public {
+    function test_StoreMessageInvalidRoot() public {
         // Prepare message data
         StorageTypes.MessageData[] memory messages = new StorageTypes.MessageData[](1);
         messages[0] = StorageTypes.MessageData({
@@ -675,10 +679,10 @@ contract MessageBridgeTest is Test, SigUtils {
         // Expect revert due to invalid root
         vm.prank(relayer);
         vm.expectRevert(); // Should revert with InvalidRoot error
-        bridgeProxy.depositMessage(invalidDepositRoot, signatures, messages);
+        bridgeProxy.storeMessage(invalidDepositRoot, signatures, messages);
     }
 
-    function testDepositMessageInvalidSignatures() public {
+    function test_StoreMessageInvalidSignatures() public {
         // Prepare message data
         StorageTypes.MessageData[] memory messages = new StorageTypes.MessageData[](1);
         messages[0] = StorageTypes.MessageData({
@@ -700,10 +704,10 @@ contract MessageBridgeTest is Test, SigUtils {
         // Expect revert due to invalid signatures
         vm.prank(relayer);
         vm.expectRevert(); // Should revert with InvalidValidatorSignatures error
-        bridgeProxy.depositMessage(depositRoot, invalidSignatures, messages);
+        bridgeProxy.storeMessage(depositRoot, invalidSignatures, messages);
     }
 
-    function testDepositMessageInvalidNonceSequence() public {
+    function test_StoreMessageInvalidNonceSequence() public {
         // Prepare message data with non-sequential nonces
         StorageTypes.MessageData[] memory messages = new StorageTypes.MessageData[](2);
         messages[0] = StorageTypes.MessageData({
@@ -724,10 +728,10 @@ contract MessageBridgeTest is Test, SigUtils {
         // Expect revert due to invalid nonce sequence
         vm.prank(relayer);
         vm.expectRevert(); // Should revert with InvalidNonceSequence error
-        bridgeProxy.depositMessage(depositRoot, signatures, messages);
+        bridgeProxy.storeMessage(depositRoot, signatures, messages);
     }
 
-    function testDepositMessageInvalidMessageSize() public {
+    function test_StoreMessageInvalidMessageSize() public {
         // Create a message that exceeds the max message size
         bytes memory largeMessage = new bytes(maxMessageSize + 1);
 
@@ -747,10 +751,10 @@ contract MessageBridgeTest is Test, SigUtils {
         // Expect revert due to invalid message size
         vm.prank(relayer);
         vm.expectRevert(); // Should revert with InvalidMessageSize error
-        bridgeProxy.depositMessage(depositRoot, signatures, messages);
+        bridgeProxy.storeMessage(depositRoot, signatures, messages);
     }
 
-    function testMultipleDepositMessages() public {
+    function test_StoreMessagesMultipleTimes() public {
         // First deposit
         StorageTypes.MessageData[] memory messages1 = new StorageTypes.MessageData[](1);
         messages1[0] = StorageTypes.MessageData({
@@ -764,7 +768,7 @@ contract MessageBridgeTest is Test, SigUtils {
         BridgeLib.Signature[] memory signatures1 = generateValidSignatures(depositRoot1);
 
         vm.prank(relayer);
-        bridgeProxy.depositMessage(depositRoot1, signatures1, messages1);
+        bridgeProxy.storeMessage(depositRoot1, signatures1, messages1);
 
         // Second deposit - nonce should continue from previous
         StorageTypes.MessageData[] memory messages2 = new StorageTypes.MessageData[](1);
@@ -778,7 +782,7 @@ contract MessageBridgeTest is Test, SigUtils {
         BridgeLib.Signature[] memory signatures2 = generateValidSignatures(depositRoot2);
 
         vm.prank(relayer);
-        bridgeProxy.depositMessage(depositRoot2, signatures2, messages2);
+        bridgeProxy.storeMessage(depositRoot2, signatures2, messages2);
 
         bytes memory storedMessage1 = bridgeProxy.n3ToEvmMessages(messages1[0].nonce);
         bytes memory storedMessage2 = bridgeProxy.n3ToEvmMessages(messages2[0].nonce);
@@ -816,5 +820,22 @@ contract MessageBridgeTest is Test, SigUtils {
         }
 
         return signatures;
+    }
+
+    // Helper function to store a single message with generated signatures
+    function storeMessage(uint256 nonce, bytes memory message) internal {
+        StorageTypes.MessageData[] memory messages = new StorageTypes.MessageData[](1);
+        messages[0] = StorageTypes.MessageData({
+            nonce: nonce,
+            message: message
+        });
+
+        (,StorageTypes.State memory n3ToEvmState,,) = bridgeProxy.messageBridge();
+        bytes32 previousRoot = n3ToEvmState.root;
+        bytes32 depositRoot = MessageBridgeLib._computeNewTopRoot(previousRoot, messages);
+        BridgeLib.Signature[] memory signatures = generateValidSignatures(depositRoot);
+
+        vm.prank(relayer);
+        bridgeProxy.storeMessage(depositRoot, signatures, messages);
     }
 }
