@@ -21,6 +21,7 @@ import {StdUtils} from "../lib/forge-std/src/StdUtils.sol";
 import {Test} from "../lib/forge-std/src/Test.sol";
 import {Options} from "../lib/openzeppelin-foundry-upgrades/src/Options.sol";
 import {Upgrades} from "../lib/openzeppelin-foundry-upgrades/src/Upgrades.sol";
+import {console2} from "../lib/openzeppelin-foundry-upgrades/lib/forge-std/src/console2.sol";
 
 contract MessageBridgeTest is Test, SigUtils {
     MessageBridge messageBridgeProxy;
@@ -310,8 +311,8 @@ contract MessageBridgeTest is Test, SigUtils {
 
         assertEq(testContract.counter(), 0, "Counter should be initialized to 0");
 
-        // Create Call struct with testFunction encoded
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        // Create Call struct with tryoutFunction encoded
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.tryoutFunction.selector);
 
         AMBTypes.Call memory call =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
@@ -724,7 +725,7 @@ contract MessageBridgeTest is Test, SigUtils {
     function test_StoreAndExecuteMessageStorageErrors() public {
         // Create a test message
         TestMessageContract testContract = new TestMessageContract();
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.tryoutFunction.selector);
         AMBTypes.Call memory call =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
         bytes memory message = abi.encode(call);
@@ -752,12 +753,12 @@ contract MessageBridgeTest is Test, SigUtils {
     }
 
     function test_StoreAndExecuteMessageNonExistentPayableFunction() public {
-        // Deploy TestPayableContract (which doesn't have testFunction)
+        // Deploy TestPayableContract (which doesn't have tryoutFunction)
         TestPayableContract payableContract = new TestPayableContract();
         assertEq(address(payableContract).balance, 0, "Payable contract should not have received ETH");
 
-        // Create Call struct with testFunction selector (which TestPayableContract doesn't implement)
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        // Create Call struct with tryoutFunction selector (which TestPayableContract doesn't implement)
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.tryoutFunction.selector);
 
         AMBTypes.Call memory call =
             AMBTypes.Call({target: address(payableContract), callData: callData, allowFailure: true, value: 0.1 ether});
@@ -828,8 +829,8 @@ contract MessageBridgeTest is Test, SigUtils {
         // Deploy test contract
         TestMessageContract testContract = new TestMessageContract();
 
-        // Create Call struct with testFunction encoded
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        // Create Call struct with tryoutFunction encoded
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.tryoutFunction.selector);
 
         AMBTypes.Call memory call =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
@@ -1097,7 +1098,7 @@ contract MessageBridgeTest is Test, SigUtils {
     function test_StoreMessageMetadataVerification() public {
         // Create a test message
         TestMessageContract testContract = new TestMessageContract();
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.tryoutFunction.selector);
         AMBTypes.Call memory call =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
         bytes memory message = abi.encode(call);
@@ -1131,7 +1132,7 @@ contract MessageBridgeTest is Test, SigUtils {
         TestMessageContract testContract = new TestMessageContract();
 
         // First message
-        bytes memory callData1 = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        bytes memory callData1 = abi.encodeWithSelector(TestMessageContract.tryoutFunction.selector);
         AMBTypes.Call memory call1 =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData1});
         bytes memory message1 = abi.encode(call1);
@@ -1181,7 +1182,7 @@ contract MessageBridgeTest is Test, SigUtils {
     function test_StoreMessageWithCustomMetadata() public {
         // Create a test message
         TestMessageContract testContract = new TestMessageContract();
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.tryoutFunction.selector);
         AMBTypes.Call memory call =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
         bytes memory message = abi.encode(call);
@@ -1236,8 +1237,8 @@ contract MessageBridgeTest is Test, SigUtils {
         // Deploy test contract
         TestMessageContract testContract = new TestMessageContract();
 
-        // Create Call struct with testFunction encoded
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        // Create Call struct with tryoutFunction encoded
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.tryoutFunction.selector);
 
         AMBTypes.Call memory call =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
@@ -1266,71 +1267,126 @@ contract MessageBridgeTest is Test, SigUtils {
         messageBridgeProxy.executeMessage(nonce);
     }
 
-    // Helper function to generate valid signatures from validators
-    function generateValidSignatures(bytes32 depositRoot) internal view returns (BridgeLib.Signature[] memory) {
-        uint256 count = validatorThreshold;
-        BridgeLib.Signature[] memory signatures = new BridgeLib.Signature[](count);
+    function test_StoreAndExecuteMessageWithTryoutFunctionWithArgs_SyncTest() public {
+        // Deploy test contract
+        TestMessageContract testContract = new TestMessageContract();
 
-        // Create the message to be signed, matching what BridgeManagementImpl.verifyValidatorSignatures expects
-        bytes32 messageHash = keccak256(abi.encodePacked(block.chainid, depositRoot));
-        bytes32 signedRootMsg = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", messageHash));
+        assertEq(testContract.counter(), 0, "Counter should be initialized to 0");
 
-        // Array of private keys matching the validators set in setUp()
-        uint256[] memory privateKeys = new uint256[](count);
-        privateKeys[0] = user0PrivateKey;
-        privateKeys[1] = user1PrivateKey;
-        privateKeys[2] = user2PrivateKey;
-        privateKeys[3] = user3PrivateKey;
-        privateKeys[4] = user4PrivateKey;
-        privateKeys[5] = user5PrivateKey;
-        privateKeys[6] = user6PrivateKey;
+        // Arguments for the tryoutFunctionWithArgs function
+        uint256 arg1 = 100;
+        uint256 arg2 = 200;
 
-        for (uint256 i = 0; i < count; i++) {
-            (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKeys[i], signedRootMsg);
-            signatures[i] = BridgeLib.Signature({r: r, s: s, v: v});
+        // Encode the Call struct into a message
+        bytes memory message;
+
+        {
+            AMBTypes.Call memory call = AMBTypes.Call({
+                allowFailure: false,
+                target: address(testContract),
+                value: 0,
+                callData: abi.encodeWithSelector(TestMessageContract.tryoutFunctionWithArgs.selector, arg1, arg2)
+            });
+
+            message = abi.encode(call);
+
+            // Log the description and parameters of the method
+            console2.logString("--------------------------------------------------");
+            console2.logString("Executing tryoutFunctionWithArgs with parameters:");
+            console2.logString("function name: tryoutFunctionWithArgs");
+            console2.logUint(arg1);
+            console2.logUint(arg2);
+            console2.logString("--------------------------------------------------");
+
+
+            console2.logString("    struct Call {");
+            console2.logString("        address target; // TestMessageContract");
+            console2.logString("        bool allowFailure; ");
+            console2.logString("        uint256 value;");
+            console2.logString(
+                "        bytes callData; // TestMessageContract.tryoutFunctionWithArgs(uint256 arg1, uint256 arg2)"
+            );
+            console2.logString("    }");
+            console2.logString("--------------------------------------------------");
+
+            console2.logString("target:");
+            console2.logAddress(address(testContract));
+            console2.logString("allowFailure:");
+            console2.logBool(call.allowFailure);
+            console2.logString("value:");
+            console2.logUint(call.value);
+            console2.logString("callData:");
+            console2.logBytes(abi.encodeWithSelector(TestMessageContract.tryoutFunctionWithArgs.selector, arg1, arg2));
+            console2.logString("--------------------------------------------------");
+            console2.logString("Encoded call message:");
+            console2.logBytes(message);
+            console2.logString("--------------------------------------------------");
+            console2.logString("\n\n\n\n\n\n");
         }
 
-        return signatures;
-    }
-
-    // Helper function to store a single message with generated signatures
-    function storeMessage(uint256 nonce, bytes memory message, bytes memory failMessage) internal {
-        AMBTypes.MessageData[] memory messages = new AMBTypes.MessageData[](1);
-        messages[0] = AMBTypes.MessageData({
-            nonce: nonce,
-            message: message,
-            encodedMetadata: abi.encode(
-                AMBTypes.MetadataExecutable({
-                    msgType: AMBTypes.MessageType.EXECUTABLE,
-                    sender: address(this),
-                    timestamp: block.timestamp,
-                    storeResult: false
-                })
-            )
+        // Create metadata for the message
+        AMBTypes.MetadataExecutable memory metadata = AMBTypes.MetadataExecutable({
+            msgType: AMBTypes.MessageType.EXECUTABLE,
+            sender: address(this),
+            timestamp: block.timestamp,
+            storeResult: true
         });
 
-        StorageTypes.State memory n3ToEvmState = messageBridgeProxy.getMessageBridgeState().n3ToEvmState;
-        bytes32 previousRoot = n3ToEvmState.root;
-        bytes32 depositRoot = MessageBridgeLib._computeNewTopRoot(previousRoot, messages);
-        BridgeLib.Signature[] memory signatures = generateValidSignatures(depositRoot);
+        // Store the message with the nonce
+        AMBTypes.MessageData[] memory messages = new AMBTypes.MessageData[](1);
+        AMBTypes.MessageData memory messageData =
+            AMBTypes.MessageData({nonce: 1, message: message, encodedMetadata: abi.encode(metadata)});
+        messages[0] = messageData;
 
-        if (failMessage.length > 0) {
-            // If a selector is provided, append it to the message
-            vm.expectRevert(failMessage);
-        }
+        // log the message data
+        console2.logString("---------------MESSAGE TO BE HASHED---------------");
+        console2.logString("_nonce:");
+        console2.logUint(messageData.nonce);
+        console2.logString("--------------------------------------------------");
+        // log the metadata
+        console2.logString("Message metadata:");
+        console2.logString("metadata.msgType:");
+        console2.logUint(uint8(metadata.msgType));
+        console2.logString("metadata.timestamp:");
+        console2.logUint(metadata.timestamp);
+        console2.logString("metadata.sender:");
+        console2.logAddress(metadata.sender);
+        console2.logString("metadata.storeResult:");
+        console2.logUint(metadata.storeResult? 1 : 0);
+        console2.logString("--------------------------------------------------");
+        console2.logString("_rawMessage:");
+        console2.logBytes(messageData.message);
+        console2.logString("--------------------------------------------------");
 
-        vm.prank(relayer);
-        messageBridgeProxy.storeMessage(depositRoot, signatures, messages);
+        bytes32 hashedMessage =
+            MessageBridgeLib._hashMessageBridgeOp(messageData.nonce, abi.encode(metadata), messageData.message);
+        // Log hashed message
+        console2.logString("Hashed message:");
+        console2.logString("keccak256(abi.encodePacked(_nonce, metadata.msgType, metadata.timestamp, metadata.sender, metadata.storeResult, _rawMessage))");
+        console2.logBytes32(hashedMessage);
+        console2.logString("--------------------------------------------------");
+
+        storeMessage(messageData.nonce, message, "");
+
+        // Expect the TestEvent to be emitted with correct parameters
+        vm.expectEmit(true, true, true, true, address(testContract));
+        emit TestMessageContract.TestEvent(1, address(executionManager));
+
+        // Execute the message
+        AMBTypes.Result memory result = messageBridgeProxy.executeMessage(messageData.nonce);
+
+        // Verify execution was successful
+        assertTrue(result.success, "Message execution should succeed");
+
+        // Verify the counter was incremented
+        assertEq(testContract.counter(), 1, "Counter should be incremented to 1");
+
+        // Decode the result data to verify the return value
+        uint256 sum = abi.decode(result.returnData, (uint256));
+        assertEq(sum, arg1 + arg2, "Return value should be the sum of arg1 and arg2");
     }
 
-    function storeDummyMessage(uint256 nonce) internal {
-        // Create a dummy message
-        bytes memory dummyMessage =
-            abi.encode(AMBTypes.Call({allowFailure: false, target: address(0), value: 0, callData: ""}));
-
-        // Store the dummy message with the specified nonce
-        storeMessage(nonce, dummyMessage, "");
-    }
+    // Tests for sending messages from EVM to N3
 
     function test_SendMessage_Success() public {
         // Prepare a test message
@@ -1538,20 +1594,6 @@ contract MessageBridgeTest is Test, SigUtils {
         assertTrue(state1.root != state3.root, "Root should change after each message");
     }
 
-    // Helper function to decode executable metadata from stored message
-    function getExecutableMetadata(uint256 nonce) internal view returns (AMBTypes.MetadataExecutable memory) {
-        bytes memory encodedMetadata = messageBridgeProxy.n3ToEvmMessages(nonce).encodedMetadata;
-        AMBTypes.MessageType msgType = MessageBridgeLib._readMessageType(encodedMetadata);
-        if (msgType == AMBTypes.MessageType.EXECUTABLE) {
-            return abi.decode(encodedMetadata, (AMBTypes.MetadataExecutable));
-        } else {
-            revert("Unexpected message type");
-        }
-    }
-
-    // Helper function to receive ETH (needed for the refund test)
-    receive() external payable {}
-
     // Tests for sendResultMessage function
 
     function test_SendResultMessage_Success() public {
@@ -1559,7 +1601,7 @@ contract MessageBridgeTest is Test, SigUtils {
         TestMessageContract testContract = new TestMessageContract();
 
         // Create a message with storeResult = true
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.tryoutFunction.selector);
         AMBTypes.Call memory call =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
         bytes memory message = abi.encode(call);
@@ -1588,11 +1630,8 @@ contract MessageBridgeTest is Test, SigUtils {
         );
 
         // Calculate expected values
-        bytes32 expectedMessageHash = MessageBridgeLib._hashMessageBridgeOp(
-            initialNonce + 1,
-            expectedMetadata,
-            executionResult.returnData
-        );
+        bytes32 expectedMessageHash =
+            MessageBridgeLib._hashMessageBridgeOp(initialNonce + 1, expectedMetadata, executionResult.returnData);
         bytes32 expectedRoot = BridgeLib._computeNewRoot(initialRoot, expectedMessageHash);
 
         // Expect the MessageSent event
@@ -1628,7 +1667,7 @@ contract MessageBridgeTest is Test, SigUtils {
         TestMessageContract testContract = new TestMessageContract();
 
         // Create a message with storeResult = false (default)
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.tryoutFunction.selector);
         AMBTypes.Call memory call =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
         bytes memory message = abi.encode(call);
@@ -1651,7 +1690,7 @@ contract MessageBridgeTest is Test, SigUtils {
         TestMessageContract testContract = new TestMessageContract();
 
         // Create and store a message with storeResult = true
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.tryoutFunction.selector);
         AMBTypes.Call memory call =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
         bytes memory message = abi.encode(call);
@@ -1669,7 +1708,7 @@ contract MessageBridgeTest is Test, SigUtils {
     function test_SendResultMessage_WhenMessageBridgePaused() public {
         // Deploy test contract and execute a message with stored result
         TestMessageContract testContract = new TestMessageContract();
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.tryoutFunction.selector);
         AMBTypes.Call memory call =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
         bytes memory message = abi.encode(call);
@@ -1690,7 +1729,7 @@ contract MessageBridgeTest is Test, SigUtils {
     function test_SendResultMessage_WhenSendingPaused() public {
         // Deploy test contract and execute a message with stored result
         TestMessageContract testContract = new TestMessageContract();
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.tryoutFunction.selector);
         AMBTypes.Call memory call =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
         bytes memory message = abi.encode(call);
@@ -1711,7 +1750,7 @@ contract MessageBridgeTest is Test, SigUtils {
     function test_SendResultMessage_ExcessFeeRefund() public {
         // Deploy test contract and execute a message with stored result
         TestMessageContract testContract = new TestMessageContract();
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.tryoutFunction.selector);
         AMBTypes.Call memory call =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
         bytes memory message = abi.encode(call);
@@ -1738,7 +1777,7 @@ contract MessageBridgeTest is Test, SigUtils {
     function test_SendResultMessage_ExactFeeRequired_FromContract() public {
         // Deploy test contract and execute a message with stored result
         TestMessageContract testContract = new TestMessageContract();
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.tryoutFunction.selector);
         AMBTypes.Call memory call =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
         bytes memory message = abi.encode(call);
@@ -1793,7 +1832,7 @@ contract MessageBridgeTest is Test, SigUtils {
         TestMessageContract testContract = new TestMessageContract();
 
         // Create and execute first message
-        bytes memory callData1 = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        bytes memory callData1 = abi.encodeWithSelector(TestMessageContract.tryoutFunction.selector);
         AMBTypes.Call memory call1 =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData1});
         bytes memory message1 = abi.encode(call1);
@@ -1839,7 +1878,7 @@ contract MessageBridgeTest is Test, SigUtils {
         TestMessageContract testContract = new TestMessageContract();
 
         // Create and execute a message
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.tryoutFunction.selector);
         AMBTypes.Call memory call =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
         bytes memory message = abi.encode(call);
@@ -1866,6 +1905,19 @@ contract MessageBridgeTest is Test, SigUtils {
         assertEq(stateAfterSecond.nonce, initialState.nonce + 2, "Nonce should be incremented after second send");
     }
 
+    // Helper functions
+
+    // Helper function to decode executable metadata from stored message
+    function getExecutableMetadata(uint256 nonce) internal view returns (AMBTypes.MetadataExecutable memory) {
+        bytes memory encodedMetadata = messageBridgeProxy.n3ToEvmMessages(nonce).encodedMetadata;
+        AMBTypes.MessageType msgType = MessageBridgeLib._readMessageType(encodedMetadata);
+        if (msgType == AMBTypes.MessageType.EXECUTABLE) {
+            return abi.decode(encodedMetadata, (AMBTypes.MetadataExecutable));
+        } else {
+            revert("Unexpected message type");
+        }
+    }
+
     // Helper function to store a message with custom storeResult setting
     function storeMessageWithStoreResult(uint256 nonce, bytes memory message, bool storeResult) internal {
         AMBTypes.MessageData[] memory messages = new AMBTypes.MessageData[](1);
@@ -1890,4 +1942,73 @@ contract MessageBridgeTest is Test, SigUtils {
         vm.prank(relayer);
         messageBridgeProxy.storeMessage(depositRoot, signatures, messages);
     }
+
+    // Helper function to generate valid signatures from validators
+    function generateValidSignatures(bytes32 depositRoot) internal view returns (BridgeLib.Signature[] memory) {
+        uint256 count = validatorThreshold;
+        BridgeLib.Signature[] memory signatures = new BridgeLib.Signature[](count);
+
+        // Create the message to be signed, matching what BridgeManagementImpl.verifyValidatorSignatures expects
+        bytes32 messageHash = keccak256(abi.encodePacked(block.chainid, depositRoot));
+        bytes32 signedRootMsg = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", messageHash));
+
+        // Array of private keys matching the validators set in setUp()
+        uint256[] memory privateKeys = new uint256[](count);
+        privateKeys[0] = user0PrivateKey;
+        privateKeys[1] = user1PrivateKey;
+        privateKeys[2] = user2PrivateKey;
+        privateKeys[3] = user3PrivateKey;
+        privateKeys[4] = user4PrivateKey;
+        privateKeys[5] = user5PrivateKey;
+        privateKeys[6] = user6PrivateKey;
+
+        for (uint256 i = 0; i < count; i++) {
+            (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKeys[i], signedRootMsg);
+            signatures[i] = BridgeLib.Signature({r: r, s: s, v: v});
+        }
+
+        return signatures;
+    }
+
+    // Helper function to store a single message with generated signatures
+    function storeMessage(uint256 nonce, bytes memory message, bytes memory failMessage) internal {
+        AMBTypes.MessageData[] memory messages = new AMBTypes.MessageData[](1);
+        messages[0] = AMBTypes.MessageData({
+            nonce: nonce,
+            message: message,
+            encodedMetadata: abi.encode(
+                AMBTypes.MetadataExecutable({
+                    msgType: AMBTypes.MessageType.EXECUTABLE,
+                    sender: address(this),
+                    timestamp: block.timestamp,
+                    storeResult: false
+                })
+            )
+        });
+
+        StorageTypes.State memory n3ToEvmState = messageBridgeProxy.getMessageBridgeState().n3ToEvmState;
+        bytes32 previousRoot = n3ToEvmState.root;
+        bytes32 depositRoot = MessageBridgeLib._computeNewTopRoot(previousRoot, messages);
+        BridgeLib.Signature[] memory signatures = generateValidSignatures(depositRoot);
+
+        if (failMessage.length > 0) {
+            // If a selector is provided, append it to the message
+            vm.expectRevert(failMessage);
+        }
+
+        vm.prank(relayer);
+        messageBridgeProxy.storeMessage(depositRoot, signatures, messages);
+    }
+
+    function storeDummyMessage(uint256 nonce) internal {
+        // Create a dummy message
+        bytes memory dummyMessage =
+            abi.encode(AMBTypes.Call({allowFailure: false, target: address(0), value: 0, callData: ""}));
+
+        // Store the dummy message with the specified nonce
+        storeMessage(nonce, dummyMessage, "");
+    }
+
+    // Helper function to receive ETH (needed for the refund test)
+    receive() external payable {}
 }
