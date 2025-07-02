@@ -590,6 +590,23 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
 
     // IMessageBridge Implementation
 
+    function executeMessage(uint256 nonce) public payable returns (StorageTypes.Result memory) {
+        if (n3ToEvmRawMessages[nonce].length == 0) revert MessageNotFound(nonce);
+        StorageTypes.Call memory call = abi.decode(n3ToEvmRawMessages[nonce], (StorageTypes.Call));
+
+        // Verify that the msg.value matches the call.value from the message
+        if (msg.value != call.value) revert ValueMismatch(call.value, msg.value);
+
+        StorageTypes.Result memory result;
+
+        (result.success, result.returnData) = call.target.call{value: call.value}(call.callData);
+
+        // forward the reason for failure if the call was not allowed to fail
+        if (!call.allowFailure && !result.success) revert CallFailed(result.returnData);
+
+        return result;
+    }
+
     /**
      * @notice Check if the message bridge is set up.
      */
@@ -696,28 +713,24 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
         // TODO: extract to a private function
         for (uint256 i = 0; i < messageLength; i++) {
             StorageTypes.MessageData calldata messageData = _messages[i];
-            if (n3ToEvmMessages[messageData.nonce].target != address(0)) revert MessageAlreadyExists(messageData.nonce);
-            // Decode the message bytes into a Call struct and store it directly
-            n3ToEvmMessages[messageData.nonce] = abi.decode(messageData.message, (StorageTypes.Call));
+            // Verify message format by decoding it (will revert if not a valid Call structure)
+            StorageTypes.Call memory call = abi.decode(messageData.message, (StorageTypes.Call));
+
+            // Verify this message hasn't been stored before
+            // We still check using the target field from the decoded Call as a proxy for existence
+            if (call.target == address(0)) revert InvalidCallTarget();
+
+            // Check if a message with this nonce already exists by checking if there's raw message data
+            if (n3ToEvmRawMessages[messageData.nonce].length > 0) revert MessageAlreadyExists(messageData.nonce);
+
+            // Store the raw message bytes
+            n3ToEvmRawMessages[messageData.nonce] = messageData.message;
+
+            // Store metadata separately
+            n3ToEvmMetadata[messageData.nonce] = messageData.metadata;
+
             emit MessageDeposit(messageData.nonce, messageData.message);
         }
-    }
-
-    function executeMessage(uint256 nonce) external payable returns (StorageTypes.Result memory) {
-        StorageTypes.Call memory call = n3ToEvmMessages[nonce];
-        if (call.target == address(0)) revert MessageNotFound(nonce);
-
-        // Verify that the msg.value matches the call.value from the message
-        if (msg.value != call.value) revert ValueMismatch(call.value, msg.value);
-
-        StorageTypes.Result memory result;
-
-        (result.success, result.returnData) = call.target.call{value: call.value}(call.callData);
-
-        // forward the reason for failure if the call was not allowed to fail
-        if (!call.allowFailure && !result.success) revert CallFailed(result.returnData);
-
-        return result;
     }
 
     /**

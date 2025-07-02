@@ -113,7 +113,11 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Try to deposit a message while paused (should revert)
         StorageTypes.MessageData[] memory messages = new StorageTypes.MessageData[](1);
-        messages[0] = StorageTypes.MessageData({nonce: 1, message: testMessage1});
+        messages[0] = StorageTypes.MessageData({
+            nonce: 1,
+            message: testMessage1,
+            metadata: StorageTypes.Metadata({sender: address(this), timestamp: block.timestamp})
+        });
 
         (, StorageTypes.State memory n3ToEvmState,,) = bridgeProxy.messageBridge();
         bytes32 previousRoot = n3ToEvmState.root;
@@ -150,7 +154,7 @@ contract MessageBridgeTest is Test, SigUtils {
         bytes memory message = abi.encode(call);
 
         // Store the message and get the nonce
-        storeMessage(nonce, message);
+        storeMessage(nonce, message, "");
 
         // Expect the TestEvent to be emitted with correct parameters
         vm.expectEmit(true, true, true, true, address(testContract));
@@ -191,7 +195,7 @@ contract MessageBridgeTest is Test, SigUtils {
         bytes memory message = abi.encode(call);
 
         // Store the message and get the nonce
-        storeMessage(nonce, message);
+        storeMessage(nonce, message, "");
 
         // Expect the PaymentReceived event to be emitted with correct parameters
         vm.expectEmit(true, true, true, true, address(testContract));
@@ -233,7 +237,7 @@ contract MessageBridgeTest is Test, SigUtils {
         bytes memory message = abi.encode(call);
 
         // Store the message and get the nonce
-        storeMessage(nonce, message);
+        storeMessage(nonce, message, "");
 
         // Execute the message - this should fail but not revert the transaction
         StorageTypes.Result memory result = bridgeProxy.executeMessage{value: actualAmount}(nonce);
@@ -286,7 +290,7 @@ contract MessageBridgeTest is Test, SigUtils {
         uint256 nonce = n3ToEvmState.nonce + 1;
 
         // Store the message with the nonce
-        storeMessage(nonce, message);
+        storeMessage(nonce, message, "");
 
         // Expect the DirectEthReceived event to be emitted with correct sender
         vm.expectEmit(true, true, true, true, address(testContract));
@@ -324,7 +328,7 @@ contract MessageBridgeTest is Test, SigUtils {
         uint256 nonce = n3ToEvmState.nonce + 1;
 
         // Store the message with the nonce
-        storeMessage(nonce, message);
+        storeMessage(nonce, message, "");
 
         // Expect the FallbackCalled event to be emitted with correct parameters
         vm.expectEmit(true, true, true, true, address(testContract));
@@ -360,7 +364,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
             bytes memory message = abi.encode(call);
             uint256 nonce = 1;
-            storeMessage(nonce, message);
+            storeMessage(nonce, message, "");
             StorageTypes.Result memory result = bridgeProxy.executeMessage{value: actualAmount}(nonce);
 
             // Verify execution failed as expected
@@ -392,7 +396,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
             bytes memory message = abi.encode(call);
             uint256 nonce = 2;
-            storeMessage(nonce, message);
+            storeMessage(nonce, message, "");
             StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 0}(nonce);
 
             // Verify execution failed as expected
@@ -424,7 +428,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
             bytes memory message = abi.encode(call);
             uint256 nonce = 3;
-            storeMessage(nonce, message);
+            storeMessage(nonce, message, "");
             StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 0}(nonce);
 
             // Verify execution failed as expected
@@ -463,7 +467,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Store the message with a specific nonce
         uint256 nonce = 1;
-        storeMessage(nonce, message);
+        storeMessage(nonce, message, "");
 
         // Execution should revert with CallFailed(InvalidCallData())
         vm.expectRevert(
@@ -502,7 +506,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Store the message with a specific nonce
         uint256 nonce = 1;
-        storeMessage(nonce, message);
+        storeMessage(nonce, message, "");
 
         // Execute the message - this should succeed when calling an EOA
         StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 0.1 ether}(nonce);
@@ -520,7 +524,7 @@ contract MessageBridgeTest is Test, SigUtils {
         call.allowFailure = false;
         message = abi.encode(call);
         nonce = 2;
-        storeMessage(nonce, message);
+        storeMessage(nonce, message, "");
 
         // This should not revert
         result = bridgeProxy.executeMessage{value: 0.1 ether}(nonce);
@@ -542,12 +546,12 @@ contract MessageBridgeTest is Test, SigUtils {
         uint256 nonce = n3ToEvmState.nonce + 1;
 
         // Store the message with the nonce
-        storeMessage(nonce, message);
+        storeMessage(nonce, message, "");
 
         // Try to store the same message with the same nonce again: should revert with MessageAlreadyExists
-        vm.expectRevert(abi.encodeWithSelector(BridgeStorage.MessageAlreadyExists.selector, nonce));
         vm.prank(relayer);
-        storeMessage(nonce, message);
+        bytes4 errorSelector = BridgeStorage.InvalidNonceSequence.selector;
+        storeMessage(nonce, message, abi.encodePacked(errorSelector));
 
         // Execute the stored message: should succeed
         StorageTypes.Result memory result = bridgeProxy.executeMessage(nonce);
@@ -579,7 +583,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Store the message with a specific nonce
         uint256 nonce = 1;
-        storeMessage(nonce, message);
+        storeMessage(nonce, message, "");
 
         // Execute the message - this should fail but not revert since allowFailure is true
         StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 0.1 ether}(nonce);
@@ -591,7 +595,7 @@ contract MessageBridgeTest is Test, SigUtils {
         call.allowFailure = false;
         message = abi.encode(call);
         nonce = 2;
-        storeMessage(nonce, message);
+        storeMessage(nonce, message, "");
 
         // This should revert with CallFailed error
         vm.expectRevert(abi.encodeWithSelector(BridgeStorage.CallFailed.selector, ""));
@@ -606,8 +610,16 @@ contract MessageBridgeTest is Test, SigUtils {
     function test_StoreRandomMessages() public {
         // Prepare message data
         StorageTypes.MessageData[] memory messages = new StorageTypes.MessageData[](2);
-        messages[0] = StorageTypes.MessageData({nonce: 1, message: testMessage1});
-        messages[1] = StorageTypes.MessageData({nonce: 2, message: testMessage2});
+        messages[0] = StorageTypes.MessageData({
+            nonce: 1,
+            message: testMessage1,
+            metadata: StorageTypes.Metadata({sender: address(this), timestamp: block.timestamp})
+        });
+        messages[1] = StorageTypes.MessageData({
+            nonce: 2,
+            message: testMessage2,
+            metadata: StorageTypes.Metadata({sender: address(this), timestamp: block.timestamp})
+        });
 
         // Compute the deposit root
         (, StorageTypes.State memory n3ToEvmState,,) = bridgeProxy.messageBridge();
@@ -627,26 +639,30 @@ contract MessageBridgeTest is Test, SigUtils {
         StorageTypes.Call memory expectedCall2 = abi.decode(testMessage2, (StorageTypes.Call));
 
         // Get the stored Call struct components - public mappings return struct components, not the struct itself
-        (address target, bytes memory callData, bool allowFailure, uint256 value) =
-            bridgeProxy.n3ToEvmMessages(messages[0].nonce);
+        StorageTypes.Call memory actualCall =
+            abi.decode(bridgeProxy.n3ToEvmRawMessages(messages[0].nonce), (StorageTypes.Call));
 
         // Verify that stored Call struct components match the expected ones
-        assertEq(target, expectedCall1.target, "First message target should match");
-        assertEq(value, expectedCall1.value, "First message value should match");
-        assertEq(allowFailure, expectedCall1.allowFailure, "First message allowFailure should match");
-        assertEq(callData, expectedCall1.callData, "First message callData should match");
+        assertEq(actualCall.target, expectedCall1.target, "First message target should match");
+        assertEq(actualCall.value, expectedCall1.value, "First message value should match");
+        assertEq(actualCall.allowFailure, expectedCall1.allowFailure, "First message allowFailure should match");
+        assertEq(actualCall.callData, expectedCall1.callData, "First message callData should match");
 
-        (target, callData, allowFailure, value) = bridgeProxy.n3ToEvmMessages(messages[1].nonce);
-        assertEq(target, expectedCall2.target, "Second message target should match");
-        assertEq(value, expectedCall2.value, "Second message value should match");
-        assertEq(allowFailure, expectedCall2.allowFailure, "Second message allowFailure should match");
-        assertEq(callData, expectedCall2.callData, "Second message callData should match");
+        actualCall = abi.decode(bridgeProxy.n3ToEvmRawMessages(messages[1].nonce), (StorageTypes.Call));
+        assertEq(actualCall.target, expectedCall2.target, "Second message target should match");
+        assertEq(actualCall.value, expectedCall2.value, "Second message value should match");
+        assertEq(actualCall.allowFailure, expectedCall2.allowFailure, "Second message allowFailure should match");
+        assertEq(actualCall.callData, expectedCall2.callData, "Second message callData should match");
     }
 
     function test_StoreMessageInvalidRoot() public {
         // Prepare message data
         StorageTypes.MessageData[] memory messages = new StorageTypes.MessageData[](1);
-        messages[0] = StorageTypes.MessageData({nonce: 1, message: testMessage1});
+        messages[0] = StorageTypes.MessageData({
+            nonce: 1,
+            message: testMessage1,
+            metadata: StorageTypes.Metadata({sender: address(this), timestamp: block.timestamp})
+        });
 
         // Use an incorrect deposit root
         bytes32 invalidDepositRoot = bytes32(uint256(1));
@@ -663,7 +679,11 @@ contract MessageBridgeTest is Test, SigUtils {
     function test_StoreMessageInvalidSignatures() public {
         // Prepare message data
         StorageTypes.MessageData[] memory messages = new StorageTypes.MessageData[](1);
-        messages[0] = StorageTypes.MessageData({nonce: 1, message: testMessage1});
+        messages[0] = StorageTypes.MessageData({
+            nonce: 1,
+            message: testMessage1,
+            metadata: StorageTypes.Metadata({sender: address(this), timestamp: block.timestamp})
+        });
 
         // Compute the correct deposit root
         bytes32 depositRoot = MessageBridgeLib._computeNewTopRoot(bytes32(0), messages);
@@ -681,10 +701,15 @@ contract MessageBridgeTest is Test, SigUtils {
     function test_StoreMessageInvalidNonceSequence() public {
         // Prepare message data with non-sequential nonces
         StorageTypes.MessageData[] memory messages = new StorageTypes.MessageData[](2);
-        messages[0] = StorageTypes.MessageData({nonce: 1, message: testMessage1});
+        messages[0] = StorageTypes.MessageData({
+            nonce: 1,
+            message: testMessage1,
+            metadata: StorageTypes.Metadata({sender: address(this), timestamp: block.timestamp})
+        });
         messages[1] = StorageTypes.MessageData({
             nonce: 3, // This should be 2 to be sequential
-            message: testMessage2
+            message: testMessage2,
+            metadata: StorageTypes.Metadata({sender: address(this), timestamp: block.timestamp})
         });
 
         // Compute root (this doesn't validate nonce sequence)
@@ -702,7 +727,11 @@ contract MessageBridgeTest is Test, SigUtils {
     function test_StoreMessagesMultipleTimes() public {
         // First deposit
         StorageTypes.MessageData[] memory messages1 = new StorageTypes.MessageData[](1);
-        messages1[0] = StorageTypes.MessageData({nonce: 1, message: testMessage1});
+        messages1[0] = StorageTypes.MessageData({
+            nonce: 1,
+            message: testMessage1,
+            metadata: StorageTypes.Metadata({sender: address(this), timestamp: block.timestamp})
+        });
 
         (, StorageTypes.State memory n3ToEvmState,,) = bridgeProxy.messageBridge();
         bytes32 previousRoot = n3ToEvmState.root;
@@ -714,7 +743,11 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Second deposit - nonce should continue from previous
         StorageTypes.MessageData[] memory messages2 = new StorageTypes.MessageData[](1);
-        messages2[0] = StorageTypes.MessageData({nonce: 2, message: testMessage2});
+        messages2[0] = StorageTypes.MessageData({
+            nonce: 2,
+            message: testMessage2,
+            metadata: StorageTypes.Metadata({sender: address(this), timestamp: block.timestamp})
+        });
 
         // The new root should be computed based on the previous root
         bytes32 depositRoot2 = MessageBridgeLib._computeNewTopRoot(depositRoot1, messages2);
@@ -728,21 +761,141 @@ contract MessageBridgeTest is Test, SigUtils {
         StorageTypes.Call memory expectedCall2 = abi.decode(testMessage2, (StorageTypes.Call));
 
         // Get the stored Call struct components - public mappings return struct components, not the struct itself
-        (address target1, bytes memory callData1, bool allowFailure1, uint256 value1) =
-            bridgeProxy.n3ToEvmMessages(messages1[0].nonce);
-        (address target2, bytes memory callData2, bool allowFailure2, uint256 value2) =
-            bridgeProxy.n3ToEvmMessages(messages2[0].nonce);
+        StorageTypes.Call memory actualCall1 =
+            abi.decode(bridgeProxy.n3ToEvmRawMessages(messages1[0].nonce), (StorageTypes.Call));
+        StorageTypes.Call memory actualCall2 =
+            abi.decode(bridgeProxy.n3ToEvmRawMessages(messages2[0].nonce), (StorageTypes.Call));
 
         // Verify that stored Call struct components match the expected ones
-        assertEq(target1, expectedCall1.target, "First message target should match");
-        assertEq(value1, expectedCall1.value, "First message value should match");
-        assertEq(allowFailure1, expectedCall1.allowFailure, "First message allowFailure should match");
-        assertEq(callData1, expectedCall1.callData, "First message callData should match");
+        assertEq(actualCall1.target, expectedCall1.target, "First message target should match");
+        assertEq(actualCall1.value, expectedCall1.value, "First message value should match");
+        assertEq(actualCall1.allowFailure, expectedCall1.allowFailure, "First message allowFailure should match");
+        assertEq(actualCall1.callData, expectedCall1.callData, "First message callData should match");
 
-        assertEq(target2, expectedCall2.target, "Second message target should match");
-        assertEq(value2, expectedCall2.value, "Second message value should match");
-        assertEq(allowFailure2, expectedCall2.allowFailure, "Second message allowFailure should match");
-        assertEq(callData2, expectedCall2.callData, "Second message callData should match");
+        assertEq(actualCall2.target, expectedCall2.target, "Second message target should match");
+        assertEq(actualCall2.value, expectedCall2.value, "Second message value should match");
+        assertEq(actualCall2.allowFailure, expectedCall2.allowFailure, "Second message allowFailure should match");
+        assertEq(actualCall2.callData, expectedCall2.callData, "Second message callData should match");
+    }
+
+    function test_StoreMessageMetadataVerification() public {
+        // Create a test message
+        TestMessageContract testContract = new TestMessageContract();
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        StorageTypes.Call memory call =
+            StorageTypes.Call({target: address(testContract), callData: callData, allowFailure: false, value: 0});
+        bytes memory message = abi.encode(call);
+
+        // Get current state and nonce
+        (, StorageTypes.State memory initialState,,) = bridgeProxy.messageBridge();
+        uint256 nonce = initialState.nonce + 1;
+
+        // Store the message with custom metadata
+        uint256 timestamp = block.timestamp;
+
+        // Store the message with the nonce
+        storeMessage(nonce, message, "");
+
+        // Retrieve the stored metadata and verify it
+        (address storedSender, uint256 storedTimestamp) = bridgeProxy.n3ToEvmMetadata(nonce);
+
+        // Verify metadata fields
+        assertEq(storedSender, address(this), "Metadata sender should match");
+        assertEq(storedTimestamp, timestamp, "Metadata timestamp should match");
+    }
+
+    function test_StoreMultipleMessagesWithMetadata() public {
+        // Create two different test messages
+        TestMessageContract testContract = new TestMessageContract();
+
+        // First message
+        bytes memory callData1 = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        StorageTypes.Call memory call1 =
+            StorageTypes.Call({target: address(testContract), callData: callData1, allowFailure: false, value: 0});
+        bytes memory message1 = abi.encode(call1);
+
+        // Second message
+        bytes memory callData2 = abi.encodeWithSelector(TestMessageContract.receivePayment.selector, 1 ether);
+        StorageTypes.Call memory call2 =
+            StorageTypes.Call({target: address(testContract), callData: callData2, allowFailure: false, value: 1 ether});
+        bytes memory message2 = abi.encode(call2);
+
+        // Get current state and nonce
+        (, StorageTypes.State memory initialState,,) = bridgeProxy.messageBridge();
+        uint256 nonce1 = initialState.nonce + 1;
+        uint256 nonce2 = nonce1 + 1;
+
+        // Store first message
+        uint256 timestamp1 = block.timestamp;
+        storeMessage(nonce1, message1, "");
+
+        // Store second message
+        vm.warp(block.timestamp + 100); // Advance time by 100 seconds
+        uint256 timestamp2 = block.timestamp;
+        storeMessage(nonce2, message2, "");
+
+        // Retrieve and verify first message metadata
+        (address storedSender1, uint256 storedTimestamp1) = bridgeProxy.n3ToEvmMetadata(nonce1);
+        assertEq(storedSender1, address(this), "First message metadata sender should match");
+        assertEq(storedTimestamp1, timestamp1, "First message metadata timestamp should match");
+
+        // Verify raw message is stored correctly
+        bytes memory storedRawMessage1 = bridgeProxy.n3ToEvmRawMessages(nonce1);
+        assertEq(storedRawMessage1, message1, "First message content should match");
+
+        // Retrieve and verify second message metadata
+        (address storedSender2, uint256 storedTimestamp2) = bridgeProxy.n3ToEvmMetadata(nonce2);
+        assertEq(storedSender2, address(this), "Second message metadata sender should match");
+        assertEq(storedTimestamp2, timestamp2, "Second message metadata timestamp should match");
+        assertEq(storedTimestamp2 - storedTimestamp1, 100, "Timestamp difference should be 100 seconds");
+
+        // Verify raw message is stored correctly
+        bytes memory storedRawMessage2 = bridgeProxy.n3ToEvmRawMessages(nonce2);
+        assertEq(storedRawMessage2, message2, "Second message content should match");
+    }
+
+    function test_StoreMessageWithCustomMetadata() public {
+        // Create a test message
+        TestMessageContract testContract = new TestMessageContract();
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        StorageTypes.Call memory call =
+            StorageTypes.Call({target: address(testContract), callData: callData, allowFailure: false, value: 0});
+        bytes memory message = abi.encode(call);
+
+        // Set up a specific sender and timestamp for metadata
+        address customSender = address(0xABCD);
+
+        // Ensure block.timestamp is large enough before subtracting
+        vm.warp(block.timestamp + 3600 * 2); // Move 2 hours into the future first
+        uint256 customTimestamp = block.timestamp - 3600; // 1 hour ago (safe now)
+
+        // Create the message data with custom metadata
+        StorageTypes.MessageData[] memory messages = new StorageTypes.MessageData[](1);
+        messages[0] = StorageTypes.MessageData({
+            nonce: 1,
+            message: message,
+            metadata: StorageTypes.Metadata({sender: customSender, timestamp: customTimestamp})
+        });
+
+        (, StorageTypes.State memory n3ToEvmState,,) = bridgeProxy.messageBridge();
+        bytes32 previousRoot = n3ToEvmState.root;
+        bytes32 depositRoot = MessageBridgeLib._computeNewTopRoot(previousRoot, messages);
+        BridgeLib.Signature[] memory signatures = generateValidSignatures(depositRoot);
+
+        // Store the message directly using the bridgeProxy.storeMessage method
+        vm.prank(relayer);
+        bridgeProxy.storeMessage(depositRoot, signatures, messages);
+
+        // Retrieve the stored metadata and verify it
+        (address storedSender, uint256 storedTimestamp) = bridgeProxy.n3ToEvmMetadata(messages[0].nonce);
+
+        // Verify custom metadata fields
+        assertEq(storedSender, customSender, "Custom metadata sender should match");
+        assertEq(storedTimestamp, customTimestamp, "Custom metadata timestamp should match");
+
+        // Verify raw message is stored correctly
+        bytes memory storedRawMessage = bridgeProxy.n3ToEvmRawMessages(messages[0].nonce);
+        assertEq(storedRawMessage, message, "Message content should match");
     }
 
     // Helper function to generate valid signatures from validators
@@ -773,7 +926,7 @@ contract MessageBridgeTest is Test, SigUtils {
     }
 
     // Helper function to store a single message with generated signatures
-    function storeMessage(uint256 nonce, bytes memory message) internal {
+    function storeMessage(uint256 nonce, bytes memory message, bytes memory failMessage) internal {
         StorageTypes.MessageData[] memory messages = new StorageTypes.MessageData[](1);
         messages[0] = StorageTypes.MessageData({nonce: nonce, message: message});
 
@@ -781,6 +934,11 @@ contract MessageBridgeTest is Test, SigUtils {
         bytes32 previousRoot = n3ToEvmState.root;
         bytes32 depositRoot = MessageBridgeLib._computeNewTopRoot(previousRoot, messages);
         BridgeLib.Signature[] memory signatures = generateValidSignatures(depositRoot);
+
+        if (failMessage.length > 0) {
+            // If a selector is provided, append it to the message
+            vm.expectRevert(failMessage);
+        }
 
         vm.prank(relayer);
         bridgeProxy.storeMessage(depositRoot, signatures, messages);

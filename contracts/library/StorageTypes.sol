@@ -83,8 +83,14 @@ library StorageTypes {
         uint256 maxNrMessages;
     }
 
+    struct Metadata {
+        address sender;
+        uint256 timestamp;
+    }
+
     struct MessageData {
         uint256 nonce;
         bytes message;
+        Metadata metadata;
     }
 }
