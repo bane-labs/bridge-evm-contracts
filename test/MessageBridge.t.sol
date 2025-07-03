@@ -550,8 +550,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Try to store the same message with the same nonce again: should revert with MessageAlreadyExists
         vm.prank(relayer);
-        bytes4 errorSelector = BridgeStorage.InvalidNonceSequence.selector;
-        storeMessage(nonce, message, abi.encodePacked(errorSelector));
+        storeMessage(nonce, message, abi.encodePacked(BridgeStorage.InvalidNonceSequence.selector));
 
         // Execute the stored message: should succeed
         StorageTypes.Result memory result = bridgeProxy.executeMessage(nonce);
