@@ -116,7 +116,12 @@ contract MessageBridgeTest is Test, SigUtils {
         messages[0] = StorageTypes.MessageData({
             nonce: 1,
             message: testMessage1,
-            metadata: StorageTypes.Metadata({sender: address(this), timestamp: block.timestamp})
+            metadata: StorageTypes.Metadata({
+                version: 1,
+                chainId: uint64(block.chainid),
+                sender: address(this),
+                timestamp: block.timestamp
+            })
         });
 
         (, StorageTypes.State memory n3ToEvmState,,) = bridgeProxy.messageBridge();
@@ -612,12 +617,22 @@ contract MessageBridgeTest is Test, SigUtils {
         messages[0] = StorageTypes.MessageData({
             nonce: 1,
             message: testMessage1,
-            metadata: StorageTypes.Metadata({sender: address(this), timestamp: block.timestamp})
+            metadata: StorageTypes.Metadata({
+                version: 1,
+                chainId: uint64(block.chainid),
+                sender: address(this),
+                timestamp: block.timestamp
+            })
         });
         messages[1] = StorageTypes.MessageData({
             nonce: 2,
             message: testMessage2,
-            metadata: StorageTypes.Metadata({sender: address(this), timestamp: block.timestamp})
+            metadata: StorageTypes.Metadata({
+                version: 1,
+                chainId: uint64(block.chainid),
+                sender: address(this),
+                timestamp: block.timestamp
+            })
         });
 
         // Compute the deposit root
@@ -638,8 +653,9 @@ contract MessageBridgeTest is Test, SigUtils {
         StorageTypes.Call memory expectedCall2 = abi.decode(testMessage2, (StorageTypes.Call));
 
         // Get the stored Call struct components - public mappings return struct components, not the struct itself
-        StorageTypes.Call memory actualCall =
-            abi.decode(bridgeProxy.n3ToEvmRawMessages(messages[0].nonce), (StorageTypes.Call));
+
+        (, bytes memory message1) = bridgeProxy.n3ToEvmMessages(messages[0].nonce);
+        StorageTypes.Call memory actualCall = abi.decode(message1, (StorageTypes.Call));
 
         // Verify that stored Call struct components match the expected ones
         assertEq(actualCall.target, expectedCall1.target, "First message target should match");
@@ -647,7 +663,8 @@ contract MessageBridgeTest is Test, SigUtils {
         assertEq(actualCall.allowFailure, expectedCall1.allowFailure, "First message allowFailure should match");
         assertEq(actualCall.callData, expectedCall1.callData, "First message callData should match");
 
-        actualCall = abi.decode(bridgeProxy.n3ToEvmRawMessages(messages[1].nonce), (StorageTypes.Call));
+        (, bytes memory message2) = bridgeProxy.n3ToEvmMessages(messages[1].nonce);
+        actualCall = abi.decode(message2, (StorageTypes.Call));
         assertEq(actualCall.target, expectedCall2.target, "Second message target should match");
         assertEq(actualCall.value, expectedCall2.value, "Second message value should match");
         assertEq(actualCall.allowFailure, expectedCall2.allowFailure, "Second message allowFailure should match");
@@ -660,7 +677,12 @@ contract MessageBridgeTest is Test, SigUtils {
         messages[0] = StorageTypes.MessageData({
             nonce: 1,
             message: testMessage1,
-            metadata: StorageTypes.Metadata({sender: address(this), timestamp: block.timestamp})
+            metadata: StorageTypes.Metadata({
+                version: 1,
+                chainId: uint64(block.chainid),
+                sender: address(this),
+                timestamp: block.timestamp
+            })
         });
 
         // Use an incorrect deposit root
@@ -681,7 +703,12 @@ contract MessageBridgeTest is Test, SigUtils {
         messages[0] = StorageTypes.MessageData({
             nonce: 1,
             message: testMessage1,
-            metadata: StorageTypes.Metadata({sender: address(this), timestamp: block.timestamp})
+            metadata: StorageTypes.Metadata({
+                version: 1,
+                chainId: uint64(block.chainid),
+                sender: address(this),
+                timestamp: block.timestamp
+            })
         });
 
         // Compute the correct deposit root
@@ -703,12 +730,22 @@ contract MessageBridgeTest is Test, SigUtils {
         messages[0] = StorageTypes.MessageData({
             nonce: 1,
             message: testMessage1,
-            metadata: StorageTypes.Metadata({sender: address(this), timestamp: block.timestamp})
+            metadata: StorageTypes.Metadata({
+                version: 1,
+                chainId: uint64(block.chainid),
+                sender: address(this),
+                timestamp: block.timestamp
+            })
         });
         messages[1] = StorageTypes.MessageData({
             nonce: 3, // This should be 2 to be sequential
             message: testMessage2,
-            metadata: StorageTypes.Metadata({sender: address(this), timestamp: block.timestamp})
+            metadata: StorageTypes.Metadata({
+                version: 1,
+                chainId: uint64(block.chainid),
+                sender: address(this),
+                timestamp: block.timestamp
+            })
         });
 
         // Compute root (this doesn't validate nonce sequence)
@@ -729,7 +766,12 @@ contract MessageBridgeTest is Test, SigUtils {
         messages1[0] = StorageTypes.MessageData({
             nonce: 1,
             message: testMessage1,
-            metadata: StorageTypes.Metadata({sender: address(this), timestamp: block.timestamp})
+            metadata: StorageTypes.Metadata({
+                version: 1,
+                chainId: uint64(block.chainid),
+                sender: address(this),
+                timestamp: block.timestamp
+            })
         });
 
         (, StorageTypes.State memory n3ToEvmState,,) = bridgeProxy.messageBridge();
@@ -745,7 +787,12 @@ contract MessageBridgeTest is Test, SigUtils {
         messages2[0] = StorageTypes.MessageData({
             nonce: 2,
             message: testMessage2,
-            metadata: StorageTypes.Metadata({sender: address(this), timestamp: block.timestamp})
+            metadata: StorageTypes.Metadata({
+                version: 1,
+                chainId: uint64(block.chainid),
+                sender: address(this),
+                timestamp: block.timestamp
+            })
         });
 
         // The new root should be computed based on the previous root
@@ -760,10 +807,10 @@ contract MessageBridgeTest is Test, SigUtils {
         StorageTypes.Call memory expectedCall2 = abi.decode(testMessage2, (StorageTypes.Call));
 
         // Get the stored Call struct components - public mappings return struct components, not the struct itself
-        StorageTypes.Call memory actualCall1 =
-            abi.decode(bridgeProxy.n3ToEvmRawMessages(messages1[0].nonce), (StorageTypes.Call));
-        StorageTypes.Call memory actualCall2 =
-            abi.decode(bridgeProxy.n3ToEvmRawMessages(messages2[0].nonce), (StorageTypes.Call));
+        (, bytes memory message1) = bridgeProxy.n3ToEvmMessages(messages1[0].nonce);
+        (, bytes memory message2) = bridgeProxy.n3ToEvmMessages(messages2[0].nonce);
+        StorageTypes.Call memory actualCall1 = abi.decode(message1, (StorageTypes.Call));
+        StorageTypes.Call memory actualCall2 = abi.decode(message2, (StorageTypes.Call));
 
         // Verify that stored Call struct components match the expected ones
         assertEq(actualCall1.target, expectedCall1.target, "First message target should match");
@@ -796,11 +843,13 @@ contract MessageBridgeTest is Test, SigUtils {
         storeMessage(nonce, message, "");
 
         // Retrieve the stored metadata and verify it
-        (address storedSender, uint256 storedTimestamp) = bridgeProxy.n3ToEvmMetadata(nonce);
+        (StorageTypes.Metadata memory metadata,) = bridgeProxy.n3ToEvmMessages(nonce);
 
         // Verify metadata fields
-        assertEq(storedSender, address(this), "Metadata sender should match");
-        assertEq(storedTimestamp, timestamp, "Metadata timestamp should match");
+        assertEq(metadata.sender, address(this), "Metadata sender should match");
+        assertEq(metadata.timestamp, timestamp, "Metadata timestamp should match");
+        assertEq(metadata.version, uint32(1), "Metadata version should be 1");
+        assertEq(metadata.chainId, uint64(block.chainid), "Metadata chainId should match the current chain ID");
     }
 
     function test_StoreMultipleMessagesWithMetadata() public {
@@ -833,23 +882,21 @@ contract MessageBridgeTest is Test, SigUtils {
         uint256 timestamp2 = block.timestamp;
         storeMessage(nonce2, message2, "");
 
-        // Retrieve and verify first message metadata
-        (address storedSender1, uint256 storedTimestamp1) = bridgeProxy.n3ToEvmMetadata(nonce1);
-        assertEq(storedSender1, address(this), "First message metadata sender should match");
-        assertEq(storedTimestamp1, timestamp1, "First message metadata timestamp should match");
+        (StorageTypes.Metadata memory metadata1, bytes memory storedRawMessage1) = bridgeProxy.n3ToEvmMessages(nonce1);
+        // verify first message metadata
+        assertEq(metadata1.sender, address(this), "First message metadata sender should match");
+        assertEq(metadata1.timestamp, timestamp1, "First message metadata timestamp should match");
 
         // Verify raw message is stored correctly
-        bytes memory storedRawMessage1 = bridgeProxy.n3ToEvmRawMessages(nonce1);
         assertEq(storedRawMessage1, message1, "First message content should match");
 
-        // Retrieve and verify second message metadata
-        (address storedSender2, uint256 storedTimestamp2) = bridgeProxy.n3ToEvmMetadata(nonce2);
-        assertEq(storedSender2, address(this), "Second message metadata sender should match");
-        assertEq(storedTimestamp2, timestamp2, "Second message metadata timestamp should match");
-        assertEq(storedTimestamp2 - storedTimestamp1, 100, "Timestamp difference should be 100 seconds");
+        (StorageTypes.Metadata memory metadata2, bytes memory storedRawMessage2) = bridgeProxy.n3ToEvmMessages(nonce2);
+        // verify second message metadata
+        assertEq(metadata2.sender, address(this), "Second message metadata sender should match");
+        assertEq(metadata2.timestamp, timestamp2, "Second message metadata timestamp should match");
+        assertEq(metadata2.timestamp - metadata1.timestamp, 100, "Timestamp difference should be 100 seconds");
 
         // Verify raw message is stored correctly
-        bytes memory storedRawMessage2 = bridgeProxy.n3ToEvmRawMessages(nonce2);
         assertEq(storedRawMessage2, message2, "Second message content should match");
     }
 
@@ -873,7 +920,12 @@ contract MessageBridgeTest is Test, SigUtils {
         messages[0] = StorageTypes.MessageData({
             nonce: 1,
             message: message,
-            metadata: StorageTypes.Metadata({sender: customSender, timestamp: customTimestamp})
+            metadata: StorageTypes.Metadata({
+                version: 1,
+                chainId: uint64(block.chainid),
+                sender: customSender,
+                timestamp: customTimestamp
+            })
         });
 
         (, StorageTypes.State memory n3ToEvmState,,) = bridgeProxy.messageBridge();
@@ -886,14 +938,16 @@ contract MessageBridgeTest is Test, SigUtils {
         bridgeProxy.storeMessage(depositRoot, signatures, messages);
 
         // Retrieve the stored metadata and verify it
-        (address storedSender, uint256 storedTimestamp) = bridgeProxy.n3ToEvmMetadata(messages[0].nonce);
+        (StorageTypes.Metadata memory metadata, bytes memory storedRawMessage) =
+            bridgeProxy.n3ToEvmMessages(messages[0].nonce);
+        address storedSender = metadata.sender;
+        uint256 storedTimestamp = metadata.timestamp;
 
         // Verify custom metadata fields
         assertEq(storedSender, customSender, "Custom metadata sender should match");
         assertEq(storedTimestamp, customTimestamp, "Custom metadata timestamp should match");
 
         // Verify raw message is stored correctly
-        bytes memory storedRawMessage = bridgeProxy.n3ToEvmRawMessages(messages[0].nonce);
         assertEq(storedRawMessage, message, "Message content should match");
     }
 
@@ -927,7 +981,16 @@ contract MessageBridgeTest is Test, SigUtils {
     // Helper function to store a single message with generated signatures
     function storeMessage(uint256 nonce, bytes memory message, bytes memory failMessage) internal {
         StorageTypes.MessageData[] memory messages = new StorageTypes.MessageData[](1);
-        messages[0] = StorageTypes.MessageData({nonce: nonce, message: message});
+        messages[0] = StorageTypes.MessageData({
+            nonce: nonce,
+            message: message,
+            metadata: StorageTypes.Metadata({
+                version: 1,
+                chainId: uint64(block.chainid),
+                sender: address(this),
+                timestamp: block.timestamp
+            })
+        });
 
         (, StorageTypes.State memory n3ToEvmState,,) = bridgeProxy.messageBridge();
         bytes32 previousRoot = n3ToEvmState.root;

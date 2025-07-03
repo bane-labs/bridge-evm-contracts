@@ -591,8 +591,9 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
     // IMessageBridge Implementation
 
     function executeMessage(uint256 nonce) public payable returns (StorageTypes.Result memory) {
-        if (n3ToEvmRawMessages[nonce].length == 0) revert MessageNotFound(nonce);
-        StorageTypes.Call memory call = abi.decode(n3ToEvmRawMessages[nonce], (StorageTypes.Call));
+        StorageTypes.StoredMessage storage storedMessage = n3ToEvmMessages[nonce];
+        if (storedMessage.message.length == 0) revert MessageNotFound(nonce);
+        StorageTypes.Call memory call = abi.decode(storedMessage.message, (StorageTypes.Call));
 
         // Verify that the msg.value matches the call.value from the message
         if (msg.value != call.value) revert ValueMismatch(call.value, msg.value);
@@ -713,11 +714,9 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
         // TODO: extract to a private function
         for (uint256 i = 0; i < messageLength; i++) {
             StorageTypes.MessageData calldata messageData = _messages[i];
-            // Store the raw message bytes
-            n3ToEvmRawMessages[messageData.nonce] = messageData.message;
-
-            // Store metadata separately
-            n3ToEvmMetadata[messageData.nonce] = messageData.metadata;
+            // Store message and metadata in the combined mapping
+            n3ToEvmMessages[messageData.nonce] =
+                StorageTypes.StoredMessage({metadata: messageData.metadata, message: messageData.message});
 
             emit MessageDeposit(messageData.nonce, messageData.message);
         }
