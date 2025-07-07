@@ -94,8 +94,8 @@ contract TokenBridgeSyncTest is Test, SigUtils {
             "TestBridge.sol", abi.encodeCall(TestBridge.initialize, (managementProxyAddress)), opts
         );
         bridgeProxy = TestBridge(payable(bridgeProxyAddress));
-        vm.prank(owner);
-        bridgeProxy.upgradeToV3();
+        // vm.prank(owner);
+        // bridgeProxy.upgradeToV<version_nr>();
         vm.prank(governor);
         bridgeProxy.setNativeBridge(1e17, 1e18, 1e22, 100, 18, 8);
         vm.prank(governor);

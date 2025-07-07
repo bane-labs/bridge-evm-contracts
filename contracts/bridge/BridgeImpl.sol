@@ -576,9 +576,9 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
         }
     }
 
-    // Migration functionality v2 to v3
-
-    function upgradeToV3() external virtual reinitializer(3) onlyAdmin {
-        _upgradeToV3();
-    }
+    // Migration functionality
+    // commented until a reinitialization is needed
+    // function upgradeToV<version_nr>() external virtual reinitializer(<version_nr>) onlyAdmin {
+    //     _upgradeToV<version_nr>();
+    // }
 }

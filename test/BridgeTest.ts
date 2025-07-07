@@ -48,11 +48,12 @@ describe("Bridge Implementation", function () {
         const bridgeProxy = await upgrades.deployProxy(BridgeContractFactory, [await bridgeManagement.getAddress()], { kind: "uups", unsafeAllow: ["constructor"] });
         await bridgeProxy.waitForDeployment();
         const bridge = await ethers.getContractAt("TestBridge", await bridgeProxy.getAddress());
-        // Upgrade the bridge contract to V3
-        await bridge.connect(managementOwner).upgradeToV3();
-        // Only use setNativeBridge on v3.
+        // Activate the native bridge.
         await bridge.connect(governor).setNativeBridge(ethers.parseEther("0.1"), ethers.parseEther("1"), ethers.parseEther("10000"), 100, 18, 8);
         await bridge.connect(governor).unpauseNativeBridge();
+        // Upgrade the bridge contract to V<version_nr>
+        // commented until a reinitialization is needed
+        // await bridge.connect(managementOwner).upgradeToV<version_nr>();
 
         // Fund the bridge contract.
         await funder.sendTransaction({ to: bridge, value: ethers.parseEther("80.0") });
