@@ -30,9 +30,9 @@ abstract contract BridgeStorageV1 is ReentrancyGuardUpgradeable {
     mapping(address tokenAddress => mapping(uint256 nonce => StorageTypes.Claimable claimable) claimableTokens) public
         tokenClaimables;
 
-    // Deprecated in V3 (slots will be cleared in V3 reinitialization)
+    // Deprecated slots in V3 - deleted in v3 upgrade
     // Slots 105-113 (9 slots)
-    StorageTypes.NativeBridgeV2 public nativeBridgeV2;
+    uint256[9] private _gap1;
 
     // Slot 114
     address[] public registeredTokens;
