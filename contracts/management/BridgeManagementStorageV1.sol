@@ -18,8 +18,8 @@ abstract contract BridgeManagementStorageV1 is Ownable2StepUpgradeable {
     // Slot 101
     uint256 internal validatorThreshold;
 
-    // Slot 102 - in slot 102 the size of the address array is stored. The first value is stored at keccak256(uint256(104)) and the rest are stored in subsequent slots.
-    address[] private _gap1; // deleted in v3 upgrade
+    // Slot 102
+    uint256 private _gap1; // deleted in v3 upgrade
 
     // Slot 103
     address internal governor;
