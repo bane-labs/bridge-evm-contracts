@@ -38,7 +38,7 @@ abstract contract BridgeStorageV1 is ReentrancyGuardUpgradeable {
     address[] public registeredTokens;
 
     // Slot 115
-    StorageTypes.NativeBridgeV3 public nativeBridge;
+    StorageTypes.NativeBridge public nativeBridge;
 
     // commented until a reinitialization is needed
     // function _upgradeToV<version_nr>() internal onlyInitializing {

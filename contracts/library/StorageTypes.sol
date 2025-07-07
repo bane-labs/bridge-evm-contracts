@@ -15,11 +15,11 @@ library StorageTypes {
 
     // Native Bridge
 
-    struct NativeBridgeV3 {
+    struct NativeBridge {
         bool paused;
         State depositState;
         State withdrawalState;
-        NativeConfigV3 config;
+        NativeConfig config;
     }
 
     struct State {
@@ -27,7 +27,7 @@ library StorageTypes {
         bytes32 root;
     }
 
-    struct NativeConfigV3 {
+    struct NativeConfig {
         uint256 fee;
         uint256 minAmount;
         uint256 maxAmount;

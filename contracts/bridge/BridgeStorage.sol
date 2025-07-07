@@ -206,11 +206,11 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
 
         uint256 decimalScalingFactor = 0;
         if (_decimalsHere > _decimalsOnN3) decimalScalingFactor = _decimalsHere - _decimalsOnN3;
-        nativeBridge = StorageTypes.NativeBridgeV3({
+        nativeBridge = StorageTypes.NativeBridge({
             paused: true,
             depositState: StorageTypes.State({nonce: 0, root: 0x0}),
             withdrawalState: StorageTypes.State({nonce: 0, root: 0x0}),
-            config: StorageTypes.NativeConfigV3({
+            config: StorageTypes.NativeConfig({
                 fee: _fee,
                 minAmount: _minAmount,
                 maxAmount: _maxAmount,
@@ -240,7 +240,7 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         delete claimableNative[_nonce];
     }
 
-    function _getNativeBridgeConfig() internal view returns (StorageTypes.NativeConfigV3 memory config) {
+    function _getNativeBridgeConfig() internal view returns (StorageTypes.NativeConfig memory config) {
         return nativeBridge.config;
     }
 

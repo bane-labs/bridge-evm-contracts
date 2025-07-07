@@ -109,7 +109,7 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
         nonReentrant
     {
         StorageTypes.State memory state = _getNativeBridgeDepositState();
-        StorageTypes.NativeConfigV3 memory config = _getNativeBridgeConfig();
+        StorageTypes.NativeConfig memory config = _getNativeBridgeConfig();
         uint256 depositLength = _deposits.length;
         if (depositLength == 0) revert InvalidDepositsLength();
         if (depositLength > config.maxDeposits) revert InvalidDepositsLength();
@@ -195,7 +195,7 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
         whenNativeBridgeNotPaused
     {
         if (_to == address(0)) revert InvalidAddress();
-        StorageTypes.NativeConfigV3 memory config = _getNativeBridgeConfig();
+        StorageTypes.NativeConfig memory config = _getNativeBridgeConfig();
         uint256 fee = config.fee;
         if (msg.value < fee) revert InsufficientFee(fee, msg.value); // Prevents underflow and provides clear feedback
         // Revert if the actual fee is higher than the provided max fee.
