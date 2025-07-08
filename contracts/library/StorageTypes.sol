@@ -80,7 +80,7 @@ library StorageTypes {
     struct MessageConfig {
         uint256 fee;
         uint256 maxMessageSize;
-        uint256 maxDeposits;
+        uint256 maxNrMessages;
     }
 
     struct MessageData {

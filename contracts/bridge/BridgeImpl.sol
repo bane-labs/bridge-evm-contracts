@@ -591,23 +591,6 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
 
     // IMessageBridge Implementation
 
-    function executeMessage(uint nonce) public payable returns (StorageTypes.Result memory) {
-        StorageTypes.Call memory call = n3ToEvmMessages[nonce];
-        if (call.target == address(0)) revert MessageNotFound(nonce);
-
-        // Verify that the msg.value matches the call.value from the message
-        if (msg.value != call.value) revert ValueMismatch(call.value, msg.value);
-
-        StorageTypes.Result memory result;
-
-        (result.success, result.returnData) = call.target.call{value: call.value}(call.callData);
-
-        // forward the reason for failure if the call was not allowed to fail
-        if (!call.allowFailure && !result.success) revert CallFailed(result.returnData);
-
-        return result;
-    }
-
     /**
      * @notice Check if the message bridge is set up.
      */
@@ -619,22 +602,22 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
      * @notice Set up the message bridge with configuration parameters.
      * @param _fee the fee for using the message bridge.
      * @param _maxMessageSize the maximum allowed size of a message in bytes.
-     * @param _maxDeposits the maximum number of deposits that can be processed in a single transaction.
+     * @param _maxNrMessages the maximum number of messages that can be processed in a single transaction.
      */
     function setMessageBridge(
         uint256 _fee,
         uint256 _maxMessageSize,
-        uint256 _maxDeposits
+        uint256 _maxNrMessages
     )
         external
         override
         onlyGovernor
     {
-        _setMessageBridge(_fee, _maxMessageSize, _maxDeposits);
+        _setMessageBridge(_fee, _maxMessageSize, _maxNrMessages);
         emit MessageBridgeRegister(StorageTypes.MessageConfig({
             fee: _fee,
             maxMessageSize: _maxMessageSize,
-            maxDeposits: _maxDeposits
+            maxNrMessages: _maxNrMessages
         }));
     }
 
@@ -698,13 +681,13 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
         // Check parameter validity
         uint256 messageLength = _messages.length;
         if (messageLength == 0) revert InvalidDepositsLength();
-        if (messageLength > config.maxDeposits) revert InvalidDepositsLength();
+        if (messageLength > config.maxNrMessages) revert InvalidDepositsLength();
 
         // Check if nonces are in sequence
-        uint256 lastNonce = state.nonce;
+        // More gas-efficient nonce validation that doesn't update a variable on each iteration
+        // Each nonce should be exactly (state.nonce + position in array + 1)
         for (uint256 i = 0; i < messageLength; i++) {
-            if (_messages[i].nonce != lastNonce + 1) revert InvalidNonceSequence();
-            lastNonce = _messages[i].nonce;
+            if (_messages[i].nonce != state.nonce + i + 1) revert InvalidNonceSequence();
 
             // Check message size
             if (_messages[i].message.length > config.maxMessageSize) revert InvalidMessageSize();
@@ -722,7 +705,7 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
         );
         emit MessageDepositRootUpdate(_messages[messageLength - 1].nonce, _depositRoot);
 
-        // Store each message
+        // TODO: extract to a private function
         for (uint256 i = 0; i < messageLength; i++) {
             StorageTypes.MessageData calldata messageData = _messages[i];
             if (n3ToEvmMessages[messageData.nonce].target != address(0)) revert MessageAlreadyExists(messageData.nonce);
@@ -730,6 +713,23 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
             n3ToEvmMessages[messageData.nonce] = abi.decode(messageData.message, (StorageTypes.Call));
             emit MessageDeposit(messageData.nonce, messageData.message);
         }
+    }
+
+    function executeMessage(uint nonce) public payable returns (StorageTypes.Result memory) {
+        StorageTypes.Call memory call = n3ToEvmMessages[nonce];
+        if (call.target == address(0)) revert MessageNotFound(nonce);
+
+        // Verify that the msg.value matches the call.value from the message
+        if (msg.value != call.value) revert ValueMismatch(call.value, msg.value);
+
+        StorageTypes.Result memory result;
+
+        (result.success, result.returnData) = call.target.call{value: call.value}(call.callData);
+
+        // forward the reason for failure if the call was not allowed to fail
+        if (!call.allowFailure && !result.success) revert CallFailed(result.returnData);
+
+        return result;
     }
 
     /**
@@ -752,10 +752,10 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
 
     /**
      * @notice Set the maximum number of messages that can be processed in a single transaction.
-     * @param _maxDeposits the new maximum number of deposits.
+     * @param _maxNrMessages the new maximum number of messages.
      */
-    function setMaxMessageDeposits(uint256 _maxDeposits) external override onlyGovernor {
-        _setMaxMessageDeposits(_maxDeposits);
-        emit MaxMessageDepositsChange(_maxDeposits);
+    function setMaxNrMessages(uint256 _maxNrMessages) external override onlyGovernor {
+        _setMaxMessageDeposits(_maxNrMessages);
+        emit MaxMessageDepositsChange(_maxNrMessages);
     }
 }
