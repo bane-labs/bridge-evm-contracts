@@ -5,6 +5,7 @@ import "./BridgeLib.sol";
 import "./StorageTypes.sol";
 
 library MessageBridgeLib {
+
     /**
      * @dev Computes a new root hash incorporating a new message operation hash.
      * This function takes the previous root, chains each message operation hash in sequence,
@@ -23,10 +24,20 @@ library MessageBridgeLib {
 
         for (uint256 i = 0; i < messagesLength; i++) {
             StorageTypes.MessageData memory messageData = _messages[i];
-            bytes32 messageHash = keccak256(abi.encodePacked(messageData.nonce, messageData.message));
+            bytes32 messageHash = _hashMessageBridgeOp(messageData.nonce, messageData.message);
             parent = BridgeLib._computeNewRoot(parent, messageHash);
         }
 
         return parent;
+    }
+
+    /**
+     * @dev Computes the hash of a single message operation.
+     * @param _nonce The nonce of the message
+     * @param _message The message content
+     * @return The hash of the message operation
+     */
+    function _hashMessageBridgeOp(uint256 _nonce, bytes memory _message) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(_nonce, _message));
     }
 }
