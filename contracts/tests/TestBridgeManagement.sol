@@ -41,7 +41,7 @@ contract TestBridgeManagement is BridgeManagementImpl {
         address _funder
     )
         external
-        reinitializer(2)
+        reinitializer(3) // mocks the current version of the contract
     {
         // Set storage slots based on currently deployed contract's storage slot layout
         __Ownable_init(_owner);
@@ -51,7 +51,7 @@ contract TestBridgeManagement is BridgeManagementImpl {
         _setSecurityGuard(_securityGuard);
         _setFunder(_funder);
 
-        // This is needed to testing migration, i.e., the reinitializer(2) function.
+        // This is needed to testing migration, i.e., the reinitializer(3) function.
         // Ignore any safety-checks since this is just used for test setup.
         uint256 validatorsLength = _validators.length;
         for (uint256 i = 0; i < validatorsLength; i++) {
@@ -60,7 +60,9 @@ contract TestBridgeManagement is BridgeManagementImpl {
         validatorThreshold = _validatorThreshold;
     }
 
-    function upgradeToV3() external override reinitializer(3) onlyOwner {
-        _upgradeToV3();
-    }
+    // Upgrade function allowing to use the reinitializer as non-admin for testing purposes.
+    // commented until a reinitialization is needed
+    // function upgradeToV<version-nr>() external override reinitializer(<version-nr>) onlyOwner {
+    //     _upgradeToV<version-nr>();
+    // }
 }

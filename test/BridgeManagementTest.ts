@@ -32,8 +32,8 @@ describe("Bridge Management", function () {
         ], { kind: "uups", unsafeAllow: ["constructor"] });
         await proxy.waitForDeployment();
         const bridgeManagementImpl = await ethers.getContractAt("TestBridgeManagement", await proxy.getAddress());
-        // Upgrade the bridge management contract to V3
-        await bridgeManagementImpl.connect(owner).upgradeToV3();
+        // Upgrade the bridge management contract to V<version_nr>
+        // await bridgeManagementImpl.connect(owner).upgradeToV<version_nr>();
 
         return {
             bridgeManagementImpl,
@@ -55,7 +55,7 @@ describe("Bridge Management", function () {
     describe("Deployment", function () {
         it("Should be initialized to the correct version", async function () {
             const { bridgeManagementImpl } = await loadFixture(deployBridgeFixture);
-            expect(await bridgeManagementImpl.getCurrentInitializedVersion()).to.equal(2);
+            expect(await bridgeManagementImpl.getCurrentInitializedVersion()).to.equal(3);
         });
 
         it("Should have the right relayer", async function () {

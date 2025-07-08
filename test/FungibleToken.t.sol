@@ -79,8 +79,8 @@ contract TestFungibleToken is Test, SigUtils {
             opts
         );
         managementProxy = TestBridgeManagement(managementProxyAddress);
-        vm.prank(owner);
-        managementProxy.upgradeToV3();
+        // vm.prank(owner);
+        // managementProxy.upgradeToV<version_nr>();
         // Validate that the management proxy has been successfully deployed and initialized to version 3.
         assertEq(managementProxy.getCurrentInitializedVersion(), 3);
 
@@ -89,8 +89,8 @@ contract TestFungibleToken is Test, SigUtils {
             "TestBridge.sol", abi.encodeCall(TestBridge.initialize, (managementProxyAddress)), opts
         );
         bridgeProxy = TestBridge(payable(bridgeProxyAddress));
-        vm.prank(owner);
-        bridgeProxy.upgradeToV3();
+        // vm.prank(owner);
+        // bridgeProxy.upgradeToV<version_nr>();
         vm.prank(governor);
         bridgeProxy.setNativeBridge(1e17, 1e18, 1e22, 100, 18, 8);
         vm.prank(governor);
