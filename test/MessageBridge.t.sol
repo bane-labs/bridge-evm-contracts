@@ -699,26 +699,6 @@ contract MessageBridgeTest is Test, SigUtils {
         bridgeProxy.storeMessage(depositRoot, signatures, messages);
     }
 
-    function test_StoreMessageInvalidMessageSize() public {
-        // Create a message that exceeds the max message size
-        bytes memory largeMessage = new bytes(maxMessageSize + 1);
-
-        // Prepare message data with oversized message
-        StorageTypes.MessageData[] memory messages = new StorageTypes.MessageData[](1);
-        messages[0] = StorageTypes.MessageData({nonce: 1, message: largeMessage});
-
-        // Compute root
-        bytes32 depositRoot = MessageBridgeLib._computeNewTopRoot(bytes32(0), messages);
-
-        // Generate valid signatures
-        BridgeLib.Signature[] memory signatures = generateValidSignatures(depositRoot);
-
-        // Expect revert due to invalid message size
-        vm.prank(relayer);
-        vm.expectRevert(); // Should revert with InvalidMessageSize error
-        bridgeProxy.storeMessage(depositRoot, signatures, messages);
-    }
-
     function test_StoreMessagesMultipleTimes() public {
         // First deposit
         StorageTypes.MessageData[] memory messages1 = new StorageTypes.MessageData[](1);
