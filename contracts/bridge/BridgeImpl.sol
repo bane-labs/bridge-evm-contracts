@@ -3,7 +3,7 @@ pragma solidity 0.8.25;
 
 import "../interfaces/IBridge.sol";
 import "../interfaces/IMessageBridge.sol";
-import "../interfaces/IMessageExecutor.sol";
+import "../interfaces/IExecutionManager.sol";
 import "../interfaces/INativeBridge.sol";
 import "../interfaces/ITokenBridge.sol";
 import "../interfaces/IMessageBridge.sol";
@@ -596,7 +596,7 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
 
     // Function to set the message executor
     function setMessageExecutor(address _executor) external override onlyGovernor {
-        messageExecutor = IMessageExecutor(_executor);
+        executionManager = IExecutionManager(_executor);
         emit MessageExecutorSet(_executor);
     }
 
@@ -720,24 +720,27 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
         emit MessageDeposit(messageData.nonce, messageData.message);
     }
 
-    function executeMessage(uint256 nonce) public payable returns (StorageTypes.Result memory) {
+    function executeMessage(
+        uint256 nonce,
+        address delegatedExecutor
+    )
+        public
+        payable
+        returns (StorageTypes.Result memory)
+    {
         bytes memory storedMessage = n3ToEvmMessages[nonce].message;
         if (storedMessage.length == 0) revert MessageNotFound(nonce);
-        // TODO: decode this in the executor
-        StorageTypes.Call memory call = abi.decode(storedMessage, (StorageTypes.Call));
 
-        // Verify that the msg.value matches the call.value from the message
-        if (msg.value != call.value) revert ValueMismatch(call.value, msg.value);
+        if (address(executionManager) == address(0)) revert ExecutionManagerNotSet();
 
-        // Check if we have an executor configured
-        if (address(messageExecutor) == address(0)) revert MessageExecutorNotSet();
+        // Mark as executed
 
         // Forward execution to the dedicated executor
         StorageTypes.Result memory result =
-                            messageExecutor.executeMessage{value: call.value}(call.target, call.callData, call.value);
+            executionManager.executeMessage{value: msg.value}(storedMessage, delegatedExecutor);
 
         // Handle failure if not allowed to fail
-        if (!call.allowFailure && !result.success) revert CallFailed(result.returnData);
+        if (result.requiresResponse) revert CallFailed(result.returnData);
 
         return result;
     }

@@ -93,8 +93,8 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     error InvalidMessageSize();
     //0x000bf7e9
     error MessageRootMismatch();
-    //0x626ade30
-    error ValueMismatch(uint256 expected, uint256 received);
+    //0xd221f922
+    error ExecutionManagerNotSet();
 
     // Modifiers for Role Restriction
 

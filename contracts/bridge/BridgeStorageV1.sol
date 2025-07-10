@@ -2,7 +2,7 @@
 pragma solidity 0.8.25;
 
 import "../interfaces/IBridgeManagement.sol";
-import "../interfaces/IMessageExecutor.sol";
+import "../interfaces/IExecutionManager.sol";
 import "../library/StorageTypes.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
@@ -54,7 +54,7 @@ abstract contract BridgeStorageV1 is ReentrancyGuardUpgradeable {
     mapping(uint256 => StorageTypes.StoredMessage) public n3ToEvmMessages;
 
     // Slot 118
-    IMessageExecutor public messageExecutor;
+    IExecutionManager public executionManager;
 
     // commented until a reinitialization is needed
     // function _upgradeToV<version_nr>() internal onlyInitializing {

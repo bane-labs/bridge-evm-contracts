@@ -12,8 +12,8 @@ import {TestBridgeManagement} from "../contracts/tests/TestBridgeManagement.sol"
 import {Test} from "../lib/forge-std/src/Test.sol";
 import {TestMessageContract} from "../contracts/tests/TestMessageContract.sol";
 import {TestPayableContract} from "../contracts/tests/TestPayableContract.sol";
-import {TestMessageExecutor} from "../contracts/tests/TestMessageExecutor.sol";
 import {console2} from "../lib/openzeppelin-foundry-upgrades/lib/forge-std/src/console2.sol";
+import {ExecutionManager} from "../contracts/bridge/ExecutionManager.sol";
 
 contract MessageBridgeTest is Test, SigUtils {
     TestBridge bridgeProxy;
@@ -31,8 +31,7 @@ contract MessageBridgeTest is Test, SigUtils {
     address internal governor = 0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f;
     address internal securityGuard = 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720;
 
-    // Message Executor
-    TestMessageExecutor public messageExecutor;
+    ExecutionManager public executionManager;
 
     // Message Bridge Config
     uint256 messageFee = 0.01 ether;
@@ -40,10 +39,26 @@ contract MessageBridgeTest is Test, SigUtils {
     uint256 maxDeposits = 10;
 
     // Test message data
-    bytes testMessage1 =
-        abi.encode(StorageTypes.Call({target: address(0x1234), callData: hex"abcd", allowFailure: false, value: 0}));
-    bytes testMessage2 =
-        abi.encode(StorageTypes.Call({target: address(0x5678), callData: hex"ef01", allowFailure: true, value: 0}));
+    bytes testMessage1 = abi.encode(
+        StorageTypes.Call({
+            allowFailure: false,
+            requiresResponse: false,
+            target: address(0x1234),
+            executingContract: address(0),
+            value: 0,
+            callData: hex"abcd"
+        })
+    );
+    bytes testMessage2 = abi.encode(
+        StorageTypes.Call({
+            allowFailure: true,
+            requiresResponse: false,
+            target: address(0x5678),
+            executingContract: address(0),
+            value: 0,
+            callData: hex"ef01"
+        })
+    );
 
     function setUp() public {
         sigUtils = new SigUtils();
@@ -89,11 +104,11 @@ contract MessageBridgeTest is Test, SigUtils {
         assertTrue(bridgeProxy.messageBridgeIsSet(), "Message bridge should be set");
 
         // Deploy and set up the Message Executor
-        messageExecutor = new TestMessageExecutor(owner, bridgeProxyAddress);
+        executionManager = new ExecutionManager(owner, bridgeProxyAddress);
 
         // Set the message executor in the bridge
         vm.prank(governor);
-        bridgeProxy.setMessageExecutor(address(messageExecutor));
+        bridgeProxy.setMessageExecutor(address(executionManager));
 
         // Unpause the message bridge
         vm.prank(governor);
@@ -127,11 +142,7 @@ contract MessageBridgeTest is Test, SigUtils {
         messages[0] = StorageTypes.MessageData({
             nonce: 1,
             message: testMessage1,
-            metadata: StorageTypes.Metadata({
-                version: 1,
-                sender: address(this),
-                timestamp: block.timestamp
-            })
+            metadata: StorageTypes.Metadata({version: 1, sender: address(this), timestamp: block.timestamp})
         });
 
         (, StorageTypes.State memory n3ToEvmState,,) = bridgeProxy.messageBridge();
@@ -161,8 +172,14 @@ contract MessageBridgeTest is Test, SigUtils {
         // Create Call struct with testFunction encoded
         bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
 
-        StorageTypes.Call memory call =
-            StorageTypes.Call({target: address(testContract), callData: callData, allowFailure: false, value: 0});
+        StorageTypes.Call memory call = StorageTypes.Call({
+            allowFailure: false,
+            requiresResponse: false,
+            target: address(testContract),
+            executingContract: address(0),
+            value: 0,
+            callData: callData
+        });
         uint256 nonce = 1;
 
         // Encode the Call struct into a message
@@ -173,10 +190,10 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Expect the TestEvent to be emitted with correct parameters
         vm.expectEmit(true, true, true, true, address(testContract));
-        emit TestMessageContract.TestEvent(1, address(messageExecutor));
+        emit TestMessageContract.TestEvent(1, address(executionManager));
 
         // Execute the message
-        StorageTypes.Result memory result = bridgeProxy.executeMessage(nonce);
+        StorageTypes.Result memory result = bridgeProxy.executeMessage(nonce, address(0));
 
         // Verify execution was successful
         assertTrue(result.success, "Message execution should succeed");
@@ -203,6 +220,8 @@ contract MessageBridgeTest is Test, SigUtils {
             target: address(testContract),
             callData: callData,
             allowFailure: false,
+            requiresResponse: false,
+            executingContract: address(0),
             value: paymentAmount
         });
         uint256 nonce = 1;
@@ -214,10 +233,10 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Expect the PaymentReceived event to be emitted with correct parameters
         vm.expectEmit(true, true, true, true, address(testContract));
-        emit TestMessageContract.PaymentReceived(paymentAmount, address(messageExecutor));
+        emit TestMessageContract.PaymentReceived(paymentAmount, address(executionManager));
 
         // Execute the message
-        StorageTypes.Result memory result = bridgeProxy.executeMessage{value: paymentAmount}(nonce);
+        StorageTypes.Result memory result = bridgeProxy.executeMessage{value: paymentAmount}(nonce, address(0));
 
         // Verify execution was successful
         assertTrue(result.success, "Message execution should succeed");
@@ -244,6 +263,8 @@ contract MessageBridgeTest is Test, SigUtils {
             target: address(testContract),
             callData: callData,
             allowFailure: true, // Allow failure so we can check the error
+            requiresResponse: false,
+            executingContract: address(0),
             value: actualAmount
         });
         uint256 nonce = 1;
@@ -255,7 +276,7 @@ contract MessageBridgeTest is Test, SigUtils {
         storeMessage(nonce, message, "");
 
         // Execute the message - this should fail but not revert the transaction
-        StorageTypes.Result memory result = bridgeProxy.executeMessage{value: actualAmount}(nonce);
+        StorageTypes.Result memory result = bridgeProxy.executeMessage{value: actualAmount}(nonce, address(0));
 
         // Verify execution failed as expected
         assertFalse(result.success, "Message execution should fail due to value mismatch");
@@ -295,8 +316,14 @@ contract MessageBridgeTest is Test, SigUtils {
         // Create Call struct with empty callData to trigger receive() function
         bytes memory callData = "";
 
-        StorageTypes.Call memory call =
-            StorageTypes.Call({target: address(testContract), callData: callData, allowFailure: false, value: 1 ether});
+        StorageTypes.Call memory call = StorageTypes.Call({
+            target: address(testContract),
+            callData: callData,
+            allowFailure: false,
+            requiresResponse: false,
+            executingContract: address(0),
+            value: 1 ether
+        });
 
         // Encode the Call struct into a message
         bytes memory message = abi.encode(call);
@@ -309,10 +336,10 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Expect the DirectEthReceived event to be emitted with correct sender
         vm.expectEmit(true, true, true, true, address(testContract));
-        emit TestMessageContract.DirectEthReceived(address(messageExecutor));
+        emit TestMessageContract.DirectEthReceived(address(executionManager));
 
         // Execute the message
-        StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 1 ether}(nonce);
+        StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 1 ether}(nonce, address(0));
 
         // Verify execution was successful
         assertTrue(result.success, "Message execution should succeed");
@@ -333,6 +360,8 @@ contract MessageBridgeTest is Test, SigUtils {
             target: address(testContract),
             callData: addressBytes,
             allowFailure: false,
+            requiresResponse: false,
+            executingContract: address(0),
             value: 1 ether
         });
 
@@ -347,10 +376,10 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Expect the FallbackCalled event to be emitted with correct parameters
         vm.expectEmit(true, true, true, true, address(testContract));
-        emit TestMessageContract.FallbackCalled(address(messageExecutor), 1 ether, addressBytes);
+        emit TestMessageContract.FallbackCalled(address(executionManager), 1 ether, addressBytes);
 
         // Execute the message
-        StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 1 ether}(nonce);
+        StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 1 ether}(nonce, address(0));
 
         // Verify execution was successful
         assertTrue(result.success, "Message execution should succeed");
@@ -374,13 +403,15 @@ contract MessageBridgeTest is Test, SigUtils {
                 target: address(testContract),
                 callData: callData,
                 allowFailure: true, // Allow failure so we can check the error
+                requiresResponse: false,
+                executingContract: address(0),
                 value: actualAmount
             });
 
             bytes memory message = abi.encode(call);
             uint256 nonce = 1;
             storeMessage(nonce, message, "");
-            StorageTypes.Result memory result = bridgeProxy.executeMessage{value: actualAmount}(nonce);
+            StorageTypes.Result memory result = bridgeProxy.executeMessage{value: actualAmount}(nonce, address(0));
 
             // Verify execution failed as expected
             assertFalse(result.success, "Message execution should fail due to zero value");
@@ -406,13 +437,15 @@ contract MessageBridgeTest is Test, SigUtils {
                 target: address(testContract),
                 callData: addressBytes,
                 allowFailure: true,
+                requiresResponse: false,
+                executingContract: address(0),
                 value: 0 // Zero value
             });
 
             bytes memory message = abi.encode(call);
             uint256 nonce = 2;
             storeMessage(nonce, message, "");
-            StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 0}(nonce);
+            StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 0}(nonce, address(0));
 
             // Verify execution failed as expected
             assertFalse(result.success, "Message execution should fail due to zero value in fallback");
@@ -438,13 +471,15 @@ contract MessageBridgeTest is Test, SigUtils {
                 target: address(testContract),
                 callData: callData,
                 allowFailure: true,
+                requiresResponse: false,
+                executingContract: address(0),
                 value: 0 // Zero value
             });
 
             bytes memory message = abi.encode(call);
             uint256 nonce = 3;
             storeMessage(nonce, message, "");
-            StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 0}(nonce);
+            StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 0}(nonce, address(0));
 
             // Verify execution failed as expected
             assertFalse(result.success, "Message execution should fail due to zero value in receive");
@@ -474,6 +509,8 @@ contract MessageBridgeTest is Test, SigUtils {
             target: address(testContract),
             callData: invalidCallData,
             allowFailure: false, // This will cause CallFailed error
+            requiresResponse: false,
+            executingContract: address(0),
             value: 1 ether
         });
 
@@ -492,7 +529,7 @@ contract MessageBridgeTest is Test, SigUtils {
         );
 
         // Execute the message
-        bridgeProxy.executeMessage{value: 1 ether}(nonce);
+        bridgeProxy.executeMessage{value: 1 ether}(nonce, address(0));
 
         // Verify the contract did not receive any ETH
         assertEq(address(testContract).balance, 0, "Test contract should not have received ETH");
@@ -513,8 +550,14 @@ contract MessageBridgeTest is Test, SigUtils {
         // Create some random calldata
         bytes memory callData = abi.encodeWithSignature("someFunction(uint256)", 123);
 
-        StorageTypes.Call memory call =
-            StorageTypes.Call({target: nonExistentContract, callData: callData, allowFailure: true, value: 0.1 ether});
+        StorageTypes.Call memory call = StorageTypes.Call({
+                allowFailure: true,
+                requiresResponse: false,
+                target: nonExistentContract,
+                executingContract: address(0),
+                value: 0.1 ether,
+                callData: callData
+            });
 
         // Encode the Call struct into a message
         bytes memory message = abi.encode(call);
@@ -524,7 +567,7 @@ contract MessageBridgeTest is Test, SigUtils {
         storeMessage(nonce, message, "");
 
         // Execute the message - this should succeed when calling an EOA
-        StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 0.1 ether}(nonce);
+        StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 0.1 ether}(nonce, address(0));
 
         // Verify execution succeeded as expected when calling an EOA
         assertTrue(result.success, "Message execution should succeed when calling an EOA");
@@ -542,7 +585,7 @@ contract MessageBridgeTest is Test, SigUtils {
         storeMessage(nonce, message, "");
 
         // This should not revert
-        result = bridgeProxy.executeMessage{value: 0.1 ether}(nonce);
+        result = bridgeProxy.executeMessage{value: 0.1 ether}(nonce, address(0));
         assertTrue(result.success, "Message execution should succeed when calling an EOA with allowFailure=false");
         // Verify the contract received the 1 ETH
         assertEq(address(nonExistentContract).balance, 2 * call.value, "EOA should have received another 0.1 ETH");
@@ -552,8 +595,14 @@ contract MessageBridgeTest is Test, SigUtils {
         // Create a test message
         TestMessageContract testContract = new TestMessageContract();
         bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
-        StorageTypes.Call memory call =
-            StorageTypes.Call({target: address(testContract), callData: callData, allowFailure: false, value: 0});
+        StorageTypes.Call memory call = StorageTypes.Call({
+            allowFailure: false,
+            requiresResponse: false,
+            target: address(testContract),
+            executingContract: address(0),
+            value: 0,
+            callData: callData
+        });
         bytes memory message = abi.encode(call);
 
         // Get current state and nonce
@@ -568,13 +617,14 @@ contract MessageBridgeTest is Test, SigUtils {
         storeMessage(nonce, message, abi.encodeWithSelector(BridgeStorage.InvalidNonceSequence.selector));
 
         // Execute the stored message: should succeed
-        StorageTypes.Result memory result = bridgeProxy.executeMessage(nonce);
+        StorageTypes.Result memory result = bridgeProxy.executeMessage(nonce, address(0));
+
         assertTrue(result.success, "Message execution should succeed");
 
         // Try to execute a non-existent message: should revert with MessageNotFound
         uint256 nonExistentNonce = 999;
         vm.expectRevert(abi.encodeWithSelector(BridgeStorage.MessageNotFound.selector, nonExistentNonce));
-        bridgeProxy.executeMessage(nonExistentNonce);
+        bridgeProxy.executeMessage(nonExistentNonce, address(0));
     }
 
     function test_StoreAndExecuteMessageNonExistentPayableFunction() public {
@@ -589,6 +639,8 @@ contract MessageBridgeTest is Test, SigUtils {
             target: address(payableContract),
             callData: callData,
             allowFailure: true,
+            requiresResponse: false,
+            executingContract: address(0),
             value: 0.1 ether
         });
 
@@ -600,7 +652,7 @@ contract MessageBridgeTest is Test, SigUtils {
         storeMessage(nonce, message, "");
 
         // Execute the message - this should fail but not revert since allowFailure is true
-        StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 0.1 ether}(nonce);
+        StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 0.1 ether}(nonce, address(0));
 
         // Verify execution failed as expected - TestPayableContract doesn't implement this function
         assertFalse(result.success, "Message execution should fail when calling non-existent function");
@@ -613,7 +665,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // This should revert with CallFailed error
         vm.expectRevert(abi.encodeWithSelector(BridgeStorage.CallFailed.selector, ""));
-        bridgeProxy.executeMessage{value: 0.1 ether}(nonce);
+        bridgeProxy.executeMessage{value: 0.1 ether}(nonce, address(0));
 
         // Check that payableContract did not receive funds when the function call failed
         assertEq(address(payableContract).balance, 0, "Payable contract should not have received ETH");
@@ -627,20 +679,12 @@ contract MessageBridgeTest is Test, SigUtils {
         messages[0] = StorageTypes.MessageData({
             nonce: 1,
             message: testMessage1,
-            metadata: StorageTypes.Metadata({
-                version: 1,
-                sender: address(this),
-                timestamp: block.timestamp
-            })
+            metadata: StorageTypes.Metadata({version: 1, sender: address(this), timestamp: block.timestamp})
         });
         messages[1] = StorageTypes.MessageData({
             nonce: 2,
             message: testMessage2,
-            metadata: StorageTypes.Metadata({
-                version: 1,
-                sender: address(this),
-                timestamp: block.timestamp
-            })
+            metadata: StorageTypes.Metadata({version: 1, sender: address(this), timestamp: block.timestamp})
         });
 
         // Compute the deposit root
@@ -685,11 +729,7 @@ contract MessageBridgeTest is Test, SigUtils {
         messages[0] = StorageTypes.MessageData({
             nonce: 1,
             message: testMessage1,
-            metadata: StorageTypes.Metadata({
-                version: 1,
-                sender: address(this),
-                timestamp: block.timestamp
-            })
+            metadata: StorageTypes.Metadata({version: 1, sender: address(this), timestamp: block.timestamp})
         });
 
         // Use an incorrect deposit root
@@ -710,11 +750,7 @@ contract MessageBridgeTest is Test, SigUtils {
         messages[0] = StorageTypes.MessageData({
             nonce: 1,
             message: testMessage1,
-            metadata: StorageTypes.Metadata({
-                version: 1,
-                sender: address(this),
-                timestamp: block.timestamp
-            })
+            metadata: StorageTypes.Metadata({version: 1, sender: address(this), timestamp: block.timestamp})
         });
 
         // Compute the correct deposit root
@@ -736,20 +772,12 @@ contract MessageBridgeTest is Test, SigUtils {
         messages[0] = StorageTypes.MessageData({
             nonce: 1,
             message: testMessage1,
-            metadata: StorageTypes.Metadata({
-                version: 1,
-                sender: address(this),
-                timestamp: block.timestamp
-            })
+            metadata: StorageTypes.Metadata({version: 1, sender: address(this), timestamp: block.timestamp})
         });
         messages[1] = StorageTypes.MessageData({
             nonce: 3, // This should be 2 to be sequential
             message: testMessage2,
-            metadata: StorageTypes.Metadata({
-                version: 1,
-                sender: address(this),
-                timestamp: block.timestamp
-            })
+            metadata: StorageTypes.Metadata({version: 1, sender: address(this), timestamp: block.timestamp})
         });
 
         // Compute root (this doesn't validate nonce sequence)
@@ -770,11 +798,7 @@ contract MessageBridgeTest is Test, SigUtils {
         messages1[0] = StorageTypes.MessageData({
             nonce: 1,
             message: testMessage1,
-            metadata: StorageTypes.Metadata({
-                version: 1,
-                sender: address(this),
-                timestamp: block.timestamp
-            })
+            metadata: StorageTypes.Metadata({version: 1, sender: address(this), timestamp: block.timestamp})
         });
 
         (, StorageTypes.State memory n3ToEvmState,,) = bridgeProxy.messageBridge();
@@ -790,11 +814,7 @@ contract MessageBridgeTest is Test, SigUtils {
         messages2[0] = StorageTypes.MessageData({
             nonce: 2,
             message: testMessage2,
-            metadata: StorageTypes.Metadata({
-                version: 1,
-                sender: address(this),
-                timestamp: block.timestamp
-            })
+            metadata: StorageTypes.Metadata({version: 1, sender: address(this), timestamp: block.timestamp})
         });
 
         // The new root should be computed based on the previous root
@@ -830,8 +850,14 @@ contract MessageBridgeTest is Test, SigUtils {
         // Create a test message
         TestMessageContract testContract = new TestMessageContract();
         bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
-        StorageTypes.Call memory call =
-            StorageTypes.Call({target: address(testContract), callData: callData, allowFailure: false, value: 0});
+        StorageTypes.Call memory call = StorageTypes.Call({
+            allowFailure: false,
+            requiresResponse: false,
+            target: address(testContract),
+            executingContract: address(0),
+            value: 0,
+            callData: callData
+        });
         bytes memory message = abi.encode(call);
 
         // Get current state and nonce
@@ -859,14 +885,26 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // First message
         bytes memory callData1 = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
-        StorageTypes.Call memory call1 =
-            StorageTypes.Call({target: address(testContract), callData: callData1, allowFailure: false, value: 0});
+        StorageTypes.Call memory call1 = StorageTypes.Call({
+            allowFailure: false,
+            requiresResponse: false,
+            target: address(testContract),
+            executingContract: address(0),
+            value: 0,
+            callData: callData1
+        });
         bytes memory message1 = abi.encode(call1);
 
         // Second message
         bytes memory callData2 = abi.encodeWithSelector(TestMessageContract.receivePayment.selector, 1 ether);
-        StorageTypes.Call memory call2 =
-            StorageTypes.Call({target: address(testContract), callData: callData2, allowFailure: false, value: 1 ether});
+        StorageTypes.Call memory call2 = StorageTypes.Call({
+            allowFailure: false,
+            requiresResponse: false,
+            target: address(testContract),
+            executingContract: address(0),
+            value: 1 ether,
+            callData: callData2
+        });
         bytes memory message2 = abi.encode(call2);
 
         // Get current state and nonce
@@ -905,8 +943,14 @@ contract MessageBridgeTest is Test, SigUtils {
         // Create a test message
         TestMessageContract testContract = new TestMessageContract();
         bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
-        StorageTypes.Call memory call =
-            StorageTypes.Call({target: address(testContract), callData: callData, allowFailure: false, value: 0});
+        StorageTypes.Call memory call = StorageTypes.Call({
+            allowFailure: false,
+            requiresResponse: false,
+            target: address(testContract),
+            executingContract: address(0),
+            value: 0,
+            callData: callData
+        });
         bytes memory message = abi.encode(call);
 
         // Set up a specific sender and timestamp for metadata
@@ -921,11 +965,7 @@ contract MessageBridgeTest is Test, SigUtils {
         messages[0] = StorageTypes.MessageData({
             nonce: 1,
             message: message,
-            metadata: StorageTypes.Metadata({
-                version: 1,
-                sender: customSender,
-                timestamp: customTimestamp
-            })
+            metadata: StorageTypes.Metadata({version: 1, sender: customSender, timestamp: customTimestamp})
         });
 
         (, StorageTypes.State memory n3ToEvmState,,) = bridgeProxy.messageBridge();
@@ -984,11 +1024,7 @@ contract MessageBridgeTest is Test, SigUtils {
         messages[0] = StorageTypes.MessageData({
             nonce: nonce,
             message: message,
-            metadata: StorageTypes.Metadata({
-                version: 1,
-                sender: address(this),
-                timestamp: block.timestamp
-            })
+            metadata: StorageTypes.Metadata({version: 1, sender: address(this), timestamp: block.timestamp})
         });
 
         (, StorageTypes.State memory n3ToEvmState,,) = bridgeProxy.messageBridge();
