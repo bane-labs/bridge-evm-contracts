@@ -588,7 +588,6 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
     //     _upgradeToV<version_nr>();
     // }
 
-
     // IMessageBridge Implementation
 
     /**
@@ -614,11 +613,9 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
         onlyGovernor
     {
         _setMessageBridge(_fee, _maxMessageSize, _maxNrMessages);
-        emit MessageBridgeRegister(StorageTypes.MessageConfig({
-            fee: _fee,
-            maxMessageSize: _maxMessageSize,
-            maxNrMessages: _maxNrMessages
-        }));
+        emit MessageBridgeRegister(
+            StorageTypes.MessageConfig({fee: _fee, maxMessageSize: _maxMessageSize, maxNrMessages: _maxNrMessages})
+        );
     }
 
     /**
@@ -638,13 +635,7 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
     /**
      * @notice Unpause the message bridge. Message deposits can be made after unpausing.
      */
-    function unpauseMessageBridge()
-        external
-        override
-        onlyGovernor
-        onlyIfMessageBridgeSet
-        whenMessageBridgePaused
-    {
+    function unpauseMessageBridge() external override onlyGovernor onlyIfMessageBridgeSet whenMessageBridgePaused {
         _unpauseMessageBridge();
         emit MessageBridgeUnpause();
     }
@@ -688,9 +679,6 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
         // Each nonce should be exactly (state.nonce + position in array + 1)
         for (uint256 i = 0; i < messageLength; i++) {
             if (_messages[i].nonce != state.nonce + i + 1) revert InvalidNonceSequence();
-
-            // Check message size
-            if (_messages[i].message.length > config.maxMessageSize) revert InvalidMessageSize();
         }
 
         // Validate that the provided message deposit root is equal to the computed root
@@ -715,7 +703,7 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
         }
     }
 
-    function executeMessage(uint nonce) public payable returns (StorageTypes.Result memory) {
+    function executeMessage(uint256 nonce) public payable returns (StorageTypes.Result memory) {
         StorageTypes.Call memory call = n3ToEvmMessages[nonce];
         if (call.target == address(0)) revert MessageNotFound(nonce);
 
@@ -755,7 +743,7 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
      * @param _maxNrMessages the new maximum number of messages.
      */
     function setMaxNrMessages(uint256 _maxNrMessages) external override onlyGovernor {
-        _setMaxMessageDeposits(_maxNrMessages);
-        emit MaxMessageDepositsChange(_maxNrMessages);
+        _setMaxNrMessages(_maxNrMessages);
+        emit MaxNrMessagesChange(_maxNrMessages);
     }
 }

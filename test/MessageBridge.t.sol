@@ -36,18 +36,10 @@ contract MessageBridgeTest is Test, SigUtils {
     uint256 maxDeposits = 10;
 
     // Test message data
-    bytes testMessage1 = abi.encode(StorageTypes.Call({
-        target: address(0x1234),
-        callData: hex"abcd",
-        allowFailure: false,
-        value: 0
-    }));
-    bytes testMessage2 = abi.encode(StorageTypes.Call({
-        target: address(0x5678),
-        callData: hex"ef01",
-        allowFailure: true,
-        value: 0
-    }));
+    bytes testMessage1 =
+        abi.encode(StorageTypes.Call({target: address(0x1234), callData: hex"abcd", allowFailure: false, value: 0}));
+    bytes testMessage2 =
+        abi.encode(StorageTypes.Call({target: address(0x5678), callData: hex"ef01", allowFailure: true, value: 0}));
 
     function setUp() public {
         sigUtils = new SigUtils();
@@ -121,12 +113,9 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Try to deposit a message while paused (should revert)
         StorageTypes.MessageData[] memory messages = new StorageTypes.MessageData[](1);
-        messages[0] = StorageTypes.MessageData({
-            nonce: 1,
-            message: testMessage1
-        });
+        messages[0] = StorageTypes.MessageData({nonce: 1, message: testMessage1});
 
-        (,StorageTypes.State memory n3ToEvmState,,) = bridgeProxy.messageBridge();
+        (, StorageTypes.State memory n3ToEvmState,,) = bridgeProxy.messageBridge();
         bytes32 previousRoot = n3ToEvmState.root;
         bytes32 depositRoot = MessageBridgeLib._computeNewTopRoot(previousRoot, messages);
         BridgeLib.Signature[] memory signatures = generateValidSignatures(depositRoot);
@@ -153,13 +142,9 @@ contract MessageBridgeTest is Test, SigUtils {
         // Create Call struct with testFunction encoded
         bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
 
-        StorageTypes.Call memory call = StorageTypes.Call({
-            target: address(testContract),
-            callData: callData,
-            allowFailure: false,
-            value: 0
-        });
-        uint nonce = 1;
+        StorageTypes.Call memory call =
+            StorageTypes.Call({target: address(testContract), callData: callData, allowFailure: false, value: 0});
+        uint256 nonce = 1;
 
         // Encode the Call struct into a message
         bytes memory message = abi.encode(call);
@@ -270,10 +255,10 @@ contract MessageBridgeTest is Test, SigUtils {
         uint256 expected;
         uint256 received;
         assembly {
-        // Load the parameters after the selector (4 bytes)
-        // Each parameter is 32 bytes
-            expected := mload(add(errorBytes, 0x24))  // 0x20 (length prefix) + 0x04 (selector)
-            received := mload(add(errorBytes, 0x44))  // 0x20 + 0x04 + 0x20 (first parameter)
+            // Load the parameters after the selector (4 bytes)
+            // Each parameter is 32 bytes
+            expected := mload(add(errorBytes, 0x24)) // 0x20 (length prefix) + 0x04 (selector)
+            received := mload(add(errorBytes, 0x44)) // 0x20 + 0x04 + 0x20 (first parameter)
         }
 
         assertEq(expected, declaredAmount, "Expected amount in error should match declared amount");
@@ -291,17 +276,13 @@ contract MessageBridgeTest is Test, SigUtils {
         // Create Call struct with empty callData to trigger receive() function
         bytes memory callData = "";
 
-        StorageTypes.Call memory call = StorageTypes.Call({
-            target: address(testContract),
-            callData: callData,
-            allowFailure: false,
-            value: 1 ether
-        });
+        StorageTypes.Call memory call =
+            StorageTypes.Call({target: address(testContract), callData: callData, allowFailure: false, value: 1 ether});
 
         // Encode the Call struct into a message
         bytes memory message = abi.encode(call);
 
-        (,StorageTypes.State memory n3ToEvmState,,) = bridgeProxy.messageBridge();
+        (, StorageTypes.State memory n3ToEvmState,,) = bridgeProxy.messageBridge();
         uint256 nonce = n3ToEvmState.nonce + 1;
 
         // Store the message with the nonce
@@ -339,7 +320,7 @@ contract MessageBridgeTest is Test, SigUtils {
         // Encode the Call struct into a message
         bytes memory message = abi.encode(call);
 
-        (,StorageTypes.State memory n3ToEvmState,,) = bridgeProxy.messageBridge();
+        (, StorageTypes.State memory n3ToEvmState,,) = bridgeProxy.messageBridge();
         uint256 nonce = n3ToEvmState.nonce + 1;
 
         // Store the message with the nonce
@@ -485,9 +466,10 @@ contract MessageBridgeTest is Test, SigUtils {
         storeMessage(nonce, message);
 
         // Execution should revert with CallFailed(InvalidCallData())
-        vm.expectRevert(abi.encodeWithSelector(
-            BridgeStorage.CallFailed.selector,
-            abi.encodeWithSelector(TestMessageContract.InvalidCallData.selector))
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                BridgeStorage.CallFailed.selector, abi.encodeWithSelector(TestMessageContract.InvalidCallData.selector)
+            )
         );
 
         // Execute the message
@@ -512,12 +494,8 @@ contract MessageBridgeTest is Test, SigUtils {
         // Create some random calldata
         bytes memory callData = abi.encodeWithSignature("someFunction(uint256)", 123);
 
-        StorageTypes.Call memory call = StorageTypes.Call({
-            target: nonExistentContract,
-            callData: callData,
-            allowFailure: true,
-            value: 0.1 ether
-        });
+        StorageTypes.Call memory call =
+            StorageTypes.Call({target: nonExistentContract, callData: callData, allowFailure: true, value: 0.1 ether});
 
         // Encode the Call struct into a message
         bytes memory message = abi.encode(call);
@@ -555,16 +533,12 @@ contract MessageBridgeTest is Test, SigUtils {
         // Create a test message
         TestMessageContract testContract = new TestMessageContract();
         bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
-        StorageTypes.Call memory call = StorageTypes.Call({
-            target: address(testContract),
-            callData: callData,
-            allowFailure: false,
-            value: 0
-        });
+        StorageTypes.Call memory call =
+            StorageTypes.Call({target: address(testContract), callData: callData, allowFailure: false, value: 0});
         bytes memory message = abi.encode(call);
 
         // Get current state and nonce
-        (,StorageTypes.State memory n3ToEvmState,,) = bridgeProxy.messageBridge();
+        (, StorageTypes.State memory n3ToEvmState,,) = bridgeProxy.messageBridge();
         uint256 nonce = n3ToEvmState.nonce + 1;
 
         // Store the message with the nonce
@@ -632,17 +606,11 @@ contract MessageBridgeTest is Test, SigUtils {
     function test_StoreRandomMessages() public {
         // Prepare message data
         StorageTypes.MessageData[] memory messages = new StorageTypes.MessageData[](2);
-        messages[0] = StorageTypes.MessageData({
-            nonce: 1,
-            message: testMessage1
-        });
-        messages[1] = StorageTypes.MessageData({
-            nonce: 2,
-            message: testMessage2
-        });
+        messages[0] = StorageTypes.MessageData({nonce: 1, message: testMessage1});
+        messages[1] = StorageTypes.MessageData({nonce: 2, message: testMessage2});
 
         // Compute the deposit root
-        (,StorageTypes.State memory n3ToEvmState,,) = bridgeProxy.messageBridge();
+        (, StorageTypes.State memory n3ToEvmState,,) = bridgeProxy.messageBridge();
         bytes32 previousRoot = n3ToEvmState.root;
         bytes32 depositRoot = MessageBridgeLib._computeNewTopRoot(previousRoot, messages);
 
@@ -659,7 +627,8 @@ contract MessageBridgeTest is Test, SigUtils {
         StorageTypes.Call memory expectedCall2 = abi.decode(testMessage2, (StorageTypes.Call));
 
         // Get the stored Call struct components - public mappings return struct components, not the struct itself
-        (address target, bytes memory callData, bool allowFailure, uint256 value) = bridgeProxy.n3ToEvmMessages(messages[0].nonce);
+        (address target, bytes memory callData, bool allowFailure, uint256 value) =
+            bridgeProxy.n3ToEvmMessages(messages[0].nonce);
 
         // Verify that stored Call struct components match the expected ones
         assertEq(target, expectedCall1.target, "First message target should match");
@@ -677,10 +646,7 @@ contract MessageBridgeTest is Test, SigUtils {
     function test_StoreMessageInvalidRoot() public {
         // Prepare message data
         StorageTypes.MessageData[] memory messages = new StorageTypes.MessageData[](1);
-        messages[0] = StorageTypes.MessageData({
-            nonce: 1,
-            message: testMessage1
-        });
+        messages[0] = StorageTypes.MessageData({nonce: 1, message: testMessage1});
 
         // Use an incorrect deposit root
         bytes32 invalidDepositRoot = bytes32(uint256(1));
@@ -697,21 +663,14 @@ contract MessageBridgeTest is Test, SigUtils {
     function test_StoreMessageInvalidSignatures() public {
         // Prepare message data
         StorageTypes.MessageData[] memory messages = new StorageTypes.MessageData[](1);
-        messages[0] = StorageTypes.MessageData({
-            nonce: 1,
-            message: testMessage1
-        });
+        messages[0] = StorageTypes.MessageData({nonce: 1, message: testMessage1});
 
         // Compute the correct deposit root
         bytes32 depositRoot = MessageBridgeLib._computeNewTopRoot(bytes32(0), messages);
 
         // Generate invalid signatures (from non-validators)
         BridgeLib.Signature[] memory invalidSignatures = new BridgeLib.Signature[](1);
-        invalidSignatures[0] = BridgeLib.Signature({
-            r: bytes32(0),
-            s: bytes32(0),
-            v: 0
-        });
+        invalidSignatures[0] = BridgeLib.Signature({r: bytes32(0), s: bytes32(0), v: 0});
 
         // Expect revert due to invalid signatures
         vm.prank(relayer);
@@ -722,10 +681,7 @@ contract MessageBridgeTest is Test, SigUtils {
     function test_StoreMessageInvalidNonceSequence() public {
         // Prepare message data with non-sequential nonces
         StorageTypes.MessageData[] memory messages = new StorageTypes.MessageData[](2);
-        messages[0] = StorageTypes.MessageData({
-            nonce: 1,
-            message: testMessage1
-        });
+        messages[0] = StorageTypes.MessageData({nonce: 1, message: testMessage1});
         messages[1] = StorageTypes.MessageData({
             nonce: 3, // This should be 2 to be sequential
             message: testMessage2
@@ -749,10 +705,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Prepare message data with oversized message
         StorageTypes.MessageData[] memory messages = new StorageTypes.MessageData[](1);
-        messages[0] = StorageTypes.MessageData({
-            nonce: 1,
-            message: largeMessage
-        });
+        messages[0] = StorageTypes.MessageData({nonce: 1, message: largeMessage});
 
         // Compute root
         bytes32 depositRoot = MessageBridgeLib._computeNewTopRoot(bytes32(0), messages);
@@ -769,12 +722,9 @@ contract MessageBridgeTest is Test, SigUtils {
     function test_StoreMessagesMultipleTimes() public {
         // First deposit
         StorageTypes.MessageData[] memory messages1 = new StorageTypes.MessageData[](1);
-        messages1[0] = StorageTypes.MessageData({
-            nonce: 1,
-            message: testMessage1
-        });
+        messages1[0] = StorageTypes.MessageData({nonce: 1, message: testMessage1});
 
-        (,StorageTypes.State memory n3ToEvmState,,) = bridgeProxy.messageBridge();
+        (, StorageTypes.State memory n3ToEvmState,,) = bridgeProxy.messageBridge();
         bytes32 previousRoot = n3ToEvmState.root;
         bytes32 depositRoot1 = MessageBridgeLib._computeNewTopRoot(previousRoot, messages1);
         BridgeLib.Signature[] memory signatures1 = generateValidSignatures(depositRoot1);
@@ -784,10 +734,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Second deposit - nonce should continue from previous
         StorageTypes.MessageData[] memory messages2 = new StorageTypes.MessageData[](1);
-        messages2[0] = StorageTypes.MessageData({
-            nonce: 2,
-            message: testMessage2
-        });
+        messages2[0] = StorageTypes.MessageData({nonce: 2, message: testMessage2});
 
         // The new root should be computed based on the previous root
         bytes32 depositRoot2 = MessageBridgeLib._computeNewTopRoot(depositRoot1, messages2);
@@ -801,8 +748,10 @@ contract MessageBridgeTest is Test, SigUtils {
         StorageTypes.Call memory expectedCall2 = abi.decode(testMessage2, (StorageTypes.Call));
 
         // Get the stored Call struct components - public mappings return struct components, not the struct itself
-        (address target1, bytes memory callData1, bool allowFailure1, uint256 value1) = bridgeProxy.n3ToEvmMessages(messages1[0].nonce);
-        (address target2, bytes memory callData2, bool allowFailure2, uint256 value2) = bridgeProxy.n3ToEvmMessages(messages2[0].nonce);
+        (address target1, bytes memory callData1, bool allowFailure1, uint256 value1) =
+            bridgeProxy.n3ToEvmMessages(messages1[0].nonce);
+        (address target2, bytes memory callData2, bool allowFailure2, uint256 value2) =
+            bridgeProxy.n3ToEvmMessages(messages2[0].nonce);
 
         // Verify that stored Call struct components match the expected ones
         assertEq(target1, expectedCall1.target, "First message target should match");
@@ -837,11 +786,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
         for (uint256 i = 0; i < count; i++) {
             (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKeys[i], signedRootMsg);
-            signatures[i] = BridgeLib.Signature({
-                r: r,
-                s: s,
-                v: v
-            });
+            signatures[i] = BridgeLib.Signature({r: r, s: s, v: v});
         }
 
         return signatures;
@@ -850,12 +795,9 @@ contract MessageBridgeTest is Test, SigUtils {
     // Helper function to store a single message with generated signatures
     function storeMessage(uint256 nonce, bytes memory message) internal {
         StorageTypes.MessageData[] memory messages = new StorageTypes.MessageData[](1);
-        messages[0] = StorageTypes.MessageData({
-            nonce: nonce,
-            message: message
-        });
+        messages[0] = StorageTypes.MessageData({nonce: nonce, message: message});
 
-        (,StorageTypes.State memory n3ToEvmState,,) = bridgeProxy.messageBridge();
+        (, StorageTypes.State memory n3ToEvmState,,) = bridgeProxy.messageBridge();
         bytes32 previousRoot = n3ToEvmState.root;
         bytes32 depositRoot = MessageBridgeLib._computeNewTopRoot(previousRoot, messages);
         BridgeLib.Signature[] memory signatures = generateValidSignatures(depositRoot);

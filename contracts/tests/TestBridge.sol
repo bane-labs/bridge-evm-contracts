@@ -99,7 +99,8 @@ contract TestBridge is BridgeImpl {
     // The initialization version should reflect the latest release version of the contract that required a reinitialization.
 
     // Allow non-admins to call the upgrade function for testing purposes.
-    function initialize(address _management) external reinitializer(3) { // reinitializer mocks the current version of the contract
+    function initialize(address _management) external reinitializer(3) {
+        // reinitializer mocks the current version of the contract
         __ReentrancyGuard_init();
         management = IBridgeManagement(_management);
     }

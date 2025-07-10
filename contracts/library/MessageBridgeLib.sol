@@ -5,7 +5,6 @@ import "./BridgeLib.sol";
 import "./StorageTypes.sol";
 
 library MessageBridgeLib {
-
     /**
      * @dev Computes a new root hash incorporating a new message operation hash.
      * This function takes the previous root, chains each message operation hash in sequence,
@@ -18,7 +17,11 @@ library MessageBridgeLib {
     function _computeNewTopRoot(
         bytes32 _previousRoot,
         StorageTypes.MessageData[] memory _messages
-    ) internal pure returns (bytes32) {
+    )
+        internal
+        pure
+        returns (bytes32)
+    {
         bytes32 parent = _previousRoot;
         uint256 messagesLength = _messages.length;
 

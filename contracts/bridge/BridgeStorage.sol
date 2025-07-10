@@ -434,24 +434,16 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         return messageBridge.config.maxMessageSize != 0;
     }
 
-    function _setMessageBridge(
-        uint256 _fee,
-        uint256 _maxMessageSize,
-        uint256 _maxDeposits
-    ) internal {
+    function _setMessageBridge(uint256 _fee, uint256 _maxMessageSize, uint256 _maxNrMessages) internal {
         if (_fee == 0) revert InvalidFee();
         if (_maxMessageSize == 0) revert InvalidValue();
-        if (_maxDeposits == 0) revert InvalidValue();
+        if (_maxNrMessages == 0) revert InvalidValue();
 
         messageBridge = StorageTypes.MessageBridge({
             paused: true,
             n3ToEvmState: StorageTypes.State({nonce: 0, root: 0x0}),
             evmToN3State: StorageTypes.State({nonce: 0, root: 0x0}),
-            config: StorageTypes.MessageConfig({
-                fee: _fee,
-                maxMessageSize: _maxMessageSize,
-                maxDeposits: _maxDeposits
-            })
+            config: StorageTypes.MessageConfig({fee: _fee, maxMessageSize: _maxMessageSize, maxNrMessages: _maxNrMessages})
         });
     }
 
@@ -493,9 +485,9 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         messageBridge.config.maxMessageSize = _maxMessageSize;
     }
 
-    function _setMaxMessageDeposits(uint256 _maxDeposits) internal {
-        if (_maxDeposits == 0) revert InvalidValue();
-        messageBridge.config.maxDeposits = _maxDeposits;
+    function _setMaxNrMessages(uint256 _maxNrMessages) internal {
+        if (_maxNrMessages == 0) revert InvalidValue();
+        messageBridge.config.maxNrMessages = _maxNrMessages;
     }
 
     // Upgrade authorization
