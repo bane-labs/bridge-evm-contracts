@@ -65,9 +65,8 @@ contract MessageBridgeTest is Test, SigUtils {
             opts
         );
         managementProxy = TestBridgeManagement(payable(managementProxyAddress));
-        vm.prank(owner);
-        managementProxy.upgradeToV3();
-
+        // vm.prank(owner);
+        // managementProxy.upgradeToV<version_nr>();
         // Validate initialization to version 3
         assertEq(managementProxy.getCurrentInitializedVersion(), 3);
 
@@ -76,9 +75,10 @@ contract MessageBridgeTest is Test, SigUtils {
             "TestBridge.sol", abi.encodeCall(TestBridge.initialize, (managementProxyAddress)), opts
         );
         bridgeProxy = TestBridge(payable(bridgeProxyAddress));
-        vm.prank(owner);
-        bridgeProxy.upgradeToV3();
+        // vm.prank(owner);
+        // bridgeProxy.upgradeToV<version_nr>();
 
+        assertFalse(bridgeProxy.messageBridgeIsSet(), "Message bridge should not be set");
         // Set up the message bridge
         vm.prank(governor);
         bridgeProxy.setMessageBridge(messageFee, maxMessageSize, maxDeposits);
