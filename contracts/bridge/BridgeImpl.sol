@@ -590,24 +590,6 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
 
     // IMessageBridge Implementation
 
-    function executeMessage(uint256 nonce) public payable returns (StorageTypes.Result memory) {
-        bytes memory storedMessage = n3ToEvmMessages[nonce].message;
-        if (storedMessage.length == 0) revert MessageNotFound(nonce);
-        StorageTypes.Call memory call = abi.decode(storedMessage, (StorageTypes.Call));
-
-        // Verify that the msg.value matches the call.value from the message
-        if (msg.value != call.value) revert ValueMismatch(call.value, msg.value);
-
-        StorageTypes.Result memory result;
-
-        (result.success, result.returnData) = call.target.call{value: call.value}(call.callData);
-
-        // forward the reason for failure if the call was not allowed to fail
-        if (!call.allowFailure && !result.success) revert CallFailed(result.returnData);
-
-        return result;
-    }
-
     /**
      * @notice Check if the message bridge is set up.
      */
@@ -720,6 +702,24 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
 
             emit MessageDeposit(messageData.nonce, messageData.message);
         }
+    }
+
+    function executeMessage(uint256 nonce) external payable returns (StorageTypes.Result memory) {
+        bytes memory storedMessage = n3ToEvmMessages[nonce].message;
+        if (storedMessage.length == 0) revert MessageNotFound(nonce);
+        StorageTypes.Call memory call = abi.decode(storedMessage, (StorageTypes.Call));
+
+        // Verify that the msg.value matches the call.value from the message
+        if (msg.value != call.value) revert ValueMismatch(call.value, msg.value);
+
+        StorageTypes.Result memory result;
+
+        (result.success, result.returnData) = call.target.call{value: call.value}(call.callData);
+
+        // forward the reason for failure if the call was not allowed to fail
+        if (!call.allowFailure && !result.success) revert CallFailed(result.returnData);
+
+        return result;
     }
 
     /**

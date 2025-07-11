@@ -18,7 +18,12 @@ interface IMessageBridge {
     function messageBridgeIsSet() external view returns (bool);
     function pauseMessageBridge() external;
     function unpauseMessageBridge() external;
-    function storeMessage(bytes32 depositRoot, BridgeLib.Signature[] calldata signatures, StorageTypes.MessageData[] calldata messages) external;
+    function storeMessage(
+        bytes32 depositRoot,
+        BridgeLib.Signature[] calldata signatures,
+        StorageTypes.MessageData[] calldata messages
+    )
+        external;
     function executeMessage(uint256 nonce) external payable returns (StorageTypes.Result memory);
     function setMessageBridgeFee(uint256 fee) external;
     function setMaxMessageSize(uint256 maxSize) external;
