@@ -40,6 +40,18 @@ abstract contract BridgeStorageV1 is ReentrancyGuardUpgradeable {
     // Slot 115
     StorageTypes.NativeBridge public nativeBridge;
 
+    // Slot 125 - 132 (8 slots)
+    // struct MessageBridge {
+    //     bool paused;             // slot 125
+    //     State n3ToEvmState;      // slots 126-127
+    //     State evmToN3State;      // slots 128-129
+    //     MessageConfig config;    // slots 130-132
+    // }
+    StorageTypes.MessageBridge public messageBridge;
+
+    // Slot 133
+    mapping(uint256 => StorageTypes.Call) public n3ToEvmMessages;
+
     // commented until a reinitialization is needed
     // function _upgradeToV<version_nr>() internal onlyInitializing {
     // }

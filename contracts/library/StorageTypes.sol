@@ -5,6 +5,7 @@ pragma solidity 0.8.25;
 // - Native Coin (native transfer)
 // - Neo (ERC20 transfer)
 // - ERC20 (transfer(address to, uint256 value))
+// - Message (cross-chain message passing)
 // Future supported bridge types:
 // - (ERC721 (safeMint(address to, uint256 tokenId), burn(uint256 tokenId)))
 library StorageTypes {
@@ -53,5 +54,37 @@ library StorageTypes {
         // The decimal scaling factor should be used if the token on this chain has more decimal precision than the token on the other chain.
         // For example, if the token on this chain has 18 decimals and the token on the other chain has 8 decimals, the decimal scaling factor should be 10.
         uint256 decimalScalingFactor;
+    }
+
+    // Message Bridge
+
+    struct Call {
+        address target;
+        bytes callData;
+        bool allowFailure;
+        uint256 value;
+    }
+
+    struct Result {
+        bool success;
+        bytes returnData;
+    }
+
+    struct MessageBridge {
+        bool paused;
+        State n3ToEvmState;
+        State evmToN3State;
+        MessageConfig config;
+    }
+
+    struct MessageConfig {
+        uint256 fee;
+        uint256 maxMessageSize;
+        uint256 maxNrMessages;
+    }
+
+    struct MessageData {
+        uint256 nonce;
+        bytes message;
     }
 }

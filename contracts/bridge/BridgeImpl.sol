@@ -1,14 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../interfaces/IBridge.sol";
 import "../interfaces/INativeBridge.sol";
 import "../interfaces/ITokenBridge.sol";
+import "../interfaces/IMessageBridge.sol";
+import "../library/StorageTypes.sol";
+import "../library/BridgeLib.sol";
+import "../library/NativeBridgeLib.sol";
+import "../library/TokenBridgeLib.sol";
+import "../library/MessageBridgeLib.sol";
 import "./BridgeStorage.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
+contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMessageBridge {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -581,4 +587,163 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
     // function upgradeToV<version_nr>() external virtual reinitializer(<version_nr>) onlyAdmin {
     //     _upgradeToV<version_nr>();
     // }
+
+    // IMessageBridge Implementation
+
+    /**
+     * @notice Check if the message bridge is set up.
+     */
+    function messageBridgeIsSet() external view override returns (bool) {
+        return _messageBridgeIsSet();
+    }
+
+    /**
+     * @notice Set up the message bridge with configuration parameters.
+     * @param _fee the fee for using the message bridge.
+     * @param _maxMessageSize the maximum allowed size of a message in bytes.
+     * @param _maxNrMessages the maximum number of messages that can be processed in a single transaction.
+     */
+    function setMessageBridge(
+        uint256 _fee,
+        uint256 _maxMessageSize,
+        uint256 _maxNrMessages
+    )
+        external
+        override
+        onlyGovernor
+    {
+        _setMessageBridge(_fee, _maxMessageSize, _maxNrMessages);
+        emit MessageBridgeRegister(
+            StorageTypes.MessageConfig({fee: _fee, maxMessageSize: _maxMessageSize, maxNrMessages: _maxNrMessages})
+        );
+    }
+
+    /**
+     * @notice Pause the message bridge. No message deposits can be made while the bridge is paused.
+     */
+    function pauseMessageBridge()
+        external
+        override
+        onlyGovernorOrSecurityGuard
+        onlyIfMessageBridgeSet
+        whenMessageBridgeNotPaused
+    {
+        _pauseMessageBridge();
+        emit MessageBridgePause();
+    }
+
+    /**
+     * @notice Unpause the message bridge. Message deposits can be made after unpausing.
+     */
+    function unpauseMessageBridge() external override onlyGovernor onlyIfMessageBridgeSet whenMessageBridgePaused {
+        _unpauseMessageBridge();
+        emit MessageBridgeUnpause();
+    }
+
+    /**
+     * @notice Processes messages that have been sent from the other chain.
+     * @dev The depositMessage function is used to process messages that have been sent from the other chain.
+     *      The messages need to be provided ordered based on their nonces.
+     *      Before the messages are processed, the following steps are executed:
+     *      - Check if the provided messages array is not empty and within the allowed maximum.
+     *      - Check if the computed root based on the provided messages matches the provided root.
+     *      - Check if the provided signatures are valid given the provided root and the current validators.
+     *      Once these checks are passed, the storage state is updated with the new nonce and root, and the messages are stored.
+     * @param _depositRoot the new deposit root.
+     * @param _signatures the signatures of the validators. The signatures need to be ordered.
+     * @param _messages the message data containing nonces and message contents.
+     */
+    function storeMessage(
+        bytes32 _depositRoot,
+        BridgeLib.Signature[] calldata _signatures,
+        StorageTypes.MessageData[] calldata _messages
+    )
+        external
+        override
+        onlyRelayer
+        whenBridgeNotPaused
+        onlyIfMessageBridgeSet
+        whenMessageBridgeNotPaused
+        nonReentrant
+    {
+        StorageTypes.State memory state = _getMessageBridgeN3ToEvmState();
+        StorageTypes.MessageConfig memory config = _getMessageBridgeConfig();
+
+        // Check parameter validity
+        uint256 messageLength = _messages.length;
+        if (messageLength == 0) revert InvalidDepositsLength();
+        if (messageLength > config.maxNrMessages) revert InvalidDepositsLength();
+
+        // Check if nonces are in sequence
+        // More gas-efficient nonce validation that doesn't update a variable on each iteration
+        // Each nonce should be exactly (state.nonce + position in array + 1)
+        for (uint256 i = 0; i < messageLength; i++) {
+            if (_messages[i].nonce != state.nonce + i + 1) revert InvalidNonceSequence();
+        }
+
+        // Validate that the provided message deposit root is equal to the computed root
+        if (MessageBridgeLib._computeNewTopRoot(state.root, _messages) != _depositRoot) revert InvalidRoot();
+
+        // Verify that the provided signatures are valid
+        if (!management.verifyValidatorSignatures(_depositRoot, _signatures)) revert InvalidValidatorSignatures();
+
+        // Update the message bridge deposit state
+        _setMessageBridgeN3ToEvmState(
+            StorageTypes.State({nonce: _messages[messageLength - 1].nonce, root: _depositRoot})
+        );
+        emit MessageDepositRootUpdate(_messages[messageLength - 1].nonce, _depositRoot);
+
+        // TODO: extract to a private function
+        for (uint256 i = 0; i < messageLength; i++) {
+            StorageTypes.MessageData calldata messageData = _messages[i];
+            if (n3ToEvmMessages[messageData.nonce].target != address(0)) revert MessageAlreadyExists(messageData.nonce);
+            // Decode the message bytes into a Call struct and store it directly
+            n3ToEvmMessages[messageData.nonce] = abi.decode(messageData.message, (StorageTypes.Call));
+            emit MessageDeposit(messageData.nonce, messageData.message);
+        }
+    }
+
+    function executeMessage(uint256 nonce) external payable returns (StorageTypes.Result memory) {
+        StorageTypes.Call memory call = n3ToEvmMessages[nonce];
+        if (call.target == address(0)) revert MessageNotFound(nonce);
+
+        // Verify that the msg.value matches the call.value from the message
+        if (msg.value != call.value) revert ValueMismatch(call.value, msg.value);
+
+        StorageTypes.Result memory result;
+
+        (result.success, result.returnData) = call.target.call{value: call.value}(call.callData);
+
+        // forward the reason for failure if the call was not allowed to fail
+        if (!call.allowFailure && !result.success) revert CallFailed(result.returnData);
+
+        return result;
+    }
+
+    /**
+     * @notice Set the fee for using the message bridge.
+     * @param _fee the new fee.
+     */
+    function setMessageBridgeFee(uint256 _fee) external override onlyGovernor {
+        _setMessageBridgeFee(_fee);
+        emit MessageWithdrawalFeeChange(_fee);
+    }
+
+    /**
+     * @notice Set the maximum allowed size of a message.
+     * @param _maxSize the new maximum message size in bytes.
+     */
+    function setMaxMessageSize(uint256 _maxSize) external override onlyGovernor {
+        _setMaxMessageSize(_maxSize);
+        emit MaxMessageSizeChange(_maxSize);
+    }
+
+    /**
+     * @notice Set the maximum number of messages that can be processed in a single transaction.
+     * @param _maxNrMessages the new maximum number of messages.
+     */
+    function setMaxNrMessages(uint256 _maxNrMessages) external override onlyGovernor {
+        _setMaxNrMessages(_maxNrMessages);
+        emit MaxNrMessagesChange(_maxNrMessages);
+    }
 }
