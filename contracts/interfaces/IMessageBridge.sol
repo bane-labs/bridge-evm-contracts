@@ -24,6 +24,8 @@ interface IMessageBridge {
         StorageTypes.MessageData[] calldata messages
     )
         external;
+
+    function executeMessage(uint256 nonce) external payable returns (StorageTypes.Result memory);
     function setMessageBridgeFee(uint256 fee) external;
     function setMaxMessageSize(uint256 maxSize) external;
     function setMaxNrMessages(uint256 maxDeposits) external;

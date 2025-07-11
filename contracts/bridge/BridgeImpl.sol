@@ -703,7 +703,7 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
         }
     }
 
-    function executeMessage(uint256 nonce) public payable returns (StorageTypes.Result memory) {
+    function executeMessage(uint256 nonce) external payable returns (StorageTypes.Result memory) {
         StorageTypes.Call memory call = n3ToEvmMessages[nonce];
         if (call.target == address(0)) revert MessageNotFound(nonce);
 
