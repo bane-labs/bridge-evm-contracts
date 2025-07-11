@@ -693,15 +693,21 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
         );
         emit MessageDepositRootUpdate(_messages[messageLength - 1].nonce, _depositRoot);
 
-        // TODO: extract to a private function
+        // Store messages
         for (uint256 i = 0; i < messageLength; i++) {
-            StorageTypes.MessageData calldata messageData = _messages[i];
-            // Store message and metadata in the combined mapping
-            n3ToEvmMessages[messageData.nonce] =
-                StorageTypes.StoredMessage({metadata: messageData.metadata, message: messageData.message});
-
-            emit MessageDeposit(messageData.nonce, messageData.message);
+            _storeMessage(_messages[i]);
         }
+    }
+
+    /**
+     * @notice Store a message in the bridge storage.
+     * @param messageData the data of the message to be stored.
+     */
+    function _storeMessage(StorageTypes.MessageData memory messageData) private {
+        n3ToEvmMessages[messageData.nonce] =
+            StorageTypes.StoredMessage({metadata: messageData.metadata, message: messageData.message});
+
+        emit MessageDeposit(messageData.nonce, messageData.message);
     }
 
     function executeMessage(uint256 nonce) external payable returns (StorageTypes.Result memory) {
