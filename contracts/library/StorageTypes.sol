@@ -57,19 +57,6 @@ library StorageTypes {
     }
 
     // Message Bridge
-
-    struct Call {
-        address target;
-        bytes callData;
-        bool allowFailure;
-        uint256 value;
-    }
-
-    struct Result {
-        bool success;
-        bytes returnData;
-    }
-
     struct MessageBridge {
         bool paused;
         State n3ToEvmState;
@@ -85,6 +72,30 @@ library StorageTypes {
 
     struct MessageData {
         uint256 nonce;
+        Metadata metadata;
         bytes message;
+    }
+
+    struct Metadata {
+        uint32 version; // For forward compatibility, should be incremented if the structure changes
+        address sender;
+        uint256 timestamp;
+    }
+
+    struct StoredMessage {
+        Metadata metadata;
+        bytes message;
+    }
+
+    struct Call {
+        address target;
+        bytes callData;
+        bool allowFailure;
+        uint256 value;
+    }
+
+    struct Result {
+        bool success;
+        bytes returnData;
     }
 }

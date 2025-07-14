@@ -15,10 +15,6 @@ import "./BridgeStorageV1.sol";
 abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     address public constant GOV_ADMIN = 0x1212000000000000000000000000000000000000;
 
-    //0x626ade30
-    error ValueMismatch(uint256 expected, uint256 received);
-    //0x944c2c78
-    error MessageAlreadyExists(uint256 nonce);
     //0x03290dc9
     error MessageNotFound(uint256 nonce);
     //0xa5fa8d2b
@@ -97,6 +93,8 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     error InvalidMessageSize();
     //0x000bf7e9
     error MessageRootMismatch();
+    //0x626ade30
+    error ValueMismatch(uint256 expected, uint256 received);
 
     // Modifiers for Role Restriction
 

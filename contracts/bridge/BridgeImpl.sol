@@ -693,19 +693,28 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
         );
         emit MessageDepositRootUpdate(_messages[messageLength - 1].nonce, _depositRoot);
 
-        // TODO: extract to a private function
+        // Store messages
         for (uint256 i = 0; i < messageLength; i++) {
-            StorageTypes.MessageData calldata messageData = _messages[i];
-            if (n3ToEvmMessages[messageData.nonce].target != address(0)) revert MessageAlreadyExists(messageData.nonce);
-            // Decode the message bytes into a Call struct and store it directly
-            n3ToEvmMessages[messageData.nonce] = abi.decode(messageData.message, (StorageTypes.Call));
-            emit MessageDeposit(messageData.nonce, messageData.message);
+            _storeMessage(_messages[i]);
         }
     }
 
+    /**
+     * @notice Store a message in the bridge storage.
+     * @param messageData the data of the message to be stored.
+     */
+    function _storeMessage(StorageTypes.MessageData memory messageData) private {
+        n3ToEvmMessages[messageData.nonce] =
+            StorageTypes.StoredMessage({metadata: messageData.metadata, message: messageData.message});
+
+        emit MessageDeposit(messageData.nonce, messageData.message);
+    }
+
     function executeMessage(uint256 nonce) external payable returns (StorageTypes.Result memory) {
-        StorageTypes.Call memory call = n3ToEvmMessages[nonce];
-        if (call.target == address(0)) revert MessageNotFound(nonce);
+        bytes memory storedMessage = n3ToEvmMessages[nonce].message;
+        if (storedMessage.length == 0) revert MessageNotFound(nonce);
+        // TODO: decode this in the executor
+        StorageTypes.Call memory call = abi.decode(storedMessage, (StorageTypes.Call));
 
         // Verify that the msg.value matches the call.value from the message
         if (msg.value != call.value) revert ValueMismatch(call.value, msg.value);

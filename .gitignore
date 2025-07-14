@@ -12,6 +12,7 @@ cache/
 artifacts/
 
 coverage*
+lcov.info
 typechain/
 
 .vscode/*
