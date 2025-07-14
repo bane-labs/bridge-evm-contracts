@@ -77,9 +77,7 @@ library StorageTypes {
     }
 
     struct Metadata {
-        // Pack 32+64+160=256 bits into a single 32-byte slot
         uint32 version; // For forward compatibility, should be incremented if the structure changes
-        uint64 chainId;
         address sender;
         uint256 timestamp;
     }

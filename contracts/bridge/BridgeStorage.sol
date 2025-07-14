@@ -93,8 +93,6 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     error InvalidMessageSize();
     //0x000bf7e9
     error MessageRootMismatch();
-    //0x05eae184
-    error InvalidCallTarget();
     //0x626ade30
     error ValueMismatch(uint256 expected, uint256 received);
 

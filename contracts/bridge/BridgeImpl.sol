@@ -713,6 +713,7 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
     function executeMessage(uint256 nonce) external payable returns (StorageTypes.Result memory) {
         bytes memory storedMessage = n3ToEvmMessages[nonce].message;
         if (storedMessage.length == 0) revert MessageNotFound(nonce);
+        // TODO: decode this in the executor
         StorageTypes.Call memory call = abi.decode(storedMessage, (StorageTypes.Call));
 
         // Verify that the msg.value matches the call.value from the message
