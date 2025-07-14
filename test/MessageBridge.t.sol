@@ -118,7 +118,6 @@ contract MessageBridgeTest is Test, SigUtils {
             message: testMessage1,
             metadata: StorageTypes.Metadata({
                 version: 1,
-                chainId: uint64(block.chainid),
                 sender: address(this),
                 timestamp: block.timestamp
             })
@@ -619,7 +618,6 @@ contract MessageBridgeTest is Test, SigUtils {
             message: testMessage1,
             metadata: StorageTypes.Metadata({
                 version: 1,
-                chainId: uint64(block.chainid),
                 sender: address(this),
                 timestamp: block.timestamp
             })
@@ -629,7 +627,6 @@ contract MessageBridgeTest is Test, SigUtils {
             message: testMessage2,
             metadata: StorageTypes.Metadata({
                 version: 1,
-                chainId: uint64(block.chainid),
                 sender: address(this),
                 timestamp: block.timestamp
             })
@@ -679,7 +676,6 @@ contract MessageBridgeTest is Test, SigUtils {
             message: testMessage1,
             metadata: StorageTypes.Metadata({
                 version: 1,
-                chainId: uint64(block.chainid),
                 sender: address(this),
                 timestamp: block.timestamp
             })
@@ -705,7 +701,6 @@ contract MessageBridgeTest is Test, SigUtils {
             message: testMessage1,
             metadata: StorageTypes.Metadata({
                 version: 1,
-                chainId: uint64(block.chainid),
                 sender: address(this),
                 timestamp: block.timestamp
             })
@@ -732,7 +727,6 @@ contract MessageBridgeTest is Test, SigUtils {
             message: testMessage1,
             metadata: StorageTypes.Metadata({
                 version: 1,
-                chainId: uint64(block.chainid),
                 sender: address(this),
                 timestamp: block.timestamp
             })
@@ -742,7 +736,6 @@ contract MessageBridgeTest is Test, SigUtils {
             message: testMessage2,
             metadata: StorageTypes.Metadata({
                 version: 1,
-                chainId: uint64(block.chainid),
                 sender: address(this),
                 timestamp: block.timestamp
             })
@@ -768,7 +761,6 @@ contract MessageBridgeTest is Test, SigUtils {
             message: testMessage1,
             metadata: StorageTypes.Metadata({
                 version: 1,
-                chainId: uint64(block.chainid),
                 sender: address(this),
                 timestamp: block.timestamp
             })
@@ -789,7 +781,6 @@ contract MessageBridgeTest is Test, SigUtils {
             message: testMessage2,
             metadata: StorageTypes.Metadata({
                 version: 1,
-                chainId: uint64(block.chainid),
                 sender: address(this),
                 timestamp: block.timestamp
             })
@@ -849,7 +840,6 @@ contract MessageBridgeTest is Test, SigUtils {
         assertEq(metadata.sender, address(this), "Metadata sender should match");
         assertEq(metadata.timestamp, timestamp, "Metadata timestamp should match");
         assertEq(metadata.version, uint32(1), "Metadata version should be 1");
-        assertEq(metadata.chainId, uint64(block.chainid), "Metadata chainId should match the current chain ID");
     }
 
     function test_StoreMultipleMessagesWithMetadata() public {
@@ -922,7 +912,6 @@ contract MessageBridgeTest is Test, SigUtils {
             message: message,
             metadata: StorageTypes.Metadata({
                 version: 1,
-                chainId: uint64(block.chainid),
                 sender: customSender,
                 timestamp: customTimestamp
             })
@@ -986,7 +975,6 @@ contract MessageBridgeTest is Test, SigUtils {
             message: message,
             metadata: StorageTypes.Metadata({
                 version: 1,
-                chainId: uint64(block.chainid),
                 sender: address(this),
                 timestamp: block.timestamp
             })
