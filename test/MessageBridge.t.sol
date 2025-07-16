@@ -551,13 +551,13 @@ contract MessageBridgeTest is Test, SigUtils {
         bytes memory callData = abi.encodeWithSignature("someFunction(uint256)", 123);
 
         StorageTypes.Call memory call = StorageTypes.Call({
-                allowFailure: true,
-                requiresResponse: false,
-                target: nonExistentContract,
-                executingContract: address(0),
-                value: 0.1 ether,
-                callData: callData
-            });
+            allowFailure: true,
+            requiresResponse: false,
+            target: nonExistentContract,
+            executingContract: address(0),
+            value: 0.1 ether,
+            callData: callData
+        });
 
         // Encode the Call struct into a message
         bytes memory message = abi.encode(call);

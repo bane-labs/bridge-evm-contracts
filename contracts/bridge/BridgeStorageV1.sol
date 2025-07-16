@@ -53,7 +53,7 @@ abstract contract BridgeStorageV1 is ReentrancyGuardUpgradeable {
     // Slot 133 - Combined storage for messages and metadata
     mapping(uint256 => StorageTypes.StoredMessage) public n3ToEvmMessages;
 
-    // Slot 118
+    // Slot 134
     IExecutionManager public executionManager;
 
     // commented until a reinitialization is needed

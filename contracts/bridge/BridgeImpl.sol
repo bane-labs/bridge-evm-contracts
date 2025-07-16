@@ -1,22 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import "../interfaces/IBridge.sol";
-import "../interfaces/IMessageBridge.sol";
-import "../interfaces/IExecutionManager.sol";
-import "../interfaces/INativeBridge.sol";
-import "../interfaces/ITokenBridge.sol";
-import "../interfaces/IMessageBridge.sol";
-import "../library/StorageTypes.sol";
-import "../library/BridgeLib.sol";
-import "../library/MessageBridgeLib.sol";
-import "../library/NativeBridgeLib.sol";
-import "../library/StorageTypes.sol";
-import "../library/TokenBridgeLib.sol";
-import "../library/MessageBridgeLib.sol";
-import "./BridgeStorage.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IBridge} from "../interfaces/IBridge.sol";
+import {IExecutionManager} from "../interfaces/IExecutionManager.sol";
+import {IMessageBridge} from "../interfaces/IMessageBridge.sol";
+import {INativeBridge} from "../interfaces/INativeBridge.sol";
+import {ITokenBridge} from "../interfaces/ITokenBridge.sol";
+import {BridgeLib} from "../library/BridgeLib.sol";
+import {MessageBridgeLib} from "../library/MessageBridgeLib.sol";
+import {NativeBridgeLib} from "../library/NativeBridgeLib.sol";
+import {StorageTypes} from "../library/StorageTypes.sol";
+import {TokenBridgeLib} from "../library/TokenBridgeLib.sol";
+import {BridgeStorage} from "./BridgeStorage.sol";
+import {BridgeStorageV1} from "./BridgeStorageV1.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMessageBridge {
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -740,7 +739,9 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
             executionManager.executeMessage{value: msg.value}(storedMessage, delegatedExecutor);
 
         // Handle failure if not allowed to fail
-        if (result.requiresResponse) revert CallFailed(result.returnData);
+        if (result.requiresResponse) {
+            // TODO: send response back to the N3 chain
+        }
 
         return result;
     }

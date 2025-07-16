@@ -42,7 +42,7 @@ contract ExecutionManager is IExecutionManager, AccessControl {
             } else {
                 (success, returnData) = _executeCall(call.target, call.callData, call.value);
 
-                if (!success && call.allowFailure) revert(string(returnData));
+                if (!success && !call.allowFailure) revert(string(returnData));
             }
         } else if (delegatedExecutor == address(0)) {
             revert UnableToExecuteCall();
