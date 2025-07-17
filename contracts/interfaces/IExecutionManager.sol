@@ -5,11 +5,5 @@ import "../library/StorageTypes.sol";
 import "./IDelegatedExecutor.sol";
 
 interface IExecutionManager {
-    function executeMessage(
-        bytes calldata rawMessage,
-        address delegatedExecutor
-    )
-        external
-        payable
-        returns (StorageTypes.Result memory);
+    function executeMessage(uint256 nonce, bytes calldata rawMessage) external payable returns (StorageTypes.Result memory);
 }

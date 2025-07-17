@@ -17,8 +17,6 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
 
     //0x03290dc9
     error MessageNotFound(uint256 nonce);
-    //0xa5fa8d2b
-    error CallFailed(bytes reason);
     //0xf6a1af31
     error AmountBelowMinAmount(uint256 minAmount, uint256 provided);
     //0x030e0197

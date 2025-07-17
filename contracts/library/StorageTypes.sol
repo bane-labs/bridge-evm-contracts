@@ -85,13 +85,14 @@ library StorageTypes {
     struct StoredMessage {
         Metadata metadata;
         bytes message;
+        bool executed;
     }
 
     struct Call {
         bool allowFailure;
         bool requiresResponse; // The user can specify if the call requires a response to be sent back across the bridge.
         address target;
-        address executingContract; // This is the contract that will call the `target` with the `callData`. 0x00..00 implies that the message executor will call the target directly.
+        address delegatedExecutor; // This is the contract that will call the `target` with the `callData`. 0x00..00 implies that the message executor will call the target directly.
         uint256 value;
         bytes callData;
     }
