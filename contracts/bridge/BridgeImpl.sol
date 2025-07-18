@@ -732,10 +732,11 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
         (bool requiresResponse, StorageTypes.Result memory result) =
             executionManager.executeMessage{value: msg.value}(nonce, storedMessage);
 
-        // Handle failure if not allowed to fail
         if (requiresResponse) {
             // TODO: send response back to the N3 chain
         }
+
+        emit MessageExecuted(nonce, result);
 
         return result;
     }

@@ -189,6 +189,10 @@ contract MessageBridgeTest is Test, SigUtils {
         vm.expectEmit(true, true, true, true, address(testContract));
         emit TestMessageContract.TestEvent(1, address(executionManager));
 
+        // Expect the MessageExecuted event to be emitted with correct parameters
+        vm.expectEmit(true, true, true, true, address(bridgeProxy));
+        emit IMessageBridge.MessageExecuted(nonce, StorageTypes.Result({success: true, returnData: abi.encode(1)}));
+
         // Execute the message
         StorageTypes.Result memory result = bridgeProxy.executeMessage(nonce);
 
@@ -231,6 +235,10 @@ contract MessageBridgeTest is Test, SigUtils {
         vm.expectEmit(true, true, true, true, address(testContract));
         emit TestMessageContract.PaymentReceived(paymentAmount, address(executionManager));
 
+        // Expect the MessageExecuted event to be emitted with correct parameters
+        vm.expectEmit(true, true, true, true, address(bridgeProxy));
+        emit IMessageBridge.MessageExecuted(nonce, StorageTypes.Result({success: true, returnData: abi.encode(true)}));
+
         // Execute the message
         StorageTypes.Result memory result = bridgeProxy.executeMessage{value: paymentAmount}(nonce);
 
@@ -269,6 +277,17 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Store the message and get the nonce
         storeMessage(nonce, message, "");
+
+        // Create the expected error data for the value mismatch
+        bytes memory expectedErrorData = abi.encodeWithSelector(
+            TestMessageContract.ValueMismatch.selector,
+            declaredAmount,
+            actualAmount
+        );
+
+        // Expect the MessageExecuted event to be emitted with failure result
+        vm.expectEmit(true, true, true, true, address(bridgeProxy));
+        emit IMessageBridge.MessageExecuted(nonce, StorageTypes.Result({success: false, returnData: expectedErrorData}));
 
         // Execute the message - this should fail but not revert the transaction
         StorageTypes.Result memory result = bridgeProxy.executeMessage{value: actualAmount}(nonce);
@@ -332,6 +351,10 @@ contract MessageBridgeTest is Test, SigUtils {
         vm.expectEmit(true, true, true, true, address(testContract));
         emit TestMessageContract.DirectEthReceived(address(executionManager));
 
+        // Expect the MessageExecuted event to be emitted with success result
+        vm.expectEmit(true, true, true, true, address(bridgeProxy));
+        emit IMessageBridge.MessageExecuted(nonce, StorageTypes.Result({success: true, returnData: ""}));
+
         // Execute the message
         StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 1 ether}(nonce);
 
@@ -370,6 +393,10 @@ contract MessageBridgeTest is Test, SigUtils {
         // Expect the FallbackCalled event to be emitted with correct parameters
         vm.expectEmit(true, true, true, true, address(testContract));
         emit TestMessageContract.FallbackCalled(address(executionManager), 1 ether, addressBytes);
+
+        // Expect the MessageExecuted event to be emitted with success result
+        vm.expectEmit(true, true, true, true, address(bridgeProxy));
+        emit IMessageBridge.MessageExecuted(nonce, StorageTypes.Result({success: true, returnData: ""}));
 
         // Execute the message
         StorageTypes.Result memory result = bridgeProxy.executeMessage{value: 1 ether}(nonce);

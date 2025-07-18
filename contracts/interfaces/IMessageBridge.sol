@@ -14,6 +14,7 @@ interface IMessageBridge {
     event MaxMessageSizeChange(uint256 maxSize);
     event MaxNrMessagesChange(uint256 maxDeposits);
     event MessageExecutorSet(address indexed executor);
+    event MessageExecuted(uint256 indexed nonce, StorageTypes.Result result);
 
     function setMessageBridge(uint256 fee, uint256 maxMessageSize, uint256 maxDeposits) external;
     function messageBridgeIsSet() external view returns (bool);
