@@ -720,17 +720,19 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
     }
 
     function executeMessage(uint256 nonce) external payable returns (StorageTypes.Result memory) {
-        bytes memory storedMessage = n3ToEvmMessages[nonce].message;
-        if (storedMessage.length == 0) revert MessageNotFound(nonce);
+        StorageTypes.StoredMessage storage storedMessage = n3ToEvmMessages[nonce];
+        bytes memory rawMessage = storedMessage.message;
+        if (rawMessage.length == 0) revert MessageNotFound(nonce);
+        if (storedMessage.executed) revert MessageAlreadyExecuted(nonce);
 
         if (address(executionManager) == address(0)) revert ExecutionManagerNotSet();
 
         // Mark as executed
-        n3ToEvmMessages[nonce].executed = true;
+        storedMessage.executed = true;
 
         // Forward execution to the dedicated executor
         (bool requiresResponse, StorageTypes.Result memory result) =
-            executionManager.executeMessage{value: msg.value}(nonce, storedMessage);
+            executionManager.executeMessage{value: msg.value}(nonce, rawMessage);
 
         if (requiresResponse) {
             // TODO: send response back to the N3 chain
