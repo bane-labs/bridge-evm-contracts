@@ -168,7 +168,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         emit MessageDeposit(messageData.nonce, messageData.message);
     }
 
-    function executeMessage(uint256 nonce) external payable returns (AMBTypes.Result memory) {
+    function executeMessage(uint256 nonce) external payable nonReentrant returns (AMBTypes.Result memory) {
         AMBTypes.StoredMessage storage storedMessage = _getAMBStorage().n3ToEvmMessages[nonce];
         bytes memory rawMessage = storedMessage.message;
         if (rawMessage.length == 0) revert MessageNotFound(nonce);
@@ -182,7 +182,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
 
         // Execute the message using the execution manager
         (bool requiresResponse, AMBTypes.Result memory result) =
-            messageExecutionManager.executeMessage{value: msg.value}(nonce, rawMessage);
+            messageExecutionManager.executeMessage{value: msg.value}(nonce, rawMessage, payable(msg.sender));
 
         if (requiresResponse) {
             // TODO: send response back to the N3 chain
