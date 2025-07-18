@@ -23,6 +23,7 @@ library AMBTypes {
         uint256 fee;
         uint256 maxMessageSize;
         uint256 maxNrMessages;
+        uint256 executionWindowSeconds; // Window of time a message can be executed after it was stored
     }
 
     struct MessageData {
