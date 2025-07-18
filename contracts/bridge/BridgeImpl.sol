@@ -732,7 +732,7 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
 
         // Forward execution to the dedicated executor
         (bool requiresResponse, StorageTypes.Result memory result) =
-            executionManager.executeMessage{value: msg.value}(nonce, rawMessage);
+            executionManager.executeMessage{value: msg.value}(nonce, rawMessage, payable(msg.sender));
 
         if (requiresResponse) {
             // TODO: send response back to the N3 chain
