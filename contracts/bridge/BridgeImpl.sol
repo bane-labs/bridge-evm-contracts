@@ -730,7 +730,7 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
         // Mark as executed
         storedMessage.executed = true;
 
-        // Forward execution to the dedicated executor
+        // Execute the message using the execution manager
         (bool requiresResponse, StorageTypes.Result memory result) =
             messageExecutionManager.executeMessage{value: msg.value}(nonce, rawMessage);
 
