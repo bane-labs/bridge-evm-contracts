@@ -595,7 +595,7 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
 
     // Function to set the message executor
     function setMessageExecutor(address _executor) external override onlyGovernor {
-        executionManager = IExecutionManager(_executor);
+        messageExecutionManager = IExecutionManager(_executor);
         emit MessageExecutorSet(_executor);
     }
 
@@ -725,17 +725,19 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
         if (rawMessage.length == 0) revert MessageNotFound(nonce);
         if (storedMessage.executed) revert MessageAlreadyExecuted(nonce);
 
-        if (address(executionManager) == address(0)) revert ExecutionManagerNotSet();
+        if (address(messageExecutionManager) == address(0)) revert ExecutionManagerNotSet();
 
         // Mark as executed
         storedMessage.executed = true;
 
         // Forward execution to the dedicated executor
         (bool requiresResponse, StorageTypes.Result memory result) =
-            executionManager.executeMessage{value: msg.value}(nonce, rawMessage);
+            messageExecutionManager.executeMessage{value: msg.value}(nonce, rawMessage);
 
         if (requiresResponse) {
             // TODO: send response back to the N3 chain
+            n3ToEvmExecutionResults[nonce] = result;
+
         }
 
         emit MessageExecuted(nonce, result);
