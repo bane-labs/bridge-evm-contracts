@@ -17,9 +17,12 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     //keccak256(abi.encode(uint256(keccak256("AMB.storage")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 private constant AMBStorageLocation = 0xd6595d2280e6cba67baf67ff997445e733b244161e59228efeb7032069381100;
 
+    uint32 public constant VERSION = 1;
+
     /// @custom:storage-location erc7201:AMB.storage
     struct AMBStorage {
         IBridgeManagement management;
+        uint256 unclaimedRewards;
         AMBTypes.MessageBridgeState messageBridgeState;
         mapping(uint256 => AMBTypes.StoredMessage) n3ToEvmMessages;
         mapping(uint256 => AMBTypes.Result) n3ToEvmExecutionResults;
@@ -91,6 +94,14 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     error NotRelayer();
     //0x1ef8664b
     error ExecutionWindowExpired(uint256 expiry, uint256 currentTime);
+    //0xa1bbcb21
+    error MessageTooLarge(uint256 maxSize, uint256 provided);
+    //0xa458261b
+    error InsufficientFee(uint256 minExpected, uint256 provided);
+    //0x038d5f7b
+    error ExactFeeRequired(uint256 feeExpected, uint256 feeProvided);
+    //0x90b8ec18
+    error TransferFailed();
 
     function messageBridgeIsSet() external view override returns (bool) {
         return _messageBridgeIsSet();
@@ -110,6 +121,41 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     function unpauseMessageBridge() external override onlyGovernor onlyIfMessageBridgeSet whenMessageBridgePaused {
         _unpauseMessageBridge();
         emit MessageBridgeUnpause();
+    }
+
+    /**
+     * @notice Sends a message to the Neo N3 blockchain.
+     * @param _message The message to be sent.
+     */
+    function sendMessage(bytes calldata _message) external payable nonReentrant whenMessageBridgeNotPaused {
+        AMBTypes.MessageConfig memory config = _getMessageBridgeConfig();
+
+        // Check message size against max allowed size
+        if (_message.length > config.maxMessageSize) revert MessageTooLarge(config.maxMessageSize, _message.length);
+
+        // Process the fee for message sending
+        address from = msg.sender;
+        _processBridgeFee(from, msg.value, config.fee);
+
+        // Compute the new root and update the message state
+        StorageTypes.State memory state = _getMessageBridgeEvmToN3State();
+        uint256 newNonce = state.nonce + 1;
+
+        // Create message hash
+        bytes32 messageHash =
+            MessageBridgeLib._hashMessageBridgeOp(newNonce, VERSION, msg.sender, block.timestamp, _message);
+
+        // Compute new root
+        bytes32 newRoot = BridgeLib._computeNewRoot(state.root, messageHash);
+
+        // Update the state
+        _setMessageBridgeEvmToN3State(StorageTypes.State({nonce: newNonce, root: newRoot}));
+
+        // Get current timestamp
+        uint256 timestamp = block.timestamp;
+
+        // Emit event with all relevant information
+        emit MessageSent(newNonce, _message, timestamp, from, messageHash, newRoot);
     }
 
     function storeMessage(
@@ -355,5 +401,25 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     function _setExecutionWindowSeconds(uint256 _executionWindowSeconds) internal {
         if (_executionWindowSeconds == 0) revert InvalidValue();
         _getAMBStorage().messageBridgeState.config.executionWindowSeconds = _executionWindowSeconds;
+    }
+
+    /**
+     * @dev Checks the provided value against the required fee. If the provided value exceeds the required fee, the
+     * excess amount is refunded if the sender is an EOA. Otherwise, if the sender is a contract, it is reverted.
+     * @param _from the sender.
+     * @param _msgValue the value sent with the transaction.
+     * @param _fee the required fee.
+     */
+    function _processBridgeFee(address _from, uint256 _msgValue, uint256 _fee) private {
+        // Revert if the provided value is lower than the required fee.
+        if (_msgValue < _fee) revert InsufficientFee(_fee, _msgValue);
+        // Refund the sender (only EOAs) if the provided value is higher than the required fee.
+        if (_msgValue > _fee) {
+            // Revert if the sender is a contract.
+            if (BridgeLib._isContract(_from)) revert ExactFeeRequired(_fee, _msgValue);
+            (bool success,) = payable(_from).call{value: _msgValue - _fee}("");
+            if (!success) revert TransferFailed();
+        }
+        _getAMBStorage().unclaimedRewards += _fee;
     }
 }

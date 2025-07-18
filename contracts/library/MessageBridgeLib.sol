@@ -28,7 +28,13 @@ library MessageBridgeLib {
 
         for (uint256 i = 0; i < messagesLength; i++) {
             AMBTypes.MessageData memory messageData = _messages[i];
-            bytes32 messageHash = _hashMessageBridgeOp(messageData.nonce, messageData.message);
+            bytes32 messageHash = _hashMessageBridgeOp(
+                messageData.nonce,
+                messageData.metadata.version,
+                messageData.metadata.sender,
+                messageData.metadata.timestamp,
+                messageData.message
+            );
             parent = BridgeLib._computeNewRoot(parent, messageHash);
         }
 
@@ -41,7 +47,17 @@ library MessageBridgeLib {
      * @param _message The message content
      * @return The hash of the message operation
      */
-    function _hashMessageBridgeOp(uint256 _nonce, bytes memory _message) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(_nonce, _message));
+    function _hashMessageBridgeOp(
+        uint256 _nonce,
+        uint32 _version,
+        address _sender,
+        uint256 _timestamp,
+        bytes memory _message
+    )
+        internal
+        pure
+        returns (bytes32)
+    {
+        return keccak256(abi.encodePacked(_nonce, _version, _sender, _timestamp, _message));
     }
 }
