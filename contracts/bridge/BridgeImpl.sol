@@ -615,15 +615,21 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
     function setMessageBridge(
         uint256 _fee,
         uint256 _maxMessageSize,
-        uint256 _maxNrMessages
+        uint256 _maxNrMessages,
+        uint256 _executionWindowSeconds
     )
         external
         override
         onlyGovernor
     {
-        _setMessageBridge(_fee, _maxMessageSize, _maxNrMessages);
+        _setMessageBridge(_fee, _maxMessageSize, _maxNrMessages, _executionWindowSeconds);
         emit MessageBridgeRegister(
-            StorageTypes.MessageConfig({fee: _fee, maxMessageSize: _maxMessageSize, maxNrMessages: _maxNrMessages})
+            StorageTypes.MessageConfig({
+                fee: _fee,
+                maxMessageSize: _maxMessageSize,
+                maxNrMessages: _maxNrMessages,
+                executionWindowSeconds: _executionWindowSeconds
+            })
         );
     }
 
@@ -720,10 +726,16 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
     }
 
     function executeMessage(uint256 nonce) external payable returns (StorageTypes.Result memory) {
-        bytes memory storedMessage = n3ToEvmMessages[nonce].message;
+        StorageTypes.StoredMessage memory storedMsg = n3ToEvmMessages[nonce];
+        bytes memory storedMessage = storedMsg.message;
         if (storedMessage.length == 0) revert MessageNotFound(nonce);
 
         if (address(executionManager) == address(0)) revert ExecutionManagerNotSet();
+
+        // Check if the message execution window has expired
+        StorageTypes.MessageConfig memory config = _getMessageBridgeConfig();
+        uint256 expiry = storedMsg.metadata.timestamp + config.executionWindowSeconds;
+        if (block.timestamp > expiry) revert ExecutionWindowExpired(expiry, block.timestamp);
 
         // Mark as executed
         n3ToEvmMessages[nonce].executed = true;
@@ -766,5 +778,14 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
     function setMaxNrMessages(uint256 _maxNrMessages) external override onlyGovernor {
         _setMaxNrMessages(_maxNrMessages);
         emit MaxNrMessagesChange(_maxNrMessages);
+    }
+
+    /**
+     * @notice Set the execution window for messages.
+     * @param _windowSeconds the new execution window in seconds.
+     */
+    function setExecutionWindowSeconds(uint256 _windowSeconds) external override onlyGovernor {
+        _setExecutionWindowSeconds(_windowSeconds);
+        emit MessageExecutionWindowChange(_windowSeconds);
     }
 }

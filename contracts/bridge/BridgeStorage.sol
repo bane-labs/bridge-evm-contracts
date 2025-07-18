@@ -89,6 +89,8 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     error MessageRootMismatch();
     //0xd221f922
     error ExecutionManagerNotSet();
+    //0x1ef8664b
+    error ExecutionWindowExpired(uint256 expiry, uint256 currentTime);
 
     // Modifiers for Role Restriction
 
@@ -426,7 +428,14 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
         return messageBridge.config.maxMessageSize != 0;
     }
 
-    function _setMessageBridge(uint256 _fee, uint256 _maxMessageSize, uint256 _maxNrMessages) internal {
+    function _setMessageBridge(
+        uint256 _fee,
+        uint256 _maxMessageSize,
+        uint256 _maxNrMessages,
+        uint256 _executionWindowSeconds
+    )
+        internal
+    {
         if (_fee == 0) revert InvalidFee();
         if (_maxMessageSize == 0) revert InvalidValue();
         if (_maxNrMessages == 0) revert InvalidValue();
@@ -435,7 +444,12 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
             paused: true,
             n3ToEvmState: StorageTypes.State({nonce: 0, root: 0x0}),
             evmToN3State: StorageTypes.State({nonce: 0, root: 0x0}),
-            config: StorageTypes.MessageConfig({fee: _fee, maxMessageSize: _maxMessageSize, maxNrMessages: _maxNrMessages})
+            config: StorageTypes.MessageConfig({
+                fee: _fee,
+                maxMessageSize: _maxMessageSize,
+                maxNrMessages: _maxNrMessages,
+                executionWindowSeconds: _executionWindowSeconds
+            })
         });
     }
 
@@ -480,6 +494,11 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     function _setMaxNrMessages(uint256 _maxNrMessages) internal {
         if (_maxNrMessages == 0) revert InvalidValue();
         messageBridge.config.maxNrMessages = _maxNrMessages;
+    }
+
+    function _setExecutionWindowSeconds(uint256 _executionWindowSeconds) internal {
+        if (_executionWindowSeconds == 0) revert InvalidValue();
+        messageBridge.config.executionWindowSeconds = _executionWindowSeconds;
     }
 
     // Upgrade authorization

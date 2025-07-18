@@ -36,7 +36,8 @@ contract MessageBridgeTest is Test, SigUtils {
     // Message Bridge Config
     uint256 messageFee = 0.01 ether;
     uint256 maxMessageSize = 1024;
-    uint256 maxDeposits = 10;
+    uint256 maxNrMessages = 10;
+    uint256 executionWindowSeconds = 60;
 
     // Test message data
     bytes testMessage1 = abi.encode(
@@ -98,7 +99,7 @@ contract MessageBridgeTest is Test, SigUtils {
         assertFalse(bridgeProxy.messageBridgeIsSet(), "Message bridge should not be set");
         // Set up the message bridge
         vm.prank(governor);
-        bridgeProxy.setMessageBridge(messageFee, maxMessageSize, maxDeposits);
+        bridgeProxy.setMessageBridge(messageFee, maxMessageSize, maxNrMessages, executionWindowSeconds);
         assertTrue(bridgeProxy.messageBridgeIsSet(), "Message bridge should be set");
 
         // Deploy and set up the Message Executor
@@ -121,9 +122,10 @@ contract MessageBridgeTest is Test, SigUtils {
         uint256 newFee = 2e16;
         uint256 newMaxSize = 2048;
         uint256 newMaxDeposits = 20;
+        uint256 newExecutionWindowSeconds = 120;
 
         vm.prank(governor);
-        bridgeProxy.setMessageBridge(newFee, newMaxSize, newMaxDeposits);
+        bridgeProxy.setMessageBridge(newFee, newMaxSize, newMaxDeposits, newExecutionWindowSeconds);
 
         // Verify changes through events (we would need to check logs)
         // This is a simplified check - in a real test, you would verify the config values directly
@@ -279,11 +281,8 @@ contract MessageBridgeTest is Test, SigUtils {
         storeMessage(nonce, message, "");
 
         // Create the expected error data for the value mismatch
-        bytes memory expectedErrorData = abi.encodeWithSelector(
-            TestMessageContract.ValueMismatch.selector,
-            declaredAmount,
-            actualAmount
-        );
+        bytes memory expectedErrorData =
+            abi.encodeWithSelector(TestMessageContract.ValueMismatch.selector, declaredAmount, actualAmount);
 
         // Expect the MessageExecuted event to be emitted with failure result
         vm.expectEmit(true, true, true, true, address(bridgeProxy));
@@ -999,6 +998,45 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Verify raw message is stored correctly
         assertEq(storedRawMessage, message, "Message content should match");
+    }
+
+    function test_StoreAndExecuteMessageAfterWindowExpiry() public {
+        // Deploy test contract
+        TestMessageContract testContract = new TestMessageContract();
+
+        // Create Call struct with testFunction encoded
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+
+        StorageTypes.Call memory call = StorageTypes.Call({
+            allowFailure: false,
+            requiresResponse: false,
+            target: address(testContract),
+            value: 0,
+            callData: callData
+        });
+        uint256 nonce = 1;
+
+        // Encode the Call struct into a message
+        bytes memory message = abi.encode(call);
+
+        // Store the message
+        storeMessage(nonce, message, "");
+
+        // Get the current execution window from the bridge config
+        (,,, StorageTypes.MessageConfig memory config) = bridgeProxy.messageBridge();
+
+        // Advance time past the execution window
+        vm.warp(block.timestamp + config.executionWindowSeconds + 1);
+
+        // Attempt to execute the message after the window has expired - should revert
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                BridgeStorage.ExecutionWindowExpired.selector,
+                block.timestamp - 1, // expiry time (current time - 1)
+                block.timestamp // current time
+            )
+        );
+        bridgeProxy.executeMessage(nonce);
     }
 
     // Helper function to generate valid signatures from validators
