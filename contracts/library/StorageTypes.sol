@@ -92,14 +92,12 @@ library StorageTypes {
         bool allowFailure;
         bool requiresResponse; // The user can specify if the call requires a response to be sent back across the bridge.
         address target;
-        address delegatedExecutor; // This is the contract that will call the `target` with the `callData`. 0x00..00 implies that the message executor will call the target directly.
         uint256 value;
         bytes callData;
     }
 
     struct Result {
         bool success;
-        bool requiresResponse; // Indicates if the result should be sent back across the bridge.
         bytes returnData;
     }
 }

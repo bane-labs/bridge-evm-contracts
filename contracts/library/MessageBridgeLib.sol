@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import "./BridgeLib.sol";
-import "./StorageTypes.sol";
+import {BridgeLib} from "./BridgeLib.sol";
+import {StorageTypes} from "./StorageTypes.sol";
 
 library MessageBridgeLib {
     /**

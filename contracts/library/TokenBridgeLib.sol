@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import "./BridgeLib.sol";
-import "./StorageTypes.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {BridgeLib} from "./BridgeLib.sol";
+import {StorageTypes} from "./StorageTypes.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 library TokenBridgeLib {
     /**

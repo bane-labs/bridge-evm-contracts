@@ -44,7 +44,6 @@ contract MessageBridgeTest is Test, SigUtils {
             allowFailure: false,
             requiresResponse: false,
             target: address(0x1234),
-            delegatedExecutor: address(0),
             value: 0,
             callData: hex"abcd"
         })
@@ -54,7 +53,6 @@ contract MessageBridgeTest is Test, SigUtils {
             allowFailure: true,
             requiresResponse: false,
             target: address(0x5678),
-            delegatedExecutor: address(0),
             value: 0,
             callData: hex"ef01"
         })
@@ -176,7 +174,6 @@ contract MessageBridgeTest is Test, SigUtils {
             allowFailure: false,
             requiresResponse: false,
             target: address(testContract),
-            delegatedExecutor: address(0),
             value: 0,
             callData: callData
         });
@@ -221,7 +218,6 @@ contract MessageBridgeTest is Test, SigUtils {
             callData: callData,
             allowFailure: false,
             requiresResponse: false,
-            delegatedExecutor: address(0),
             value: paymentAmount
         });
         uint256 nonce = 1;
@@ -264,7 +260,6 @@ contract MessageBridgeTest is Test, SigUtils {
             callData: callData,
             allowFailure: true, // Allow failure so we can check the error
             requiresResponse: false,
-            delegatedExecutor: address(0),
             value: actualAmount
         });
         uint256 nonce = 1;
@@ -321,7 +316,6 @@ contract MessageBridgeTest is Test, SigUtils {
             callData: callData,
             allowFailure: false,
             requiresResponse: false,
-            delegatedExecutor: address(0),
             value: 1 ether
         });
 
@@ -361,7 +355,6 @@ contract MessageBridgeTest is Test, SigUtils {
             callData: addressBytes,
             allowFailure: false,
             requiresResponse: false,
-            delegatedExecutor: address(0),
             value: 1 ether
         });
 
@@ -404,7 +397,6 @@ contract MessageBridgeTest is Test, SigUtils {
                 callData: callData,
                 allowFailure: true, // Allow failure so we can check the error
                 requiresResponse: false,
-                delegatedExecutor: address(0),
                 value: actualAmount
             });
 
@@ -438,7 +430,6 @@ contract MessageBridgeTest is Test, SigUtils {
                 callData: addressBytes,
                 allowFailure: true,
                 requiresResponse: false,
-                delegatedExecutor: address(0),
                 value: 0 // Zero value
             });
 
@@ -472,7 +463,6 @@ contract MessageBridgeTest is Test, SigUtils {
                 callData: callData,
                 allowFailure: true,
                 requiresResponse: false,
-                delegatedExecutor: address(0),
                 value: 0 // Zero value
             });
 
@@ -510,7 +500,6 @@ contract MessageBridgeTest is Test, SigUtils {
             callData: invalidCallData,
             allowFailure: false, // This will cause CallFailed error
             requiresResponse: false,
-            delegatedExecutor: address(0),
             value: 1 ether
         });
 
@@ -524,7 +513,8 @@ contract MessageBridgeTest is Test, SigUtils {
         // Execution should revert with CallFailed(InvalidCallData())
         vm.expectRevert(
             abi.encodeWithSelector(
-                ExecutionManager.ExecutionFailed.selector, abi.encodeWithSelector(TestMessageContract.InvalidCallData.selector)
+                ExecutionManager.ExecutionFailed.selector,
+                abi.encodeWithSelector(TestMessageContract.InvalidCallData.selector)
             )
         );
 
@@ -554,7 +544,6 @@ contract MessageBridgeTest is Test, SigUtils {
             allowFailure: true,
             requiresResponse: false,
             target: nonExistentContract,
-            delegatedExecutor: address(0),
             value: 0.1 ether,
             callData: callData
         });
@@ -599,7 +588,6 @@ contract MessageBridgeTest is Test, SigUtils {
             allowFailure: false,
             requiresResponse: false,
             target: address(testContract),
-            delegatedExecutor: address(0),
             value: 0,
             callData: callData
         });
@@ -640,7 +628,6 @@ contract MessageBridgeTest is Test, SigUtils {
             callData: callData,
             allowFailure: true,
             requiresResponse: false,
-            delegatedExecutor: address(0),
             value: 0.1 ether
         });
 
@@ -854,7 +841,6 @@ contract MessageBridgeTest is Test, SigUtils {
             allowFailure: false,
             requiresResponse: false,
             target: address(testContract),
-            delegatedExecutor: address(0),
             value: 0,
             callData: callData
         });
@@ -889,7 +875,6 @@ contract MessageBridgeTest is Test, SigUtils {
             allowFailure: false,
             requiresResponse: false,
             target: address(testContract),
-            delegatedExecutor: address(0),
             value: 0,
             callData: callData1
         });
@@ -901,7 +886,6 @@ contract MessageBridgeTest is Test, SigUtils {
             allowFailure: false,
             requiresResponse: false,
             target: address(testContract),
-            delegatedExecutor: address(0),
             value: 1 ether,
             callData: callData2
         });
@@ -921,7 +905,7 @@ contract MessageBridgeTest is Test, SigUtils {
         uint256 timestamp2 = block.timestamp;
         storeMessage(nonce2, message2, "");
 
-        (StorageTypes.Metadata memory metadata1, bytes memory storedRawMessage1, ) = bridgeProxy.n3ToEvmMessages(nonce1);
+        (StorageTypes.Metadata memory metadata1, bytes memory storedRawMessage1,) = bridgeProxy.n3ToEvmMessages(nonce1);
         // verify first message metadata
         assertEq(metadata1.sender, address(this), "First message metadata sender should match");
         assertEq(metadata1.timestamp, timestamp1, "First message metadata timestamp should match");
@@ -929,7 +913,7 @@ contract MessageBridgeTest is Test, SigUtils {
         // Verify raw message is stored correctly
         assertEq(storedRawMessage1, message1, "First message content should match");
 
-        (StorageTypes.Metadata memory metadata2, bytes memory storedRawMessage2, ) = bridgeProxy.n3ToEvmMessages(nonce2);
+        (StorageTypes.Metadata memory metadata2, bytes memory storedRawMessage2,) = bridgeProxy.n3ToEvmMessages(nonce2);
         // verify second message metadata
         assertEq(metadata2.sender, address(this), "Second message metadata sender should match");
         assertEq(metadata2.timestamp, timestamp2, "Second message metadata timestamp should match");
@@ -947,7 +931,6 @@ contract MessageBridgeTest is Test, SigUtils {
             allowFailure: false,
             requiresResponse: false,
             target: address(testContract),
-            delegatedExecutor: address(0),
             value: 0,
             callData: callData
         });
@@ -978,7 +961,7 @@ contract MessageBridgeTest is Test, SigUtils {
         bridgeProxy.storeMessage(depositRoot, signatures, messages);
 
         // Retrieve the stored metadata and verify it
-        (StorageTypes.Metadata memory metadata, bytes memory storedRawMessage, ) =
+        (StorageTypes.Metadata memory metadata, bytes memory storedRawMessage,) =
             bridgeProxy.n3ToEvmMessages(messages[0].nonce);
         address storedSender = metadata.sender;
         uint256 storedTimestamp = metadata.timestamp;

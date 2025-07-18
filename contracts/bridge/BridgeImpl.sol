@@ -714,7 +714,7 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
      */
     function _storeMessage(StorageTypes.MessageData memory messageData) private {
         n3ToEvmMessages[messageData.nonce] =
-                            StorageTypes.StoredMessage({metadata: messageData.metadata, message: messageData.message, executed: false});
+            StorageTypes.StoredMessage({metadata: messageData.metadata, message: messageData.message, executed: false});
 
         emit MessageDeposit(messageData.nonce, messageData.message);
     }
@@ -729,10 +729,11 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
         n3ToEvmMessages[nonce].executed = true;
 
         // Forward execution to the dedicated executor
-        StorageTypes.Result memory result = executionManager.executeMessage{value: msg.value}(nonce, storedMessage);
+        (bool requiresResponse, StorageTypes.Result memory result) =
+            executionManager.executeMessage{value: msg.value}(nonce, storedMessage);
 
         // Handle failure if not allowed to fail
-        if (result.requiresResponse) {
+        if (requiresResponse) {
             // TODO: send response back to the N3 chain
         }
 
