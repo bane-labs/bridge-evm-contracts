@@ -85,13 +85,15 @@ library StorageTypes {
     struct StoredMessage {
         Metadata metadata;
         bytes message;
+        bool executed;
     }
 
     struct Call {
-        address target;
-        bytes callData;
         bool allowFailure;
+        bool requiresResponse; // The user can specify if the call requires a response to be sent back across the bridge.
+        address target;
         uint256 value;
+        bytes callData;
     }
 
     struct Result {

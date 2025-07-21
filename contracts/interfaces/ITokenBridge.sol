@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import "../library/BridgeLib.sol";
-import "../library/StorageTypes.sol";
+import {BridgeLib} from "../library/BridgeLib.sol";
+import {StorageTypes} from "../library/StorageTypes.sol";
 
 interface ITokenBridge {
     event TokenRegister(address indexed neoXToken, StorageTypes.TokenConfig tokenConfig);

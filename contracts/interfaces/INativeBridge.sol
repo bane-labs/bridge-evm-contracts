@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import "../library/BridgeLib.sol";
+import {BridgeLib} from "../library/BridgeLib.sol";
 
 interface INativeBridge {
     event NativeBridgePause();

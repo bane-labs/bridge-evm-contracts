@@ -1,18 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import "../interfaces/IBridge.sol";
-import "../interfaces/INativeBridge.sol";
-import "../interfaces/ITokenBridge.sol";
-import "../interfaces/IMessageBridge.sol";
-import "../library/StorageTypes.sol";
-import "../library/BridgeLib.sol";
-import "../library/NativeBridgeLib.sol";
-import "../library/TokenBridgeLib.sol";
-import "../library/MessageBridgeLib.sol";
-import "./BridgeStorage.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IBridge} from "../interfaces/IBridge.sol";
+import {IExecutionManager} from "../interfaces/IExecutionManager.sol";
+import {IMessageBridge} from "../interfaces/IMessageBridge.sol";
+import {INativeBridge} from "../interfaces/INativeBridge.sol";
+import {ITokenBridge} from "../interfaces/ITokenBridge.sol";
+import {BridgeLib} from "../library/BridgeLib.sol";
+import {MessageBridgeLib} from "../library/MessageBridgeLib.sol";
+import {NativeBridgeLib} from "../library/NativeBridgeLib.sol";
+import {StorageTypes} from "../library/StorageTypes.sol";
+import {TokenBridgeLib} from "../library/TokenBridgeLib.sol";
+import {BridgeStorage} from "./BridgeStorage.sol";
+import {BridgeStorageV1} from "./BridgeStorageV1.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMessageBridge {
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -590,6 +593,12 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
 
     // IMessageBridge Implementation
 
+    // Function to set the message executor
+    function setMessageExecutor(address _executor) external override onlyGovernor {
+        messageExecutionManager = IExecutionManager(_executor);
+        emit MessageExecutorSet(_executor);
+    }
+
     /**
      * @notice Check if the message bridge is set up.
      */
@@ -705,26 +714,33 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge, IMes
      */
     function _storeMessage(StorageTypes.MessageData memory messageData) private {
         n3ToEvmMessages[messageData.nonce] =
-            StorageTypes.StoredMessage({metadata: messageData.metadata, message: messageData.message});
+            StorageTypes.StoredMessage({metadata: messageData.metadata, message: messageData.message, executed: false});
 
         emit MessageDeposit(messageData.nonce, messageData.message);
     }
 
     function executeMessage(uint256 nonce) external payable returns (StorageTypes.Result memory) {
-        bytes memory storedMessage = n3ToEvmMessages[nonce].message;
-        if (storedMessage.length == 0) revert MessageNotFound(nonce);
-        // TODO: decode this in the executor
-        StorageTypes.Call memory call = abi.decode(storedMessage, (StorageTypes.Call));
+        StorageTypes.StoredMessage storage storedMessage = n3ToEvmMessages[nonce];
+        bytes memory rawMessage = storedMessage.message;
+        if (rawMessage.length == 0) revert MessageNotFound(nonce);
+        if (storedMessage.executed) revert MessageAlreadyExecuted(nonce);
 
-        // Verify that the msg.value matches the call.value from the message
-        if (msg.value != call.value) revert ValueMismatch(call.value, msg.value);
+        if (address(messageExecutionManager) == address(0)) revert ExecutionManagerNotSet();
 
-        StorageTypes.Result memory result;
+        // Mark as executed
+        storedMessage.executed = true;
 
-        (result.success, result.returnData) = call.target.call{value: call.value}(call.callData);
+        // Execute the message using the execution manager
+        (bool requiresResponse, StorageTypes.Result memory result) =
+            messageExecutionManager.executeMessage{value: msg.value}(nonce, rawMessage);
 
-        // forward the reason for failure if the call was not allowed to fail
-        if (!call.allowFailure && !result.success) revert CallFailed(result.returnData);
+        if (requiresResponse) {
+            // TODO: send response back to the N3 chain
+            n3ToEvmExecutionResults[nonce] = result;
+
+        }
+
+        emit MessageExecuted(nonce, result);
 
         return result;
     }

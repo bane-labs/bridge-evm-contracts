@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import "../library/BridgeLib.sol";
-import "../library/StorageTypes.sol";
+import {BridgeLib} from "../library/BridgeLib.sol";
+import {StorageTypes} from "../library/StorageTypes.sol";
 
 interface IMessageBridge {
     event MessageBridgeRegister(StorageTypes.MessageConfig config);
@@ -13,6 +13,8 @@ interface IMessageBridge {
     event MessageWithdrawalFeeChange(uint256 fee);
     event MaxMessageSizeChange(uint256 maxSize);
     event MaxNrMessagesChange(uint256 maxDeposits);
+    event MessageExecutorSet(address indexed executor);
+    event MessageExecuted(uint256 indexed nonce, StorageTypes.Result result);
 
     function setMessageBridge(uint256 fee, uint256 maxMessageSize, uint256 maxDeposits) external;
     function messageBridgeIsSet() external view returns (bool);
@@ -28,4 +30,5 @@ interface IMessageBridge {
     function setMessageBridgeFee(uint256 fee) external;
     function setMaxMessageSize(uint256 maxSize) external;
     function setMaxNrMessages(uint256 maxDeposits) external;
+    function setMessageExecutor(address _executor) external;
 }

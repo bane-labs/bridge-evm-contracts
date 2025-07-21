@@ -1,13 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "../interfaces/IBridgeManagement.sol";
-import "../library/BridgeLib.sol";
-import "../library/StorageTypes.sol";
-import "../library/NativeBridgeLib.sol";
-import "../library/TokenBridgeLib.sol";
-import "./BridgeStorageV1.sol";
+import {StorageTypes} from "../library/StorageTypes.sol";
+import {BridgeStorageV1} from "./BridgeStorageV1.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /**
  * @dev This contract holds errors, modifiers, internal view functions and functions that directly modify the storage. The modification functions have logical checks but no access-checks. For example, registering a token should only be viable if there is no entry for that token already. However, checking if the msg.sender is allowed to do so should be handled in a higher-level contract (i.e., in this case the corresponding Impl contract).
@@ -17,8 +13,6 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
 
     //0x03290dc9
     error MessageNotFound(uint256 nonce);
-    //0xa5fa8d2b
-    error CallFailed(bytes reason);
     //0xf6a1af31
     error AmountBelowMinAmount(uint256 minAmount, uint256 provided);
     //0x030e0197
@@ -93,8 +87,10 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     error InvalidMessageSize();
     //0x000bf7e9
     error MessageRootMismatch();
-    //0x626ade30
-    error ValueMismatch(uint256 expected, uint256 received);
+    //0xd221f922
+    error ExecutionManagerNotSet();
+    //0x2ad81d67
+    error MessageAlreadyExecuted(uint256 nonce);
 
     // Modifiers for Role Restriction
 
