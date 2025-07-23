@@ -182,7 +182,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
 
         // Execute the message using the execution manager
         (bool requiresResponse, AMBTypes.Result memory result) =
-            messageExecutionManager.executeMessage{value: msg.value}(nonce, rawMessage, payable(msg.sender));
+            messageExecutionManager.executeMessage{value: msg.value}(nonce, rawMessage);
 
         if (requiresResponse) {
             // TODO: send response back to the N3 chain

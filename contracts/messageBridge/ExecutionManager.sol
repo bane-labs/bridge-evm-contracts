@@ -22,8 +22,7 @@ contract ExecutionManager is IExecutionManager, AccessControl {
     // Only the bridge contract can execute messages
     function executeMessage(
         uint256, // nonce
-        bytes calldata rawMessage,
-        address payable refundTarget
+        bytes calldata rawMessage
     )
         external
         payable
@@ -35,7 +34,7 @@ contract ExecutionManager is IExecutionManager, AccessControl {
         // the transaction will fail with a decoding error
         AMBTypes.Call memory call = abi.decode(rawMessage, (AMBTypes.Call));
 
-        (bool success, bytes memory returnData) = _executeCall(call.target, call.value, call.callData, refundTarget);
+        (bool success, bytes memory returnData) = _executeCall(call.target, call.value, call.callData);
         if (!success && !call.allowFailure) revert ExecutionFailed(returnData);
 
         return (call.requiresResponse, AMBTypes.Result({success: success, returnData: returnData}));
@@ -44,23 +43,13 @@ contract ExecutionManager is IExecutionManager, AccessControl {
     function _executeCall(
         address target,
         uint256 value,
-        bytes memory callData,
-        address payable refundTarget
+        bytes memory callData
     )
         private
         returns (bool success, bytes memory returnData)
     {
-        if (msg.value < value) revert ValueMismatch(msg.value, value);
+        if (msg.value != value) revert ValueMismatch(msg.value, value);
 
         (success, returnData) = target.call{value: value}(callData);
-
-        // Refund any excess value sent with the call
-        if (msg.value > value) {
-            (bool refundSuccess, bytes memory refundReturnData) = refundTarget.call{value: msg.value - value}("");
-            if (!refundSuccess) {
-                // If the refund fails, we revert the entire transaction
-                emit RefundFailed(refundReturnData);
-            }
-        }
     }
 }

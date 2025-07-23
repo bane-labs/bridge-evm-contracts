@@ -6,8 +6,7 @@ import {AMBTypes} from "../../library/AMBTypes.sol";
 interface IExecutionManager {
     function executeMessage(
         uint256 nonce,
-        bytes calldata rawMessage,
-        address payable refundTarget
+        bytes calldata rawMessage
     )
         external
         payable
