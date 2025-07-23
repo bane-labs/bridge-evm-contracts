@@ -5,7 +5,6 @@ pragma solidity 0.8.25;
 // - Native Coin (native transfer)
 // - Neo (ERC20 transfer)
 // - ERC20 (transfer(address to, uint256 value))
-// - Message (cross-chain message passing)
 // Future supported bridge types:
 // - (ERC721 (safeMint(address to, uint256 tokenId), burn(uint256 tokenId)))
 library StorageTypes {

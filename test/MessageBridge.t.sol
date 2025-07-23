@@ -20,6 +20,7 @@ import {StdUtils} from "../lib/forge-std/src/StdUtils.sol";
 import {Test} from "../lib/forge-std/src/Test.sol";
 import {Options} from "../lib/openzeppelin-foundry-upgrades/src/Options.sol";
 import {Upgrades} from "../lib/openzeppelin-foundry-upgrades/src/Upgrades.sol";
+import {console2} from "../lib/openzeppelin-foundry-upgrades/lib/forge-std/src/console2.sol";
 
 contract MessageBridgeTest is Test, SigUtils {
     MessageBridge messageBridgeProxy;
@@ -42,7 +43,7 @@ contract MessageBridgeTest is Test, SigUtils {
     // Message Bridge Config
     uint256 messageFee = 0.01 ether;
     uint256 maxMessageSize = 1024;
-    uint256 maxDeposits = 10;
+    uint256 maxNrMessages = 10;
 
     // Test message data
     bytes testMessage1 = abi.encode(
@@ -93,14 +94,14 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Deploy the MessageBridge implementation
         messageBridgeProxyAddress = Upgrades.deployUUPSProxy(
-            "MessageBridge.sol", abi.encodeCall(MessageBridge.initialize, (managementProxyAddress)), opts
+            "MessageBridge.sol",
+            abi.encodeCall(
+                MessageBridge.initialize, (managementProxyAddress, messageFee, maxMessageSize, maxNrMessages)
+            ),
+            opts
         );
         messageBridgeProxy = MessageBridge(payable(messageBridgeProxyAddress));
 
-        assertFalse(messageBridgeProxy.messageBridgeIsSet(), "Message bridge should not be set");
-        // Set up the message bridge
-        vm.prank(governor);
-        messageBridgeProxy.setMessageBridge(messageFee, maxMessageSize, maxDeposits);
         assertTrue(messageBridgeProxy.messageBridgeIsSet(), "Message bridge should be set");
 
         // Deploy and set up the Message Executor
@@ -115,21 +116,10 @@ contract MessageBridgeTest is Test, SigUtils {
         messageBridgeProxy.unpauseMessageBridge();
     }
 
-    function test_SetMessageBridge() public {
-        // Test that the message bridge is correctly set up
-        assertTrue(messageBridgeProxy.messageBridgeIsSet(), "Message bridge should be set");
-
-        // Change configuration
-        uint256 newFee = 2e16;
-        uint256 newMaxSize = 2048;
-        uint256 newMaxDeposits = 20;
-
-        vm.prank(governor);
-        messageBridgeProxy.setMessageBridge(newFee, newMaxSize, newMaxDeposits);
-
-        // Verify changes through events (we would need to check logs)
-        // This is a simplified check - in a real test, you would verify the config values directly
-        assertTrue(messageBridgeProxy.messageBridgeIsSet(), "Message bridge should still be set after config change");
+    function test_StorageSlot() public pure {
+        bytes32 computedSlot = keccak256(abi.encode(uint256(keccak256("AMB.storage")) - 1)) & ~bytes32(uint256(0xff));
+        bytes32 storageSlot = 0xd6595d2280e6cba67baf67ff997445e733b244161e59228efeb7032069381100;
+        assertEq(storageSlot, computedSlot, "Storage slot should match expected value");
     }
 
     function test_MessageBridgePauseUnpause() public {
@@ -931,7 +921,8 @@ contract MessageBridgeTest is Test, SigUtils {
         uint256 timestamp2 = block.timestamp;
         storeMessage(nonce2, message2, "");
 
-        (AMBTypes.Metadata memory metadata1, bytes memory storedRawMessage1,) = messageBridgeProxy.n3ToEvmMessages(nonce1);
+        (AMBTypes.Metadata memory metadata1, bytes memory storedRawMessage1,) =
+            messageBridgeProxy.n3ToEvmMessages(nonce1);
         // verify first message metadata
         assertEq(metadata1.sender, address(this), "First message metadata sender should match");
         assertEq(metadata1.timestamp, timestamp1, "First message metadata timestamp should match");
@@ -939,7 +930,8 @@ contract MessageBridgeTest is Test, SigUtils {
         // Verify raw message is stored correctly
         assertEq(storedRawMessage1, message1, "First message content should match");
 
-        (AMBTypes.Metadata memory metadata2, bytes memory storedRawMessage2,) = messageBridgeProxy.n3ToEvmMessages(nonce2);
+        (AMBTypes.Metadata memory metadata2, bytes memory storedRawMessage2,) =
+            messageBridgeProxy.n3ToEvmMessages(nonce2);
         // verify second message metadata
         assertEq(metadata2.sender, address(this), "Second message metadata sender should match");
         assertEq(metadata2.timestamp, timestamp2, "Second message metadata timestamp should match");

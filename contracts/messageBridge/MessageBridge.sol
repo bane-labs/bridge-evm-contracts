@@ -14,11 +14,10 @@ import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/ut
 contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgradeable {
     address public constant GOV_ADMIN = 0x1212000000000000000000000000000000000000;
 
-    //keccak256(abi.encode(uint256(keccak256("AMBTypes.storage")) - 1)) & ~bytes32(uint256(0xff))
-    //TODO: Update this storage location to match the actual AMB storage location
-    bytes32 private constant AMBStorageLocation = 0xbf1dcdeffa40dfe9cfe080762b5d715a0ec98727df31130b368e7f82f0d49800;
+    //keccak256(abi.encode(uint256(keccak256("AMB.storage")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant AMBStorageLocation = 0xd6595d2280e6cba67baf67ff997445e733b244161e59228efeb7032069381100;
 
-    /// @custom:storage-location erc7201:AMBTypes.storage
+    /// @custom:storage-location erc7201:AMB.storage
     struct AMBStorage {
         IBridgeManagement management;
         AMBTypes.MessageBridgeState messageBridgeState;
@@ -37,9 +36,18 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         _disableInitializers();
     }
 
-    function initialize(address _management) external initializer {
+    function initialize(
+        address _management,
+        uint256 _fee,
+        uint256 _maxMessageSize,
+        uint256 _maxNrMessages
+    )
+        external
+        initializer
+    {
         __ReentrancyGuard_init();
         _getAMBStorage().management = IBridgeManagement(_management);
+        _setMessageBridge(_fee, _maxMessageSize, _maxNrMessages);
     }
 
     //0x79828e03
@@ -54,7 +62,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     error InvalidRoot();
     //0xc48c8e48
     error InvalidValidatorSignatures();
-    //0x
+    //0x3a617a54
     error UnauthorizedUpgrade();
     //0x03290dc9
     error MessageNotFound(uint256 nonce);
@@ -72,25 +80,14 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     error ExecutionManagerNotSet();
     //0x2ad81d67
     error MessageAlreadyExecuted(uint256 nonce);
-    //0x
-    error ZeroMessages();
-    //0x
+    //0x60744242
+    error NoMessages();
+    //0x1ec0b2f7
     error TooManyMessages();
-
-    function setMessageBridge(
-        uint256 _fee,
-        uint256 _maxMessageSize,
-        uint256 _maxNrMessages
-    )
-        external
-        override
-        onlyGovernor
-    {
-        _setMessageBridge(_fee, _maxMessageSize, _maxNrMessages);
-        emit MessageBridgeRegister(
-            AMBTypes.MessageConfig({fee: _fee, maxMessageSize: _maxMessageSize, maxNrMessages: _maxNrMessages})
-        );
-    }
+    //0xee3675d4
+    error NotGovernor();
+    //0xc64891a5
+    error NotRelayer();
 
     function messageBridgeIsSet() external view override returns (bool) {
         return _messageBridgeIsSet();
@@ -126,7 +123,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     {
         // Check parameter validity
         uint256 messageLength = _messages.length;
-        if (messageLength == 0) revert ZeroMessages();
+        if (messageLength == 0) revert NoMessages();
 
         StorageTypes.State memory state = _getMessageBridgeN3ToEvmState();
         AMBTypes.MessageConfig memory config = _getMessageBridgeConfig();
@@ -217,12 +214,14 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         emit MessageExecutorSet(_executor);
     }
 
-    function _authorizeUpgrade(address) internal virtual override {
-        if (msg.sender != GOV_ADMIN) revert UnauthorizedUpgrade();
-    }
+    function _authorizeUpgrade(address newImplementation) internal virtual override onlyAdmin {}
 
     // Add public getter functions for testing
-    function n3ToEvmMessages(uint256 nonce) external view returns (AMBTypes.Metadata memory metadata, bytes memory message, bool executed) {
+    function n3ToEvmMessages(uint256 nonce)
+        external
+        view
+        returns (AMBTypes.Metadata memory metadata, bytes memory message, bool executed)
+    {
         AMBTypes.StoredMessage storage storedMessage = _getAMBStorage().n3ToEvmMessages[nonce];
         return (storedMessage.metadata, storedMessage.message, storedMessage.executed);
     }
@@ -232,13 +231,19 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     }
 
     // Modifiers
+
+    modifier onlyAdmin() {
+        if (msg.sender != GOV_ADMIN) revert UnauthorizedUpgrade();
+        _;
+    }
+
     modifier onlyRelayer() {
-        require(msg.sender == _getAMBStorage().management.getRelayer(), "not relayer");
+        if (msg.sender != _getAMBStorage().management.getRelayer()) revert NotRelayer();
         _;
     }
 
     modifier onlyGovernor() {
-        require(msg.sender == _getAMBStorage().management.getGovernor(), "not governor");
+        if (msg.sender != _getAMBStorage().management.getGovernor()) revert NotGovernor();
         _;
     }
 
@@ -247,11 +252,6 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         if (msg.sender != store.management.getGovernor() && msg.sender != store.management.getSecurityGuard()) {
             revert NoAuthorization();
         }
-        _;
-    }
-
-    modifier onlyFunder() {
-        require(msg.sender == _getAMBStorage().management.getFunder(), "not funder");
         _;
     }
 
