@@ -3,6 +3,7 @@ pragma solidity 0.8.25;
 
 import {BridgeLib} from "./BridgeLib.sol";
 import {StorageTypes} from "./StorageTypes.sol";
+import {AMBTypes} from "./AMBTypes.sol";
 
 library MessageBridgeLib {
     /**
@@ -16,7 +17,7 @@ library MessageBridgeLib {
      */
     function _computeNewTopRoot(
         bytes32 _previousRoot,
-        StorageTypes.MessageData[] memory _messages
+        AMBTypes.MessageData[] memory _messages
     )
         internal
         pure
@@ -26,7 +27,7 @@ library MessageBridgeLib {
         uint256 messagesLength = _messages.length;
 
         for (uint256 i = 0; i < messagesLength; i++) {
-            StorageTypes.MessageData memory messageData = _messages[i];
+            AMBTypes.MessageData memory messageData = _messages[i];
             bytes32 messageHash = _hashMessageBridgeOp(messageData.nonce, messageData.message);
             parent = BridgeLib._computeNewRoot(parent, messageHash);
         }

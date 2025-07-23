@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import {StorageTypes} from "../library/StorageTypes.sol";
-import {BridgeStorageV1} from "./BridgeStorageV1.sol";
-import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "../interfaces/IBridgeManagement.sol";
+import "../library/BridgeLib.sol";
+import "../library/StorageTypes.sol";
+import "../library/NativeBridgeLib.sol";
+import "../library/TokenBridgeLib.sol";
+import "./BridgeStorageV1.sol";
 
 /**
  * @dev This contract holds errors, modifiers, internal view functions and functions that directly modify the storage. The modification functions have logical checks but no access-checks. For example, registering a token should only be viable if there is no entry for that token already. However, checking if the msg.sender is allowed to do so should be handled in a higher-level contract (i.e., in this case the corresponding Impl contract).
@@ -11,8 +15,6 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     address public constant GOV_ADMIN = 0x1212000000000000000000000000000000000000;
 
-    //0x03290dc9
-    error MessageNotFound(uint256 nonce);
     //0xf6a1af31
     error AmountBelowMinAmount(uint256 minAmount, uint256 provided);
     //0x030e0197
@@ -77,20 +79,6 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
     error WithdrawalsPaused();
     //0x65b32663
     error WithdrawalsNotPaused();
-    //0x774249f8
-    error MessageBridgeNotSet();
-    //0xa4c897b0
-    error MessageBridgePaused();
-    //0xfa5fc19e
-    error MessageBridgeNotPaused();
-    //0x018e5d6a
-    error InvalidMessageSize();
-    //0x000bf7e9
-    error MessageRootMismatch();
-    //0xd221f922
-    error ExecutionManagerNotSet();
-    //0x2ad81d67
-    error MessageAlreadyExecuted(uint256 nonce);
 
     // Modifiers for Role Restriction
 
@@ -168,22 +156,6 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
 
     modifier whenTokenBridgePaused(address _neoXToken) {
         if (!tokenBridges[_neoXToken].paused) revert TokenBridgeNotPaused(_neoXToken);
-        _;
-    }
-
-    // Message Bridge modifiers
-    modifier onlyIfMessageBridgeSet() {
-        if (!_messageBridgeIsSet()) revert MessageBridgeNotSet();
-        _;
-    }
-
-    modifier whenMessageBridgeNotPaused() {
-        if (messageBridge.paused) revert MessageBridgePaused();
-        _;
-    }
-
-    modifier whenMessageBridgePaused() {
-        if (!messageBridge.paused) revert MessageBridgeNotPaused();
         _;
     }
 
@@ -420,68 +392,6 @@ abstract contract BridgeStorage is BridgeStorageV1, UUPSUpgradeable {
 
     function _deleteTokenClaimable(address _neoXToken, uint256 _nonce) internal {
         delete tokenClaimables[_neoXToken][_nonce];
-    }
-
-    // Message Bridge functions
-
-    function _messageBridgeIsSet() internal view returns (bool) {
-        return messageBridge.config.maxMessageSize != 0;
-    }
-
-    function _setMessageBridge(uint256 _fee, uint256 _maxMessageSize, uint256 _maxNrMessages) internal {
-        if (_fee == 0) revert InvalidFee();
-        if (_maxMessageSize == 0) revert InvalidValue();
-        if (_maxNrMessages == 0) revert InvalidValue();
-
-        messageBridge = StorageTypes.MessageBridge({
-            paused: true,
-            n3ToEvmState: StorageTypes.State({nonce: 0, root: 0x0}),
-            evmToN3State: StorageTypes.State({nonce: 0, root: 0x0}),
-            config: StorageTypes.MessageConfig({fee: _fee, maxMessageSize: _maxMessageSize, maxNrMessages: _maxNrMessages})
-        });
-    }
-
-    function _pauseMessageBridge() internal {
-        messageBridge.paused = true;
-    }
-
-    function _unpauseMessageBridge() internal {
-        messageBridge.paused = false;
-    }
-
-    function _getMessageBridgeConfig() internal view returns (StorageTypes.MessageConfig memory config) {
-        return messageBridge.config;
-    }
-
-    function _getMessageBridgeN3ToEvmState() internal view returns (StorageTypes.State memory state) {
-        return messageBridge.n3ToEvmState;
-    }
-
-    function _setMessageBridgeN3ToEvmState(StorageTypes.State memory state) internal {
-        messageBridge.n3ToEvmState = state;
-    }
-
-    function _getMessageBridgeEvmToN3State() internal view returns (StorageTypes.State memory state) {
-        return messageBridge.evmToN3State;
-    }
-
-    function _setMessageBridgeEvmToN3State(StorageTypes.State memory state) internal {
-        messageBridge.evmToN3State = state;
-    }
-
-    function _setMessageBridgeFee(uint256 _fee) internal {
-        if (_fee == 0) revert InvalidFee();
-        messageBridge.config.fee = _fee;
-    }
-
-    function _setMaxMessageSize(uint256 _maxMessageSize) internal {
-        if (_maxMessageSize == 0) revert InvalidValue();
-        messageBridge.config.maxMessageSize = _maxMessageSize;
-    }
-
-    function _setMaxNrMessages(uint256 _maxNrMessages) internal {
-        if (_maxNrMessages == 0) revert InvalidValue();
-        messageBridge.config.maxNrMessages = _maxNrMessages;
     }
 
     // Upgrade authorization

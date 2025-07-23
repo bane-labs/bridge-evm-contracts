@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import {StorageTypes} from "../library/StorageTypes.sol";
+import {AMBTypes} from "../../library/AMBTypes.sol";
 
 interface IExecutionManager {
     function executeMessage(
@@ -10,5 +10,5 @@ interface IExecutionManager {
     )
         external
         payable
-        returns (bool requiresResponse, StorageTypes.Result memory);
+        returns (bool requiresResponse, AMBTypes.Result memory);
 }

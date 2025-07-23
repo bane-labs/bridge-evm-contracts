@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import {IBridgeManagement} from "../interfaces/IBridgeManagement.sol";
-import {IExecutionManager} from "../interfaces/IExecutionManager.sol";
-import {StorageTypes} from "../library/StorageTypes.sol";
-import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import "../interfaces/IBridgeManagement.sol";
+import "../library/StorageTypes.sol";
 
 /**
  * @title BridgeStorageV1
@@ -38,32 +37,8 @@ abstract contract BridgeStorageV1 is ReentrancyGuardUpgradeable {
     // Slot 114
     address[] public registeredTokens;
 
-    // Slot 115 - 124 (10 slots)
-    // struct NativeBridge {
-    //     bool paused;             // slot 115
-    //     State depositState;      // slots 116-117
-    //     State withdrawalState;   // slots 118-119
-    //     NativeConfig config;     // slots 120-124
-    // }
+    // Slot 115
     StorageTypes.NativeBridge public nativeBridge;
-
-    // Slot 125 - 132 (8 slots)
-    // struct MessageBridge {
-    //     bool paused;             // slot 125
-    //     State n3ToEvmState;      // slots 126-127
-    //     State evmToN3State;      // slots 128-129
-    //     MessageConfig config;    // slots 130-132
-    // }
-    StorageTypes.MessageBridge public messageBridge;
-
-    // Slot 133 - Combined storage for messages and metadata
-    mapping(uint256 => StorageTypes.StoredMessage) public n3ToEvmMessages;
-
-    // Slot 134
-    mapping(uint256 => StorageTypes.Result) public n3ToEvmExecutionResults;
-
-    // Slot 135
-    IExecutionManager public messageExecutionManager;
 
     // commented until a reinitialization is needed
     // function _upgradeToV<version_nr>() internal onlyInitializing {
