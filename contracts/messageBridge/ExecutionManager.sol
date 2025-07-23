@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import {IExecutionManager} from "../interfaces/IExecutionManager.sol";
-import {StorageTypes} from "../library/StorageTypes.sol";
+import {AMBTypes} from "../library/AMBTypes.sol";
+import {IExecutionManager} from "./interfaces/IExecutionManager.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
 contract ExecutionManager is IExecutionManager, AccessControl {
@@ -26,16 +26,16 @@ contract ExecutionManager is IExecutionManager, AccessControl {
         payable
         override
         onlyRole(BRIDGE_ROLE)
-        returns (bool requiresResponse, StorageTypes.Result memory)
+        returns (bool requiresResponse, AMBTypes.Result memory)
     {
         // If rawMessage contains data that doesn't match the structure of the Call struct
         // the transaction will fail with a decoding error
-        StorageTypes.Call memory call = abi.decode(rawMessage, (StorageTypes.Call));
+        AMBTypes.Call memory call = abi.decode(rawMessage, (AMBTypes.Call));
 
         (bool success, bytes memory returnData) = _executeCall(call.target, call.value, call.callData);
         if (!success && !call.allowFailure) revert ExecutionFailed(returnData);
 
-        return (call.requiresResponse, StorageTypes.Result({success: success, returnData: returnData}));
+        return (call.requiresResponse, AMBTypes.Result({success: success, returnData: returnData}));
     }
 
     function _executeCall(
