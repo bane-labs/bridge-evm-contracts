@@ -46,8 +46,8 @@ contract ExecutionManager is IExecutionManager, AccessControl {
         private
         returns (bool success, bytes memory returnData)
     {
-        if (msg.value < value) revert ValueMismatch(msg.value, value);
+        if (msg.value != value) revert ValueMismatch(msg.value, value);
 
-        (success, returnData) = target.call{value: msg.value}(callData);
+        (success, returnData) = target.call{value: value}(callData);
     }
 }

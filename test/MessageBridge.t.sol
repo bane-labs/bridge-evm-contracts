@@ -8,6 +8,7 @@ import {StorageTypes} from "../contracts/library/StorageTypes.sol";
 import {ExecutionManager} from "../contracts/messageBridge/ExecutionManager.sol";
 import {MessageBridge} from "../contracts/messageBridge/MessageBridge.sol";
 import {IMessageBridge} from "../contracts/messageBridge/interfaces/IMessageBridge.sol";
+import {ReentrancyAttacker} from "../contracts/tests/ReentrancyAttacker.sol";
 import {SigUtils} from "../contracts/tests/SigUtils.sol";
 import {TestBridgeManagement} from "../contracts/tests/TestBridgeManagement.sol";
 import {TestMessageContract} from "../contracts/tests/TestMessageContract.sol";
@@ -20,7 +21,6 @@ import {StdUtils} from "../lib/forge-std/src/StdUtils.sol";
 import {Test} from "../lib/forge-std/src/Test.sol";
 import {Options} from "../lib/openzeppelin-foundry-upgrades/src/Options.sol";
 import {Upgrades} from "../lib/openzeppelin-foundry-upgrades/src/Upgrades.sol";
-import {console2} from "../lib/openzeppelin-foundry-upgrades/lib/forge-std/src/console2.sol";
 
 contract MessageBridgeTest is Test, SigUtils {
     MessageBridge messageBridgeProxy;
@@ -672,6 +672,90 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Check that payableContract did not receive funds when the function call failed
         assertEq(address(payableContract).balance, 0, "Payable contract should not have received ETH");
+    }
+
+    function test_StoreAndExecuteMessageReentrancy() public {
+        // Deploy the reentrancy attacker contract
+        ReentrancyAttacker attacker = new ReentrancyAttacker(address(messageBridgeProxy));
+
+        // Create a Call struct that targets the attacker's attack function
+        bytes memory callData = abi.encodeWithSelector(ReentrancyAttacker.attack.selector);
+
+        AMBTypes.Call memory call = AMBTypes.Call({
+            allowFailure: false,
+            requiresResponse: false,
+            target: address(attacker),
+            value: 0,
+            callData: callData
+        });
+        uint256 nonce = 1;
+
+        // Encode the Call struct into a message
+        bytes memory message = abi.encode(call);
+
+        // Store the message
+        storeMessage(nonce, message, "");
+
+        // Set attack mode to try reentrancy with the same nonce
+        attacker.setAttackMode(true, nonce);
+
+        // Execute the message
+        AMBTypes.Result memory result = messageBridgeProxy.executeMessage(nonce);
+
+        // Verify execution of first call was successful
+        assertTrue(result.success, "First message execution should succeed");
+        assertTrue(attacker.firstCallSucceeded(), "First call to attacker contract should succeed");
+
+        // Verify reentrancy attempt failed
+        assertFalse(attacker.secondCallSucceeded(), "Reentrancy attempt should fail");
+
+        // Try to execute the message again directly (should fail)
+        vm.expectRevert(abi.encodeWithSelector(MessageBridge.MessageAlreadyExecuted.selector, nonce));
+        messageBridgeProxy.executeMessage(nonce);
+    }
+
+    function test_StoreAndExecuteMessageMultipleTimes() public {
+        // Deploy test contract
+        TestMessageContract testContract = new TestMessageContract();
+
+        // Create Call struct with testFunction encoded
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+
+        AMBTypes.Call memory call = AMBTypes.Call({
+            allowFailure: false,
+            requiresResponse: false,
+            target: address(testContract),
+            value: 0,
+            callData: callData
+        });
+        uint256 nonce = 1;
+
+        // Encode the Call struct into a message
+        bytes memory message = abi.encode(call);
+
+        // Store the message
+        storeMessage(nonce, message, "");
+
+        // First execution should succeed
+        AMBTypes.Result memory result = messageBridgeProxy.executeMessage(nonce);
+        assertTrue(result.success, "First execution should succeed");
+        assertEq(testContract.counter(), 1, "Counter should be incremented to 1");
+
+        // Second execution of the same message should revert with MessageAlreadyExecuted error
+        vm.expectRevert(abi.encodeWithSelector(MessageBridge.MessageAlreadyExecuted.selector, nonce));
+        messageBridgeProxy.executeMessage(nonce);
+
+        // Counter should still be 1 since second execution was reverted
+        assertEq(testContract.counter(), 1, "Counter should still be 1 after failed second execution");
+
+        // Now create and store a new message with a different nonce
+        uint256 nonce2 = 2;
+        storeMessage(nonce2, message, "");
+
+        // Execute the new message - should succeed
+        result = messageBridgeProxy.executeMessage(nonce2);
+        assertTrue(result.success, "Execution of message with new nonce should succeed");
+        assertEq(testContract.counter(), 2, "Counter should be incremented to 2");
     }
 
     // Test depositMessage function with random messages
