@@ -13,8 +13,6 @@ contract ExecutionManager is IExecutionManager, AccessControl {
     //0x626ade30
     error ValueMismatch(uint256 providedValue, uint256 expectedValue);
 
-    event RefundFailed(bytes reason);
-
     constructor(address bridge) {
         _grantRole(BRIDGE_ROLE, bridge);
     }
