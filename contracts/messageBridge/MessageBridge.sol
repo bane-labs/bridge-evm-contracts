@@ -8,7 +8,6 @@ import {MessageBridgeLib} from "../library/MessageBridgeLib.sol";
 import {StorageTypes} from "../library/StorageTypes.sol";
 import {IExecutionManager} from "./interfaces/IExecutionManager.sol";
 import {IMessageBridge} from "./interfaces/IMessageBridge.sol";
-import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
