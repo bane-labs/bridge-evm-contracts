@@ -64,9 +64,9 @@ library AMBTypes {
     }
 
     enum SendMessageType {
-        EXECUTABLE, // The message can be executed immediately
-        STORE_ONLY, // The message is stored but not executed
-        RESULT // The message is a result of a previous message execution
+        EXECUTABLE, // The message is executable
+        STORE_ONLY, // The message is only stored. It cannot is not executable.
+        RESULT // The message is a result of a message execution.
     }
 
      struct SendMetadataExecutable {
