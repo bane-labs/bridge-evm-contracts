@@ -40,14 +40,15 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         address _management,
         uint256 _fee,
         uint256 _maxMessageSize,
-        uint256 _maxNrMessages
+        uint256 _maxNrMessages,
+        uint256 _executionWindowSeconds
     )
         external
         initializer
     {
         __ReentrancyGuard_init();
         _getAMBStorage().management = IBridgeManagement(_management);
-        _setMessageBridge(_fee, _maxMessageSize, _maxNrMessages);
+        _setMessageBridge(_fee, _maxMessageSize, _maxNrMessages, _executionWindowSeconds);
     }
 
     //0x79828e03
@@ -88,6 +89,8 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     error NotGovernor();
     //0xc64891a5
     error NotRelayer();
+    //0x1ef8664b
+    error ExecutionWindowExpired(uint256 expiry, uint256 currentTime);
 
     function messageBridgeIsSet() external view override returns (bool) {
         return _messageBridgeIsSet();
@@ -177,6 +180,11 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
 
         if (address(messageExecutionManager) == address(0)) revert ExecutionManagerNotSet();
 
+        // Check if the message execution window has expired
+        AMBTypes.MessageConfig memory config = _getMessageBridgeConfig();
+        uint256 expiry = storedMessage.metadata.timestamp + config.executionWindowSeconds;
+        if (block.timestamp > expiry) revert ExecutionWindowExpired(expiry, block.timestamp);
+
         // Mark as executed
         storedMessage.executed = true;
 
@@ -214,16 +222,16 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         emit MessageExecutorSet(_executor);
     }
 
+    function setExecutionWindowSeconds(uint256 windowSeconds) external override onlyGovernor {
+        _setExecutionWindowSeconds(windowSeconds);
+        emit MessageExecutionWindowChange(windowSeconds);
+    }
+
     function _authorizeUpgrade(address newImplementation) internal virtual override onlyAdmin {}
 
     // Add public getter functions for testing
-    function n3ToEvmMessages(uint256 nonce)
-        external
-        view
-        returns (AMBTypes.Metadata memory metadata, bytes memory message, bool executed)
-    {
-        AMBTypes.StoredMessage storage storedMessage = _getAMBStorage().n3ToEvmMessages[nonce];
-        return (storedMessage.metadata, storedMessage.message, storedMessage.executed);
+    function n3ToEvmMessages(uint256 nonce) external view returns (AMBTypes.StoredMessage memory storedMessage) {
+        storedMessage = _getAMBStorage().n3ToEvmMessages[nonce];
     }
 
     function getMessageBridgeState() external view returns (AMBTypes.MessageBridgeState memory) {
@@ -276,7 +284,14 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         return _getAMBStorage().messageBridgeState.config.maxMessageSize != 0;
     }
 
-    function _setMessageBridge(uint256 _fee, uint256 _maxMessageSize, uint256 _maxNrMessages) internal {
+    function _setMessageBridge(
+        uint256 _fee,
+        uint256 _maxMessageSize,
+        uint256 _maxNrMessages,
+        uint256 _executionWindowSeconds
+    )
+        internal
+    {
         if (_fee == 0) revert InvalidFee();
         if (_maxMessageSize == 0) revert InvalidValue();
         if (_maxNrMessages == 0) revert InvalidValue();
@@ -285,7 +300,12 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
             paused: true,
             n3ToEvmState: StorageTypes.State({nonce: 0, root: 0x0}),
             evmToN3State: StorageTypes.State({nonce: 0, root: 0x0}),
-            config: AMBTypes.MessageConfig({fee: _fee, maxMessageSize: _maxMessageSize, maxNrMessages: _maxNrMessages})
+            config: AMBTypes.MessageConfig({
+                fee: _fee,
+                maxMessageSize: _maxMessageSize,
+                maxNrMessages: _maxNrMessages,
+                executionWindowSeconds: _executionWindowSeconds
+            })
         });
     }
 
@@ -330,5 +350,10 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     function _setMaxNrMessages(uint256 _maxNrMessages) internal {
         if (_maxNrMessages == 0) revert InvalidValue();
         _getAMBStorage().messageBridgeState.config.maxNrMessages = _maxNrMessages;
+    }
+
+    function _setExecutionWindowSeconds(uint256 _executionWindowSeconds) internal {
+        if (_executionWindowSeconds == 0) revert InvalidValue();
+        _getAMBStorage().messageBridgeState.config.executionWindowSeconds = _executionWindowSeconds;
     }
 }
