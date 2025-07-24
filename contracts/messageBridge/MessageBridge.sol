@@ -186,7 +186,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         if (block.timestamp > expiry) revert ExecutionWindowExpired(expiry, block.timestamp);
 
         // Mark as executed
-        _getAMBStorage().n3ToEvmMessages[nonce].executed = true;
+        storedMessage.executed = true;
 
         // Execute the message using the execution manager
         (bool requiresResponse, AMBTypes.Result memory result) =
