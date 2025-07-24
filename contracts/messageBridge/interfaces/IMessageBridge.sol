@@ -29,6 +29,7 @@ interface IMessageBridge {
     function pauseMessageBridge() external;
     function unpauseMessageBridge() external;
     function sendMessage(bytes calldata message) external payable;
+    function sendExecutableMessage(bytes calldata _message, bool storeResult) external payable;
     function storeMessage(
         bytes32 depositRoot,
         BridgeLib.Signature[] calldata signatures,

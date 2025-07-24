@@ -6,6 +6,9 @@ import {StorageTypes} from "./StorageTypes.sol";
 import {AMBTypes} from "./AMBTypes.sol";
 
 library MessageBridgeLib {
+    // 0x735e7a9d
+    error UnsupportedMessageType(uint32 msgType);
+
     /**
      * @dev Computes a new root hash incorporating a new message operation hash.
      * This function takes the previous root, chains each message operation hash in sequence,
@@ -60,4 +63,26 @@ library MessageBridgeLib {
     {
         return keccak256(abi.encodePacked(_nonce, _version, _sender, _timestamp, _message));
     }
+
+    function _hashMessageSendOp(uint256 _nonce, bytes memory _msgBytes, bytes memory _encodedMetadata) internal pure returns (bytes32) {
+        // Get the top uint32 value to determine the message type
+        // This is used to differentiate between executable, store-only, and result messages
+        uint32 msgType;
+        assembly {
+            msgType := mload(add(_encodedMetadata, 0x20))
+        }
+        if (msgType == 0) {
+            AMBTypes.SendMetadataExecutable memory metadata = abi.decode(_encodedMetadata, (AMBTypes.SendMetadataExecutable));
+            return keccak256(abi.encodePacked(_nonce, _msgBytes, metadata.msgType, metadata.timestamp, metadata.sender, metadata.storeResult));
+        } else if (msgType == 1) {
+            AMBTypes.SendMetadataStoreOnly memory metadata = abi.decode(_encodedMetadata, (AMBTypes.SendMetadataStoreOnly));
+            return keccak256(abi.encodePacked(_nonce, _msgBytes, metadata.msgType, metadata.timestamp, metadata.sender));
+        } else if (msgType == 2) {
+            AMBTypes.SendMetadataResult memory metadata = abi.decode(_encodedMetadata, (AMBTypes.SendMetadataResult));
+            return keccak256(abi.encodePacked(_nonce, _msgBytes, metadata.msgType, metadata.timestamp, metadata.sender, metadata.relatedMessageNonce));
+        } else {
+            revert UnsupportedMessageType(msgType);
+        }
+    }
+
 }

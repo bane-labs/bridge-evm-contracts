@@ -123,11 +123,45 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         emit MessageBridgeUnpause();
     }
 
+
     /**
-     * @notice Sends a message to the Neo N3 blockchain.
+     * @notice Sends an executable message to the Neo N3 blockchain.
+     * @param _message The message to be sent.
+     * @param _storeResult Whether to store the result of the message execution.
+     */
+    function sendExecutableMessage(
+        bytes calldata _message,
+        bool _storeResult
+    )
+        external
+        payable
+        onlyIfMessageBridgeSet
+        whenMessageBridgeNotPaused
+    {
+        AMBTypes.SendMetadataExecutable memory metadata = AMBTypes.SendMetadataExecutable({
+            msgType: uint32(AMBTypes.SendMessageType.EXECUTABLE),
+            timestamp: block.timestamp,
+            sender: msg.sender,
+            storeResult: _storeResult
+        });
+        bytes memory encodedMetadata = abi.encode(metadata);        
+        _sendMessageWithMetadata(_message, encodedMetadata);
+    }
+    /**
+     * @notice Sends a store-only message to the Neo N3 blockchain.
      * @param _message The message to be sent.
      */
-    function sendMessage(bytes calldata _message) external payable nonReentrant whenMessageBridgeNotPaused {
+    function sendMessage(bytes calldata _message) external payable whenMessageBridgeNotPaused {
+        AMBTypes.SendMetadataStoreOnly memory metadata = AMBTypes.SendMetadataStoreOnly({
+            msgType: uint32(AMBTypes.SendMessageType.STORE_ONLY),
+            timestamp: block.timestamp,
+            sender: msg.sender
+        });
+        bytes memory encodedMetadata = abi.encode(metadata);
+        _sendMessageWithMetadata(_message, encodedMetadata);
+    }
+
+    function _sendMessageWithMetadata(bytes memory _message, bytes memory encodedMetadata) private {
         AMBTypes.MessageConfig memory config = _getMessageBridgeConfig();
 
         // Check message size against max allowed size
@@ -142,8 +176,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         uint256 newNonce = state.nonce + 1;
 
         // Create message hash
-        bytes32 messageHash =
-            MessageBridgeLib._hashMessageBridgeOp(newNonce, VERSION, msg.sender, block.timestamp, _message);
+        bytes32 messageHash = MessageBridgeLib._hashMessageSendOp(newNonce, _message, encodedMetadata);
 
         // Compute new root
         bytes32 newRoot = BridgeLib._computeNewRoot(state.root, messageHash);
@@ -151,11 +184,8 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         // Update the state
         _setMessageBridgeEvmToN3State(StorageTypes.State({nonce: newNonce, root: newRoot}));
 
-        // Get current timestamp
-        uint256 timestamp = block.timestamp;
-
         // Emit event with all relevant information
-        emit MessageSent(newNonce, _message, timestamp, from, messageHash, newRoot);
+        emit MessageSent(newNonce, _message, block.timestamp, from, messageHash, newRoot);
     }
 
     function storeMessage(
