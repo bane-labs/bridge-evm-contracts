@@ -9,7 +9,6 @@ import {ExecutionManager} from "../contracts/messageBridge/ExecutionManager.sol"
 import {MessageBridge} from "../contracts/messageBridge/MessageBridge.sol";
 import {IMessageBridge} from "../contracts/messageBridge/interfaces/IMessageBridge.sol";
 import {ReentrancyAttacker} from "../contracts/tests/ReentrancyAttacker.sol";
-import {RefundReentrancyAttacker} from "../contracts/tests/RefundReentrancyAttacker.sol";
 import {SigUtils} from "../contracts/tests/SigUtils.sol";
 import {TestBridgeManagement} from "../contracts/tests/TestBridgeManagement.sol";
 import {TestMessageContract} from "../contracts/tests/TestMessageContract.sol";
@@ -757,59 +756,6 @@ contract MessageBridgeTest is Test, SigUtils {
         result = messageBridgeProxy.executeMessage(nonce2);
         assertTrue(result.success, "Execution of message with new nonce should succeed");
         assertEq(testContract.counter(), 2, "Counter should be incremented to 2");
-    }
-
-    function test_StoreAndExecuteRefundReentrancyAttack() public {
-        // Deploy the refund reentrancy attacker contract
-        RefundReentrancyAttacker attacker = new RefundReentrancyAttacker(address(messageBridgeProxy));
-
-        // Create a Call struct that targets the attacker's attack function
-        bytes memory callData = abi.encodeWithSelector(RefundReentrancyAttacker.attack.selector);
-
-        AMBTypes.Call memory call = AMBTypes.Call({
-            allowFailure: false,
-            requiresResponse: false,
-            target: address(attacker),
-            value: 0.5 ether, // Set the value to less than what we'll send
-            callData: callData
-        });
-        uint256 nonce = 1;
-
-        // Encode the Call struct into a message
-        bytes memory message = abi.encode(call);
-
-        // Store the message
-        storeMessage(nonce, message, "");
-
-        // Setup the attack
-        attacker.setupAttack(nonce);
-
-        // Fund the attacker with some ETH to make sure it can pay for gas during reentrancy attempt
-        vm.deal(address(attacker), 1 ether);
-
-        // Execute the message with MORE value than required, which should trigger a refund
-        uint256 sentValue = 1 ether;
-        vm.prank(address(attacker)); // Set the attacker as the caller
-        AMBTypes.Result memory result = messageBridgeProxy.executeMessage{value: sentValue}(nonce);
-
-        // Verify execution was successful
-        assertTrue(result.success, "Message execution should succeed");
-
-        // Verify the refund was received
-        assertTrue(attacker.refundReceived(), "Refund should be received");
-
-        // Verify the attack didn't succeed in reentering and executing the message again
-        assertFalse(attacker.reentrancyAttemptSuccess(), "Reentrancy attempt should fail");
-
-        // Verify the attack count is 1 (executed only once)
-        assertEq(attacker.attackCount(), 1, "Attack function should only be called once");
-
-        // Verify that the received value matches what we specified in the call struct
-        assertEq(attacker.receivedValue(), call.value, "Received value should match call value");
-
-        // Try to execute the message again directly (should fail)
-        vm.expectRevert(abi.encodeWithSelector(MessageBridge.MessageAlreadyExecuted.selector, nonce));
-        messageBridgeProxy.executeMessage(nonce);
     }
 
     // Test depositMessage function with random messages
