@@ -134,7 +134,14 @@ contract MessageBridgeTest is Test, SigUtils {
         messages[0] = AMBTypes.MessageData({
             nonce: 1,
             message: testMessage1,
-            metadata: AMBTypes.Metadata({version: 1, sender: address(this), timestamp: block.timestamp})
+            encodedMetadata: abi.encode(
+                AMBTypes.MetadataExecutable({
+                    msgType: AMBTypes.MessageType.EXECUTABLE,
+                    sender: address(this),
+                    timestamp: block.timestamp,
+                    storeResult: false
+                })
+            )
         });
 
         AMBTypes.MessageBridgeState memory bridgeState = messageBridgeProxy.getMessageBridgeState();
@@ -768,12 +775,26 @@ contract MessageBridgeTest is Test, SigUtils {
         messages[0] = AMBTypes.MessageData({
             nonce: 1,
             message: testMessage1,
-            metadata: AMBTypes.Metadata({version: 1, sender: address(this), timestamp: block.timestamp})
+            encodedMetadata: abi.encode(
+                AMBTypes.MetadataExecutable({
+                    msgType: AMBTypes.MessageType.EXECUTABLE,
+                    sender: address(this),
+                    timestamp: block.timestamp,
+                    storeResult: false
+                })
+            )
         });
         messages[1] = AMBTypes.MessageData({
             nonce: 2,
             message: testMessage2,
-            metadata: AMBTypes.Metadata({version: 1, sender: address(this), timestamp: block.timestamp})
+            encodedMetadata: abi.encode(
+                AMBTypes.MetadataExecutable({
+                    msgType: AMBTypes.MessageType.EXECUTABLE,
+                    sender: address(this),
+                    timestamp: block.timestamp,
+                    storeResult: false
+                })
+            )
         });
 
         // Compute the deposit root
@@ -818,7 +839,14 @@ contract MessageBridgeTest is Test, SigUtils {
         messages[0] = AMBTypes.MessageData({
             nonce: 1,
             message: testMessage1,
-            metadata: AMBTypes.Metadata({version: 1, sender: address(this), timestamp: block.timestamp})
+            encodedMetadata: abi.encode(
+                AMBTypes.MetadataExecutable({
+                    msgType: AMBTypes.MessageType.EXECUTABLE,
+                    sender: address(this),
+                    timestamp: block.timestamp,
+                    storeResult: false
+                })
+            )
         });
 
         // Use an incorrect deposit root
@@ -839,7 +867,14 @@ contract MessageBridgeTest is Test, SigUtils {
         messages[0] = AMBTypes.MessageData({
             nonce: 1,
             message: testMessage1,
-            metadata: AMBTypes.Metadata({version: 1, sender: address(this), timestamp: block.timestamp})
+            encodedMetadata: abi.encode(
+                AMBTypes.MetadataExecutable({
+                    msgType: AMBTypes.MessageType.EXECUTABLE,
+                    sender: address(this),
+                    timestamp: block.timestamp,
+                    storeResult: false
+                })
+            )
         });
 
         // Compute the correct deposit root
@@ -861,12 +896,26 @@ contract MessageBridgeTest is Test, SigUtils {
         messages[0] = AMBTypes.MessageData({
             nonce: 1,
             message: testMessage1,
-            metadata: AMBTypes.Metadata({version: 1, sender: address(this), timestamp: block.timestamp})
+            encodedMetadata: abi.encode(
+                AMBTypes.MetadataExecutable({
+                    msgType: AMBTypes.MessageType.EXECUTABLE,
+                    sender: address(this),
+                    timestamp: block.timestamp,
+                    storeResult: false
+                })
+            )
         });
         messages[1] = AMBTypes.MessageData({
             nonce: 3, // This should be 2 to be sequential
             message: testMessage2,
-            metadata: AMBTypes.Metadata({version: 1, sender: address(this), timestamp: block.timestamp})
+            encodedMetadata: abi.encode(
+                AMBTypes.MetadataExecutable({
+                    msgType: AMBTypes.MessageType.EXECUTABLE,
+                    sender: address(this),
+                    timestamp: block.timestamp,
+                    storeResult: false
+                })
+            )
         });
 
         // Compute root (this doesn't validate nonce sequence)
@@ -887,7 +936,14 @@ contract MessageBridgeTest is Test, SigUtils {
         messages1[0] = AMBTypes.MessageData({
             nonce: 1,
             message: testMessage1,
-            metadata: AMBTypes.Metadata({version: 1, sender: address(this), timestamp: block.timestamp})
+            encodedMetadata: abi.encode(
+                AMBTypes.MetadataExecutable({
+                    msgType: AMBTypes.MessageType.EXECUTABLE,
+                    sender: address(this),
+                    timestamp: block.timestamp,
+                    storeResult: false
+                })
+            )
         });
 
         StorageTypes.State memory n3ToEvmState = messageBridgeProxy.getMessageBridgeState().n3ToEvmState;
@@ -903,7 +959,14 @@ contract MessageBridgeTest is Test, SigUtils {
         messages2[0] = AMBTypes.MessageData({
             nonce: 2,
             message: testMessage2,
-            metadata: AMBTypes.Metadata({version: 1, sender: address(this), timestamp: block.timestamp})
+            encodedMetadata: abi.encode(
+                AMBTypes.MetadataExecutable({
+                    msgType: AMBTypes.MessageType.EXECUTABLE,
+                    sender: address(this),
+                    timestamp: block.timestamp,
+                    storeResult: false
+                })
+            )
         });
 
         // The new root should be computed based on the previous root
@@ -959,12 +1022,17 @@ contract MessageBridgeTest is Test, SigUtils {
         storeMessage(nonce, message, "");
 
         // Retrieve the stored metadata and verify it
-        AMBTypes.Metadata memory metadata = messageBridgeProxy.n3ToEvmMessages(nonce).metadata;
+        AMBTypes.MetadataExecutable memory metadata = getExecutableMetadata(nonce);
 
         // Verify metadata fields
-        assertEq(metadata.sender, address(this), "Metadata sender should match");
+        assertEq(
+            uint8(metadata.msgType),
+            uint8(AMBTypes.MessageType.EXECUTABLE),
+            "Metadata message type should be EXECUTABLE"
+        );
         assertEq(metadata.timestamp, timestamp, "Metadata timestamp should match");
-        assertEq(metadata.version, uint32(1), "Metadata version should be 1");
+        assertEq(metadata.sender, address(this), "Metadata sender should match");
+        assertEq(metadata.storeResult, false, "Metadata storeResult should be false");
     }
 
     function test_StoreMultipleMessagesWithMetadata() public {
@@ -1008,7 +1076,7 @@ contract MessageBridgeTest is Test, SigUtils {
         storeMessage(nonce2, message2, "");
 
         AMBTypes.StoredMessage memory storedMessage1 = messageBridgeProxy.n3ToEvmMessages(nonce1);
-        AMBTypes.Metadata memory metadata1 = storedMessage1.metadata;
+        AMBTypes.MetadataExecutable memory metadata1 = getExecutableMetadata(nonce1);
         bytes memory storedRawMessage1 = storedMessage1.message;
         // verify first message metadata
         assertEq(metadata1.sender, address(this), "First message metadata sender should match");
@@ -1018,7 +1086,7 @@ contract MessageBridgeTest is Test, SigUtils {
         assertEq(storedRawMessage1, message1, "First message content should match");
 
         AMBTypes.StoredMessage memory storedMessage2 = messageBridgeProxy.n3ToEvmMessages(nonce2);
-        AMBTypes.Metadata memory metadata2 = storedMessage2.metadata;
+        AMBTypes.MetadataExecutable memory metadata2 = getExecutableMetadata(nonce2);
         bytes memory storedRawMessage2 = storedMessage2.message;
         // verify second message metadata
         assertEq(metadata2.sender, address(this), "Second message metadata sender should match");
@@ -1054,7 +1122,14 @@ contract MessageBridgeTest is Test, SigUtils {
         messages[0] = AMBTypes.MessageData({
             nonce: 1,
             message: message,
-            metadata: AMBTypes.Metadata({version: 1, sender: customSender, timestamp: customTimestamp})
+            encodedMetadata: abi.encode(
+                AMBTypes.MetadataExecutable({
+                    msgType: AMBTypes.MessageType.EXECUTABLE,
+                    sender: customSender,
+                    timestamp: customTimestamp,
+                    storeResult: false
+                })
+            )
         });
 
         StorageTypes.State memory n3ToEvmState = messageBridgeProxy.getMessageBridgeState().n3ToEvmState;
@@ -1068,7 +1143,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Retrieve the stored metadata and verify it
         AMBTypes.StoredMessage memory storedMessage = messageBridgeProxy.n3ToEvmMessages(messages[0].nonce);
-        AMBTypes.Metadata memory metadata = storedMessage.metadata;
+        AMBTypes.MetadataExecutable memory metadata = getExecutableMetadata(messages[0].nonce);
         bytes memory storedRawMessage = storedMessage.message;
         address storedSender = metadata.sender;
         uint256 storedTimestamp = metadata.timestamp;
@@ -1153,7 +1228,14 @@ contract MessageBridgeTest is Test, SigUtils {
         messages[0] = AMBTypes.MessageData({
             nonce: nonce,
             message: message,
-            metadata: AMBTypes.Metadata({version: 1, sender: address(this), timestamp: block.timestamp})
+            encodedMetadata: abi.encode(
+                AMBTypes.MetadataExecutable({
+                    msgType: AMBTypes.MessageType.EXECUTABLE,
+                    sender: address(this),
+                    timestamp: block.timestamp,
+                    storeResult: false
+                })
+            )
         });
 
         StorageTypes.State memory n3ToEvmState = messageBridgeProxy.getMessageBridgeState().n3ToEvmState;
@@ -1179,14 +1261,16 @@ contract MessageBridgeTest is Test, SigUtils {
         uint256 initialNonce = evmToN3State.nonce;
         bytes32 initialRoot = evmToN3State.root;
 
-        // Create the expected message hash
-        bytes32 expectedMessageHash = MessageBridgeLib._hashMessageBridgeOp(
-            initialNonce + 1,
-            1, // version
-            address(this),
-            block.timestamp,
-            message
+        bytes memory encodedMetadata = abi.encode(
+            AMBTypes.MetadataStoreOnly({
+                msgType: AMBTypes.MessageType.STORE_ONLY,
+                sender: address(this),
+                timestamp: block.timestamp
+            })
         );
+
+        // Create the expected message hash
+        bytes32 expectedMessageHash = MessageBridgeLib._hashMessageBridgeOp(initialNonce + 1, encodedMetadata, message);
 
         // Calculate the expected root
         bytes32 expectedRoot = BridgeLib._computeNewRoot(initialRoot, expectedMessageHash);
@@ -1372,6 +1456,17 @@ contract MessageBridgeTest is Test, SigUtils {
         assertTrue(state1.root != state2.root, "Root should change after each message");
         assertTrue(state2.root != state3.root, "Root should change after each message");
         assertTrue(state1.root != state3.root, "Root should change after each message");
+    }
+
+    // Helper function to decode executable metadata from stored message
+    function getExecutableMetadata(uint256 nonce) internal view returns (AMBTypes.MetadataExecutable memory) {
+        bytes memory encodedMetadata = messageBridgeProxy.n3ToEvmMessages(nonce).encodedMetadata;
+        AMBTypes.MessageType msgType = MessageBridgeLib._readMessageType(encodedMetadata);
+        if (msgType == AMBTypes.MessageType.EXECUTABLE) {
+            return abi.decode(encodedMetadata, (AMBTypes.MetadataExecutable));
+        } else {
+            revert("Unexpected message type");
+        }
     }
 
     // Helper function to receive ETH (needed for the refund test)
