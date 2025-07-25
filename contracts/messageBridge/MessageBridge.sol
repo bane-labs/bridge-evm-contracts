@@ -139,7 +139,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         whenMessageBridgeNotPaused
     {
         AMBTypes.SendMetadataExecutable memory metadata = AMBTypes.SendMetadataExecutable({
-            msgType: uint32(AMBTypes.SendMessageType.EXECUTABLE),
+            msgType: AMBTypes.SendMessageType.EXECUTABLE,
             timestamp: block.timestamp,
             sender: msg.sender,
             storeResult: _storeResult
@@ -153,7 +153,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
      */
     function sendMessage(bytes calldata _message) external payable whenMessageBridgeNotPaused {
         AMBTypes.SendMetadataStoreOnly memory metadata = AMBTypes.SendMetadataStoreOnly({
-            msgType: uint32(AMBTypes.SendMessageType.STORE_ONLY),
+            msgType: AMBTypes.SendMessageType.STORE_ONLY,
             timestamp: block.timestamp,
             sender: msg.sender
         });
@@ -176,7 +176,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         uint256 newNonce = state.nonce + 1;
 
         // Create message hash
-        bytes32 messageHash = MessageBridgeLib._hashMessageSendOp(newNonce, _message, encodedMetadata);
+        bytes32 messageHash = MessageBridgeLib._hashMessageSendOp(newNonce, encodedMetadata, _message);
 
         // Compute new root
         bytes32 newRoot = BridgeLib._computeNewRoot(state.root, messageHash);

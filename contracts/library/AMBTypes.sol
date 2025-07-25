@@ -70,20 +70,20 @@ library AMBTypes {
     }
 
      struct SendMetadataExecutable {
-        uint32 msgType;
+        SendMessageType msgType;
         uint256 timestamp;
         address sender;
         bool storeResult;
     }
 
     struct SendMetadataStoreOnly {
-        uint32 msgType;
+        SendMessageType msgType;
         uint256 timestamp;
         address sender;
     }
 
     struct SendMetadataResult {
-        uint32 msgType;
+        SendMessageType msgType;
         uint256 timestamp;
         address sender;
         uint256 relatedMessageNonce; // The nonce of the message that this result is related to
