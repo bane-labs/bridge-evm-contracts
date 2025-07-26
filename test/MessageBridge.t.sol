@@ -1169,4 +1169,211 @@ contract MessageBridgeTest is Test, SigUtils {
         vm.prank(relayer);
         messageBridgeProxy.storeMessage(depositRoot, signatures, messages);
     }
+
+    function test_SendMessage_Success() public {
+        // Prepare a test message
+        bytes memory message = abi.encodePacked("Test message from EVM to N3");
+
+        // Get the initial state
+        StorageTypes.State memory evmToN3State = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+        uint256 initialNonce = evmToN3State.nonce;
+        bytes32 initialRoot = evmToN3State.root;
+
+        // Create the expected message hash
+        bytes32 expectedMessageHash = MessageBridgeLib._hashMessageBridgeOp(
+            initialNonce + 1,
+            1, // version
+            address(this),
+            block.timestamp,
+            message
+        );
+
+        // Calculate the expected root
+        bytes32 expectedRoot = BridgeLib._computeNewRoot(initialRoot, expectedMessageHash);
+
+        // Set up event expectations
+        vm.expectEmit(true, true, true, true);
+        emit IMessageBridge.MessageSent(
+            initialNonce + 1, // nonce
+            message, // message
+            block.timestamp, // timestamp
+            address(this), // sender
+            expectedMessageHash, // messageHash
+            expectedRoot // newRoot
+        );
+
+        // Send the message with the required fee
+        messageBridgeProxy.sendMessage{value: messageFee}(message);
+
+        // Get the updated state
+        StorageTypes.State memory updatedState = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+
+        // Verify state changes
+        assertEq(updatedState.nonce, initialNonce + 1, "Nonce should be incremented");
+        assertEq(updatedState.root, expectedRoot, "Root should be updated correctly");
+    }
+
+    function test_SendMessage_InsufficientFee() public {
+        // Prepare a test message
+        bytes memory message = abi.encodePacked("Test message from EVM to N3");
+
+        // Set insufficient fee
+        uint256 insufficientFee = messageFee - 1;
+
+        // Expect revert due to insufficient fee
+        vm.expectRevert(abi.encodeWithSelector(MessageBridge.InsufficientFee.selector, messageFee, insufficientFee));
+
+        // Send the message with insufficient fee
+        messageBridgeProxy.sendMessage{value: insufficientFee}(message);
+    }
+
+    function test_SendMessage_MessageTooLarge() public {
+        // Get the message bridge config to know the max size
+        AMBTypes.MessageConfig memory config = messageBridgeProxy.getMessageBridgeState().config;
+
+        // Create a message that is larger than the max allowed size
+        bytes memory largeMessage = new bytes(config.maxMessageSize + 1);
+        for (uint256 i = 0; i < largeMessage.length; i++) {
+            largeMessage[i] = 0xFF; // Fill with non-zero bytes
+        }
+
+        // Expect revert due to message being too large
+        vm.expectRevert(
+            abi.encodeWithSelector(MessageBridge.MessageTooLarge.selector, config.maxMessageSize, largeMessage.length)
+        );
+
+        // Send the oversized message
+        messageBridgeProxy.sendMessage{value: messageFee}(largeMessage);
+    }
+
+    function test_SendMessage_ExactMaxMessageSize() public {
+        // Get the message bridge config to know the max size
+        AMBTypes.MessageConfig memory config = messageBridgeProxy.getMessageBridgeState().config;
+
+        // Create a message that is exactly the max allowed size
+        bytes memory exactSizeMessage = new bytes(config.maxMessageSize);
+        for (uint256 i = 0; i < exactSizeMessage.length; i++) {
+            exactSizeMessage[i] = 0xFF; // Fill with non-zero bytes
+        }
+
+        // Get the initial state
+        StorageTypes.State memory evmToN3State = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+        uint256 initialNonce = evmToN3State.nonce;
+
+        // Send the message (should not revert)
+        messageBridgeProxy.sendMessage{value: messageFee}(exactSizeMessage);
+
+        // Get the updated state
+        StorageTypes.State memory updatedState = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+
+        // Verify nonce increment
+        assertEq(updatedState.nonce, initialNonce + 1, "Nonce should be incremented");
+    }
+
+    function test_SendMessage_WhenMessageBridgePaused() public {
+        // Prepare a test message
+        bytes memory message = abi.encodePacked("Test message from EVM to N3");
+
+        // Pause the message bridge
+        vm.prank(governor);
+        messageBridgeProxy.pauseMessageBridge();
+
+        // Expect revert due to message bridge being paused
+        vm.expectRevert(abi.encodeWithSelector(MessageBridge.MessageBridgePaused.selector));
+
+        // Attempt to send a message while the message bridge is paused
+        messageBridgeProxy.sendMessage{value: messageFee}(message);
+    }
+
+    function test_SendMessage_ExcessFeeRefund() public {
+        // Prepare a test message
+        bytes memory message = abi.encodePacked("Test message from EVM to N3");
+
+        // Send with excess fee
+        uint256 excessFee = messageFee * 2;
+
+        // Fund the owner account with enough ether to cover the excess fee
+        vm.deal(owner, excessFee);
+
+        // Track balance before sending
+        uint256 balanceBefore = address(owner).balance;
+
+        // Send the message with excess fee
+        // Impersonate an EOA to send the message
+        vm.prank(owner);
+        messageBridgeProxy.sendMessage{value: excessFee}(message);
+
+        // Track balance after sending
+        uint256 balanceAfter = address(owner).balance;
+
+        // Verify refund (initial balance - message fee = final balance)
+        assertEq(balanceBefore - messageFee, balanceAfter, "Excess fee should be refunded");
+    }
+
+    function test_SendMessage_ExactFeeRequired_FromContract() public {
+        // Create a test contract that will attempt to send a message
+        TestMessageContract testContract = new TestMessageContract();
+
+        // Prepare a test message
+        bytes memory message = abi.encodePacked("Test message from contract");
+
+        // Fund the test contract with ether
+        (bool success,) = address(testContract).call{value: messageFee * 2}("");
+        require(success, "Failed to fund test contract");
+
+        // Try to send message from the contract with excess fee
+        vm.prank(address(testContract));
+        vm.expectRevert(abi.encodeWithSelector(MessageBridge.ExactFeeRequired.selector, messageFee, messageFee * 2));
+        messageBridgeProxy.sendMessage{value: messageFee * 2}(message);
+    }
+
+    function test_SendMessage_EmptyMessage() public {
+        // Prepare an empty message
+        bytes memory emptyMessage = new bytes(0);
+
+        // Send the empty message
+        messageBridgeProxy.sendMessage{value: messageFee}(emptyMessage);
+
+        // Get the updated state
+        StorageTypes.State memory updatedState = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+
+        // Verify state changes (should succeed with empty message)
+        assertEq(updatedState.nonce, 1, "Nonce should be incremented even with empty message");
+    }
+
+    function test_SendMessage_MultipleMessages() public {
+        // Prepare multiple messages
+        bytes memory message1 = abi.encodePacked("First message");
+        bytes memory message2 = abi.encodePacked("Second message");
+        bytes memory message3 = abi.encodePacked("Third message");
+
+        // Send first message
+        messageBridgeProxy.sendMessage{value: messageFee}(message1);
+
+        // Get the state after first message
+        StorageTypes.State memory state1 = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+        assertEq(state1.nonce, 1, "Nonce should be 1 after first message");
+
+        // Send second message
+        messageBridgeProxy.sendMessage{value: messageFee}(message2);
+
+        // Get the state after second message
+        StorageTypes.State memory state2 = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+        assertEq(state2.nonce, 2, "Nonce should be 2 after second message");
+
+        // Send third message
+        messageBridgeProxy.sendMessage{value: messageFee}(message3);
+
+        // Get the state after third message
+        StorageTypes.State memory state3 = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+        assertEq(state3.nonce, 3, "Nonce should be 3 after third message");
+
+        // Verify the roots are different
+        assertTrue(state1.root != state2.root, "Root should change after each message");
+        assertTrue(state2.root != state3.root, "Root should change after each message");
+        assertTrue(state1.root != state3.root, "Root should change after each message");
+    }
+
+    // Helper function to receive ETH (needed for the refund test)
+    receive() external payable {}
 }

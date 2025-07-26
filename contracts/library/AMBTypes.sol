@@ -56,4 +56,37 @@ library AMBTypes {
         bool success;
         bytes returnData;
     }
+
+    struct SendMessageData {
+        uint256 nonce;
+        bytes encodedMetadata;
+        bytes message;
+    }
+
+    enum SendMessageType {
+        EXECUTABLE, // The message is executable
+        STORE_ONLY, // The message is only stored. It cannot is not executable.
+        RESULT // The message is a result of a message execution.
+    }
+
+     struct SendMetadataExecutable {
+        SendMessageType msgType;
+        uint256 timestamp;
+        address sender;
+        bool storeResult;
+    }
+
+    struct SendMetadataStoreOnly {
+        SendMessageType msgType;
+        uint256 timestamp;
+        address sender;
+    }
+
+    struct SendMetadataResult {
+        SendMessageType msgType;
+        uint256 timestamp;
+        address sender;
+        uint256 relatedMessageNonce; // The nonce of the message that this result is related to
+    }
+    
 }
