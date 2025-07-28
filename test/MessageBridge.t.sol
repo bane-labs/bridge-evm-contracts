@@ -180,6 +180,16 @@ contract MessageBridgeTest is Test, SigUtils {
         uint8 sendingPausedBoolByte = uint8(uint256(slotValue) >> 160) & 0xFF;
         return sendingPausedBoolByte > 0;
     }
+    
+    function isExecutingPaused() private view returns (bool) {
+        bytes32 slotValue = vm.load(messageBridgeProxyAddress, _getAMBStorage());
+        // Extract the boolean (byte at offset 21)
+        // Shift right by 21 bytes (168 bits) to get the boolean at the start
+        // Then mask with 0xff to isolate just that byte
+        // Then check if it's non-zero (Solidity booleans are 1 for true, 0 for false)
+        uint8 executingPausedBoolByte = uint8(uint256(slotValue) >> 168) & 0xFF;
+        return executingPausedBoolByte > 0;
+    }
 
     function test_pauseSending() public {
         assertEq(isSendingPaused(), false, "Sending should not be paused initially");
@@ -250,6 +260,62 @@ contract MessageBridgeTest is Test, SigUtils {
 
         vm.expectRevert(abi.encodeWithSelector(MessageBridge.SendingPaused.selector));
         messageBridgeProxy.sendMessage(testMessage1);
+    }
+    
+    function test_pauseExecuting() public {
+        assertEq(isExecutingPaused(), false, "Executing should not be paused initially");
+
+        // Fail unpausing when already unpaused
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSelector(MessageBridge.ExecutingNotPaused.selector));
+        messageBridgeProxy.unpauseExecuting(); // Should revert since not paused
+
+        // Fail pausing with unauthorized user
+        vm.prank(funder);
+        vm.expectRevert(abi.encodeWithSelector(MessageBridge.NoAuthorization.selector));
+        messageBridgeProxy.pauseExecuting(); // Should revert since not authorized
+
+        // Pause sending
+        vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
+        emit IMessageBridge.ExecutingPause();
+        vm.prank(securityGuard);
+        messageBridgeProxy.pauseExecuting();
+
+        assertEq(isExecutingPaused(), true, "Executing should be paused");
+
+        // Fail pausing when already paused
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSelector(MessageBridge.ExecutingPaused.selector));
+        messageBridgeProxy.pauseExecuting(); // Should revert since already paused
+
+        // Fail unpausing with unauthorized user
+        vm.prank(securityGuard);
+        vm.expectRevert(abi.encodeWithSelector(MessageBridge.NotGovernor.selector));
+        messageBridgeProxy.unpauseExecuting(); // Should revert since not authorized
+
+        // Unpause sending
+        vm.prank(governor);
+        vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
+        emit IMessageBridge.ExecutingUnpause();
+        messageBridgeProxy.unpauseExecuting();
+        assertEq(isExecutingPaused(), false, "Executing should be unpaused");
+    }
+
+    function test_pauseExecuting_disallowsExecuting() public {
+        assertEq(isExecutingPaused(), false, "Executing should not be paused initially");
+
+        vm.prank(governor);
+        vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
+        emit IMessageBridge.ExecutingPause();
+        messageBridgeProxy.pauseExecuting();
+
+        assertEq(isExecutingPaused(), true, "Executing should be paused");
+
+        uint256 nonce = 1;
+        storeDummyMessage(nonce);
+
+        vm.expectRevert(abi.encodeWithSelector(MessageBridge.ExecutingPaused.selector));
+        messageBridgeProxy.executeMessage(nonce);
     }
 
     function test_StoreAndExecuteMessageWithTestMessageContract() public {
@@ -1340,6 +1406,22 @@ contract MessageBridgeTest is Test, SigUtils {
 
         vm.prank(relayer);
         messageBridgeProxy.storeMessage(depositRoot, signatures, messages);
+    }
+
+    function storeDummyMessage(uint256 nonce) internal {
+        // Create a dummy message
+        bytes memory dummyMessage = abi.encode(
+            AMBTypes.Call({
+                allowFailure: false,
+                requiresResponse: false,
+                target: address(0),
+                value: 0,
+                callData: ""
+            })
+        );
+
+        // Store the dummy message with the specified nonce
+        storeMessage(nonce, dummyMessage, "");
     }
 
     function test_SendMessage_Success() public {
