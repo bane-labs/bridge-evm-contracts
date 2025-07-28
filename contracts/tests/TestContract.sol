@@ -1,12 +1,7 @@
-// filepath: /Users/otnielnicola/projects/bridge-evm-contracts/test/helpers/TestContract.sol
-
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.25;
 
-import {MessageBridge} from "../messageBridge/MessageBridge.sol";
-import {MessageBridgeLib} from "../library/MessageBridgeLib.sol";
-
-contract TestMessageContract is MessageBridge {
+contract TestContract {
     uint256 public counter;
 
     event TestEvent(uint256 indexed counter, address indexed caller);
@@ -20,24 +15,8 @@ contract TestMessageContract is MessageBridge {
     error InvalidCallData();
     // Custom error for when amount or value is zero
     error ZeroValueNotAllowed();
-
-    constructor() {
-        counter = 0;
-    }
-
-    function hashSendMessage(
-        uint256 _nonce,
-        bytes memory _encodedMetadata,
-        bytes memory _msgBytes
-    )
-        public
-        pure
-        returns (bytes32)
-    {
-        return MessageBridgeLib._hashMessageBridgeOp(_nonce, _encodedMetadata, _msgBytes);
-    }
-
-    function tryoutFunction() public returns (uint256) {
+    
+    function testFunction() public returns (uint256) {
         counter += 1;
         emit TestEvent(counter, msg.sender);
         return counter;

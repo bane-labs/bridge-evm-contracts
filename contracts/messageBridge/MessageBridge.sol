@@ -31,7 +31,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         IExecutionManager messageExecutionManager;
     }
 
-    function _getAMBStorage() private pure returns (AMBStorage storage $) {
+    function _getAMBStorage() internal pure returns (AMBStorage storage $) {
         assembly {
             $.slot := AMBStorageLocation
         }
@@ -49,7 +49,9 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         uint256 _executionWindowSeconds
     )
         external
+        virtual
         initializer
+        onlyAdmin
     {
         __ReentrancyGuard_init();
         _getAMBStorage().management = IBridgeManagement(_management);
