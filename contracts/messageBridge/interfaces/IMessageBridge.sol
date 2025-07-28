@@ -32,10 +32,13 @@ interface IMessageBridge {
     function messageBridgeIsSet() external view returns (bool);
     function pauseMessageBridge() external;
     function unpauseMessageBridge() external;
+    function isMessageBridgePaused() external view returns (bool);
     function pauseSending() external;
     function unpauseSending() external;
+    function isSendingPaused() external view returns (bool);
     function pauseExecuting() external;
     function unpauseExecuting() external;
+    function isExecutingPaused() external view returns (bool);
     function sendMessage(bytes calldata message) external payable;
     function sendExecutableMessage(bytes calldata _message, bool storeResult) external payable;
     function storeMessage(
