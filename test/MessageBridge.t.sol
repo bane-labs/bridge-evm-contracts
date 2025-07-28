@@ -3,6 +3,7 @@ pragma solidity 0.8.25;
 
 import {MessageBridgeTestHelper} from "./MessageBridgeTestHelper.sol";
 import {AMBTypes} from "../contracts/library/AMBTypes.sol";
+import {AMBStorage} from "../contracts/library/AMBStorage.sol";
 import {BridgeLib} from "../contracts/library/BridgeLib.sol";
 import {MessageBridgeLib} from "../contracts/library/MessageBridgeLib.sol";
 import {StorageTypes} from "../contracts/library/StorageTypes.sol";
@@ -51,7 +52,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
             )
         });
 
-        AMBTypes.MessageBridgeState memory bridgeState = messageBridgeProxy.getMessageBridgeState();
+        AMBStorage.MessageBridgeState memory bridgeState = messageBridgeProxy.getMessageBridgeState();
         bytes32 previousRoot = bridgeState.n3ToEvmState.root;
         bytes32 depositRoot = MessageBridgeLib._computeNewTopRoot(previousRoot, messages);
         BridgeLib.Signature[] memory signatures = generateValidSignatures(depositRoot);
@@ -361,7 +362,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         // Encode the Call struct into a message
         bytes memory message = abi.encode(call);
 
-        AMBTypes.MessageBridgeState memory bridgeState = messageBridgeProxy.getMessageBridgeState();
+        AMBStorage.MessageBridgeState memory bridgeState = messageBridgeProxy.getMessageBridgeState();
         uint256 nonce = bridgeState.n3ToEvmState.nonce + 1;
 
         // Store the message with the nonce
@@ -399,7 +400,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         // Encode the Call struct into a message
         bytes memory message = abi.encode(call);
 
-        AMBTypes.MessageBridgeState memory bridgeState = messageBridgeProxy.getMessageBridgeState();
+        AMBStorage.MessageBridgeState memory bridgeState = messageBridgeProxy.getMessageBridgeState();
         uint256 nonce = bridgeState.n3ToEvmState.nonce + 1;
 
         // Store the message with the nonce
@@ -998,7 +999,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         uint256 nonce = initialState.nonce + 1;
 
         // Store the message with custom metadata
-        uint256 timestamp = block.timestamp;
+        uint256 timestamp = block.timestamp * 1000; // Pretend timestamp is in milliseconds
 
         // Store the message with the nonce
         storeMessage(nonce, message, "");
@@ -1039,15 +1040,15 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         uint256 nonce2 = nonce1 + 1;
 
         // Store first message
-        uint256 timestamp1 = block.timestamp;
+        uint256 timestamp1 = block.timestamp * 1000; // Pretend timestamp is in milliseconds
         storeMessage(nonce1, message1, "");
 
         // Store second message
         vm.warp(block.timestamp + 100); // Advance time by 100 seconds
-        uint256 timestamp2 = block.timestamp;
+        uint256 timestamp2 = block.timestamp * 1000; // Pretend timestamp is in milliseconds
         storeMessage(nonce2, message2, "");
 
-        AMBTypes.StoredMessage memory storedMessage1 = messageBridgeProxy.n3ToEvmMessages(nonce1);
+        AMBStorage.StoredMessage memory storedMessage1 = messageBridgeProxy.n3ToEvmMessages(nonce1);
         AMBTypes.MetadataExecutable memory metadata1 = getExecutableMetadata(nonce1);
         bytes memory storedRawMessage1 = storedMessage1.message;
         // verify first message metadata
@@ -1057,13 +1058,14 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         // Verify raw message is stored correctly
         assertEq(storedRawMessage1, message1, "First message content should match");
 
-        AMBTypes.StoredMessage memory storedMessage2 = messageBridgeProxy.n3ToEvmMessages(nonce2);
+        AMBStorage.StoredMessage memory storedMessage2 = messageBridgeProxy.n3ToEvmMessages(nonce2);
         AMBTypes.MetadataExecutable memory metadata2 = getExecutableMetadata(nonce2);
         bytes memory storedRawMessage2 = storedMessage2.message;
         // verify second message metadata
+        // Note: timestamps are in milliseconds, as if they are coming from N3
         assertEq(metadata2.sender, address(this), "Second message metadata sender should match");
         assertEq(metadata2.timestamp, timestamp2, "Second message metadata timestamp should match");
-        assertEq(metadata2.timestamp - metadata1.timestamp, 100, "Timestamp difference should be 100 seconds");
+        assertEq(metadata2.timestamp - metadata1.timestamp, 100_000, "Timestamp difference should be 100 seconds");
 
         // Verify raw message is stored correctly
         assertEq(storedRawMessage2, message2, "Second message content should match");
@@ -1109,7 +1111,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         messageBridgeProxy.storeMessage(depositRoot, signatures, messages);
 
         // Retrieve the stored metadata and verify it
-        AMBTypes.StoredMessage memory storedMessage = messageBridgeProxy.n3ToEvmMessages(messages[0].nonce);
+        AMBStorage.StoredMessage memory storedMessage = messageBridgeProxy.n3ToEvmMessages(messages[0].nonce);
         AMBTypes.MetadataExecutable memory metadata = getExecutableMetadata(messages[0].nonce);
         bytes memory storedRawMessage = storedMessage.message;
         address storedSender = metadata.sender;
@@ -1141,9 +1143,10 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         storeMessage(nonce, message, "");
 
         // Get the current execution window from the bridge config
-        AMBTypes.MessageConfig memory config = messageBridgeProxy.getMessageBridgeState().config;
+        AMBStorage.MessageConfig memory config = messageBridgeProxy.getMessageBridgeState().config;
 
         // Advance time past the execution window
+        // 1 + 60 + 1
         vm.warp(block.timestamp + config.executionWindowSeconds + 1);
 
         // Attempt to execute the message after the window has expired - should revert
@@ -1220,7 +1223,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
 
     function test_SendMessage_MessageTooLarge() public {
         // Get the message bridge config to know the max size
-        AMBTypes.MessageConfig memory config = messageBridgeProxy.getMessageBridgeState().config;
+        AMBStorage.MessageConfig memory config = messageBridgeProxy.getMessageBridgeState().config;
 
         // Create a message that is larger than the max allowed size
         bytes memory largeMessage = new bytes(config.maxMessageSize + 1);
@@ -1239,7 +1242,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
 
     function test_SendMessage_ExactMaxMessageSize() public {
         // Get the message bridge config to know the max size
-        AMBTypes.MessageConfig memory config = messageBridgeProxy.getMessageBridgeState().config;
+        AMBStorage.MessageConfig memory config = messageBridgeProxy.getMessageBridgeState().config;
 
         // Create a message that is exactly the max allowed size
         bytes memory exactSizeMessage = new bytes(config.maxMessageSize);
@@ -1404,19 +1407,15 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         );
 
         // Calculate expected values
+        bytes memory resultData = abi.encode(executionResult);
         bytes32 expectedMessageHash =
-            MessageBridgeLib._hashMessageBridgeOp(initialNonce + 1, expectedMetadata, executionResult.returnData);
+            MessageBridgeLib._hashMessageBridgeOp(initialNonce + 1, expectedMetadata, resultData);
         bytes32 expectedRoot = BridgeLib._computeNewRoot(initialRoot, expectedMessageHash);
 
         // Expect the MessageSent event
         vm.expectEmit(true, true, true, true);
         emit IMessageBridge.MessageSent(
-            initialNonce + 1,
-            executionResult.returnData,
-            block.timestamp,
-            address(this),
-            expectedMessageHash,
-            expectedRoot
+            initialNonce + 1, resultData, block.timestamp, address(this), expectedMessageHash, expectedRoot
         );
 
         // Send the result message

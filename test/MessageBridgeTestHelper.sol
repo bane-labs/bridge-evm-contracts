@@ -114,7 +114,7 @@ abstract contract MessageBridgeTestHelper is Test, SigUtils {
                 AMBTypes.MetadataExecutable({
                     msgType: AMBTypes.MessageType.EXECUTABLE,
                     sender: address(this),
-                    timestamp: block.timestamp,
+                    timestamp: block.timestamp * 1000, // Pretend timestamp is in milliseconds
                     storeResult: false
                 })
             )
