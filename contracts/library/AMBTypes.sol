@@ -28,18 +28,12 @@ library AMBTypes {
 
     struct MessageData {
         uint256 nonce;
-        Metadata metadata;
+        bytes encodedMetadata;
         bytes message;
     }
 
-    struct Metadata {
-        uint32 version; // For forward compatibility, should be incremented if the structure changes
-        address sender;
-        uint256 timestamp;
-    }
-
     struct StoredMessage {
-        Metadata metadata;
+        bytes encodedMetadata;
         bytes message;
         bool executed;
     }
@@ -63,30 +57,30 @@ library AMBTypes {
         bytes message;
     }
 
-    enum SendMessageType {
+    enum MessageType {
         EXECUTABLE, // The message is executable
         STORE_ONLY, // The message is only stored. It cannot is not executable.
         RESULT // The message is a result of a message execution.
+
     }
 
-     struct SendMetadataExecutable {
-        SendMessageType msgType;
+    struct MetadataExecutable {
+        MessageType msgType;
         uint256 timestamp;
         address sender;
         bool storeResult;
     }
 
-    struct SendMetadataStoreOnly {
-        SendMessageType msgType;
+    struct MetadataStoreOnly {
+        MessageType msgType;
         uint256 timestamp;
         address sender;
     }
 
-    struct SendMetadataResult {
-        SendMessageType msgType;
+    struct MetadataResult {
+        MessageType msgType;
         uint256 timestamp;
         address sender;
         uint256 relatedMessageNonce; // The nonce of the message that this result is related to
     }
-    
 }
