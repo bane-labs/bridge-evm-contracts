@@ -146,11 +146,11 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         bytes memory encodedMetadata = abi.encode(metadata);
         _sendMessageWithMetadata(_message, encodedMetadata);
     }
+
     /**
      * @notice Sends a store-only message to the Neo N3 blockchain.
      * @param _message The message to be sent.
      */
-
     function sendMessage(bytes calldata _message) external payable whenMessageBridgeNotPaused {
         AMBTypes.SendMetadataStoreOnly memory metadata = AMBTypes.SendMetadataStoreOnly({
             msgType: AMBTypes.SendMessageType.STORE_ONLY,
