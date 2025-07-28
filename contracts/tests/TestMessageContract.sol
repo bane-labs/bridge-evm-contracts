@@ -3,7 +3,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-contract TestMessageContract {
+import {MessageBridge} from "../messageBridge/MessageBridge.sol";
+import {MessageBridgeLib} from "../library/MessageBridgeLib.sol";
+
+contract TestMessageContract is MessageBridge {
     uint256 public counter;
 
     event TestEvent(uint256 indexed counter, address indexed caller);
@@ -20,6 +23,18 @@ contract TestMessageContract {
 
     constructor() {
         counter = 0;
+    }
+
+    function hashSendMessage(
+        uint256 _nonce,
+        bytes memory _encodedMetadata,
+        bytes memory _msgBytes
+    )
+        public
+        pure
+        returns (bytes32)
+    {
+        return MessageBridgeLib._hashMessageBridgeOp(_nonce, _encodedMetadata, _msgBytes);
     }
 
     function testFunction() public returns (uint256) {
