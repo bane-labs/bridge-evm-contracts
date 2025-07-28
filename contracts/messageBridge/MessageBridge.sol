@@ -23,6 +23,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     struct AMBStorage {
         IBridgeManagement management;
         bool sendingPaused;
+        bool executingPaused;
         uint256 unclaimedRewards;
         AMBTypes.MessageBridgeState messageBridgeState;
         mapping(uint256 => AMBTypes.StoredMessage) n3ToEvmMessages;
@@ -81,6 +82,10 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     error SendingPaused();
     //0x26e7ced5
     error SendingNotPaused();
+    //0xf4700efc
+    error ExecutingPaused();
+    //0x61654835
+    error ExecutingNotPaused();
     //0x018e5d6a
     error InvalidMessageSize();
     //0x000bf7e9
@@ -136,6 +141,16 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     function unpauseSending() external override onlyGovernor whenSendingPaused {
         _getAMBStorage().sendingPaused = false;
         emit SendingUnpause();
+    }
+    
+    function pauseExecuting() external override onlyGovernorOrSecurityGuard whenExecutingNotPaused {
+        _getAMBStorage().executingPaused = true;
+        emit ExecutingPause();
+    }
+
+    function unpauseExecuting() external override onlyGovernor whenExecutingPaused {
+        _getAMBStorage().executingPaused = false;
+        emit ExecutingUnpause();
     }
 
     /**
@@ -266,7 +281,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         emit MessageDeposit(messageData.nonce, messageData.message);
     }
 
-    function executeMessage(uint256 nonce) external payable nonReentrant returns (AMBTypes.Result memory) {
+    function executeMessage(uint256 nonce) external payable nonReentrant whenExecutingNotPaused returns (AMBTypes.Result memory) {
         AMBTypes.StoredMessage storage storedMessage = _getAMBStorage().n3ToEvmMessages[nonce];
         bytes memory rawMessage = storedMessage.message;
         if (rawMessage.length == 0) revert MessageNotFound(nonce);
@@ -387,6 +402,16 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
 
     modifier whenSendingPaused() {
         if (!_getAMBStorage().sendingPaused) revert SendingNotPaused();
+        _;
+    }
+
+    modifier whenExecutingNotPaused() {
+        if (_getAMBStorage().executingPaused) revert ExecutingPaused();
+        _;
+    }
+
+    modifier whenExecutingPaused() {
+        if (!_getAMBStorage().executingPaused) revert ExecutingNotPaused();
         _;
     }
 
