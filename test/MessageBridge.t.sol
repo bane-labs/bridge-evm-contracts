@@ -162,6 +162,96 @@ contract MessageBridgeTest is Test, SigUtils {
         messageBridgeProxy.storeMessage(depositRoot, signatures, messages);
     }
 
+        function _getAMBStorage() private pure returns (bytes32) {
+        return keccak256(abi.encode(uint256(keccak256("AMB.storage")) - 1)) & ~bytes32(uint256(0xff));
+    }
+
+    function isSendingPaused() private view returns (bool) {
+        bytes32 slotValue = vm.load(messageBridgeProxyAddress, _getAMBStorage());
+
+        // Extract the address (first 20 bytes)
+        address storedAddress = address(uint160(uint256(slotValue)));
+        assertEq(storedAddress, managementProxyAddress, "Management address should match");
+
+        // Extract the boolean (byte at offset 20)
+        // Shift right by 20 bytes (160 bits) to get the boolean at the start
+        // Then mask with 0xff to isolate just that byte
+        // Then check if it's non-zero (Solidity booleans are 1 for true, 0 for false)
+        uint8 sendingPausedBoolByte = uint8(uint256(slotValue) >> 160) & 0xFF;
+        return sendingPausedBoolByte > 0;
+    }
+
+    function test_pauseSending() public {
+        assertEq(isSendingPaused(), false, "Sending should not be paused initially");
+
+        // Fail unpausing when already unpaused
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSelector(MessageBridge.SendingNotPaused.selector));
+        messageBridgeProxy.unpauseSending(); // Should revert since not paused
+
+        // Fail pausing with unauthorized user
+        vm.prank(funder);
+        vm.expectRevert(abi.encodeWithSelector(MessageBridge.NoAuthorization.selector));
+        messageBridgeProxy.pauseSending(); // Should revert since not authorized
+
+        // Pause sending
+        vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
+        emit IMessageBridge.SendingPause();
+        vm.prank(securityGuard);
+        messageBridgeProxy.pauseSending();
+
+        assertEq(isSendingPaused(), true, "Sending should be paused");
+
+        // Fail pausing when already paused
+        vm.prank(governor);
+        vm.expectRevert(abi.encodeWithSelector(MessageBridge.SendingPaused.selector));
+        messageBridgeProxy.pauseSending(); // Should revert since already paused
+
+        // Fail unpausing with unauthorized user
+        vm.prank(securityGuard);
+        vm.expectRevert(abi.encodeWithSelector(MessageBridge.NotGovernor.selector));
+        messageBridgeProxy.unpauseSending(); // Should revert since not authorized
+
+        // Unpause sending
+        vm.prank(governor);
+        vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
+        emit IMessageBridge.SendingUnpause();
+        messageBridgeProxy.unpauseSending();
+        assertEq(isSendingPaused(), false, "Sending should be unpaused");
+    }
+
+    function test_pauseSending_disallowsSending() public {
+        assertEq(isSendingPaused(), false, "Sending should not be paused initially");
+
+        vm.prank(governor);
+        vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
+        emit IMessageBridge.SendingPause();
+        messageBridgeProxy.pauseSending();
+
+        assertEq(isSendingPaused(), true, "Sending should be paused");
+
+        // Try to store a message while sending is paused (should revert)
+        AMBTypes.MessageData[] memory messages = new AMBTypes.MessageData[](1);
+        messages[0] = AMBTypes.MessageData({
+            nonce: 1,
+            message: testMessage1,
+            encodedMetadata: abi.encode(
+                AMBTypes.MetadataExecutable({
+                    msgType: AMBTypes.MessageType.EXECUTABLE,
+                    sender: address(this),
+                    timestamp: block.timestamp,
+                    storeResult: false
+                })
+            )
+        });
+
+        vm.expectRevert(abi.encodeWithSelector(MessageBridge.SendingPaused.selector));
+        messageBridgeProxy.sendExecutableMessage(testMessage1, false);
+
+        vm.expectRevert(abi.encodeWithSelector(MessageBridge.SendingPaused.selector));
+        messageBridgeProxy.sendMessage(testMessage1);
+    }
+
     function test_StoreAndExecuteMessageWithTestMessageContract() public {
         // Deploy test contract
         TestMessageContract testContract = new TestMessageContract();
