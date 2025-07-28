@@ -41,7 +41,7 @@ library MessageBridgeLib {
     /**
      * @dev Computes the hash of a single message operation.
      * @param _nonce The nonce of the message
-        * @param _encodedMetadata The encoded metadata of the message
+     * @param _encodedMetadata The encoded metadata of the message
      * @param _rawMessage The message content
      * @return _hash The hash of the message operation
      */
