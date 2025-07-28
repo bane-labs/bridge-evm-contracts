@@ -8,6 +8,8 @@ interface IMessageBridge {
     event MessageBridgeRegister(AMBTypes.MessageConfig config);
     event MessageBridgePause();
     event MessageBridgeUnpause();
+    event SendingPause();
+    event SendingUnpause();
     event MessageDeposit(uint256 indexed nonce, bytes message);
     event MessageDepositRootUpdate(uint256 indexed nonce, bytes32 depositRoot);
     event MessageWithdrawalFeeChange(uint256 fee);
@@ -28,6 +30,8 @@ interface IMessageBridge {
     function messageBridgeIsSet() external view returns (bool);
     function pauseMessageBridge() external;
     function unpauseMessageBridge() external;
+    function pauseSending() external;
+    function unpauseSending() external;
     function sendMessage(bytes calldata message) external payable;
     function sendExecutableMessage(bytes calldata _message, bool storeResult) external payable;
     function storeMessage(

@@ -22,6 +22,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     /// @custom:storage-location erc7201:AMB.storage
     struct AMBStorage {
         IBridgeManagement management;
+        bool sendingPaused;
         uint256 unclaimedRewards;
         AMBTypes.MessageBridgeState messageBridgeState;
         mapping(uint256 => AMBTypes.StoredMessage) n3ToEvmMessages;
@@ -76,6 +77,10 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     error MessageBridgePaused();
     //0xfa5fc19e
     error MessageBridgeNotPaused();
+    //0x56a6145d
+    error SendingPaused();
+    //0x26e7ced5
+    error SendingNotPaused();
     //0x018e5d6a
     error InvalidMessageSize();
     //0x000bf7e9
@@ -123,6 +128,16 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         emit MessageBridgeUnpause();
     }
 
+    function pauseSending() external override onlyGovernorOrSecurityGuard whenSendingNotPaused {
+        _getAMBStorage().sendingPaused = true;
+        emit SendingPause();
+    }
+
+    function unpauseSending() external override onlyGovernor whenSendingPaused {
+        _getAMBStorage().sendingPaused = false;
+        emit SendingUnpause();
+    }
+
     /**
      * @notice Sends an executable message to the Neo N3 blockchain.
      * @param _message The message to be sent.
@@ -136,6 +151,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         payable
         onlyIfMessageBridgeSet
         whenMessageBridgeNotPaused
+        whenSendingNotPaused
     {
         AMBTypes.MetadataExecutable memory metadata = AMBTypes.MetadataExecutable({
             msgType: AMBTypes.MessageType.EXECUTABLE,
@@ -151,7 +167,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
      * @notice Sends a store-only message to the Neo N3 blockchain.
      * @param _message The message to be sent.
      */
-    function sendMessage(bytes calldata _message) external payable whenMessageBridgeNotPaused {
+    function sendMessage(bytes calldata _message) external payable whenMessageBridgeNotPaused whenSendingNotPaused {
         AMBTypes.MetadataStoreOnly memory metadata = AMBTypes.MetadataStoreOnly({
             msgType: AMBTypes.MessageType.STORE_ONLY,
             timestamp: block.timestamp,
@@ -361,6 +377,16 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
 
     modifier whenMessageBridgePaused() {
         if (!_getAMBStorage().messageBridgeState.paused) revert MessageBridgeNotPaused();
+        _;
+    }
+
+    modifier whenSendingNotPaused() {
+        if (_getAMBStorage().sendingPaused) revert SendingPaused();
+        _;
+    }
+
+    modifier whenSendingPaused() {
+        if (!_getAMBStorage().sendingPaused) revert SendingNotPaused();
         _;
     }
 
