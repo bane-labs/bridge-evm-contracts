@@ -10,5 +10,5 @@ interface IExecutionManager {
     )
         external
         payable
-        returns (bool requiresResponse, AMBTypes.Result memory);
+        returns (AMBTypes.Result memory result);
 }

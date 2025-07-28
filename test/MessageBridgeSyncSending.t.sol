@@ -47,24 +47,10 @@ contract MessageBridgeSyncSending is Test, SigUtils {
     uint256 executionWindowSeconds = 60;
 
     // Test message data
-    bytes testMessage1 = abi.encode(
-        AMBTypes.Call({
-            allowFailure: false,
-            requiresResponse: false,
-            target: address(0x1234),
-            value: 0,
-            callData: hex"abcd"
-        })
-    );
-    bytes testMessage2 = abi.encode(
-        AMBTypes.Call({
-            allowFailure: true,
-            requiresResponse: false,
-            target: address(0x5678),
-            value: 0,
-            callData: hex"ef01"
-        })
-    );
+    bytes testMessage1 =
+        abi.encode(AMBTypes.Call({allowFailure: false, target: address(0x1234), value: 0, callData: hex"abcd"}));
+    bytes testMessage2 =
+        abi.encode(AMBTypes.Call({allowFailure: true, target: address(0x5678), value: 0, callData: hex"ef01"}));
 
     function setUp() public {
         sigUtils = new SigUtils();

@@ -72,6 +72,8 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     error UnauthorizedUpgrade();
     //0x03290dc9
     error MessageNotFound(uint256 nonce);
+    //0x25ecb492
+    error ResultNotFound(uint256 nonce);
     //0x774249f8
     error MessageBridgeNotSet();
     //0xa4c897b0
@@ -142,7 +144,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         _getAMBStorage().sendingPaused = false;
         emit SendingUnpause();
     }
-    
+
     function pauseExecuting() external override onlyGovernorOrSecurityGuard whenExecutingNotPaused {
         _getAMBStorage().executingPaused = true;
         emit ExecutingPause();
@@ -182,7 +184,13 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
      * @notice Sends a store-only message to the Neo N3 blockchain.
      * @param _message The message to be sent.
      */
-    function sendMessage(bytes calldata _message) external payable whenMessageBridgeNotPaused whenSendingNotPaused {
+    function sendMessage(bytes calldata _message)
+        external
+        payable
+        onlyIfMessageBridgeSet
+        whenMessageBridgeNotPaused
+        whenSendingNotPaused
+    {
         AMBTypes.MetadataStoreOnly memory metadata = AMBTypes.MetadataStoreOnly({
             msgType: AMBTypes.MessageType.STORE_ONLY,
             timestamp: block.timestamp,
@@ -190,6 +198,37 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         });
         bytes memory encodedMetadata = abi.encode(metadata);
         _sendMessageWithMetadata(_message, encodedMetadata);
+    }
+
+    function sendResultMessage(uint256 _relatedMessageNonce)
+        external
+        payable
+        onlyIfMessageBridgeSet
+        whenMessageBridgeNotPaused
+        whenSendingNotPaused
+    {
+        AMBStorage storage ambStorage = _getAMBStorage();
+
+        // Check if the message exists by checking if it has content
+        if (ambStorage.n3ToEvmMessages[_relatedMessageNonce].message.length == 0) {
+            revert MessageNotFound(_relatedMessageNonce);
+        }
+
+        bytes memory message = ambStorage.n3ToEvmExecutionResults[_relatedMessageNonce].returnData;
+        // Check if a result was stored for this message
+        if (message.length == 0) {
+            revert ResultNotFound(_relatedMessageNonce);
+        }
+
+        AMBTypes.MetadataResult memory metadata = AMBTypes.MetadataResult({
+            msgType: AMBTypes.MessageType.RESULT,
+            timestamp: block.timestamp,
+            sender: msg.sender,
+            relatedMessageNonce: _relatedMessageNonce
+        });
+        bytes memory encodedMetadata = abi.encode(metadata);
+
+        _sendMessageWithMetadata(message, encodedMetadata);
     }
 
     function _sendMessageWithMetadata(bytes memory _message, bytes memory _encodedMetadata) private {
@@ -281,7 +320,13 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         emit MessageDeposit(messageData.nonce, messageData.message);
     }
 
-    function executeMessage(uint256 nonce) external payable nonReentrant whenExecutingNotPaused returns (AMBTypes.Result memory) {
+    function executeMessage(uint256 nonce)
+        external
+        payable
+        nonReentrant
+        whenExecutingNotPaused
+        returns (AMBTypes.Result memory)
+    {
         AMBTypes.StoredMessage storage storedMessage = _getAMBStorage().n3ToEvmMessages[nonce];
         bytes memory rawMessage = storedMessage.message;
         if (rawMessage.length == 0) revert MessageNotFound(nonce);
@@ -306,13 +351,9 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         storedMessage.executed = true;
 
         // Execute the message using the execution manager
-        (bool requiresResponse, AMBTypes.Result memory result) =
-            messageExecutionManager.executeMessage{value: msg.value}(nonce, rawMessage);
+        AMBTypes.Result memory result = messageExecutionManager.executeMessage{value: msg.value}(nonce, rawMessage);
 
-        if (requiresResponse) {
-            // TODO: send response back to the N3 chain
-            _getAMBStorage().n3ToEvmExecutionResults[nonce] = result;
-        }
+        if (metadata.storeResult) _getAMBStorage().n3ToEvmExecutionResults[nonce] = result;
 
         emit MessageExecuted(nonce, result);
 
