@@ -27,16 +27,4 @@ contract TestMessageBridge is MessageBridge {
         _setMessageBridge(_fee, _maxMessageSize, _maxNrMessages, _executionWindowSeconds);
     }
 
-    function hashSendMessage(
-        uint256 _nonce,
-        bytes memory _encodedMetadata,
-        bytes memory _msgBytes
-    )
-        public
-        pure
-        returns (bytes32)
-    {
-        return MessageBridgeLib._hashMessageBridgeOp(_nonce, _encodedMetadata, _msgBytes);
-    }
-
 }

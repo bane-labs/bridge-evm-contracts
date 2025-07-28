@@ -23,7 +23,7 @@ import {Options} from "../lib/openzeppelin-foundry-upgrades/src/Options.sol";
 import {Upgrades} from "../lib/openzeppelin-foundry-upgrades/src/Upgrades.sol";
 
 contract MessageBridgeSyncSending is MessageBridgeTestHelper {
-    function test_hashMessageSendOp_executable() public view {
+    function test_hashMessageSendOp_executable() public pure {
         uint256 nonce = 1;
         uint256 timestamp = 1753000000;
         address sender = address(0x69eCcA587293047bE4C59159BF8BC399985C160D);
@@ -37,7 +37,7 @@ contract MessageBridgeSyncSending is MessageBridgeTestHelper {
             sender: sender,
             storeResult: true
         });
-        bytes32 hashedBridgeOp = messageBridgeProxy.hashSendMessage(nonce, abi.encode(metadata), msgBytes);
+        bytes32 hashedBridgeOp = MessageBridgeLib._hashMessageBridgeOp(nonce, abi.encode(metadata), msgBytes);
         bytes memory concatenated = abi.encodePacked(
             nonce, metadata.msgType, metadata.timestamp, metadata.sender, metadata.storeResult, msgBytes
         );
@@ -52,7 +52,7 @@ contract MessageBridgeSyncSending is MessageBridgeTestHelper {
         assertEq(hashedBridgeOp, hex"2a9d36cc38d44ab810d0d484bb21f483d4ee4d676f1773859e8043e3a1d3601d");
     }
 
-    function test_hashMessageSendOp_storeOnly() public view {
+    function test_hashMessageSendOp_storeOnly() public pure {
         uint256 nonce = 2;
         uint256 timestamp = 1753100005;
         address sender = address(0x82d53419cdb80A84A1A9C699C6cc333236169B98);
@@ -62,7 +62,7 @@ contract MessageBridgeSyncSending is MessageBridgeTestHelper {
 
         AMBTypes.MetadataStoreOnly memory metadata =
             AMBTypes.MetadataStoreOnly({msgType: AMBTypes.MessageType.STORE_ONLY, timestamp: timestamp, sender: sender});
-        bytes32 hashedBridgeOp = messageBridgeProxy.hashSendMessage(nonce, abi.encode(metadata), msgBytes);
+        bytes32 hashedBridgeOp = MessageBridgeLib._hashMessageBridgeOp(nonce, abi.encode(metadata), msgBytes);
         bytes memory concatenated =
             abi.encodePacked(nonce, metadata.msgType, metadata.timestamp, metadata.sender, msgBytes);
         assertEq(
@@ -74,7 +74,7 @@ contract MessageBridgeSyncSending is MessageBridgeTestHelper {
         assertEq(hashedBridgeOp, hex"6616d6d15190a04d878aed300e194a02a6b4e94eeb2084f8a5c4b73d95e92dbb");
     }
 
-    function test_hashMessageSendOp_result() public view {
+    function test_hashMessageSendOp_result() public pure {
         uint256 nonce = 7592037;
         uint256 timestamp = 1753000097;
         address sender = address(0xfaDd389577eae0Af6E59f8476F9d808f120407C2);
@@ -87,7 +87,7 @@ contract MessageBridgeSyncSending is MessageBridgeTestHelper {
             sender: sender,
             relatedMessageNonce: 1
         });
-        bytes32 hashedBridgeOp = messageBridgeProxy.hashSendMessage(nonce, abi.encode(metadata), msgBytes);
+        bytes32 hashedBridgeOp = MessageBridgeLib._hashMessageBridgeOp(nonce, abi.encode(metadata), msgBytes);
         bytes memory concatenated = abi.encodePacked(
             nonce, metadata.msgType, metadata.timestamp, metadata.sender, metadata.relatedMessageNonce, msgBytes
         );
