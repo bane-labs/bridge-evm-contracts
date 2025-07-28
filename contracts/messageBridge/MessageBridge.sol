@@ -31,7 +31,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         IExecutionManager messageExecutionManager;
     }
 
-    function _getAMBStorage() private pure returns (AMBStorage storage $) {
+    function _getAMBStorage() internal pure returns (AMBStorage storage $) {
         assembly {
             $.slot := AMBStorageLocation
         }
@@ -49,7 +49,9 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         uint256 _executionWindowSeconds
     )
         external
+        virtual
         initializer
+        onlyAdmin
     {
         __ReentrancyGuard_init();
         _getAMBStorage().management = IBridgeManagement(_management);
@@ -135,6 +137,10 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         emit MessageBridgeUnpause();
     }
 
+    function isMessageBridgePaused() external view override returns (bool) {
+        return _getAMBStorage().messageBridgeState.paused;
+    }
+
     function pauseSending() external override onlyGovernorOrSecurityGuard whenSendingNotPaused {
         _getAMBStorage().sendingPaused = true;
         emit SendingPause();
@@ -145,6 +151,10 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         emit SendingUnpause();
     }
 
+    function isSendingPaused() external view override returns (bool) {
+        return _getAMBStorage().sendingPaused;
+    }
+
     function pauseExecuting() external override onlyGovernorOrSecurityGuard whenExecutingNotPaused {
         _getAMBStorage().executingPaused = true;
         emit ExecutingPause();
@@ -153,6 +163,10 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     function unpauseExecuting() external override onlyGovernor whenExecutingPaused {
         _getAMBStorage().executingPaused = false;
         emit ExecutingUnpause();
+    }
+
+    function isExecutingPaused() external view override returns (bool) {
+        return _getAMBStorage().executingPaused;
     }
 
     /**

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
+import {MessageBridgeTestHelper} from "./MessageBridgeTestHelper.sol";
 import {AMBTypes} from "../contracts/library/AMBTypes.sol";
 import {BridgeLib} from "../contracts/library/BridgeLib.sol";
 import {MessageBridgeLib} from "../contracts/library/MessageBridgeLib.sol";
@@ -11,7 +12,8 @@ import {IMessageBridge} from "../contracts/messageBridge/interfaces/IMessageBrid
 import {ReentrancyAttacker} from "../contracts/tests/ReentrancyAttacker.sol";
 import {SigUtils} from "../contracts/tests/SigUtils.sol";
 import {TestBridgeManagement} from "../contracts/tests/TestBridgeManagement.sol";
-import {TestMessageContract} from "../contracts/tests/TestMessageContract.sol";
+import {TestMessageBridge} from "../contracts/tests/TestMessageBridge.sol";
+import {TestContract} from "../contracts/tests/TestContract.sol";
 import {TestPayableContract} from "../contracts/tests/TestPayableContract.sol";
 import {CommonBase} from "../lib/forge-std/src/Base.sol";
 import {StdAssertions} from "../lib/forge-std/src/StdAssertions.sol";
@@ -22,88 +24,7 @@ import {Test} from "../lib/forge-std/src/Test.sol";
 import {Options} from "../lib/openzeppelin-foundry-upgrades/src/Options.sol";
 import {Upgrades} from "../lib/openzeppelin-foundry-upgrades/src/Upgrades.sol";
 
-contract MessageBridgeTest is Test, SigUtils {
-    MessageBridge messageBridgeProxy;
-    address messageBridgeProxyAddress;
-
-    // Management
-    TestBridgeManagement managementProxy;
-    address managementProxyAddress;
-    SigUtils sigUtils;
-    address public owner = 0xBcd4042DE499D14e55001CcbB24a551F3b954096;
-    address public funder = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
-    address public relayer = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
-    uint8 public validatorThreshold = 7;
-    address[] public validatorsAddresses;
-    address internal governor = 0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f;
-    address internal securityGuard = 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720;
-
-    ExecutionManager public executionManager;
-
-    // Message Bridge Config
-    uint256 messageFee = 0.01 ether;
-    uint256 maxMessageSize = 1024;
-    uint256 maxNrMessages = 10;
-    uint256 executionWindowSeconds = 60;
-
-    // Test message data
-    bytes testMessage1 =
-        abi.encode(AMBTypes.Call({allowFailure: false, target: address(0x1234), value: 0, callData: hex"abcd"}));
-    bytes testMessage2 =
-        abi.encode(AMBTypes.Call({allowFailure: true, target: address(0x5678), value: 0, callData: hex"ef01"}));
-
-    function setUp() public {
-        sigUtils = new SigUtils();
-        validatorsAddresses.push(vm.addr(user0PrivateKey));
-        validatorsAddresses.push(vm.addr(user1PrivateKey));
-        validatorsAddresses.push(vm.addr(user2PrivateKey));
-        validatorsAddresses.push(vm.addr(user3PrivateKey));
-        validatorsAddresses.push(vm.addr(user4PrivateKey));
-        validatorsAddresses.push(vm.addr(user5PrivateKey));
-        validatorsAddresses.push(vm.addr(user6PrivateKey));
-
-        // Allow constructor to bypass the safety check in deployUUPSProxy.
-        Options memory opts;
-        opts.unsafeAllow = "constructor";
-
-        // Deploy the bridge management implementation
-        managementProxyAddress = Upgrades.deployUUPSProxy(
-            "TestBridgeManagement.sol",
-            abi.encodeCall(
-                TestBridgeManagement.initialize,
-                (owner, relayer, validatorThreshold, validatorsAddresses, governor, securityGuard, funder)
-            ),
-            opts
-        );
-        managementProxy = TestBridgeManagement(payable(managementProxyAddress));
-        // Validate initialization to version 3
-        assertEq(managementProxy.getCurrentInitializedVersion(), 3);
-
-        // Deploy the MessageBridge implementation
-        messageBridgeProxyAddress = Upgrades.deployUUPSProxy(
-            "MessageBridge.sol",
-            abi.encodeCall(
-                MessageBridge.initialize,
-                (managementProxyAddress, messageFee, maxMessageSize, maxNrMessages, executionWindowSeconds)
-            ),
-            opts
-        );
-        messageBridgeProxy = MessageBridge(payable(messageBridgeProxyAddress));
-
-        assertTrue(messageBridgeProxy.messageBridgeIsSet(), "Message bridge should be set");
-
-        // Deploy and set up the Message Executor
-        executionManager = new ExecutionManager(messageBridgeProxyAddress);
-
-        // Set the message executor in the bridge
-        vm.prank(governor);
-        messageBridgeProxy.setMessageExecutor(address(executionManager));
-
-        // Unpause the message bridge
-        vm.prank(governor);
-        messageBridgeProxy.unpauseMessageBridge();
-    }
-
+contract MessageBridgeTest is MessageBridgeTestHelper {
     function test_StorageSlot() public pure {
         bytes32 computedSlot = keccak256(abi.encode(uint256(keccak256("AMB.storage")) - 1)) & ~bytes32(uint256(0xff));
         bytes32 storageSlot = 0xd6595d2280e6cba67baf67ff997445e733b244161e59228efeb7032069381100;
@@ -148,37 +69,8 @@ contract MessageBridgeTest is Test, SigUtils {
         messageBridgeProxy.storeMessage(depositRoot, signatures, messages);
     }
 
-    function _getAMBStorage() private pure returns (bytes32) {
-        return keccak256(abi.encode(uint256(keccak256("AMB.storage")) - 1)) & ~bytes32(uint256(0xff));
-    }
-
-    function isSendingPaused() private view returns (bool) {
-        bytes32 slotValue = vm.load(messageBridgeProxyAddress, _getAMBStorage());
-
-        // Extract the address (first 20 bytes)
-        address storedAddress = address(uint160(uint256(slotValue)));
-        assertEq(storedAddress, managementProxyAddress, "Management address should match");
-
-        // Extract the boolean (byte at offset 20)
-        // Shift right by 20 bytes (160 bits) to get the boolean at the start
-        // Then mask with 0xff to isolate just that byte
-        // Then check if it's non-zero (Solidity booleans are 1 for true, 0 for false)
-        uint8 sendingPausedBoolByte = uint8(uint256(slotValue) >> 160) & 0xFF;
-        return sendingPausedBoolByte > 0;
-    }
-
-    function isExecutingPaused() private view returns (bool) {
-        bytes32 slotValue = vm.load(messageBridgeProxyAddress, _getAMBStorage());
-        // Extract the boolean (byte at offset 21)
-        // Shift right by 21 bytes (168 bits) to get the boolean at the start
-        // Then mask with 0xff to isolate just that byte
-        // Then check if it's non-zero (Solidity booleans are 1 for true, 0 for false)
-        uint8 executingPausedBoolByte = uint8(uint256(slotValue) >> 168) & 0xFF;
-        return executingPausedBoolByte > 0;
-    }
-
     function test_pauseSending() public {
-        assertEq(isSendingPaused(), false, "Sending should not be paused initially");
+        assertEq(messageBridgeProxy.isSendingPaused(), false, "Sending should not be paused initially");
 
         // Fail unpausing when already unpaused
         vm.prank(governor);
@@ -196,7 +88,7 @@ contract MessageBridgeTest is Test, SigUtils {
         vm.prank(securityGuard);
         messageBridgeProxy.pauseSending();
 
-        assertEq(isSendingPaused(), true, "Sending should be paused");
+        assertEq(messageBridgeProxy.isSendingPaused(), true, "Sending should be paused");
 
         // Fail pausing when already paused
         vm.prank(governor);
@@ -213,18 +105,18 @@ contract MessageBridgeTest is Test, SigUtils {
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
         emit IMessageBridge.SendingUnpause();
         messageBridgeProxy.unpauseSending();
-        assertEq(isSendingPaused(), false, "Sending should be unpaused");
+        assertEq(messageBridgeProxy.isSendingPaused(), false, "Sending should be unpaused");
     }
 
     function test_pauseSending_disallowsSending() public {
-        assertEq(isSendingPaused(), false, "Sending should not be paused initially");
+        assertEq(messageBridgeProxy.isSendingPaused(), false, "Sending should not be paused initially");
 
         vm.prank(governor);
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
         emit IMessageBridge.SendingPause();
         messageBridgeProxy.pauseSending();
 
-        assertEq(isSendingPaused(), true, "Sending should be paused");
+        assertEq(messageBridgeProxy.isSendingPaused(), true, "Sending should be paused");
 
         // Try to store a message while sending is paused (should revert)
         AMBTypes.MessageData[] memory messages = new AMBTypes.MessageData[](1);
@@ -249,7 +141,7 @@ contract MessageBridgeTest is Test, SigUtils {
     }
 
     function test_pauseExecuting() public {
-        assertEq(isExecutingPaused(), false, "Executing should not be paused initially");
+        assertEq(messageBridgeProxy.isExecutingPaused(), false, "Executing should not be paused initially");
 
         // Fail unpausing when already unpaused
         vm.prank(governor);
@@ -267,7 +159,7 @@ contract MessageBridgeTest is Test, SigUtils {
         vm.prank(securityGuard);
         messageBridgeProxy.pauseExecuting();
 
-        assertEq(isExecutingPaused(), true, "Executing should be paused");
+        assertEq(messageBridgeProxy.isExecutingPaused(), true, "Executing should be paused");
 
         // Fail pausing when already paused
         vm.prank(governor);
@@ -284,18 +176,18 @@ contract MessageBridgeTest is Test, SigUtils {
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
         emit IMessageBridge.ExecutingUnpause();
         messageBridgeProxy.unpauseExecuting();
-        assertEq(isExecutingPaused(), false, "Executing should be unpaused");
+        assertEq(messageBridgeProxy.isExecutingPaused(), false, "Executing should be unpaused");
     }
 
     function test_pauseExecuting_disallowsExecuting() public {
-        assertEq(isExecutingPaused(), false, "Executing should not be paused initially");
+        assertEq(messageBridgeProxy.isExecutingPaused(), false, "Executing should not be paused initially");
 
         vm.prank(governor);
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
         emit IMessageBridge.ExecutingPause();
         messageBridgeProxy.pauseExecuting();
 
-        assertEq(isExecutingPaused(), true, "Executing should be paused");
+        assertEq(messageBridgeProxy.isExecutingPaused(), true, "Executing should be paused");
 
         uint256 nonce = 1;
         storeDummyMessage(nonce);
@@ -306,12 +198,12 @@ contract MessageBridgeTest is Test, SigUtils {
 
     function test_StoreAndExecuteMessageWithTestMessageContract() public {
         // Deploy test contract
-        TestMessageContract testContract = new TestMessageContract();
+        TestContract testContract = new TestContract();
 
         assertEq(testContract.counter(), 0, "Counter should be initialized to 0");
 
         // Create Call struct with testFunction encoded
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        bytes memory callData = abi.encodeWithSelector(TestContract.testFunction.selector);
 
         AMBTypes.Call memory call =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
@@ -325,7 +217,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Expect the TestEvent to be emitted with correct parameters
         vm.expectEmit(true, true, true, true, address(testContract));
-        emit TestMessageContract.TestEvent(1, address(executionManager));
+        emit TestContract.TestEvent(1, address(executionManager));
 
         // Expect the MessageExecuted event to be emitted with correct parameters
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
@@ -347,13 +239,13 @@ contract MessageBridgeTest is Test, SigUtils {
 
     function test_StoreAndExecuteMessageWithTestContractPayment() public {
         // Deploy test contract
-        TestMessageContract testContract = new TestMessageContract();
+        TestContract testContract = new TestContract();
         // Verify the contract did not receive any ETH
         assertEq(address(testContract).balance, 0, "Test contract should not have received ETH");
 
         // Create Call struct with receivePayment encoded
         uint256 paymentAmount = 1 ether;
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.receivePayment.selector, paymentAmount);
+        bytes memory callData = abi.encodeWithSelector(TestContract.receivePayment.selector, paymentAmount);
 
         AMBTypes.Call memory call = AMBTypes.Call({
             target: address(testContract),
@@ -370,7 +262,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Expect the PaymentReceived event to be emitted with correct parameters
         vm.expectEmit(true, true, true, true, address(testContract));
-        emit TestMessageContract.PaymentReceived(paymentAmount, address(executionManager));
+        emit TestContract.PaymentReceived(paymentAmount, address(executionManager));
 
         // Expect the MessageExecuted event to be emitted with correct parameters
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
@@ -392,13 +284,13 @@ contract MessageBridgeTest is Test, SigUtils {
 
     function test_StoreAndExecuteMessageWithTestContractPaymentMismatch() public {
         // Deploy test contract
-        TestMessageContract testContract = new TestMessageContract();
+        TestContract testContract = new TestContract();
         assertEq(address(testContract).balance, 0, "Test contract should not have ETH");
 
         // Create Call struct with receivePayment encoded but with mismatched values
         uint256 declaredAmount = 1 ether;
         uint256 actualAmount = 0.5 ether; // Mismatched amount
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.receivePayment.selector, declaredAmount);
+        bytes memory callData = abi.encodeWithSelector(TestContract.receivePayment.selector, declaredAmount);
 
         AMBTypes.Call memory call = AMBTypes.Call({
             target: address(testContract),
@@ -416,7 +308,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Create the expected error data for the value mismatch
         bytes memory expectedErrorData =
-            abi.encodeWithSelector(TestMessageContract.ValueMismatch.selector, declaredAmount, actualAmount);
+            abi.encodeWithSelector(TestContract.ValueMismatch.selector, declaredAmount, actualAmount);
 
         // Expect the MessageExecuted event to be emitted with failure result
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
@@ -435,7 +327,7 @@ contract MessageBridgeTest is Test, SigUtils {
         assembly {
             errorSelector := mload(add(errorBytes, 0x20))
         }
-        bytes4 expectedSelector = TestMessageContract.ValueMismatch.selector;
+        bytes4 expectedSelector = TestContract.ValueMismatch.selector;
         assertEq(errorSelector, expectedSelector, "Error selector should match ValueMismatch");
 
         // Decode and verify the error parameters using assembly
@@ -457,7 +349,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
     function test_StoreAndExecuteMessageWithTestContractDirectEth() public {
         // Deploy test contract
-        TestMessageContract testContract = new TestMessageContract();
+        TestContract testContract = new TestContract();
         assertEq(address(testContract).balance, 0, "Test contract should not have ETH");
 
         // Create Call struct with empty callData to trigger receive() function
@@ -477,7 +369,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Expect the DirectEthReceived event to be emitted with correct sender
         vm.expectEmit(true, true, true, true, address(testContract));
-        emit TestMessageContract.DirectEthReceived(address(executionManager));
+        emit TestContract.DirectEthReceived(address(executionManager));
 
         // Expect the MessageExecuted event to be emitted with success result
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
@@ -495,7 +387,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
     function test_StoreAndExecuteMessageWithTestContractFallback() public {
         // Deploy test contract
-        TestMessageContract testContract = new TestMessageContract();
+        TestContract testContract = new TestContract();
         assertEq(address(testContract).balance, 0, "Test contract should not have ETH");
 
         // Create a valid address payload to send in the calldata
@@ -515,7 +407,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // Expect the FallbackCalled event to be emitted with correct parameters
         vm.expectEmit(true, true, true, true, address(testContract));
-        emit TestMessageContract.FallbackCalled(address(executionManager), 1 ether, addressBytes);
+        emit TestContract.FallbackCalled(address(executionManager), 1 ether, addressBytes);
 
         // Expect the MessageExecuted event to be emitted with success result
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
@@ -533,14 +425,14 @@ contract MessageBridgeTest is Test, SigUtils {
 
     function test_StoreAndExecuteMessageWithZeroValuePayment() public {
         // Deploy test contract
-        TestMessageContract testContract = new TestMessageContract();
+        TestContract testContract = new TestContract();
         assertEq(address(testContract).balance, 0, "Test contract should not have ETH");
 
         // Test 1: Zero value with receivePayment function
         {
             uint256 declaredAmount = 1 ether;
             uint256 actualAmount = 0; // Zero value
-            bytes memory callData = abi.encodeWithSelector(TestMessageContract.receivePayment.selector, declaredAmount);
+            bytes memory callData = abi.encodeWithSelector(TestContract.receivePayment.selector, declaredAmount);
 
             AMBTypes.Call memory call = AMBTypes.Call({
                 target: address(testContract),
@@ -563,7 +455,7 @@ contract MessageBridgeTest is Test, SigUtils {
             assembly {
                 errorSelector := mload(add(errorData, 0x20))
             }
-            bytes4 expectedSelector = TestMessageContract.ZeroValueNotAllowed.selector;
+            bytes4 expectedSelector = TestContract.ZeroValueNotAllowed.selector;
             assertEq(errorSelector, expectedSelector, "Error selector should match ZeroValueNotAllowed");
 
             // Verify the contract did not receive any ETH
@@ -595,7 +487,7 @@ contract MessageBridgeTest is Test, SigUtils {
             assembly {
                 errorSelector := mload(add(errorData, 0x20))
             }
-            bytes4 expectedSelector = TestMessageContract.ZeroValueNotAllowed.selector;
+            bytes4 expectedSelector = TestContract.ZeroValueNotAllowed.selector;
             assertEq(errorSelector, expectedSelector, "Error selector should match ZeroValueNotAllowed");
 
             // Verify the contract did not receive any ETH
@@ -627,7 +519,7 @@ contract MessageBridgeTest is Test, SigUtils {
             assembly {
                 errorSelector := mload(add(errorData, 0x20))
             }
-            bytes4 expectedSelector = TestMessageContract.ZeroValueNotAllowed.selector;
+            bytes4 expectedSelector = TestContract.ZeroValueNotAllowed.selector;
             assertEq(errorSelector, expectedSelector, "Error selector should match ZeroValueNotAllowed");
             // Verify the contract did not receive any ETH
             assertEq(address(testContract).balance, 0, "Test contract should not have received ETH");
@@ -636,7 +528,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
     function test_StoreAndExecuteMessageWithTestContractInvalidCallData() public {
         // Deploy test contract
-        TestMessageContract testContract = new TestMessageContract();
+        TestContract testContract = new TestContract();
         assertEq(address(testContract).balance, 0, "Test contract should not have ETH");
 
         // Create an invalid payload that's not a valid function of this contract or an address (20 bytes)
@@ -660,7 +552,7 @@ contract MessageBridgeTest is Test, SigUtils {
         vm.expectRevert(
             abi.encodeWithSelector(
                 ExecutionManager.ExecutionFailed.selector,
-                abi.encodeWithSelector(TestMessageContract.InvalidCallData.selector)
+                abi.encodeWithSelector(TestContract.InvalidCallData.selector)
             )
         );
 
@@ -723,8 +615,8 @@ contract MessageBridgeTest is Test, SigUtils {
 
     function test_StoreAndExecuteMessageStorageErrors() public {
         // Create a test message
-        TestMessageContract testContract = new TestMessageContract();
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        TestContract testContract = new TestContract();
+        bytes memory callData = abi.encodeWithSelector(TestContract.testFunction.selector);
         AMBTypes.Call memory call =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
         bytes memory message = abi.encode(call);
@@ -757,7 +649,7 @@ contract MessageBridgeTest is Test, SigUtils {
         assertEq(address(payableContract).balance, 0, "Payable contract should not have received ETH");
 
         // Create Call struct with testFunction selector (which TestPayableContract doesn't implement)
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        bytes memory callData = abi.encodeWithSelector(TestContract.testFunction.selector);
 
         AMBTypes.Call memory call =
             AMBTypes.Call({target: address(payableContract), callData: callData, allowFailure: true, value: 0.1 ether});
@@ -826,10 +718,10 @@ contract MessageBridgeTest is Test, SigUtils {
 
     function test_StoreAndExecuteMessageMultipleTimes() public {
         // Deploy test contract
-        TestMessageContract testContract = new TestMessageContract();
+        TestContract testContract = new TestContract();
 
         // Create Call struct with testFunction encoded
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        bytes memory callData = abi.encodeWithSelector(TestContract.testFunction.selector);
 
         AMBTypes.Call memory call =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
@@ -1096,8 +988,8 @@ contract MessageBridgeTest is Test, SigUtils {
 
     function test_StoreMessageMetadataVerification() public {
         // Create a test message
-        TestMessageContract testContract = new TestMessageContract();
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        TestContract testContract = new TestContract();
+        bytes memory callData = abi.encodeWithSelector(TestContract.testFunction.selector);
         AMBTypes.Call memory call =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
         bytes memory message = abi.encode(call);
@@ -1128,16 +1020,16 @@ contract MessageBridgeTest is Test, SigUtils {
 
     function test_StoreMultipleMessagesWithMetadata() public {
         // Create two different test messages
-        TestMessageContract testContract = new TestMessageContract();
+        TestContract testContract = new TestContract();
 
         // First message
-        bytes memory callData1 = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        bytes memory callData1 = abi.encodeWithSelector(TestContract.testFunction.selector);
         AMBTypes.Call memory call1 =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData1});
         bytes memory message1 = abi.encode(call1);
 
         // Second message
-        bytes memory callData2 = abi.encodeWithSelector(TestMessageContract.receivePayment.selector, 1 ether);
+        bytes memory callData2 = abi.encodeWithSelector(TestContract.receivePayment.selector, 1 ether);
         AMBTypes.Call memory call2 =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 1 ether, callData: callData2});
         bytes memory message2 = abi.encode(call2);
@@ -1180,8 +1072,8 @@ contract MessageBridgeTest is Test, SigUtils {
 
     function test_StoreMessageWithCustomMetadata() public {
         // Create a test message
-        TestMessageContract testContract = new TestMessageContract();
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        TestContract testContract = new TestContract();
+        bytes memory callData = abi.encodeWithSelector(TestContract.testFunction.selector);
         AMBTypes.Call memory call =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
         bytes memory message = abi.encode(call);
@@ -1234,10 +1126,10 @@ contract MessageBridgeTest is Test, SigUtils {
 
     function test_StoreAndExecuteMessageAfterWindowExpiry() public {
         // Deploy test contract
-        TestMessageContract testContract = new TestMessageContract();
+        TestContract testContract = new TestContract();
 
         // Create Call struct with testFunction encoded
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        bytes memory callData = abi.encodeWithSelector(TestContract.testFunction.selector);
 
         AMBTypes.Call memory call =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
@@ -1264,72 +1156,6 @@ contract MessageBridgeTest is Test, SigUtils {
             )
         );
         messageBridgeProxy.executeMessage(nonce);
-    }
-
-    // Helper function to generate valid signatures from validators
-    function generateValidSignatures(bytes32 depositRoot) internal view returns (BridgeLib.Signature[] memory) {
-        uint256 count = validatorThreshold;
-        BridgeLib.Signature[] memory signatures = new BridgeLib.Signature[](count);
-
-        // Create the message to be signed, matching what BridgeManagementImpl.verifyValidatorSignatures expects
-        bytes32 messageHash = keccak256(abi.encodePacked(block.chainid, depositRoot));
-        bytes32 signedRootMsg = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", messageHash));
-
-        // Array of private keys matching the validators set in setUp()
-        uint256[] memory privateKeys = new uint256[](count);
-        privateKeys[0] = user0PrivateKey;
-        privateKeys[1] = user1PrivateKey;
-        privateKeys[2] = user2PrivateKey;
-        privateKeys[3] = user3PrivateKey;
-        privateKeys[4] = user4PrivateKey;
-        privateKeys[5] = user5PrivateKey;
-        privateKeys[6] = user6PrivateKey;
-
-        for (uint256 i = 0; i < count; i++) {
-            (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKeys[i], signedRootMsg);
-            signatures[i] = BridgeLib.Signature({r: r, s: s, v: v});
-        }
-
-        return signatures;
-    }
-
-    // Helper function to store a single message with generated signatures
-    function storeMessage(uint256 nonce, bytes memory message, bytes memory failMessage) internal {
-        AMBTypes.MessageData[] memory messages = new AMBTypes.MessageData[](1);
-        messages[0] = AMBTypes.MessageData({
-            nonce: nonce,
-            message: message,
-            encodedMetadata: abi.encode(
-                AMBTypes.MetadataExecutable({
-                    msgType: AMBTypes.MessageType.EXECUTABLE,
-                    sender: address(this),
-                    timestamp: block.timestamp,
-                    storeResult: false
-                })
-            )
-        });
-
-        StorageTypes.State memory n3ToEvmState = messageBridgeProxy.getMessageBridgeState().n3ToEvmState;
-        bytes32 previousRoot = n3ToEvmState.root;
-        bytes32 depositRoot = MessageBridgeLib._computeNewTopRoot(previousRoot, messages);
-        BridgeLib.Signature[] memory signatures = generateValidSignatures(depositRoot);
-
-        if (failMessage.length > 0) {
-            // If a selector is provided, append it to the message
-            vm.expectRevert(failMessage);
-        }
-
-        vm.prank(relayer);
-        messageBridgeProxy.storeMessage(depositRoot, signatures, messages);
-    }
-
-    function storeDummyMessage(uint256 nonce) internal {
-        // Create a dummy message
-        bytes memory dummyMessage =
-            abi.encode(AMBTypes.Call({allowFailure: false, target: address(0), value: 0, callData: ""}));
-
-        // Store the dummy message with the specified nonce
-        storeMessage(nonce, dummyMessage, "");
     }
 
     function test_SendMessage_Success() public {
@@ -1476,7 +1302,7 @@ contract MessageBridgeTest is Test, SigUtils {
 
     function test_SendMessage_ExactFeeRequired_FromContract() public {
         // Create a test contract that will attempt to send a message
-        TestMessageContract testContract = new TestMessageContract();
+        TestContract testContract = new TestContract();
 
         // Prepare a test message
         bytes memory message = abi.encodePacked("Test message from contract");
@@ -1538,17 +1364,6 @@ contract MessageBridgeTest is Test, SigUtils {
         assertTrue(state1.root != state3.root, "Root should change after each message");
     }
 
-    // Helper function to decode executable metadata from stored message
-    function getExecutableMetadata(uint256 nonce) internal view returns (AMBTypes.MetadataExecutable memory) {
-        bytes memory encodedMetadata = messageBridgeProxy.n3ToEvmMessages(nonce).encodedMetadata;
-        AMBTypes.MessageType msgType = MessageBridgeLib._readMessageType(encodedMetadata);
-        if (msgType == AMBTypes.MessageType.EXECUTABLE) {
-            return abi.decode(encodedMetadata, (AMBTypes.MetadataExecutable));
-        } else {
-            revert("Unexpected message type");
-        }
-    }
-
     // Helper function to receive ETH (needed for the refund test)
     receive() external payable {}
 
@@ -1556,10 +1371,10 @@ contract MessageBridgeTest is Test, SigUtils {
 
     function test_SendResultMessage_Success() public {
         // Deploy test contract
-        TestMessageContract testContract = new TestMessageContract();
+        TestContract testContract = new TestContract();
 
         // Create a message with storeResult = true
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        bytes memory callData = abi.encodeWithSelector(TestContract.testFunction.selector);
         AMBTypes.Call memory call =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
         bytes memory message = abi.encode(call);
@@ -1625,10 +1440,10 @@ contract MessageBridgeTest is Test, SigUtils {
 
     function test_SendResultMessage_MessageExistsButNoStoredResult() public {
         // Deploy test contract
-        TestMessageContract testContract = new TestMessageContract();
+        TestContract testContract = new TestContract();
 
         // Create a message with storeResult = false (default)
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        bytes memory callData = abi.encodeWithSelector(TestContract.testFunction.selector);
         AMBTypes.Call memory call =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
         bytes memory message = abi.encode(call);
@@ -1648,10 +1463,10 @@ contract MessageBridgeTest is Test, SigUtils {
 
     function test_SendResultMessage_InsufficientFee() public {
         // Deploy test contract
-        TestMessageContract testContract = new TestMessageContract();
+        TestContract testContract = new TestContract();
 
         // Create and store a message with storeResult = true
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        bytes memory callData = abi.encodeWithSelector(TestContract.testFunction.selector);
         AMBTypes.Call memory call =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
         bytes memory message = abi.encode(call);
@@ -1668,8 +1483,8 @@ contract MessageBridgeTest is Test, SigUtils {
 
     function test_SendResultMessage_WhenMessageBridgePaused() public {
         // Deploy test contract and execute a message with stored result
-        TestMessageContract testContract = new TestMessageContract();
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        TestContract testContract = new TestContract();
+        bytes memory callData = abi.encodeWithSelector(TestContract.testFunction.selector);
         AMBTypes.Call memory call =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
         bytes memory message = abi.encode(call);
@@ -1689,8 +1504,8 @@ contract MessageBridgeTest is Test, SigUtils {
 
     function test_SendResultMessage_WhenSendingPaused() public {
         // Deploy test contract and execute a message with stored result
-        TestMessageContract testContract = new TestMessageContract();
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        TestContract testContract = new TestContract();
+        bytes memory callData = abi.encodeWithSelector(TestContract.testFunction.selector);
         AMBTypes.Call memory call =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
         bytes memory message = abi.encode(call);
@@ -1710,8 +1525,8 @@ contract MessageBridgeTest is Test, SigUtils {
 
     function test_SendResultMessage_ExcessFeeRefund() public {
         // Deploy test contract and execute a message with stored result
-        TestMessageContract testContract = new TestMessageContract();
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        TestContract testContract = new TestContract();
+        bytes memory callData = abi.encodeWithSelector(TestContract.testFunction.selector);
         AMBTypes.Call memory call =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
         bytes memory message = abi.encode(call);
@@ -1737,8 +1552,8 @@ contract MessageBridgeTest is Test, SigUtils {
 
     function test_SendResultMessage_ExactFeeRequired_FromContract() public {
         // Deploy test contract and execute a message with stored result
-        TestMessageContract testContract = new TestMessageContract();
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        TestContract testContract = new TestContract();
+        bytes memory callData = abi.encodeWithSelector(TestContract.testFunction.selector);
         AMBTypes.Call memory call =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
         bytes memory message = abi.encode(call);
@@ -1759,10 +1574,10 @@ contract MessageBridgeTest is Test, SigUtils {
 
     function test_SendResultMessage_WithFailedExecutionResult() public {
         // Deploy test contract
-        TestMessageContract testContract = new TestMessageContract();
+        TestContract testContract = new TestContract();
 
         // Create a call that will fail
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.receivePayment.selector, 1 ether);
+        bytes memory callData = abi.encodeWithSelector(TestContract.receivePayment.selector, 1 ether);
         AMBTypes.Call memory call =
             AMBTypes.Call({allowFailure: true, target: address(testContract), value: 0, callData: callData}); // Mismatch: expects 1 ether but sends 0
 
@@ -1790,10 +1605,10 @@ contract MessageBridgeTest is Test, SigUtils {
 
     function test_SendResultMessage_MultipleCalls() public {
         // Deploy test contract
-        TestMessageContract testContract = new TestMessageContract();
+        TestContract testContract = new TestContract();
 
         // Create and execute first message
-        bytes memory callData1 = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        bytes memory callData1 = abi.encodeWithSelector(TestContract.testFunction.selector);
         AMBTypes.Call memory call1 =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData1});
         bytes memory message1 = abi.encode(call1);
@@ -1803,7 +1618,7 @@ contract MessageBridgeTest is Test, SigUtils {
         messageBridgeProxy.executeMessage(nonce1);
 
         // Create and execute second message
-        bytes memory callData2 = abi.encodeWithSelector(TestMessageContract.receivePayment.selector, 1 ether);
+        bytes memory callData2 = abi.encodeWithSelector(TestContract.receivePayment.selector, 1 ether);
         AMBTypes.Call memory call2 =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 1 ether, callData: callData2});
         bytes memory message2 = abi.encode(call2);
@@ -1836,10 +1651,10 @@ contract MessageBridgeTest is Test, SigUtils {
 
     function test_SendResultMessage_CanSendSameResultMultipleTimes() public {
         // Deploy test contract
-        TestMessageContract testContract = new TestMessageContract();
+        TestContract testContract = new TestContract();
 
         // Create and execute a message
-        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        bytes memory callData = abi.encodeWithSelector(TestContract.testFunction.selector);
         AMBTypes.Call memory call =
             AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
         bytes memory message = abi.encode(call);
@@ -1866,28 +1681,4 @@ contract MessageBridgeTest is Test, SigUtils {
         assertEq(stateAfterSecond.nonce, initialState.nonce + 2, "Nonce should be incremented after second send");
     }
 
-    // Helper function to store a message with custom storeResult setting
-    function storeMessageWithStoreResult(uint256 nonce, bytes memory message, bool storeResult) internal {
-        AMBTypes.MessageData[] memory messages = new AMBTypes.MessageData[](1);
-        messages[0] = AMBTypes.MessageData({
-            nonce: nonce,
-            message: message,
-            encodedMetadata: abi.encode(
-                AMBTypes.MetadataExecutable({
-                    msgType: AMBTypes.MessageType.EXECUTABLE,
-                    sender: address(this),
-                    timestamp: block.timestamp,
-                    storeResult: storeResult
-                })
-            )
-        });
-
-        StorageTypes.State memory n3ToEvmState = messageBridgeProxy.getMessageBridgeState().n3ToEvmState;
-        bytes32 previousRoot = n3ToEvmState.root;
-        bytes32 depositRoot = MessageBridgeLib._computeNewTopRoot(previousRoot, messages);
-        BridgeLib.Signature[] memory signatures = generateValidSignatures(depositRoot);
-
-        vm.prank(relayer);
-        messageBridgeProxy.storeMessage(depositRoot, signatures, messages);
-    }
 }
