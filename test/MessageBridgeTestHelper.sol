@@ -104,30 +104,6 @@ abstract contract MessageBridgeTestHelper is Test, SigUtils {
         messageBridgeProxy.unpauseMessageBridge();
     }
 
-    function _getAMBStorage() private pure returns (bytes32) {
-        return keccak256(abi.encode(uint256(keccak256("AMB.storage")) - 1)) & ~bytes32(uint256(0xff));
-    }
-
-    function isSendingPaused() internal view returns (bool) {
-        bytes32 slotValue = vm.load(messageBridgeProxyAddress, _getAMBStorage());
-        // Extract the boolean (byte at offset 20)
-        // Shift right by 20 bytes (160 bits) to get the boolean at the start
-        // Then mask with 0xff to isolate just that byte
-        // Then check if it's non-zero (Solidity booleans are 1 for true, 0 for false)
-        uint8 sendingPausedBoolByte = uint8(uint256(slotValue) >> 160) & 0xFF;
-        return sendingPausedBoolByte > 0;
-    }
-
-    function isExecutingPaused() internal view returns (bool) {
-        bytes32 slotValue = vm.load(messageBridgeProxyAddress, _getAMBStorage());
-        // Extract the boolean (byte at offset 21)
-        // Shift right by 21 bytes (168 bits) to get the boolean at the start
-        // Then mask with 0xff to isolate just that byte
-        // Then check if it's non-zero (Solidity booleans are 1 for true, 0 for false)
-        uint8 executingPausedBoolByte = uint8(uint256(slotValue) >> 168) & 0xFF;
-        return executingPausedBoolByte > 0;
-    }
-
     // Helper function to store a single message with generated signatures
     function storeMessage(uint256 nonce, bytes memory message, bytes memory failMessage) internal {
         AMBTypes.MessageData[] memory messages = new AMBTypes.MessageData[](1);

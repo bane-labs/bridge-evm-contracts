@@ -70,7 +70,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
     }
 
     function test_pauseSending() public {
-        assertEq(isSendingPaused(), false, "Sending should not be paused initially");
+        assertEq(messageBridgeProxy.isSendingPaused(), false, "Sending should not be paused initially");
 
         // Fail unpausing when already unpaused
         vm.prank(governor);
@@ -88,7 +88,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         vm.prank(securityGuard);
         messageBridgeProxy.pauseSending();
 
-        assertEq(isSendingPaused(), true, "Sending should be paused");
+        assertEq(messageBridgeProxy.isSendingPaused(), true, "Sending should be paused");
 
         // Fail pausing when already paused
         vm.prank(governor);
@@ -105,18 +105,18 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
         emit IMessageBridge.SendingUnpause();
         messageBridgeProxy.unpauseSending();
-        assertEq(isSendingPaused(), false, "Sending should be unpaused");
+        assertEq(messageBridgeProxy.isSendingPaused(), false, "Sending should be unpaused");
     }
 
     function test_pauseSending_disallowsSending() public {
-        assertEq(isSendingPaused(), false, "Sending should not be paused initially");
+        assertEq(messageBridgeProxy.isSendingPaused(), false, "Sending should not be paused initially");
 
         vm.prank(governor);
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
         emit IMessageBridge.SendingPause();
         messageBridgeProxy.pauseSending();
 
-        assertEq(isSendingPaused(), true, "Sending should be paused");
+        assertEq(messageBridgeProxy.isSendingPaused(), true, "Sending should be paused");
 
         // Try to store a message while sending is paused (should revert)
         AMBTypes.MessageData[] memory messages = new AMBTypes.MessageData[](1);
@@ -141,7 +141,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
     }
 
     function test_pauseExecuting() public {
-        assertEq(isExecutingPaused(), false, "Executing should not be paused initially");
+        assertEq(messageBridgeProxy.isExecutingPaused(), false, "Executing should not be paused initially");
 
         // Fail unpausing when already unpaused
         vm.prank(governor);
@@ -159,7 +159,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         vm.prank(securityGuard);
         messageBridgeProxy.pauseExecuting();
 
-        assertEq(isExecutingPaused(), true, "Executing should be paused");
+        assertEq(messageBridgeProxy.isExecutingPaused(), true, "Executing should be paused");
 
         // Fail pausing when already paused
         vm.prank(governor);
@@ -176,18 +176,18 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
         emit IMessageBridge.ExecutingUnpause();
         messageBridgeProxy.unpauseExecuting();
-        assertEq(isExecutingPaused(), false, "Executing should be unpaused");
+        assertEq(messageBridgeProxy.isExecutingPaused(), false, "Executing should be unpaused");
     }
 
     function test_pauseExecuting_disallowsExecuting() public {
-        assertEq(isExecutingPaused(), false, "Executing should not be paused initially");
+        assertEq(messageBridgeProxy.isExecutingPaused(), false, "Executing should not be paused initially");
 
         vm.prank(governor);
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
         emit IMessageBridge.ExecutingPause();
         messageBridgeProxy.pauseExecuting();
 
-        assertEq(isExecutingPaused(), true, "Executing should be paused");
+        assertEq(messageBridgeProxy.isExecutingPaused(), true, "Executing should be paused");
 
         uint256 nonce = 1;
         storeDummyMessage(nonce);
