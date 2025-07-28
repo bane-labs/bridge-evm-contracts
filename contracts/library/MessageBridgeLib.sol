@@ -64,7 +64,15 @@ library MessageBridgeLib {
         return keccak256(abi.encodePacked(_nonce, _version, _sender, _timestamp, _message));
     }
 
-    function _hashMessageSendOp(uint256 _nonce, bytes memory _encodedMetadata, bytes memory _msgBytes) internal pure returns (bytes32) {
+    function _hashMessageSendOp(
+        uint256 _nonce,
+        bytes memory _encodedMetadata,
+        bytes memory _msgBytes
+    )
+        internal
+        pure
+        returns (bytes32)
+    {
         // Get the top uint32 value to determine the message type
         // This is used to differentiate between executable, store-only, and result messages
         AMBTypes.SendMessageType msgType;
@@ -72,17 +80,31 @@ library MessageBridgeLib {
             msgType := mload(add(_encodedMetadata, 0x20))
         }
         if (msgType == AMBTypes.SendMessageType.EXECUTABLE) {
-            AMBTypes.SendMetadataExecutable memory metadata = abi.decode(_encodedMetadata, (AMBTypes.SendMetadataExecutable));
-            return keccak256(abi.encodePacked(_nonce, metadata.msgType, metadata.timestamp, metadata.sender, metadata.storeResult, _msgBytes));
+            AMBTypes.SendMetadataExecutable memory metadata =
+                abi.decode(_encodedMetadata, (AMBTypes.SendMetadataExecutable));
+            return keccak256(
+                abi.encodePacked(
+                    _nonce, metadata.msgType, metadata.timestamp, metadata.sender, metadata.storeResult, _msgBytes
+                )
+            );
         } else if (msgType == AMBTypes.SendMessageType.STORE_ONLY) {
-            AMBTypes.SendMetadataStoreOnly memory metadata = abi.decode(_encodedMetadata, (AMBTypes.SendMetadataStoreOnly));
+            AMBTypes.SendMetadataStoreOnly memory metadata =
+                abi.decode(_encodedMetadata, (AMBTypes.SendMetadataStoreOnly));
             return keccak256(abi.encodePacked(_nonce, metadata.msgType, metadata.timestamp, metadata.sender, _msgBytes));
         } else if (msgType == AMBTypes.SendMessageType.RESULT) {
             AMBTypes.SendMetadataResult memory metadata = abi.decode(_encodedMetadata, (AMBTypes.SendMetadataResult));
-            return keccak256(abi.encodePacked(_nonce, metadata.msgType, metadata.timestamp, metadata.sender, metadata.relatedMessageNonce, _msgBytes));
+            return keccak256(
+                abi.encodePacked(
+                    _nonce,
+                    metadata.msgType,
+                    metadata.timestamp,
+                    metadata.sender,
+                    metadata.relatedMessageNonce,
+                    _msgBytes
+                )
+            );
         } else {
             revert UnsupportedMessageType(msgType);
         }
     }
-
 }

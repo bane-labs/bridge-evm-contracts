@@ -120,8 +120,9 @@ contract MessageBridgeSyncSending is Test, SigUtils {
         uint256 nonce = 1;
         uint256 timestamp = 1753000000;
         address sender = address(0x69eCcA587293047bE4C59159BF8BC399985C160D);
-        
-        bytes memory msgBytes = hex"400428141418e358c565207768eae8d237241e85d3e9f1cb280573746f72652101024002210101210440a87c68";
+
+        bytes memory msgBytes =
+            hex"400428141418e358c565207768eae8d237241e85d3e9f1cb280573746f72652101024002210101210440a87c68";
 
         AMBTypes.SendMetadataExecutable memory metadata = AMBTypes.SendMetadataExecutable({
             msgType: AMBTypes.SendMessageType.EXECUTABLE,
@@ -130,9 +131,13 @@ contract MessageBridgeSyncSending is Test, SigUtils {
             storeResult: true
         });
         bytes32 hashedBridgeOp = messageBridgeProxy.hashSendMessage(nonce, abi.encode(metadata), msgBytes);
-        bytes memory concatenated = abi.encodePacked(nonce, metadata.msgType, metadata.timestamp, metadata.sender, metadata.storeResult, msgBytes);
+        bytes memory concatenated = abi.encodePacked(
+            nonce, metadata.msgType, metadata.timestamp, metadata.sender, metadata.storeResult, msgBytes
+        );
         assertEq(
             concatenated,
+            //                                                                  ↓type                                                                                                     ↓store result
+            // |                                                          nonce| |                                                      timestamp |                                sender| |                                                                            message bytes|
             hex"00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000687ca84069ecca587293047be4c59159bf8bc399985c160d01400428141418e358c565207768eae8d237241e85d3e9f1cb280573746f72652101024002210101210440a87c68"
         );
         bytes32 expected = keccak256(concatenated);
@@ -144,8 +149,9 @@ contract MessageBridgeSyncSending is Test, SigUtils {
         uint256 nonce = 2;
         uint256 timestamp = 1753100005;
         address sender = address(0x82d53419cdb80A84A1A9C699C6cc333236169B98);
-        
-        bytes memory msgBytes = hex"5468657265e2809973206e6f776865726520492063616ee280997420676f2e205468657265e2809973206e6f7768657265204920776f6ee28099742066696e6420796f752e";
+
+        bytes memory msgBytes =
+            hex"5468657265e2809973206e6f776865726520492063616ee280997420676f2e205468657265e2809973206e6f7768657265204920776f6ee28099742066696e6420796f752e";
 
         AMBTypes.SendMetadataStoreOnly memory metadata = AMBTypes.SendMetadataStoreOnly({
             msgType: AMBTypes.SendMessageType.STORE_ONLY,
@@ -153,7 +159,8 @@ contract MessageBridgeSyncSending is Test, SigUtils {
             sender: sender
         });
         bytes32 hashedBridgeOp = messageBridgeProxy.hashSendMessage(nonce, abi.encode(metadata), msgBytes);
-        bytes memory concatenated = abi.encodePacked(nonce, metadata.msgType, metadata.timestamp, metadata.sender, msgBytes);
+        bytes memory concatenated =
+            abi.encodePacked(nonce, metadata.msgType, metadata.timestamp, metadata.sender, msgBytes);
         assertEq(
             concatenated,
             hex"00000000000000000000000000000000000000000000000000000000000000020100000000000000000000000000000000000000000000000000000000687e2ee582d53419cdb80a84a1a9c699c6cc333236169b985468657265e2809973206e6f776865726520492063616ee280997420676f2e205468657265e2809973206e6f7768657265204920776f6ee28099742066696e6420796f752e"
@@ -167,7 +174,7 @@ contract MessageBridgeSyncSending is Test, SigUtils {
         uint256 nonce = 7592037;
         uint256 timestamp = 1753000097;
         address sender = address(0xfaDd389577eae0Af6E59f8476F9d808f120407C2);
-        
+
         bytes memory msgBytes = hex"03e8";
 
         AMBTypes.SendMetadataResult memory metadata = AMBTypes.SendMetadataResult({
@@ -177,7 +184,9 @@ contract MessageBridgeSyncSending is Test, SigUtils {
             relatedMessageNonce: 1
         });
         bytes32 hashedBridgeOp = messageBridgeProxy.hashSendMessage(nonce, abi.encode(metadata), msgBytes);
-        bytes memory concatenated = abi.encodePacked(nonce, metadata.msgType, metadata.timestamp, metadata.sender, metadata.relatedMessageNonce, msgBytes);
+        bytes memory concatenated = abi.encodePacked(
+            nonce, metadata.msgType, metadata.timestamp, metadata.sender, metadata.relatedMessageNonce, msgBytes
+        );
         assertEq(
             concatenated,
             hex"000000000000000000000000000000000000000000000000000000000073d8650200000000000000000000000000000000000000000000000000000000687ca8a1fadd389577eae0af6e59f8476f9d808f120407c2000000000000000000000000000000000000000000000000000000000000000103e8"
@@ -186,5 +195,4 @@ contract MessageBridgeSyncSending is Test, SigUtils {
         assertEq(hashedBridgeOp, expected);
         assertEq(hashedBridgeOp, hex"80d26468c8c67d4bfccc3d2ac6276ab98ccbdf1a43d3f0e18b91a6461d75ac22");
     }
-
 }

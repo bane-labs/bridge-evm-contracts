@@ -67,9 +67,10 @@ library AMBTypes {
         EXECUTABLE, // The message is executable
         STORE_ONLY, // The message is only stored. It cannot is not executable.
         RESULT // The message is a result of a message execution.
+
     }
 
-     struct SendMetadataExecutable {
+    struct SendMetadataExecutable {
         SendMessageType msgType;
         uint256 timestamp;
         address sender;
@@ -88,5 +89,4 @@ library AMBTypes {
         address sender;
         uint256 relatedMessageNonce; // The nonce of the message that this result is related to
     }
-    
 }
