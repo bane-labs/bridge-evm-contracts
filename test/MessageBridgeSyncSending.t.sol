@@ -124,8 +124,8 @@ contract MessageBridgeSyncSending is Test, SigUtils {
         bytes memory msgBytes =
             hex"400428141418e358c565207768eae8d237241e85d3e9f1cb280573746f72652101024002210101210440a87c68";
 
-        AMBTypes.SendMetadataExecutable memory metadata = AMBTypes.SendMetadataExecutable({
-            msgType: AMBTypes.SendMessageType.EXECUTABLE,
+        AMBTypes.MetadataExecutable memory metadata = AMBTypes.MetadataExecutable({
+            msgType: AMBTypes.MessageType.EXECUTABLE,
             timestamp: timestamp,
             sender: sender,
             storeResult: true
@@ -153,11 +153,8 @@ contract MessageBridgeSyncSending is Test, SigUtils {
         bytes memory msgBytes =
             hex"5468657265e2809973206e6f776865726520492063616ee280997420676f2e205468657265e2809973206e6f7768657265204920776f6ee28099742066696e6420796f752e";
 
-        AMBTypes.SendMetadataStoreOnly memory metadata = AMBTypes.SendMetadataStoreOnly({
-            msgType: AMBTypes.SendMessageType.STORE_ONLY,
-            timestamp: timestamp,
-            sender: sender
-        });
+        AMBTypes.MetadataStoreOnly memory metadata =
+            AMBTypes.MetadataStoreOnly({msgType: AMBTypes.MessageType.STORE_ONLY, timestamp: timestamp, sender: sender});
         bytes32 hashedBridgeOp = messageBridgeProxy.hashSendMessage(nonce, abi.encode(metadata), msgBytes);
         bytes memory concatenated =
             abi.encodePacked(nonce, metadata.msgType, metadata.timestamp, metadata.sender, msgBytes);
@@ -177,8 +174,8 @@ contract MessageBridgeSyncSending is Test, SigUtils {
 
         bytes memory msgBytes = hex"03e8";
 
-        AMBTypes.SendMetadataResult memory metadata = AMBTypes.SendMetadataResult({
-            msgType: AMBTypes.SendMessageType.RESULT,
+        AMBTypes.MetadataResult memory metadata = AMBTypes.MetadataResult({
+            msgType: AMBTypes.MessageType.RESULT,
             timestamp: timestamp,
             sender: sender,
             relatedMessageNonce: 1

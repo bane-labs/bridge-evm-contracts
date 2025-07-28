@@ -34,7 +34,7 @@ contract TestMessageContract is MessageBridge {
         pure
         returns (bytes32)
     {
-        return MessageBridgeLib._hashMessageSendOp(_nonce, _encodedMetadata, _msgBytes);
+        return MessageBridgeLib._hashMessageBridgeOp(_nonce, _encodedMetadata, _msgBytes);
     }
 
     function testFunction() public returns (uint256) {

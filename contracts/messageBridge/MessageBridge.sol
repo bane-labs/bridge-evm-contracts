@@ -137,8 +137,8 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         onlyIfMessageBridgeSet
         whenMessageBridgeNotPaused
     {
-        AMBTypes.SendMetadataExecutable memory metadata = AMBTypes.SendMetadataExecutable({
-            msgType: AMBTypes.SendMessageType.EXECUTABLE,
+        AMBTypes.MetadataExecutable memory metadata = AMBTypes.MetadataExecutable({
+            msgType: AMBTypes.MessageType.EXECUTABLE,
             timestamp: block.timestamp,
             sender: msg.sender,
             storeResult: _storeResult
@@ -152,8 +152,8 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
      * @param _message The message to be sent.
      */
     function sendMessage(bytes calldata _message) external payable whenMessageBridgeNotPaused {
-        AMBTypes.SendMetadataStoreOnly memory metadata = AMBTypes.SendMetadataStoreOnly({
-            msgType: AMBTypes.SendMessageType.STORE_ONLY,
+        AMBTypes.MetadataStoreOnly memory metadata = AMBTypes.MetadataStoreOnly({
+            msgType: AMBTypes.MessageType.STORE_ONLY,
             timestamp: block.timestamp,
             sender: msg.sender
         });
@@ -161,7 +161,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         _sendMessageWithMetadata(_message, encodedMetadata);
     }
 
-    function _sendMessageWithMetadata(bytes memory _message, bytes memory encodedMetadata) private {
+    function _sendMessageWithMetadata(bytes memory _message, bytes memory _encodedMetadata) private {
         AMBTypes.MessageConfig memory config = _getMessageBridgeConfig();
 
         // Check message size against max allowed size
@@ -176,7 +176,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         uint256 newNonce = state.nonce + 1;
 
         // Create message hash
-        bytes32 messageHash = MessageBridgeLib._hashMessageSendOp(newNonce, encodedMetadata, _message);
+        bytes32 messageHash = MessageBridgeLib._hashMessageBridgeOp(newNonce, _encodedMetadata, _message);
 
         // Compute new root
         bytes32 newRoot = BridgeLib._computeNewRoot(state.root, messageHash);
@@ -241,8 +241,11 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
      * @param messageData the data of the message to be stored.
      */
     function _storeMessage(AMBTypes.MessageData memory messageData) private {
-        _getAMBStorage().n3ToEvmMessages[messageData.nonce] =
-            AMBTypes.StoredMessage({metadata: messageData.metadata, message: messageData.message, executed: false});
+        _getAMBStorage().n3ToEvmMessages[messageData.nonce] = AMBTypes.StoredMessage({
+            encodedMetadata: messageData.encodedMetadata,
+            message: messageData.message,
+            executed: false
+        });
 
         emit MessageDeposit(messageData.nonce, messageData.message);
     }
@@ -256,9 +259,16 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
 
         if (address(messageExecutionManager) == address(0)) revert ExecutionManagerNotSet();
 
+        bytes memory encodedMetadata = storedMessage.encodedMetadata;
+        AMBTypes.MessageType msgType = MessageBridgeLib._readMessageType(encodedMetadata); // Ensure the message type is valid
+
+        AMBTypes.MetadataExecutable memory metadata;
+        if (msgType != AMBTypes.MessageType.EXECUTABLE) revert MessageBridgeLib.UnsupportedMessageType(msgType);
+        else metadata = abi.decode(encodedMetadata, (AMBTypes.MetadataExecutable));
+
         // Check if the message execution window has expired
         AMBTypes.MessageConfig memory config = _getMessageBridgeConfig();
-        uint256 expiry = storedMessage.metadata.timestamp + config.executionWindowSeconds;
+        uint256 expiry = metadata.timestamp + config.executionWindowSeconds;
         if (block.timestamp > expiry) revert ExecutionWindowExpired(expiry, block.timestamp);
 
         // Mark as executed
