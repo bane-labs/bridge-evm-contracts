@@ -39,9 +39,8 @@ library AMBTypes {
     }
 
     struct Call {
-        bool allowFailure;
-        bool requiresResponse; // The user can specify if the call requires a response to be sent back across the bridge.
         address target;
+        bool allowFailure;
         uint256 value;
         bytes callData;
     }

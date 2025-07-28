@@ -47,24 +47,10 @@ contract MessageBridgeTest is Test, SigUtils {
     uint256 executionWindowSeconds = 60;
 
     // Test message data
-    bytes testMessage1 = abi.encode(
-        AMBTypes.Call({
-            allowFailure: false,
-            requiresResponse: false,
-            target: address(0x1234),
-            value: 0,
-            callData: hex"abcd"
-        })
-    );
-    bytes testMessage2 = abi.encode(
-        AMBTypes.Call({
-            allowFailure: true,
-            requiresResponse: false,
-            target: address(0x5678),
-            value: 0,
-            callData: hex"ef01"
-        })
-    );
+    bytes testMessage1 =
+        abi.encode(AMBTypes.Call({allowFailure: false, target: address(0x1234), value: 0, callData: hex"abcd"}));
+    bytes testMessage2 =
+        abi.encode(AMBTypes.Call({allowFailure: true, target: address(0x5678), value: 0, callData: hex"ef01"}));
 
     function setUp() public {
         sigUtils = new SigUtils();
@@ -162,7 +148,7 @@ contract MessageBridgeTest is Test, SigUtils {
         messageBridgeProxy.storeMessage(depositRoot, signatures, messages);
     }
 
-        function _getAMBStorage() private pure returns (bytes32) {
+    function _getAMBStorage() private pure returns (bytes32) {
         return keccak256(abi.encode(uint256(keccak256("AMB.storage")) - 1)) & ~bytes32(uint256(0xff));
     }
 
@@ -180,7 +166,7 @@ contract MessageBridgeTest is Test, SigUtils {
         uint8 sendingPausedBoolByte = uint8(uint256(slotValue) >> 160) & 0xFF;
         return sendingPausedBoolByte > 0;
     }
-    
+
     function isExecutingPaused() private view returns (bool) {
         bytes32 slotValue = vm.load(messageBridgeProxyAddress, _getAMBStorage());
         // Extract the boolean (byte at offset 21)
@@ -261,7 +247,7 @@ contract MessageBridgeTest is Test, SigUtils {
         vm.expectRevert(abi.encodeWithSelector(MessageBridge.SendingPaused.selector));
         messageBridgeProxy.sendMessage(testMessage1);
     }
-    
+
     function test_pauseExecuting() public {
         assertEq(isExecutingPaused(), false, "Executing should not be paused initially");
 
@@ -327,13 +313,8 @@ contract MessageBridgeTest is Test, SigUtils {
         // Create Call struct with testFunction encoded
         bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
 
-        AMBTypes.Call memory call = AMBTypes.Call({
-            allowFailure: false,
-            requiresResponse: false,
-            target: address(testContract),
-            value: 0,
-            callData: callData
-        });
+        AMBTypes.Call memory call =
+            AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
         uint256 nonce = 1;
 
         // Encode the Call struct into a message
@@ -378,7 +359,6 @@ contract MessageBridgeTest is Test, SigUtils {
             target: address(testContract),
             callData: callData,
             allowFailure: false,
-            requiresResponse: false,
             value: paymentAmount
         });
         uint256 nonce = 1;
@@ -424,7 +404,6 @@ contract MessageBridgeTest is Test, SigUtils {
             target: address(testContract),
             callData: callData,
             allowFailure: true, // Allow failure so we can check the error
-            requiresResponse: false,
             value: actualAmount
         });
         uint256 nonce = 1;
@@ -484,13 +463,8 @@ contract MessageBridgeTest is Test, SigUtils {
         // Create Call struct with empty callData to trigger receive() function
         bytes memory callData = "";
 
-        AMBTypes.Call memory call = AMBTypes.Call({
-            target: address(testContract),
-            callData: callData,
-            allowFailure: false,
-            requiresResponse: false,
-            value: 1 ether
-        });
+        AMBTypes.Call memory call =
+            AMBTypes.Call({target: address(testContract), callData: callData, allowFailure: false, value: 1 ether});
 
         // Encode the Call struct into a message
         bytes memory message = abi.encode(call);
@@ -527,13 +501,8 @@ contract MessageBridgeTest is Test, SigUtils {
         // Create a valid address payload to send in the calldata
         bytes memory addressBytes = abi.encodePacked(address(this));
 
-        AMBTypes.Call memory call = AMBTypes.Call({
-            target: address(testContract),
-            callData: addressBytes,
-            allowFailure: false,
-            requiresResponse: false,
-            value: 1 ether
-        });
+        AMBTypes.Call memory call =
+            AMBTypes.Call({target: address(testContract), callData: addressBytes, allowFailure: false, value: 1 ether});
 
         // Encode the Call struct into a message
         bytes memory message = abi.encode(call);
@@ -577,7 +546,6 @@ contract MessageBridgeTest is Test, SigUtils {
                 target: address(testContract),
                 callData: callData,
                 allowFailure: true, // Allow failure so we can check the error
-                requiresResponse: false,
                 value: actualAmount
             });
 
@@ -610,7 +578,6 @@ contract MessageBridgeTest is Test, SigUtils {
                 target: address(testContract),
                 callData: addressBytes,
                 allowFailure: true,
-                requiresResponse: false,
                 value: 0 // Zero value
             });
 
@@ -643,7 +610,6 @@ contract MessageBridgeTest is Test, SigUtils {
                 target: address(testContract),
                 callData: callData,
                 allowFailure: true,
-                requiresResponse: false,
                 value: 0 // Zero value
             });
 
@@ -680,7 +646,6 @@ contract MessageBridgeTest is Test, SigUtils {
             target: address(testContract),
             callData: invalidCallData,
             allowFailure: false, // This will cause CallFailed error
-            requiresResponse: false,
             value: 1 ether
         });
 
@@ -721,13 +686,8 @@ contract MessageBridgeTest is Test, SigUtils {
         // Create some random calldata
         bytes memory callData = abi.encodeWithSignature("someFunction(uint256)", 123);
 
-        AMBTypes.Call memory call = AMBTypes.Call({
-            allowFailure: true,
-            requiresResponse: false,
-            target: nonExistentContract,
-            value: 0.1 ether,
-            callData: callData
-        });
+        AMBTypes.Call memory call =
+            AMBTypes.Call({allowFailure: true, target: nonExistentContract, value: 0.1 ether, callData: callData});
 
         // Encode the Call struct into a message
         bytes memory message = abi.encode(call);
@@ -765,13 +725,8 @@ contract MessageBridgeTest is Test, SigUtils {
         // Create a test message
         TestMessageContract testContract = new TestMessageContract();
         bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
-        AMBTypes.Call memory call = AMBTypes.Call({
-            allowFailure: false,
-            requiresResponse: false,
-            target: address(testContract),
-            value: 0,
-            callData: callData
-        });
+        AMBTypes.Call memory call =
+            AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
         bytes memory message = abi.encode(call);
 
         // Get current state and nonce
@@ -804,13 +759,8 @@ contract MessageBridgeTest is Test, SigUtils {
         // Create Call struct with testFunction selector (which TestPayableContract doesn't implement)
         bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
 
-        AMBTypes.Call memory call = AMBTypes.Call({
-            target: address(payableContract),
-            callData: callData,
-            allowFailure: true,
-            requiresResponse: false,
-            value: 0.1 ether
-        });
+        AMBTypes.Call memory call =
+            AMBTypes.Call({target: address(payableContract), callData: callData, allowFailure: true, value: 0.1 ether});
 
         // Encode the Call struct into a message
         bytes memory message = abi.encode(call);
@@ -846,13 +796,8 @@ contract MessageBridgeTest is Test, SigUtils {
         // Create a Call struct that targets the attacker's attack function
         bytes memory callData = abi.encodeWithSelector(ReentrancyAttacker.attack.selector);
 
-        AMBTypes.Call memory call = AMBTypes.Call({
-            allowFailure: false,
-            requiresResponse: false,
-            target: address(attacker),
-            value: 0,
-            callData: callData
-        });
+        AMBTypes.Call memory call =
+            AMBTypes.Call({allowFailure: false, target: address(attacker), value: 0, callData: callData});
         uint256 nonce = 1;
 
         // Encode the Call struct into a message
@@ -886,13 +831,8 @@ contract MessageBridgeTest is Test, SigUtils {
         // Create Call struct with testFunction encoded
         bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
 
-        AMBTypes.Call memory call = AMBTypes.Call({
-            allowFailure: false,
-            requiresResponse: false,
-            target: address(testContract),
-            value: 0,
-            callData: callData
-        });
+        AMBTypes.Call memory call =
+            AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
         uint256 nonce = 1;
 
         // Encode the Call struct into a message
@@ -1158,13 +1098,8 @@ contract MessageBridgeTest is Test, SigUtils {
         // Create a test message
         TestMessageContract testContract = new TestMessageContract();
         bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
-        AMBTypes.Call memory call = AMBTypes.Call({
-            allowFailure: false,
-            requiresResponse: false,
-            target: address(testContract),
-            value: 0,
-            callData: callData
-        });
+        AMBTypes.Call memory call =
+            AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
         bytes memory message = abi.encode(call);
 
         // Get current state and nonce
@@ -1197,24 +1132,14 @@ contract MessageBridgeTest is Test, SigUtils {
 
         // First message
         bytes memory callData1 = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
-        AMBTypes.Call memory call1 = AMBTypes.Call({
-            allowFailure: false,
-            requiresResponse: false,
-            target: address(testContract),
-            value: 0,
-            callData: callData1
-        });
+        AMBTypes.Call memory call1 =
+            AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData1});
         bytes memory message1 = abi.encode(call1);
 
         // Second message
         bytes memory callData2 = abi.encodeWithSelector(TestMessageContract.receivePayment.selector, 1 ether);
-        AMBTypes.Call memory call2 = AMBTypes.Call({
-            allowFailure: false,
-            requiresResponse: false,
-            target: address(testContract),
-            value: 1 ether,
-            callData: callData2
-        });
+        AMBTypes.Call memory call2 =
+            AMBTypes.Call({allowFailure: false, target: address(testContract), value: 1 ether, callData: callData2});
         bytes memory message2 = abi.encode(call2);
 
         // Get current state and nonce
@@ -1257,13 +1182,8 @@ contract MessageBridgeTest is Test, SigUtils {
         // Create a test message
         TestMessageContract testContract = new TestMessageContract();
         bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
-        AMBTypes.Call memory call = AMBTypes.Call({
-            allowFailure: false,
-            requiresResponse: false,
-            target: address(testContract),
-            value: 0,
-            callData: callData
-        });
+        AMBTypes.Call memory call =
+            AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
         bytes memory message = abi.encode(call);
 
         // Set up a specific sender and timestamp for metadata
@@ -1319,13 +1239,8 @@ contract MessageBridgeTest is Test, SigUtils {
         // Create Call struct with testFunction encoded
         bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
 
-        AMBTypes.Call memory call = AMBTypes.Call({
-            allowFailure: false,
-            requiresResponse: false,
-            target: address(testContract),
-            value: 0,
-            callData: callData
-        });
+        AMBTypes.Call memory call =
+            AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
         uint256 nonce = 1;
 
         // Encode the Call struct into a message
@@ -1410,15 +1325,8 @@ contract MessageBridgeTest is Test, SigUtils {
 
     function storeDummyMessage(uint256 nonce) internal {
         // Create a dummy message
-        bytes memory dummyMessage = abi.encode(
-            AMBTypes.Call({
-                allowFailure: false,
-                requiresResponse: false,
-                target: address(0),
-                value: 0,
-                callData: ""
-            })
-        );
+        bytes memory dummyMessage =
+            abi.encode(AMBTypes.Call({allowFailure: false, target: address(0), value: 0, callData: ""}));
 
         // Store the dummy message with the specified nonce
         storeMessage(nonce, dummyMessage, "");
@@ -1643,4 +1551,343 @@ contract MessageBridgeTest is Test, SigUtils {
 
     // Helper function to receive ETH (needed for the refund test)
     receive() external payable {}
+
+    // Tests for sendResultMessage function
+
+    function test_SendResultMessage_Success() public {
+        // Deploy test contract
+        TestMessageContract testContract = new TestMessageContract();
+
+        // Create a message with storeResult = true
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        AMBTypes.Call memory call =
+            AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
+        bytes memory message = abi.encode(call);
+        uint256 nonce = 1;
+
+        // Store the message with storeResult = true
+        storeMessageWithStoreResult(nonce, message, true);
+
+        // Execute the message to generate execution results
+        AMBTypes.Result memory executionResult = messageBridgeProxy.executeMessage(nonce);
+        assertTrue(executionResult.success, "Message execution should succeed");
+
+        // Get initial state for result message
+        StorageTypes.State memory evmToN3State = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+        uint256 initialNonce = evmToN3State.nonce;
+        bytes32 initialRoot = evmToN3State.root;
+
+        // Create expected metadata for result message
+        bytes memory expectedMetadata = abi.encode(
+            AMBTypes.MetadataResult({
+                msgType: AMBTypes.MessageType.RESULT,
+                timestamp: block.timestamp,
+                sender: address(this),
+                relatedMessageNonce: nonce
+            })
+        );
+
+        // Calculate expected values
+        bytes32 expectedMessageHash = MessageBridgeLib._hashMessageBridgeOp(
+            initialNonce + 1,
+            expectedMetadata,
+            executionResult.returnData
+        );
+        bytes32 expectedRoot = BridgeLib._computeNewRoot(initialRoot, expectedMessageHash);
+
+        // Expect the MessageSent event
+        vm.expectEmit(true, true, true, true);
+        emit IMessageBridge.MessageSent(
+            initialNonce + 1,
+            executionResult.returnData,
+            block.timestamp,
+            address(this),
+            expectedMessageHash,
+            expectedRoot
+        );
+
+        // Send the result message
+        messageBridgeProxy.sendResultMessage{value: messageFee}(nonce);
+
+        // Verify state changes
+        StorageTypes.State memory updatedState = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+        assertEq(updatedState.nonce, initialNonce + 1, "Nonce should be incremented");
+        assertEq(updatedState.root, expectedRoot, "Root should be updated correctly");
+    }
+
+    function test_SendResultMessage_MessageNotFound() public {
+        // Try to send result for a non-existent message
+        uint256 nonExistentNonce = 999;
+
+        vm.expectRevert(abi.encodeWithSelector(MessageBridge.MessageNotFound.selector, nonExistentNonce));
+        messageBridgeProxy.sendResultMessage{value: messageFee}(nonExistentNonce);
+    }
+
+    function test_SendResultMessage_MessageExistsButNoStoredResult() public {
+        // Deploy test contract
+        TestMessageContract testContract = new TestMessageContract();
+
+        // Create a message with storeResult = false (default)
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        AMBTypes.Call memory call =
+            AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
+        bytes memory message = abi.encode(call);
+        uint256 nonce = 1;
+
+        // Store the message with storeResult = false
+        storeMessage(nonce, message, "");
+
+        // Execute the message
+        AMBTypes.Result memory executionResult = messageBridgeProxy.executeMessage(nonce);
+        assertTrue(executionResult.success, "Message execution should succeed");
+
+        // Try to send result message - should fail because no result was stored
+        vm.expectRevert(abi.encodeWithSelector(MessageBridge.ResultNotFound.selector, nonce));
+        messageBridgeProxy.sendResultMessage{value: messageFee}(nonce);
+    }
+
+    function test_SendResultMessage_InsufficientFee() public {
+        // Deploy test contract
+        TestMessageContract testContract = new TestMessageContract();
+
+        // Create and store a message with storeResult = true
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        AMBTypes.Call memory call =
+            AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
+        bytes memory message = abi.encode(call);
+        uint256 nonce = 1;
+
+        storeMessageWithStoreResult(nonce, message, true);
+        messageBridgeProxy.executeMessage(nonce);
+
+        // Try to send result with insufficient fee
+        uint256 insufficientFee = messageFee - 1;
+        vm.expectRevert(abi.encodeWithSelector(MessageBridge.InsufficientFee.selector, messageFee, insufficientFee));
+        messageBridgeProxy.sendResultMessage{value: insufficientFee}(nonce);
+    }
+
+    function test_SendResultMessage_WhenMessageBridgePaused() public {
+        // Deploy test contract and execute a message with stored result
+        TestMessageContract testContract = new TestMessageContract();
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        AMBTypes.Call memory call =
+            AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
+        bytes memory message = abi.encode(call);
+        uint256 nonce = 1;
+
+        storeMessageWithStoreResult(nonce, message, true);
+        messageBridgeProxy.executeMessage(nonce);
+
+        // Pause the message bridge
+        vm.prank(governor);
+        messageBridgeProxy.pauseMessageBridge();
+
+        // Try to send result message while paused
+        vm.expectRevert(abi.encodeWithSelector(MessageBridge.MessageBridgePaused.selector));
+        messageBridgeProxy.sendResultMessage{value: messageFee}(nonce);
+    }
+
+    function test_SendResultMessage_WhenSendingPaused() public {
+        // Deploy test contract and execute a message with stored result
+        TestMessageContract testContract = new TestMessageContract();
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        AMBTypes.Call memory call =
+            AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
+        bytes memory message = abi.encode(call);
+        uint256 nonce = 1;
+
+        storeMessageWithStoreResult(nonce, message, true);
+        messageBridgeProxy.executeMessage(nonce);
+
+        // Pause sending
+        vm.prank(governor);
+        messageBridgeProxy.pauseSending();
+
+        // Try to send result message while sending is paused
+        vm.expectRevert(abi.encodeWithSelector(MessageBridge.SendingPaused.selector));
+        messageBridgeProxy.sendResultMessage{value: messageFee}(nonce);
+    }
+
+    function test_SendResultMessage_ExcessFeeRefund() public {
+        // Deploy test contract and execute a message with stored result
+        TestMessageContract testContract = new TestMessageContract();
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        AMBTypes.Call memory call =
+            AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
+        bytes memory message = abi.encode(call);
+        uint256 nonce = 1;
+
+        storeMessageWithStoreResult(nonce, message, true);
+        messageBridgeProxy.executeMessage(nonce);
+
+        // Send with excess fee
+        uint256 excessFee = messageFee * 2;
+        vm.deal(owner, excessFee);
+
+        uint256 balanceBefore = address(owner).balance;
+
+        vm.prank(owner);
+        messageBridgeProxy.sendResultMessage{value: excessFee}(nonce);
+
+        uint256 balanceAfter = address(owner).balance;
+
+        // Verify refund
+        assertEq(balanceBefore - messageFee, balanceAfter, "Excess fee should be refunded");
+    }
+
+    function test_SendResultMessage_ExactFeeRequired_FromContract() public {
+        // Deploy test contract and execute a message with stored result
+        TestMessageContract testContract = new TestMessageContract();
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        AMBTypes.Call memory call =
+            AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
+        bytes memory message = abi.encode(call);
+        uint256 nonce = 1;
+
+        storeMessageWithStoreResult(nonce, message, true);
+        messageBridgeProxy.executeMessage(nonce);
+
+        // Fund the test contract
+        (bool success,) = address(testContract).call{value: messageFee * 2}("");
+        require(success, "Failed to fund test contract");
+
+        // Try to send result from contract with excess fee
+        vm.prank(address(testContract));
+        vm.expectRevert(abi.encodeWithSelector(MessageBridge.ExactFeeRequired.selector, messageFee, messageFee * 2));
+        messageBridgeProxy.sendResultMessage{value: messageFee * 2}(nonce);
+    }
+
+    function test_SendResultMessage_WithFailedExecutionResult() public {
+        // Deploy test contract
+        TestMessageContract testContract = new TestMessageContract();
+
+        // Create a call that will fail
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.receivePayment.selector, 1 ether);
+        AMBTypes.Call memory call =
+            AMBTypes.Call({allowFailure: true, target: address(testContract), value: 0, callData: callData}); // Mismatch: expects 1 ether but sends 0
+
+        bytes memory message = abi.encode(call);
+        uint256 nonce = 1;
+
+        // Store the message with storeResult = true
+        storeMessageWithStoreResult(nonce, message, true);
+
+        // Execute the message (will fail but store the result)
+        AMBTypes.Result memory executionResult = messageBridgeProxy.executeMessage(nonce);
+        assertFalse(executionResult.success, "Message execution should fail");
+
+        // Get initial state for result message
+        StorageTypes.State memory evmToN3State = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+        uint256 initialNonce = evmToN3State.nonce;
+
+        // Send the result message (should work even with failed execution result)
+        messageBridgeProxy.sendResultMessage{value: messageFee}(nonce);
+
+        // Verify state changes
+        StorageTypes.State memory updatedState = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+        assertEq(updatedState.nonce, initialNonce + 1, "Nonce should be incremented");
+    }
+
+    function test_SendResultMessage_MultipleCalls() public {
+        // Deploy test contract
+        TestMessageContract testContract = new TestMessageContract();
+
+        // Create and execute first message
+        bytes memory callData1 = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        AMBTypes.Call memory call1 =
+            AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData1});
+        bytes memory message1 = abi.encode(call1);
+        uint256 nonce1 = 1;
+
+        storeMessageWithStoreResult(nonce1, message1, true);
+        messageBridgeProxy.executeMessage(nonce1);
+
+        // Create and execute second message
+        bytes memory callData2 = abi.encodeWithSelector(TestMessageContract.receivePayment.selector, 1 ether);
+        AMBTypes.Call memory call2 =
+            AMBTypes.Call({allowFailure: false, target: address(testContract), value: 1 ether, callData: callData2});
+        bytes memory message2 = abi.encode(call2);
+        uint256 nonce2 = 2;
+
+        storeMessageWithStoreResult(nonce2, message2, true);
+        messageBridgeProxy.executeMessage{value: 1 ether}(nonce2);
+
+        // Get initial state
+        StorageTypes.State memory initialState = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+
+        // Send first result message
+        messageBridgeProxy.sendResultMessage{value: messageFee}(nonce1);
+
+        // Verify first result message was sent
+        StorageTypes.State memory stateAfterFirst = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+        assertEq(stateAfterFirst.nonce, initialState.nonce + 1, "Nonce should be incremented after first result");
+
+        // Send second result message
+        messageBridgeProxy.sendResultMessage{value: messageFee}(nonce2);
+
+        // Verify second result message was sent
+        StorageTypes.State memory stateAfterSecond = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+        assertEq(stateAfterSecond.nonce, initialState.nonce + 2, "Nonce should be incremented after second result");
+
+        // Verify roots are different
+        assertTrue(initialState.root != stateAfterFirst.root, "Root should change after first result");
+        assertTrue(stateAfterFirst.root != stateAfterSecond.root, "Root should change after second result");
+    }
+
+    function test_SendResultMessage_CanSendSameResultMultipleTimes() public {
+        // Deploy test contract
+        TestMessageContract testContract = new TestMessageContract();
+
+        // Create and execute a message
+        bytes memory callData = abi.encodeWithSelector(TestMessageContract.testFunction.selector);
+        AMBTypes.Call memory call =
+            AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
+        bytes memory message = abi.encode(call);
+        uint256 nonce = 1;
+
+        storeMessageWithStoreResult(nonce, message, true);
+        messageBridgeProxy.executeMessage(nonce);
+
+        // Get initial state
+        StorageTypes.State memory initialState = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+
+        // Send result message first time
+        messageBridgeProxy.sendResultMessage{value: messageFee}(nonce);
+
+        // Verify first send worked
+        StorageTypes.State memory stateAfterFirst = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+        assertEq(stateAfterFirst.nonce, initialState.nonce + 1, "Nonce should be incremented after first send");
+
+        // Send the same result message again (should work)
+        messageBridgeProxy.sendResultMessage{value: messageFee}(nonce);
+
+        // Verify second send worked
+        StorageTypes.State memory stateAfterSecond = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+        assertEq(stateAfterSecond.nonce, initialState.nonce + 2, "Nonce should be incremented after second send");
+    }
+
+    // Helper function to store a message with custom storeResult setting
+    function storeMessageWithStoreResult(uint256 nonce, bytes memory message, bool storeResult) internal {
+        AMBTypes.MessageData[] memory messages = new AMBTypes.MessageData[](1);
+        messages[0] = AMBTypes.MessageData({
+            nonce: nonce,
+            message: message,
+            encodedMetadata: abi.encode(
+                AMBTypes.MetadataExecutable({
+                    msgType: AMBTypes.MessageType.EXECUTABLE,
+                    sender: address(this),
+                    timestamp: block.timestamp,
+                    storeResult: storeResult
+                })
+            )
+        });
+
+        StorageTypes.State memory n3ToEvmState = messageBridgeProxy.getMessageBridgeState().n3ToEvmState;
+        bytes32 previousRoot = n3ToEvmState.root;
+        bytes32 depositRoot = MessageBridgeLib._computeNewTopRoot(previousRoot, messages);
+        BridgeLib.Signature[] memory signatures = generateValidSignatures(depositRoot);
+
+        vm.prank(relayer);
+        messageBridgeProxy.storeMessage(depositRoot, signatures, messages);
+    }
 }
