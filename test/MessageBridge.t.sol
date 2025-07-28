@@ -551,8 +551,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         // Execution should revert with CallFailed(InvalidCallData())
         vm.expectRevert(
             abi.encodeWithSelector(
-                ExecutionManager.ExecutionFailed.selector,
-                abi.encodeWithSelector(TestContract.InvalidCallData.selector)
+                ExecutionManager.ExecutionFailed.selector, abi.encodeWithSelector(TestContract.InvalidCallData.selector)
             )
         );
 
@@ -1679,5 +1678,4 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         StorageTypes.State memory stateAfterSecond = messageBridgeProxy.getMessageBridgeState().evmToN3State;
         assertEq(stateAfterSecond.nonce, initialState.nonce + 2, "Nonce should be incremented after second send");
     }
-
 }

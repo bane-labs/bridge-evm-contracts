@@ -15,7 +15,7 @@ contract TestContract {
     error InvalidCallData();
     // Custom error for when amount or value is zero
     error ZeroValueNotAllowed();
-    
+
     function testFunction() public returns (uint256) {
         counter += 1;
         emit TestEvent(counter, msg.sender);
