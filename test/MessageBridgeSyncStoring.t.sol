@@ -248,6 +248,77 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
         messageBridgeProxy.executeMessage(2);
     }
 
+    function test_SyncTest_ResultMessage() public {
+        // storeDummyMessageForStoreOnlySyncTest(); // make sure the nonce is at 1 when we start this test
+        AMBStorage.MessageBridgeState memory initialBridgeState = messageBridgeProxy.getMessageBridgeState();
+        bytes32 initialEvmRoot = initialBridgeState.evmState.root;
+
+        bytes memory message = hex"210340420f";
+
+        // expected msg hash: 0x92c4ccaaedaa74d8f0f40138ec1d309dd853e378b70695981070e7a16e732de3
+        // with nonce: 1
+        // with message type: 2 // RESULT
+        // with timestamp: 1753802922973
+        // with sender: 4e2381e7d7cbb4a23c7776be28276ffc107ae28c
+        // with related message nonce: 1
+        // with raw message: 210340420f
+
+        // Create metadata for the message
+        AMBTypes.MetadataResult memory metadata = AMBTypes.MetadataResult({
+            msgType: AMBTypes.MessageType.RESULT,
+            timestamp: 1753802922973, // N3 timestamp in milliseconds
+            sender: address(0x4E2381E7d7CBB4A23C7776Be28276FFc107aE28c),
+            relatedMessageNonce: 1
+        });
+
+        bytes memory packedMessage =
+            abi.encodePacked(uint256(1), metadata.msgType, metadata.timestamp, metadata.sender, metadata.relatedMessageNonce, message);
+
+        console2.logString("Packed message:");
+        console2.logBytes(packedMessage);
+        // The following expected concatenated bytes were the outcome in the event of sending the above raw message on the N3 contract
+        assertEq(
+            packedMessage,
+            hex"0000000000000000000000000000000000000000000000000000000000000001020000000000000000000000000000000000000000000000000000019856ccdbdd4e2381e7d7cbb4a23c7776be28276ffc107ae28c0000000000000000000000000000000000000000000000000000000000000001210340420f"
+        );
+
+        bytes32 actualMsgHash = MessageBridgeLib._hashMessageBridgeOp(1, abi.encode(metadata), message);
+        console2.logBytes32(actualMsgHash);
+        // The following expected hash was the outcome in the event of sending the above message on the N3 contract
+        assertEq(
+            actualMsgHash,
+            hex"92c4ccaaedaa74d8f0f40138ec1d309dd853e378b70695981070e7a16e732de3",
+            "Message hash should match expected value"
+        );
+
+        // What the initial root should be based on the presetup of the test
+        assertEq(initialEvmRoot, hex"0000000000000000000000000000000000000000000000000000000000000000");
+
+        bytes32 newEvmRoot = BridgeLib._computeNewRoot(initialEvmRoot, actualMsgHash);
+        assertEq(
+            newEvmRoot,
+            hex"f35faf897372612929949a29991880c3f7e77281410c942270f0017385c37b16",
+            "New EVM root should match expected value"
+        );
+
+        AMBTypes.MessageData[] memory messages = new AMBTypes.MessageData[](1);
+        messages[0] = AMBTypes.MessageData({nonce: 1, message: message, encodedMetadata: abi.encode(metadata)});
+
+        BridgeLib.Signature[] memory signatures = generateValidSignatures(newEvmRoot);
+
+        vm.prank(relayer);
+        vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
+        emit IMessageBridge.MessageDepositRootUpdate(1, newEvmRoot);
+        vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
+        emit IMessageBridge.MessageDeposit(1, message);
+        messageBridgeProxy.storeMessage(newEvmRoot, signatures, messages);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(MessageBridgeLib.UnsupportedMessageType.selector, AMBTypes.MessageType.RESULT)
+        );
+        messageBridgeProxy.executeMessage(1);
+    }
+
     function storeDummyMessageForStoreOnlySyncTest() private {
         // Create a dummy message
         bytes memory dummyMessage =
