@@ -46,6 +46,7 @@ interface IMessageBridge {
     function sendMessage(bytes calldata message) external payable;
     function sendExecutableMessage(bytes calldata _message, bool storeResult) external payable;
     function sendResultMessage(uint256 relatedMessageNonce) external payable;
+    function getResult(uint256 relatedMessageNonce) external view returns (AMBTypes.Result memory result);
     function storeMessage(
         bytes32 depositRoot,
         BridgeLib.Signature[] calldata signatures,
