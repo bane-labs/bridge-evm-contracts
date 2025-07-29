@@ -136,7 +136,7 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
         );
 
         AMBStorage.MessageBridgeState memory bridgeState = messageBridgeProxy.getMessageBridgeState();
-        bytes32 previousRoot = bridgeState.n3ToEvmState.root;
+        bytes32 previousRoot = bridgeState.evmState.root;
         assertEq(previousRoot, hex"0000000000000000000000000000000000000000000000000000000000000000"); // Initial root should be zero
 
         newEvmRoot = BridgeLib._computeNewRoot(previousRoot, actualMsgHash);
@@ -180,7 +180,7 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
     function test_SyncTest_StoreOnlyMessage() public {
         storeDummyMessageForStoreOnlySyncTest(); // make sure the nonce is at 1 when we start this test
         AMBStorage.MessageBridgeState memory initialBridgeState = messageBridgeProxy.getMessageBridgeState();
-        bytes32 initialEvmRoot = initialBridgeState.n3ToEvmState.root;
+        bytes32 initialEvmRoot = initialBridgeState.evmState.root;
 
         bytes memory message =
             hex"54686572652773206e6f776865726520492063616e277420676f2e2054686572652773206e6f7768657265204920776f6e27742066696e6420796f752e";

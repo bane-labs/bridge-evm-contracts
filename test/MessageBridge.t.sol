@@ -53,7 +53,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         });
 
         AMBStorage.MessageBridgeState memory bridgeState = messageBridgeProxy.getMessageBridgeState();
-        bytes32 previousRoot = bridgeState.n3ToEvmState.root;
+        bytes32 previousRoot = bridgeState.evmState.root;
         bytes32 depositRoot = MessageBridgeLib._computeNewTopRoot(previousRoot, messages);
         BridgeLib.Signature[] memory signatures = generateValidSignatures(depositRoot);
 
@@ -363,7 +363,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         bytes memory message = abi.encode(call);
 
         AMBStorage.MessageBridgeState memory bridgeState = messageBridgeProxy.getMessageBridgeState();
-        uint256 nonce = bridgeState.n3ToEvmState.nonce + 1;
+        uint256 nonce = bridgeState.evmState.nonce + 1;
 
         // Store the message with the nonce
         storeMessage(nonce, message, "");
@@ -401,7 +401,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         bytes memory message = abi.encode(call);
 
         AMBStorage.MessageBridgeState memory bridgeState = messageBridgeProxy.getMessageBridgeState();
-        uint256 nonce = bridgeState.n3ToEvmState.nonce + 1;
+        uint256 nonce = bridgeState.evmState.nonce + 1;
 
         // Store the message with the nonce
         storeMessage(nonce, message, "");
@@ -622,8 +622,8 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         bytes memory message = abi.encode(call);
 
         // Get current state and nonce
-        StorageTypes.State memory n3ToEvmState = messageBridgeProxy.getMessageBridgeState().n3ToEvmState;
-        uint256 nonce = n3ToEvmState.nonce + 1;
+        StorageTypes.State memory evmState = messageBridgeProxy.getMessageBridgeState().evmState;
+        uint256 nonce = evmState.nonce + 1;
 
         // Store the message with the nonce
         storeMessage(nonce, message, "");
@@ -786,8 +786,8 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         });
 
         // Compute the deposit root
-        StorageTypes.State memory n3ToEvmState = messageBridgeProxy.getMessageBridgeState().n3ToEvmState;
-        bytes32 previousRoot = n3ToEvmState.root;
+        StorageTypes.State memory evmState = messageBridgeProxy.getMessageBridgeState().evmState;
+        bytes32 previousRoot = evmState.root;
         bytes32 depositRoot = MessageBridgeLib._computeNewTopRoot(previousRoot, messages);
 
         // Generate valid signatures from validators
@@ -934,8 +934,8 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
             )
         });
 
-        StorageTypes.State memory n3ToEvmState = messageBridgeProxy.getMessageBridgeState().n3ToEvmState;
-        bytes32 previousRoot = n3ToEvmState.root;
+        StorageTypes.State memory evmState = messageBridgeProxy.getMessageBridgeState().evmState;
+        bytes32 previousRoot = evmState.root;
         bytes32 depositRoot1 = MessageBridgeLib._computeNewTopRoot(previousRoot, messages1);
         BridgeLib.Signature[] memory signatures1 = generateValidSignatures(depositRoot1);
 
@@ -995,7 +995,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         bytes memory message = abi.encode(call);
 
         // Get current state and nonce
-        StorageTypes.State memory initialState = messageBridgeProxy.getMessageBridgeState().n3ToEvmState;
+        StorageTypes.State memory initialState = messageBridgeProxy.getMessageBridgeState().evmState;
         uint256 nonce = initialState.nonce + 1;
 
         // Store the message with custom metadata
@@ -1035,7 +1035,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         bytes memory message2 = abi.encode(call2);
 
         // Get current state and nonce
-        StorageTypes.State memory initialState = messageBridgeProxy.getMessageBridgeState().n3ToEvmState;
+        StorageTypes.State memory initialState = messageBridgeProxy.getMessageBridgeState().evmState;
         uint256 nonce1 = initialState.nonce + 1;
         uint256 nonce2 = nonce1 + 1;
 
@@ -1101,8 +1101,8 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
             )
         });
 
-        StorageTypes.State memory n3ToEvmState = messageBridgeProxy.getMessageBridgeState().n3ToEvmState;
-        bytes32 previousRoot = n3ToEvmState.root;
+        StorageTypes.State memory evmState = messageBridgeProxy.getMessageBridgeState().evmState;
+        bytes32 previousRoot = evmState.root;
         bytes32 depositRoot = MessageBridgeLib._computeNewTopRoot(previousRoot, messages);
         BridgeLib.Signature[] memory signatures = generateValidSignatures(depositRoot);
 
@@ -1167,9 +1167,9 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         bytes memory message = abi.encodePacked("Test message from EVM to N3");
 
         // Get the initial state
-        StorageTypes.State memory evmToN3State = messageBridgeProxy.getMessageBridgeState().evmToN3State;
-        uint256 initialNonce = evmToN3State.nonce;
-        bytes32 initialRoot = evmToN3State.root;
+        StorageTypes.State memory n3State = messageBridgeProxy.getMessageBridgeState().n3State;
+        uint256 initialNonce = n3State.nonce;
+        bytes32 initialRoot = n3State.root;
 
         bytes memory encodedMetadata = abi.encode(
             AMBTypes.MetadataStoreOnly({
@@ -1200,7 +1200,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         messageBridgeProxy.sendMessage{value: messageFee}(message);
 
         // Get the updated state
-        StorageTypes.State memory updatedState = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+        StorageTypes.State memory updatedState = messageBridgeProxy.getMessageBridgeState().n3State;
 
         // Verify state changes
         assertEq(updatedState.nonce, initialNonce + 1, "Nonce should be incremented");
@@ -1251,14 +1251,14 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         }
 
         // Get the initial state
-        StorageTypes.State memory evmToN3State = messageBridgeProxy.getMessageBridgeState().evmToN3State;
-        uint256 initialNonce = evmToN3State.nonce;
+        StorageTypes.State memory n3State = messageBridgeProxy.getMessageBridgeState().n3State;
+        uint256 initialNonce = n3State.nonce;
 
         // Send the message (should not revert)
         messageBridgeProxy.sendMessage{value: messageFee}(exactSizeMessage);
 
         // Get the updated state
-        StorageTypes.State memory updatedState = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+        StorageTypes.State memory updatedState = messageBridgeProxy.getMessageBridgeState().n3State;
 
         // Verify nonce increment
         assertEq(updatedState.nonce, initialNonce + 1, "Nonce should be incremented");
@@ -1329,7 +1329,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         messageBridgeProxy.sendMessage{value: messageFee}(emptyMessage);
 
         // Get the updated state
-        StorageTypes.State memory updatedState = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+        StorageTypes.State memory updatedState = messageBridgeProxy.getMessageBridgeState().n3State;
 
         // Verify state changes (should succeed with empty message)
         assertEq(updatedState.nonce, 1, "Nonce should be incremented even with empty message");
@@ -1345,21 +1345,21 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         messageBridgeProxy.sendMessage{value: messageFee}(message1);
 
         // Get the state after first message
-        StorageTypes.State memory state1 = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+        StorageTypes.State memory state1 = messageBridgeProxy.getMessageBridgeState().n3State;
         assertEq(state1.nonce, 1, "Nonce should be 1 after first message");
 
         // Send second message
         messageBridgeProxy.sendMessage{value: messageFee}(message2);
 
         // Get the state after second message
-        StorageTypes.State memory state2 = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+        StorageTypes.State memory state2 = messageBridgeProxy.getMessageBridgeState().n3State;
         assertEq(state2.nonce, 2, "Nonce should be 2 after second message");
 
         // Send third message
         messageBridgeProxy.sendMessage{value: messageFee}(message3);
 
         // Get the state after third message
-        StorageTypes.State memory state3 = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+        StorageTypes.State memory state3 = messageBridgeProxy.getMessageBridgeState().n3State;
         assertEq(state3.nonce, 3, "Nonce should be 3 after third message");
 
         // Verify the roots are different
@@ -1392,9 +1392,9 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         assertTrue(executionResult.success, "Message execution should succeed");
 
         // Get initial state for result message
-        StorageTypes.State memory evmToN3State = messageBridgeProxy.getMessageBridgeState().evmToN3State;
-        uint256 initialNonce = evmToN3State.nonce;
-        bytes32 initialRoot = evmToN3State.root;
+        StorageTypes.State memory n3State = messageBridgeProxy.getMessageBridgeState().n3State;
+        uint256 initialNonce = n3State.nonce;
+        bytes32 initialRoot = n3State.root;
 
         // Create expected metadata for result message
         bytes memory expectedMetadata = abi.encode(
@@ -1422,7 +1422,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         messageBridgeProxy.sendResultMessage{value: messageFee}(nonce);
 
         // Verify state changes
-        StorageTypes.State memory updatedState = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+        StorageTypes.State memory updatedState = messageBridgeProxy.getMessageBridgeState().n3State;
         assertEq(updatedState.nonce, initialNonce + 1, "Nonce should be incremented");
         assertEq(updatedState.root, expectedRoot, "Root should be updated correctly");
     }
@@ -1589,14 +1589,14 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         assertFalse(executionResult.success, "Message execution should fail");
 
         // Get initial state for result message
-        StorageTypes.State memory evmToN3State = messageBridgeProxy.getMessageBridgeState().evmToN3State;
-        uint256 initialNonce = evmToN3State.nonce;
+        StorageTypes.State memory n3State = messageBridgeProxy.getMessageBridgeState().n3State;
+        uint256 initialNonce = n3State.nonce;
 
         // Send the result message (should work even with failed execution result)
         messageBridgeProxy.sendResultMessage{value: messageFee}(nonce);
 
         // Verify state changes
-        StorageTypes.State memory updatedState = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+        StorageTypes.State memory updatedState = messageBridgeProxy.getMessageBridgeState().n3State;
         assertEq(updatedState.nonce, initialNonce + 1, "Nonce should be incremented");
     }
 
@@ -1625,20 +1625,20 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         messageBridgeProxy.executeMessage{value: 1 ether}(nonce2);
 
         // Get initial state
-        StorageTypes.State memory initialState = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+        StorageTypes.State memory initialState = messageBridgeProxy.getMessageBridgeState().n3State;
 
         // Send first result message
         messageBridgeProxy.sendResultMessage{value: messageFee}(nonce1);
 
         // Verify first result message was sent
-        StorageTypes.State memory stateAfterFirst = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+        StorageTypes.State memory stateAfterFirst = messageBridgeProxy.getMessageBridgeState().n3State;
         assertEq(stateAfterFirst.nonce, initialState.nonce + 1, "Nonce should be incremented after first result");
 
         // Send second result message
         messageBridgeProxy.sendResultMessage{value: messageFee}(nonce2);
 
         // Verify second result message was sent
-        StorageTypes.State memory stateAfterSecond = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+        StorageTypes.State memory stateAfterSecond = messageBridgeProxy.getMessageBridgeState().n3State;
         assertEq(stateAfterSecond.nonce, initialState.nonce + 2, "Nonce should be incremented after second result");
 
         // Verify roots are different
@@ -1661,20 +1661,20 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         messageBridgeProxy.executeMessage(nonce);
 
         // Get initial state
-        StorageTypes.State memory initialState = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+        StorageTypes.State memory initialState = messageBridgeProxy.getMessageBridgeState().n3State;
 
         // Send result message first time
         messageBridgeProxy.sendResultMessage{value: messageFee}(nonce);
 
         // Verify first send worked
-        StorageTypes.State memory stateAfterFirst = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+        StorageTypes.State memory stateAfterFirst = messageBridgeProxy.getMessageBridgeState().n3State;
         assertEq(stateAfterFirst.nonce, initialState.nonce + 1, "Nonce should be incremented after first send");
 
         // Send the same result message again (should work)
         messageBridgeProxy.sendResultMessage{value: messageFee}(nonce);
 
         // Verify second send worked
-        StorageTypes.State memory stateAfterSecond = messageBridgeProxy.getMessageBridgeState().evmToN3State;
+        StorageTypes.State memory stateAfterSecond = messageBridgeProxy.getMessageBridgeState().n3State;
         assertEq(stateAfterSecond.nonce, initialState.nonce + 2, "Nonce should be incremented after second send");
     }
 
@@ -1709,8 +1709,8 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         });
 
         // Store the STORE_ONLY message
-        StorageTypes.State memory n3ToEvmState = messageBridgeProxy.getMessageBridgeState().n3ToEvmState;
-        bytes32 previousRoot = n3ToEvmState.root;
+        StorageTypes.State memory evmState = messageBridgeProxy.getMessageBridgeState().evmState;
+        bytes32 previousRoot = evmState.root;
         bytes32 depositRoot = MessageBridgeLib._computeNewTopRoot(previousRoot, messages);
         BridgeLib.Signature[] memory signatures = generateValidSignatures(depositRoot);
 

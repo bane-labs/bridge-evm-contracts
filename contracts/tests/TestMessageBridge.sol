@@ -43,8 +43,8 @@ contract TestMessageBridge is MessageBridge {
             paused: true,
             sendingPaused: false,
             executingPaused: false,
-            n3ToEvmState: StorageTypes.State({nonce: 0, root: 0x0}),
-            evmToN3State: StorageTypes.State({nonce: 0, root: 0x0}),
+            evmState: StorageTypes.State({nonce: 0, root: 0x0}),
+            n3State: StorageTypes.State({nonce: 0, root: 0x0}),
             config: AMBStorage.MessageConfig({
                 fee: _fee,
                 maxMessageSize: _maxMessageSize,
