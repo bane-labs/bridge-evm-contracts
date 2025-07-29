@@ -239,9 +239,9 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
             revert MessageNotFound(_relatedMessageNonce);
         }
 
-        bytes memory message = ambStorage.n3ToEvmExecutionResults[_relatedMessageNonce];
+        bytes memory resultMessage = ambStorage.n3ToEvmExecutionResults[_relatedMessageNonce];
         // Check if a result was stored for this message
-        if (message.length == 0) revert ResultNotFound(_relatedMessageNonce);
+        if (resultMessage.length == 0) revert ResultNotFound(_relatedMessageNonce);
 
         AMBTypes.MetadataResult memory metadata = AMBTypes.MetadataResult({
             msgType: AMBTypes.MessageType.RESULT,
@@ -251,7 +251,19 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         });
         bytes memory encodedMetadata = abi.encode(metadata);
 
-        _sendMessageWithMetadata(message, encodedMetadata);
+        _sendMessageWithMetadata(resultMessage, encodedMetadata);
+    }
+
+    /**
+     * @notice Gets the result message for a previously executed message.
+     * @param relatedMessageNonce The nonce of the related message that was executed.
+     * @return result The result of the message execution.
+     */
+    function getResult(uint256 relatedMessageNonce) external view returns (AMBTypes.Result memory result) {
+        AMBStorage.AMB storage ambStorage = AMBStorage.get();
+        bytes memory message = ambStorage.n3ToEvmExecutionResults[relatedMessageNonce];
+        if (message.length == 0) revert ResultNotFound(relatedMessageNonce);
+        return abi.decode(message, (AMBTypes.Result));
     }
 
     function _sendMessageWithMetadata(bytes memory _message, bytes memory _encodedMetadata) private {
