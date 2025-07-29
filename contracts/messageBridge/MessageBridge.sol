@@ -21,23 +21,6 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         _disableInitializers();
     }
 
-    function initialize(
-        address _management,
-        uint256 _fee,
-        uint256 _maxMessageSize,
-        uint256 _maxNrMessages,
-        uint256 _executionWindowSeconds
-    )
-        external
-        virtual
-        initializer
-        onlyAdmin
-    {
-        __ReentrancyGuard_init();
-        AMBStorage.get().management = IBridgeManagement(_management);
-        _setMessageBridge(_fee, _maxMessageSize, _maxNrMessages, _executionWindowSeconds);
-    }
-
     //0x79828e03
     error NoAuthorization();
     //0x58d620b3
@@ -97,22 +80,12 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     //0x90b8ec18
     error TransferFailed();
 
-    function messageBridgeIsSet() external view override returns (bool) {
-        return _messageBridgeIsSet();
-    }
-
-    function pauseMessageBridge()
-        external
-        override
-        onlyGovernorOrSecurityGuard
-        onlyIfMessageBridgeSet
-        whenMessageBridgeNotPaused
-    {
+    function pauseMessageBridge() external override onlyGovernorOrSecurityGuard whenMessageBridgeNotPaused {
         AMBStorage.get().messageBridgeState.paused = true;
         emit MessageBridgePause();
     }
 
-    function unpauseMessageBridge() external override onlyGovernor onlyIfMessageBridgeSet whenMessageBridgePaused {
+    function unpauseMessageBridge() external override onlyGovernor whenMessageBridgePaused {
         AMBStorage.get().messageBridgeState.paused = false;
         emit MessageBridgeUnpause();
     }
@@ -187,7 +160,6 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     )
         external
         payable
-        onlyIfMessageBridgeSet
         whenMessageBridgeNotPaused
         whenSendingNotPaused
     {
@@ -205,13 +177,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
      * @notice Sends a store-only message to the Neo N3 blockchain.
      * @param _message The message to be sent.
      */
-    function sendMessage(bytes calldata _message)
-        external
-        payable
-        onlyIfMessageBridgeSet
-        whenMessageBridgeNotPaused
-        whenSendingNotPaused
-    {
+    function sendMessage(bytes calldata _message) external payable whenMessageBridgeNotPaused whenSendingNotPaused {
         AMBTypes.MetadataStoreOnly memory metadata = AMBTypes.MetadataStoreOnly({
             msgType: AMBTypes.MessageType.STORE_ONLY,
             timestamp: block.timestamp,
@@ -228,7 +194,6 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     function sendResultMessage(uint256 _relatedMessageNonce)
         external
         payable
-        onlyIfMessageBridgeSet
         whenMessageBridgeNotPaused
         whenSendingNotPaused
     {
@@ -307,7 +272,6 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         external
         override
         onlyRelayer
-        onlyIfMessageBridgeSet
         whenMessageBridgeNotPaused
         nonReentrant
     {
@@ -479,11 +443,6 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         _;
     }
 
-    modifier onlyIfMessageBridgeSet() {
-        if (!_messageBridgeIsSet()) revert MessageBridgeNotSet();
-        _;
-    }
-
     modifier whenMessageBridgeNotPaused() {
         if (AMBStorage.get().messageBridgeState.paused) revert MessageBridgePaused();
         _;
@@ -512,39 +471,6 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     modifier whenExecutingPaused() {
         if (!AMBStorage.get().messageBridgeState.executingPaused) revert ExecutingNotPaused();
         _;
-    }
-
-    // Internal functions to be discarded
-
-    function _messageBridgeIsSet() internal view returns (bool) {
-        return AMBStorage.get().messageBridgeState.config.maxMessageSize != 0;
-    }
-
-    function _setMessageBridge(
-        uint256 _fee,
-        uint256 _maxMessageSize,
-        uint256 _maxNrMessages,
-        uint256 _executionWindowSeconds
-    )
-        internal
-    {
-        if (_fee == 0) revert InvalidFee();
-        if (_maxMessageSize == 0) revert InvalidValue();
-        if (_maxNrMessages == 0) revert InvalidValue();
-
-        AMBStorage.get().messageBridgeState = AMBStorage.MessageBridgeState({
-            paused: true,
-            sendingPaused: false,
-            executingPaused: false,
-            n3ToEvmState: StorageTypes.State({nonce: 0, root: 0x0}),
-            evmToN3State: StorageTypes.State({nonce: 0, root: 0x0}),
-            config: AMBStorage.MessageConfig({
-                fee: _fee,
-                maxMessageSize: _maxMessageSize,
-                maxNrMessages: _maxNrMessages,
-                executionWindowSeconds: _executionWindowSeconds
-            })
-        });
     }
 
     /**

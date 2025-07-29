@@ -90,8 +90,6 @@ abstract contract MessageBridgeTestHelper is Test, SigUtils {
         );
         messageBridgeProxy = TestMessageBridge(payable(messageBridgeProxyAddress));
 
-        assertTrue(messageBridgeProxy.messageBridgeIsSet(), "Message bridge should be set");
-
         // Deploy and set up the Message Executor
         executionManager = new ExecutionManager(messageBridgeProxyAddress);
 
