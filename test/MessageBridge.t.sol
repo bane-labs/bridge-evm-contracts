@@ -196,7 +196,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         messageBridgeProxy.executeMessage(nonce);
     }
 
-    function test_StoreAndExecuteMessageWithTestMessageContract() public {
+    function test_StoreAndExecuteMessageWithTestContract() public {
         // Deploy test contract
         TestContract testContract = new TestContract();
 
@@ -551,8 +551,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         // Execution should revert with CallFailed(InvalidCallData())
         vm.expectRevert(
             abi.encodeWithSelector(
-                ExecutionManager.ExecutionFailed.selector,
-                abi.encodeWithSelector(TestContract.InvalidCallData.selector)
+                ExecutionManager.ExecutionFailed.selector, abi.encodeWithSelector(TestContract.InvalidCallData.selector)
             )
         );
 
@@ -644,7 +643,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
     }
 
     function test_StoreAndExecuteMessageNonExistentPayableFunction() public {
-        // Deploy TestPayableContract (which doesn't have testFunction)
+        // Deploy TestPayableContract (which doesn't have tryoutFunction)
         TestPayableContract payableContract = new TestPayableContract();
         assertEq(address(payableContract).balance, 0, "Payable contract should not have received ETH");
 
@@ -1158,6 +1157,8 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         messageBridgeProxy.executeMessage(nonce);
     }
 
+    // Tests for sending messages from EVM to N3
+
     function test_SendMessage_Success() public {
         // Prepare a test message
         bytes memory message = abi.encodePacked("Test message from EVM to N3");
@@ -1403,11 +1404,8 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         );
 
         // Calculate expected values
-        bytes32 expectedMessageHash = MessageBridgeLib._hashMessageBridgeOp(
-            initialNonce + 1,
-            expectedMetadata,
-            executionResult.returnData
-        );
+        bytes32 expectedMessageHash =
+            MessageBridgeLib._hashMessageBridgeOp(initialNonce + 1, expectedMetadata, executionResult.returnData);
         bytes32 expectedRoot = BridgeLib._computeNewRoot(initialRoot, expectedMessageHash);
 
         // Expect the MessageSent event
@@ -1680,5 +1678,4 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         StorageTypes.State memory stateAfterSecond = messageBridgeProxy.getMessageBridgeState().evmToN3State;
         assertEq(stateAfterSecond.nonce, initialState.nonce + 2, "Nonce should be incremented after second send");
     }
-
 }

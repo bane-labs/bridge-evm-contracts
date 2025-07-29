@@ -230,9 +230,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
 
         bytes memory message = ambStorage.n3ToEvmExecutionResults[_relatedMessageNonce].returnData;
         // Check if a result was stored for this message
-        if (message.length == 0) {
-            revert ResultNotFound(_relatedMessageNonce);
-        }
+        if (message.length == 0) revert ResultNotFound(_relatedMessageNonce);
 
         AMBTypes.MetadataResult memory metadata = AMBTypes.MetadataResult({
             msgType: AMBTypes.MessageType.RESULT,

@@ -15,11 +15,17 @@ contract TestContract {
     error InvalidCallData();
     // Custom error for when amount or value is zero
     error ZeroValueNotAllowed();
-    
+
     function testFunction() public returns (uint256) {
         counter += 1;
         emit TestEvent(counter, msg.sender);
         return counter;
+    }
+
+    function tryoutFunctionWithArgs(uint256 arg1, uint256 arg2) public returns (uint256) {
+        counter += 1;
+        emit TestEvent(counter, msg.sender);
+        return arg1 + arg2;
     }
 
     function receivePayment(uint256 amount) external payable returns (bool) {

@@ -26,5 +26,4 @@ contract TestMessageBridge is MessageBridge {
         _getAMBStorage().management = IBridgeManagement(_management);
         _setMessageBridge(_fee, _maxMessageSize, _maxNrMessages, _executionWindowSeconds);
     }
-
 }
