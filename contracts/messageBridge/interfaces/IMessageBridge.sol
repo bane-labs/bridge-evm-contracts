@@ -45,6 +45,7 @@ interface IMessageBridge {
         returns (AMBStorage.ExecutableState memory executableState);
     function sendMessage(bytes calldata message) external payable;
     function sendExecutableMessage(bytes calldata _message, bool storeResult) external payable;
+    function sendResultMessage(uint256 relatedMessageNonce) external payable;
     function storeMessage(
         bytes32 depositRoot,
         BridgeLib.Signature[] calldata signatures,
