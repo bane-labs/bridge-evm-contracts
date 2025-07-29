@@ -226,6 +226,10 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
      */
     function getResult(uint256 relatedMessageNonce) external view returns (AMBTypes.Result memory result) {
         AMBStorage.AMB storage ambStorage = AMBStorage.get();
+
+        if (ambStorage.evmMessages[relatedMessageNonce].rawMessage.length == 0) {
+            revert MessageNotFound(relatedMessageNonce);
+        }
         bytes memory message = ambStorage.evmExecutionResults[relatedMessageNonce];
         if (message.length == 0) revert ResultNotFound(relatedMessageNonce);
         return abi.decode(message, (AMBTypes.Result));
@@ -365,9 +369,8 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         AMBStorage.get().evmExecutableStates[nonce].executed = true;
 
         // Execute the message using the execution manager
-        AMBTypes.Result memory result = messageExecutionManager.executeMessage{value: msg.value}(
-            nonce, ambStorage.evmMessages[nonce].rawMessage
-        );
+        AMBTypes.Result memory result =
+            messageExecutionManager.executeMessage{value: msg.value}(nonce, ambStorage.evmMessages[nonce].rawMessage);
 
         // Store encode response and emit event
         AMBTypes.MetadataExecutable memory metadata =
