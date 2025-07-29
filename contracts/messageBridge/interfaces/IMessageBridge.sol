@@ -39,6 +39,10 @@ interface IMessageBridge {
     function pauseExecuting() external;
     function unpauseExecuting() external;
     function isExecutingPaused() external view returns (bool);
+    function getExecutableState(uint256 nonce)
+        external
+        view
+        returns (AMBStorage.ExecutableState memory executableState);
     function sendMessage(bytes calldata message) external payable;
     function sendExecutableMessage(bytes calldata _message, bool storeResult) external payable;
     function storeMessage(
