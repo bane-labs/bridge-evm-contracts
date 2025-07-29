@@ -15,17 +15,17 @@ library AMBStorage {
         IExecutionManager messageExecutionManager;
         MessageBridgeState messageBridgeState;
         uint256 unclaimedFees;
-        mapping(uint256 => StoredMessage) n3ToEvmMessages;
-        mapping(uint256 => bytes) n3ToEvmExecutionResults;
-        mapping(uint256 => ExecutableState) n3ToEvmExecutableStates;
+        mapping(uint256 => StoredMessage) evmMessages;
+        mapping(uint256 => bytes) evmExecutionResults;
+        mapping(uint256 => ExecutableState) evmExecutableStates;
     }
 
     struct MessageBridgeState {
         bool paused;
         bool sendingPaused;
         bool executingPaused;
-        StorageTypes.State n3ToEvmState;
-        StorageTypes.State evmToN3State;
+        StorageTypes.State evmState;
+        StorageTypes.State n3State;
         MessageConfig config;
     }
 
