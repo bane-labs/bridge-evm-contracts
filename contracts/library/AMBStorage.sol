@@ -31,7 +31,7 @@ library AMBStorage {
 
     struct StoredMessage {
         bytes encodedMetadata;
-        bytes message;
+        bytes rawMessage;
     }
 
     struct MessageConfig {

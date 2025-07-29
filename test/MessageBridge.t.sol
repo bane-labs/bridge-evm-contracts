@@ -804,7 +804,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
 
         // Get the stored Call struct components - public mappings return struct components, not the struct itself
 
-        bytes memory message1 = messageBridgeProxy.n3ToEvmMessages(messages[0].nonce).message;
+        bytes memory message1 = messageBridgeProxy.n3ToEvmMessages(messages[0].nonce).rawMessage;
         AMBTypes.Call memory actualCall = abi.decode(message1, (AMBTypes.Call));
 
         // Verify that stored Call struct components match the expected ones
@@ -813,7 +813,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         assertEq(actualCall.allowFailure, expectedCall1.allowFailure, "First message allowFailure should match");
         assertEq(actualCall.callData, expectedCall1.callData, "First message callData should match");
 
-        bytes memory message2 = messageBridgeProxy.n3ToEvmMessages(messages[1].nonce).message;
+        bytes memory message2 = messageBridgeProxy.n3ToEvmMessages(messages[1].nonce).rawMessage;
         actualCall = abi.decode(message2, (AMBTypes.Call));
         assertEq(actualCall.target, expectedCall2.target, "Second message target should match");
         assertEq(actualCall.value, expectedCall2.value, "Second message value should match");
@@ -969,8 +969,8 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         AMBTypes.Call memory expectedCall2 = abi.decode(testMessage2, (AMBTypes.Call));
 
         // Get the stored Call struct components - public mappings return struct components, not the struct itself
-        bytes memory message1 = messageBridgeProxy.n3ToEvmMessages(messages1[0].nonce).message;
-        bytes memory message2 = messageBridgeProxy.n3ToEvmMessages(messages2[0].nonce).message;
+        bytes memory message1 = messageBridgeProxy.n3ToEvmMessages(messages1[0].nonce).rawMessage;
+        bytes memory message2 = messageBridgeProxy.n3ToEvmMessages(messages2[0].nonce).rawMessage;
         AMBTypes.Call memory actualCall1 = abi.decode(message1, (AMBTypes.Call));
         AMBTypes.Call memory actualCall2 = abi.decode(message2, (AMBTypes.Call));
 
@@ -1050,7 +1050,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
 
         AMBStorage.StoredMessage memory storedMessage1 = messageBridgeProxy.n3ToEvmMessages(nonce1);
         AMBTypes.MetadataExecutable memory metadata1 = getExecutableMetadata(nonce1);
-        bytes memory storedRawMessage1 = storedMessage1.message;
+        bytes memory storedRawMessage1 = storedMessage1.rawMessage;
         // verify first message metadata
         assertEq(metadata1.sender, address(this), "First message metadata sender should match");
         assertEq(metadata1.timestamp, timestamp1, "First message metadata timestamp should match");
@@ -1060,7 +1060,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
 
         AMBStorage.StoredMessage memory storedMessage2 = messageBridgeProxy.n3ToEvmMessages(nonce2);
         AMBTypes.MetadataExecutable memory metadata2 = getExecutableMetadata(nonce2);
-        bytes memory storedRawMessage2 = storedMessage2.message;
+        bytes memory storedRawMessage2 = storedMessage2.rawMessage;
         // verify second message metadata
         // Note: timestamps are in milliseconds, as if they are coming from N3
         assertEq(metadata2.sender, address(this), "Second message metadata sender should match");
@@ -1113,7 +1113,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         // Retrieve the stored metadata and verify it
         AMBStorage.StoredMessage memory storedMessage = messageBridgeProxy.n3ToEvmMessages(messages[0].nonce);
         AMBTypes.MetadataExecutable memory metadata = getExecutableMetadata(messages[0].nonce);
-        bytes memory storedRawMessage = storedMessage.message;
+        bytes memory storedRawMessage = storedMessage.rawMessage;
         address storedSender = metadata.sender;
         uint256 storedTimestamp = metadata.timestamp;
 
@@ -1676,5 +1676,79 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         // Verify second send worked
         StorageTypes.State memory stateAfterSecond = messageBridgeProxy.getMessageBridgeState().evmToN3State;
         assertEq(stateAfterSecond.nonce, initialState.nonce + 2, "Nonce should be incremented after second send");
+    }
+
+    // Tests for getExecutableState function
+
+    function test_GetExecutableState_MessageNotFound() public {
+        // Try to get executable state for a non-existent message
+        uint256 nonExistentNonce = 999;
+
+        // Expect revert with MessageNotFound error
+        vm.expectRevert(abi.encodeWithSelector(MessageBridge.MessageNotFound.selector, nonExistentNonce));
+        messageBridgeProxy.getExecutableState(nonExistentNonce);
+    }
+
+    function test_GetExecutableState_UnsupportedMessageType_StoreOnly() public {
+        // Create and store a STORE_ONLY message (not executable)
+        bytes memory message = abi.encodePacked("Test store-only message");
+        uint256 nonce = 1;
+
+        // Create message data with STORE_ONLY type
+        AMBTypes.MessageData[] memory messages = new AMBTypes.MessageData[](1);
+        messages[0] = AMBTypes.MessageData({
+            nonce: nonce,
+            message: message,
+            encodedMetadata: abi.encode(
+                AMBTypes.MetadataStoreOnly({
+                    msgType: AMBTypes.MessageType.STORE_ONLY,
+                    timestamp: block.timestamp,
+                    sender: address(this)
+                })
+            )
+        });
+
+        // Store the STORE_ONLY message
+        StorageTypes.State memory n3ToEvmState = messageBridgeProxy.getMessageBridgeState().n3ToEvmState;
+        bytes32 previousRoot = n3ToEvmState.root;
+        bytes32 depositRoot = MessageBridgeLib._computeNewTopRoot(previousRoot, messages);
+        BridgeLib.Signature[] memory signatures = generateValidSignatures(depositRoot);
+
+        vm.prank(relayer);
+        messageBridgeProxy.storeMessage(depositRoot, signatures, messages);
+
+        // Try to get executable state for a STORE_ONLY message - should revert
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                MessageBridgeLib.UnsupportedMessageType.selector,
+                AMBTypes.MessageType.STORE_ONLY
+            )
+        );
+        messageBridgeProxy.getExecutableState(nonce);
+    }
+
+    function test_GetExecutableState_Success() public {
+        // Create and store an EXECUTABLE message
+        TestContract testContract = new TestContract();
+        bytes memory callData = abi.encodeWithSelector(TestContract.testFunction.selector);
+        AMBTypes.Call memory call =
+            AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
+        bytes memory message = abi.encode(call);
+        uint256 nonce = 1;
+
+        // Store the executable message
+        storeMessage(nonce, message, "");
+
+        // Get executable state - should succeed
+        AMBStorage.ExecutableState memory executableState = messageBridgeProxy.getExecutableState(nonce);
+
+        // Verify the executable state
+        assertFalse(executableState.executed, "Message should not be executed yet");
+        assertTrue(executableState.expirationTimestamp > 0, "Expiration timestamp should be set");
+
+        // Verify expiration timestamp is properly set (current time + execution window)
+        AMBStorage.MessageConfig memory config = messageBridgeProxy.getMessageBridgeState().config;
+        uint256 expectedExpiration = block.timestamp + config.executionWindowSeconds;
+        assertEq(executableState.expirationTimestamp, expectedExpiration, "Expiration timestamp should match expected value");
     }
 }

@@ -150,6 +150,33 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     }
 
     /**
+     * @notice Gets the executable state of a message by its nonce.
+     * @param nonce The nonce of the message.
+     * @return executableState The state of the executable message.
+     * @dev Reverts if the message does not exist or is not of type EXECUTABLE.
+     */
+    function getExecutableState(uint256 nonce)
+        public
+        view
+        override
+        returns (AMBStorage.ExecutableState memory executableState)
+    {
+        AMBStorage.AMB storage ambStorage = AMBStorage.get();
+
+        // Check if the message exists
+        AMBStorage.StoredMessage storage storedMessage = ambStorage.n3ToEvmMessages[nonce];
+        bytes memory rawMessage = storedMessage.rawMessage;
+        if (rawMessage.length == 0) revert MessageNotFound(nonce);
+
+        // Check if the message is of type EXECUTABLE
+        bytes memory encodedMetadata = storedMessage.encodedMetadata;
+        AMBTypes.MessageType msgType = MessageBridgeLib._readMessageType(encodedMetadata);
+        if (msgType != AMBTypes.MessageType.EXECUTABLE) revert MessageBridgeLib.UnsupportedMessageType(msgType);
+
+        executableState = AMBStorage.get().n3ToEvmExecutableStates[nonce];
+    }
+
+    /**
      * @notice Sends an executable message to the Neo N3 blockchain.
      * @param _message The message to be sent.
      * @param _storeResult Whether to store the result of the message execution.
@@ -208,7 +235,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         AMBStorage.AMB storage ambStorage = AMBStorage.get();
 
         // Check if the message exists by checking if it has content
-        if (ambStorage.n3ToEvmMessages[_relatedMessageNonce].message.length == 0) {
+        if (ambStorage.n3ToEvmMessages[_relatedMessageNonce].rawMessage.length == 0) {
             revert MessageNotFound(_relatedMessageNonce);
         }
 
@@ -314,7 +341,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     function _storeMessage(AMBTypes.MessageData memory messageData) private {
         AMBStorage.AMB storage ambStorage = AMBStorage.get();
         ambStorage.n3ToEvmMessages[messageData.nonce] =
-            AMBStorage.StoredMessage({encodedMetadata: messageData.encodedMetadata, message: messageData.message});
+            AMBStorage.StoredMessage({encodedMetadata: messageData.encodedMetadata, rawMessage: messageData.message});
 
         _saveAdditionalState(messageData.nonce, messageData.encodedMetadata);
 
@@ -350,18 +377,8 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         IExecutionManager messageExecutionManager = ambStorage.messageExecutionManager;
         if (address(messageExecutionManager) == address(0)) revert ExecutionManagerNotSet();
 
-        // Check if the message exists
-        AMBStorage.StoredMessage storage storedMessage = ambStorage.n3ToEvmMessages[nonce];
-        bytes memory rawMessage = storedMessage.message;
-        if (rawMessage.length == 0) revert MessageNotFound(nonce);
-
-        // Check if the message is of type executable
-        bytes memory encodedMetadata = storedMessage.encodedMetadata;
-        AMBTypes.MessageType msgType = MessageBridgeLib._readMessageType(encodedMetadata);
-        if (msgType != AMBTypes.MessageType.EXECUTABLE) revert MessageBridgeLib.UnsupportedMessageType(msgType);
-
         // Check if the message was already executed
-        AMBStorage.ExecutableState storage executableState = ambStorage.n3ToEvmExecutableStates[nonce];
+        AMBStorage.ExecutableState memory executableState = getExecutableState(nonce);
         if (executableState.executed) revert MessageAlreadyExecuted(nonce);
 
         // Check if the message execution window has expired
@@ -369,13 +386,16 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
             revert ExecutionWindowExpired(executableState.expirationTimestamp, block.timestamp);
         }
         // Mark as executed to avoid reentrancy issues
-        executableState.executed = true;
+        AMBStorage.get().n3ToEvmExecutableStates[nonce].executed = true;
 
         // Execute the message using the execution manager
-        AMBTypes.Result memory result = messageExecutionManager.executeMessage{value: msg.value}(nonce, rawMessage);
+        AMBTypes.Result memory result = messageExecutionManager.executeMessage{value: msg.value}(
+            nonce, ambStorage.n3ToEvmMessages[nonce].rawMessage
+        );
 
         // Store encode response and emit event
-        AMBTypes.MetadataExecutable memory metadata = abi.decode(encodedMetadata, (AMBTypes.MetadataExecutable));
+        AMBTypes.MetadataExecutable memory metadata =
+            abi.decode(ambStorage.n3ToEvmMessages[nonce].encodedMetadata, (AMBTypes.MetadataExecutable));
         if (metadata.storeResult) ambStorage.n3ToEvmExecutionResults[nonce] = abi.encode(result);
         emit MessageExecuted(nonce, result);
 
