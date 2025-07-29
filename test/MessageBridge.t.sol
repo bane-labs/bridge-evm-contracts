@@ -1719,10 +1719,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
 
         // Try to get executable state for a STORE_ONLY message - should revert
         vm.expectRevert(
-            abi.encodeWithSelector(
-                MessageBridgeLib.UnsupportedMessageType.selector,
-                AMBTypes.MessageType.STORE_ONLY
-            )
+            abi.encodeWithSelector(MessageBridgeLib.UnsupportedMessageType.selector, AMBTypes.MessageType.STORE_ONLY)
         );
         messageBridgeProxy.getExecutableState(nonce);
     }
@@ -1749,6 +1746,8 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         // Verify expiration timestamp is properly set (current time + execution window)
         AMBStorage.MessageConfig memory config = messageBridgeProxy.getMessageBridgeState().config;
         uint256 expectedExpiration = block.timestamp + config.executionWindowSeconds;
-        assertEq(executableState.expirationTimestamp, expectedExpiration, "Expiration timestamp should match expected value");
+        assertEq(
+            executableState.expirationTimestamp, expectedExpiration, "Expiration timestamp should match expected value"
+        );
     }
 }
