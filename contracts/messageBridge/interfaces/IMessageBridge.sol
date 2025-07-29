@@ -29,7 +29,6 @@ interface IMessageBridge {
         bytes32 newRoot
     );
 
-    function messageBridgeIsSet() external view returns (bool);
     function pauseMessageBridge() external;
     function unpauseMessageBridge() external;
     function isMessageBridgePaused() external view returns (bool);
