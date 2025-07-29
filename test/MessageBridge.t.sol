@@ -1750,4 +1750,136 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
             executableState.expirationTimestamp, expectedExpiration, "Expiration timestamp should match expected value"
         );
     }
+
+    // test getResult with non-existent related nonce
+    function test_GetResult_NonExistentRelatedNonce() public {
+        // Try to get result for a non-existent related message nonce
+        uint256 nonExistentNonce = 999;
+
+        // Expect revert with MessageNotFound error
+        vm.expectRevert(abi.encodeWithSelector(MessageBridge.MessageNotFound.selector, nonExistentNonce));
+        messageBridgeProxy.getResult(nonExistentNonce);
+    }
+
+    // test getResult with existing message but no stored result
+    function test_GetResult_NoStoredResult() public {
+        // Deploy test contract
+        TestContract testContract = new TestContract();
+        bytes memory callData = abi.encodeWithSelector(TestContract.testFunction.selector);
+        AMBTypes.Call memory call =
+            AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
+        bytes memory message = abi.encode(call);
+        uint256 nonce = 1;
+        // Store the message without storeResult
+        storeMessage(nonce, message, "");
+        // Execute the message
+        messageBridgeProxy.executeMessage(nonce);
+        // Try to get result for the executed message - should revert
+        vm.expectRevert(abi.encodeWithSelector(MessageBridge.ResultNotFound.selector, nonce));
+        messageBridgeProxy.getResult(nonce);
+    }
+
+    // test getResult with existing message and stored result
+    function test_GetResult_Success() public {
+        // Deploy test contract
+        TestContract testContract = new TestContract();
+        bytes memory callData = abi.encodeWithSelector(TestContract.testFunction.selector);
+        AMBTypes.Call memory call =
+            AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
+        bytes memory message = abi.encode(call);
+        uint256 nonce = 1;
+
+        // Store the message with storeResult = true
+        storeMessageWithStoreResult(nonce, message, true);
+
+        // Execute the message
+        AMBTypes.Result memory executionResult = messageBridgeProxy.executeMessage(nonce);
+        assertTrue(executionResult.success, "Message execution should succeed");
+
+        // Get the result for the executed message
+        AMBTypes.Result memory result = messageBridgeProxy.getResult(nonce);
+
+        // Verify the result matches the execution result
+        assertEq(result.success, executionResult.success, "Execution result success should match");
+        assertEq(result.returnData, executionResult.returnData, "Execution result return data should match");
+    }
+
+    function test_GetResult_SuccessWithFailedExecution() public {
+        // Deploy test contract
+        TestContract testContract = new TestContract();
+        bytes memory callData = abi.encodeWithSelector(TestContract.receivePayment.selector, 1 ether);
+        AMBTypes.Call memory call =
+            AMBTypes.Call({allowFailure: true, target: address(testContract), value: 0, callData: callData}); // Mismatch: expects 1 ether but sends 0
+        bytes memory message = abi.encode(call);
+        uint256 nonce = 1;
+        // Store the message with storeResult = true
+        storeMessageWithStoreResult(nonce, message, true);
+        // Execute the message (will fail but store the result)
+        AMBTypes.Result memory executionResult = messageBridgeProxy.executeMessage(nonce);
+        assertFalse(executionResult.success, "Message execution should fail");
+        // Get the result for the executed message
+        AMBTypes.Result memory result = messageBridgeProxy.getResult(nonce);
+        // Verify the result matches the execution result
+        assertEq(result.success, executionResult.success, "Execution result success should match");
+        assertEq(result.returnData, executionResult.returnData, "Execution result return data should match");
+    }
+
+    function test_GetResult_SuccessWithEmptyReturnData() public {
+        // Deploy test contract
+        TestContract testContract = new TestContract();
+        bytes memory callData = abi.encodeWithSelector(TestContract.testFunction.selector);
+        AMBTypes.Call memory call =
+            AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
+        bytes memory message = abi.encode(call);
+        uint256 nonce = 1;
+        // Store the message with storeResult = true
+        storeMessageWithStoreResult(nonce, message, true);
+        // Execute the message
+        AMBTypes.Result memory executionResult = messageBridgeProxy.executeMessage(nonce);
+        assertTrue(executionResult.success, "Message execution should succeed");
+        // Get the result for the executed message
+        AMBTypes.Result memory result = messageBridgeProxy.getResult(nonce);
+        // Verify the result matches the execution result
+        assertEq(result.success, executionResult.success, "Execution result success should match");
+        assertEq(result.returnData, executionResult.returnData, "Execution result return data should match");
+    }
+
+    function test_GetResult_SuccessWithEmptyReturnDataAndStoreResultFalse() public {
+        // Deploy test contract
+        TestContract testContract = new TestContract();
+        bytes memory callData = abi.encodeWithSelector(TestContract.testFunction.selector);
+        AMBTypes.Call memory call =
+            AMBTypes.Call({allowFailure: false, target: address(testContract), value: 0, callData: callData});
+        bytes memory message = abi.encode(call);
+        uint256 nonce = 1;
+        // Store the message with storeResult = false
+        storeMessage(nonce, message, "");
+        // Execute the message
+        AMBTypes.Result memory executionResult = messageBridgeProxy.executeMessage(nonce);
+        assertTrue(executionResult.success, "Message execution should succeed");
+        // Expect revert when trying to get result for a message that did not store result
+        vm.expectRevert(abi.encodeWithSelector(MessageBridge.ResultNotFound.selector, nonce));
+        messageBridgeProxy.getResult(nonce);
+    }
+
+    // test getResult with failWithPanic() method from TestContract
+    function test_GetResult_WithPanicExecution() public {
+        // Deploy test contract
+        TestContract testContract = new TestContract();
+        bytes memory callData = abi.encodeWithSelector(TestContract.failWithPanic.selector);
+        AMBTypes.Call memory call =
+            AMBTypes.Call({allowFailure: true, target: address(testContract), value: 0, callData: callData});
+        bytes memory message = abi.encode(call);
+        uint256 nonce = 1;
+        // Store the message with storeResult = true
+        storeMessageWithStoreResult(nonce, message, true);
+        // Execute the message (will panic)
+        AMBTypes.Result memory executionResult = messageBridgeProxy.executeMessage(nonce);
+        assertFalse(executionResult.success, "Message execution should fail with panic");
+        // Get the result for the executed message
+        AMBTypes.Result memory result = messageBridgeProxy.getResult(nonce);
+        // Verify the result matches the execution result
+        assertEq(result.success, executionResult.success, "Execution result success should match");
+        assertEq(result.returnData, executionResult.returnData, "Execution result return data should match");
+    }
 }

@@ -35,6 +35,13 @@ contract TestContract {
         return true;
     }
 
+    function failWithPanic() public pure {
+        // This will cause a panic error
+        assembly {
+            invalid()
+        }
+    }
+
     // Replace receive function with fallback function since we need to access msg.data
     fallback() external payable {
         // Reject zero value transfers
