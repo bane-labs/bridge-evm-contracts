@@ -45,8 +45,8 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
             encodedMetadata: abi.encode(
                 AMBTypes.MetadataExecutable({
                     msgType: AMBTypes.MessageType.EXECUTABLE,
-                    sender: address(this),
                     timestamp: block.timestamp,
+                    sender: address(this),
                     storeResult: false
                 })
             )
@@ -127,8 +127,8 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
             encodedMetadata: abi.encode(
                 AMBTypes.MetadataExecutable({
                     msgType: AMBTypes.MessageType.EXECUTABLE,
-                    sender: address(this),
                     timestamp: block.timestamp,
+                    sender: address(this),
                     storeResult: false
                 })
             )
@@ -766,8 +766,8 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
             encodedMetadata: abi.encode(
                 AMBTypes.MetadataExecutable({
                     msgType: AMBTypes.MessageType.EXECUTABLE,
-                    sender: address(this),
                     timestamp: block.timestamp,
+                    sender: address(this),
                     storeResult: false
                 })
             )
@@ -778,8 +778,8 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
             encodedMetadata: abi.encode(
                 AMBTypes.MetadataExecutable({
                     msgType: AMBTypes.MessageType.EXECUTABLE,
-                    sender: address(this),
                     timestamp: block.timestamp,
+                    sender: address(this),
                     storeResult: false
                 })
             )
@@ -830,8 +830,8 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
             encodedMetadata: abi.encode(
                 AMBTypes.MetadataExecutable({
                     msgType: AMBTypes.MessageType.EXECUTABLE,
-                    sender: address(this),
                     timestamp: block.timestamp,
+                    sender: address(this),
                     storeResult: false
                 })
             )
@@ -858,8 +858,8 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
             encodedMetadata: abi.encode(
                 AMBTypes.MetadataExecutable({
                     msgType: AMBTypes.MessageType.EXECUTABLE,
-                    sender: address(this),
                     timestamp: block.timestamp,
+                    sender: address(this),
                     storeResult: false
                 })
             )
@@ -887,8 +887,8 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
             encodedMetadata: abi.encode(
                 AMBTypes.MetadataExecutable({
                     msgType: AMBTypes.MessageType.EXECUTABLE,
-                    sender: address(this),
                     timestamp: block.timestamp,
+                    sender: address(this),
                     storeResult: false
                 })
             )
@@ -899,8 +899,8 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
             encodedMetadata: abi.encode(
                 AMBTypes.MetadataExecutable({
                     msgType: AMBTypes.MessageType.EXECUTABLE,
-                    sender: address(this),
                     timestamp: block.timestamp,
+                    sender: address(this),
                     storeResult: false
                 })
             )
@@ -927,8 +927,8 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
             encodedMetadata: abi.encode(
                 AMBTypes.MetadataExecutable({
                     msgType: AMBTypes.MessageType.EXECUTABLE,
-                    sender: address(this),
                     timestamp: block.timestamp,
+                    sender: address(this),
                     storeResult: false
                 })
             )
@@ -950,8 +950,8 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
             encodedMetadata: abi.encode(
                 AMBTypes.MetadataExecutable({
                     msgType: AMBTypes.MessageType.EXECUTABLE,
-                    sender: address(this),
                     timestamp: block.timestamp,
+                    sender: address(this),
                     storeResult: false
                 })
             )
@@ -1094,8 +1094,8 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
             encodedMetadata: abi.encode(
                 AMBTypes.MetadataExecutable({
                     msgType: AMBTypes.MessageType.EXECUTABLE,
-                    sender: customSender,
                     timestamp: customTimestamp,
+                    sender: customSender,
                     storeResult: false
                 })
             )

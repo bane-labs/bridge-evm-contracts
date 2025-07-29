@@ -3,6 +3,7 @@ pragma solidity 0.8.25;
 
 import {MessageBridgeTestHelper} from "./MessageBridgeTestHelper.sol";
 import {AMBTypes} from "../contracts/library/AMBTypes.sol";
+import {AMBStorage} from "../contracts/library/AMBStorage.sol";
 import {BridgeLib} from "../contracts/library/BridgeLib.sol";
 import {MessageBridgeLib} from "../contracts/library/MessageBridgeLib.sol";
 import {StorageTypes} from "../contracts/library/StorageTypes.sol";
@@ -123,7 +124,7 @@ contract MessageBridgeSyncSending is MessageBridgeTestHelper {
             "Message hash should match expected value"
         );
 
-        AMBTypes.MessageBridgeState memory bridgeState = messageBridgeProxy.getMessageBridgeState();
+        AMBStorage.MessageBridgeState memory bridgeState = messageBridgeProxy.getMessageBridgeState();
         bytes32 previousRoot = bridgeState.n3ToEvmState.root;
         assertEq(previousRoot, hex"0000000000000000000000000000000000000000000000000000000000000000"); // Initial root should be zero
 

@@ -113,8 +113,8 @@ abstract contract MessageBridgeTestHelper is Test, SigUtils {
             encodedMetadata: abi.encode(
                 AMBTypes.MetadataExecutable({
                     msgType: AMBTypes.MessageType.EXECUTABLE,
+                    timestamp: block.timestamp * 1000, // Pretend timestamp is in milliseconds as it is incoming from N3
                     sender: address(this),
-                    timestamp: block.timestamp * 1000, // Pretend timestamp is in milliseconds
                     storeResult: false
                 })
             )
@@ -143,8 +143,8 @@ abstract contract MessageBridgeTestHelper is Test, SigUtils {
             encodedMetadata: abi.encode(
                 AMBTypes.MetadataExecutable({
                     msgType: AMBTypes.MessageType.EXECUTABLE,
-                    sender: address(this),
                     timestamp: block.timestamp,
+                    sender: address(this),
                     storeResult: storeResult
                 })
             )
