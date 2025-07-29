@@ -1,30 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import {StorageTypes} from "./StorageTypes.sol";
-
 library AMBTypes {
-    struct MessageBridgeConfig {
-        bool isSet;
-        bool paused;
-        uint256 fee;
-        uint256 maxMessageSize;
-        uint256 maxNrMessages;
-    }
-
-    struct MessageBridgeState {
-        bool paused;
-        StorageTypes.State n3ToEvmState;
-        StorageTypes.State evmToN3State;
-        MessageConfig config;
-    }
-
-    struct MessageConfig {
-        uint256 fee;
-        uint256 maxMessageSize;
-        uint256 maxNrMessages;
-        uint256 executionWindowSeconds; // Window of time a message can be executed after it was stored
-    }
+    // DTOs
 
     struct MessageData {
         uint256 nonce;
@@ -32,10 +10,9 @@ library AMBTypes {
         bytes message;
     }
 
-    struct StoredMessage {
-        bytes encodedMetadata;
-        bytes message;
-        bool executed;
+    struct Result {
+        bool success;
+        bytes returnData;
     }
 
     struct Call {
@@ -43,17 +20,6 @@ library AMBTypes {
         bool allowFailure;
         uint256 value;
         bytes callData;
-    }
-
-    struct Result {
-        bool success;
-        bytes returnData;
-    }
-
-    struct SendMessageData {
-        uint256 nonce;
-        bytes encodedMetadata;
-        bytes message;
     }
 
     enum MessageType {

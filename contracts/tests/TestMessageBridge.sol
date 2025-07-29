@@ -2,7 +2,7 @@
 pragma solidity 0.8.25;
 
 import {IBridgeManagement} from "../interfaces/IBridgeManagement.sol";
-import {MessageBridgeLib} from "../library/MessageBridgeLib.sol";
+import {AMBStorage} from "../library/AMBStorage.sol";
 import {MessageBridge} from "../messageBridge/MessageBridge.sol";
 
 contract TestMessageBridge is MessageBridge {
@@ -23,7 +23,7 @@ contract TestMessageBridge is MessageBridge {
         initializer
     {
         __ReentrancyGuard_init();
-        _getAMBStorage().management = IBridgeManagement(_management);
+        AMBStorage.get().management = IBridgeManagement(_management);
         _setMessageBridge(_fee, _maxMessageSize, _maxNrMessages, _executionWindowSeconds);
     }
 }

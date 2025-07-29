@@ -1,41 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import {IBridgeManagement} from "../interfaces/IBridgeManagement.sol";
+import {AMBStorage} from "../library/AMBStorage.sol";
 import {AMBTypes} from "../library/AMBTypes.sol";
 import {BridgeLib} from "../library/BridgeLib.sol";
-import {MessageBridgeLib} from "../library/MessageBridgeLib.sol";
-import {StorageTypes} from "../library/StorageTypes.sol";
+import {IBridgeManagement} from "../interfaces/IBridgeManagement.sol";
 import {IExecutionManager} from "./interfaces/IExecutionManager.sol";
 import {IMessageBridge} from "./interfaces/IMessageBridge.sol";
-import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {MessageBridgeLib} from "../library/MessageBridgeLib.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import {StorageTypes} from "../library/StorageTypes.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgradeable {
     address public constant GOV_ADMIN = 0x1212000000000000000000000000000000000000;
 
-    //keccak256(abi.encode(uint256(keccak256("AMB.storage")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant AMBStorageLocation = 0xd6595d2280e6cba67baf67ff997445e733b244161e59228efeb7032069381100;
-
     uint32 public constant VERSION = 1;
-
-    /// @custom:storage-location erc7201:AMB.storage
-    struct AMBStorage {
-        IBridgeManagement management;
-        bool sendingPaused;
-        bool executingPaused;
-        uint256 unclaimedRewards;
-        AMBTypes.MessageBridgeState messageBridgeState;
-        mapping(uint256 => AMBTypes.StoredMessage) n3ToEvmMessages;
-        mapping(uint256 => AMBTypes.Result) n3ToEvmExecutionResults;
-        IExecutionManager messageExecutionManager;
-    }
-
-    function _getAMBStorage() internal pure returns (AMBStorage storage $) {
-        assembly {
-            $.slot := AMBStorageLocation
-        }
-    }
 
     constructor() {
         _disableInitializers();
@@ -54,7 +34,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         onlyAdmin
     {
         __ReentrancyGuard_init();
-        _getAMBStorage().management = IBridgeManagement(_management);
+        AMBStorage.get().management = IBridgeManagement(_management);
         _setMessageBridge(_fee, _maxMessageSize, _maxNrMessages, _executionWindowSeconds);
     }
 
@@ -128,45 +108,45 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         onlyIfMessageBridgeSet
         whenMessageBridgeNotPaused
     {
-        _pauseMessageBridge();
+        AMBStorage.get().messageBridgeState.paused = true;
         emit MessageBridgePause();
     }
 
     function unpauseMessageBridge() external override onlyGovernor onlyIfMessageBridgeSet whenMessageBridgePaused {
-        _unpauseMessageBridge();
+        AMBStorage.get().messageBridgeState.paused = false;
         emit MessageBridgeUnpause();
     }
 
     function isMessageBridgePaused() external view override returns (bool) {
-        return _getAMBStorage().messageBridgeState.paused;
+        return AMBStorage.get().messageBridgeState.paused;
     }
 
     function pauseSending() external override onlyGovernorOrSecurityGuard whenSendingNotPaused {
-        _getAMBStorage().sendingPaused = true;
+        AMBStorage.get().messageBridgeState.sendingPaused = true;
         emit SendingPause();
     }
 
     function unpauseSending() external override onlyGovernor whenSendingPaused {
-        _getAMBStorage().sendingPaused = false;
+        AMBStorage.get().messageBridgeState.sendingPaused = false;
         emit SendingUnpause();
     }
 
     function isSendingPaused() external view override returns (bool) {
-        return _getAMBStorage().sendingPaused;
+        return AMBStorage.get().messageBridgeState.sendingPaused;
     }
 
     function pauseExecuting() external override onlyGovernorOrSecurityGuard whenExecutingNotPaused {
-        _getAMBStorage().executingPaused = true;
+        AMBStorage.get().messageBridgeState.executingPaused = true;
         emit ExecutingPause();
     }
 
     function unpauseExecuting() external override onlyGovernor whenExecutingPaused {
-        _getAMBStorage().executingPaused = false;
+        AMBStorage.get().messageBridgeState.executingPaused = false;
         emit ExecutingUnpause();
     }
 
     function isExecutingPaused() external view override returns (bool) {
-        return _getAMBStorage().executingPaused;
+        return AMBStorage.get().messageBridgeState.executingPaused;
     }
 
     /**
@@ -221,14 +201,14 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         whenMessageBridgeNotPaused
         whenSendingNotPaused
     {
-        AMBStorage storage ambStorage = _getAMBStorage();
+        AMBStorage.AMB storage ambStorage = AMBStorage.get();
 
         // Check if the message exists by checking if it has content
         if (ambStorage.n3ToEvmMessages[_relatedMessageNonce].message.length == 0) {
             revert MessageNotFound(_relatedMessageNonce);
         }
 
-        bytes memory message = ambStorage.n3ToEvmExecutionResults[_relatedMessageNonce].returnData;
+        bytes memory message = ambStorage.n3ToEvmExecutionResults[_relatedMessageNonce];
         // Check if a result was stored for this message
         if (message.length == 0) revert ResultNotFound(_relatedMessageNonce);
 
@@ -244,7 +224,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     }
 
     function _sendMessageWithMetadata(bytes memory _message, bytes memory _encodedMetadata) private {
-        AMBTypes.MessageConfig memory config = _getMessageBridgeConfig();
+        AMBStorage.MessageConfig memory config = AMBStorage.getConfig();
 
         // Check message size against max allowed size
         if (_message.length > config.maxMessageSize) revert MessageTooLarge(config.maxMessageSize, _message.length);
@@ -254,7 +234,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         _processBridgeFee(from, msg.value, config.fee);
 
         // Compute the new root and update the message state
-        StorageTypes.State memory state = _getMessageBridgeEvmToN3State();
+        StorageTypes.State memory state = AMBStorage.get().messageBridgeState.evmToN3State;
         uint256 newNonce = state.nonce + 1;
 
         // Create message hash
@@ -264,7 +244,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         bytes32 newRoot = BridgeLib._computeNewRoot(state.root, messageHash);
 
         // Update the state
-        _setMessageBridgeEvmToN3State(StorageTypes.State({nonce: newNonce, root: newRoot}));
+        AMBStorage.get().messageBridgeState.evmToN3State = StorageTypes.State({nonce: newNonce, root: newRoot});
 
         // Emit event with all relevant information
         emit MessageSent(newNonce, _message, block.timestamp, from, messageHash, newRoot);
@@ -286,8 +266,8 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         uint256 messageLength = _messages.length;
         if (messageLength == 0) revert NoMessages();
 
-        StorageTypes.State memory state = _getMessageBridgeN3ToEvmState();
-        AMBTypes.MessageConfig memory config = _getMessageBridgeConfig();
+        StorageTypes.State memory state = AMBStorage.get().messageBridgeState.n3ToEvmState;
+        AMBStorage.MessageConfig memory config = AMBStorage.getConfig();
 
         if (messageLength > config.maxNrMessages) revert TooManyMessages();
 
@@ -302,14 +282,13 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         if (MessageBridgeLib._computeNewTopRoot(state.root, _messages) != _depositRoot) revert InvalidRoot();
 
         // Verify that the provided signatures are valid
-        if (!_getAMBStorage().management.verifyValidatorSignatures(_depositRoot, _signatures)) {
+        if (!AMBStorage.get().management.verifyValidatorSignatures(_depositRoot, _signatures)) {
             revert InvalidValidatorSignatures();
         }
 
         // Update the message bridge deposit state
-        _setMessageBridgeN3ToEvmState(
-            StorageTypes.State({nonce: _messages[messageLength - 1].nonce, root: _depositRoot})
-        );
+        AMBStorage.get().messageBridgeState.n3ToEvmState =
+            StorageTypes.State({nonce: _messages[messageLength - 1].nonce, root: _depositRoot});
         emit MessageDepositRootUpdate(_messages[messageLength - 1].nonce, _depositRoot);
 
         // Store messages
@@ -323,15 +302,33 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
      * @param messageData the data of the message to be stored.
      */
     function _storeMessage(AMBTypes.MessageData memory messageData) private {
-        _getAMBStorage().n3ToEvmMessages[messageData.nonce] = AMBTypes.StoredMessage({
-            encodedMetadata: messageData.encodedMetadata,
-            message: messageData.message,
-            executed: false
-        });
+        AMBStorage.AMB storage ambStorage = AMBStorage.get();
+        ambStorage.n3ToEvmMessages[messageData.nonce] =
+            AMBStorage.StoredMessage({encodedMetadata: messageData.encodedMetadata, message: messageData.message});
+
+        _saveAdditionalState(messageData.nonce, messageData.encodedMetadata);
 
         emit MessageDeposit(messageData.nonce, messageData.message);
     }
 
+    function _saveAdditionalState(uint256 nonce, bytes memory encodedMetadata) private {
+        AMBStorage.AMB storage ambStorage = AMBStorage.get();
+        AMBTypes.MessageType msgType = MessageBridgeLib._readMessageType(encodedMetadata);
+        if (msgType == AMBTypes.MessageType.EXECUTABLE) {
+            AMBTypes.MetadataExecutable memory metadata = abi.decode(encodedMetadata, (AMBTypes.MetadataExecutable));
+            // Since this is an N3 timestamp, we normalize it to seconds
+            uint256 normalizedTimestamp = metadata.timestamp / 1000;
+            uint256 window = ambStorage.messageBridgeState.config.executionWindowSeconds;
+            ambStorage.n3ToEvmExecutableStates[nonce] =
+                AMBStorage.ExecutableState({executed: false, expirationTimestamp: normalizedTimestamp + window});
+        }
+    }
+
+    /**
+     * @notice Executes a message that was sent from the Neo N3 blockchain.
+     * @param nonce The nonce of the message to be executed.
+     * @return result The result of the message execution.
+     */
     function executeMessage(uint256 nonce)
         external
         payable
@@ -339,73 +336,81 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         whenExecutingNotPaused
         returns (AMBTypes.Result memory)
     {
-        AMBTypes.StoredMessage storage storedMessage = _getAMBStorage().n3ToEvmMessages[nonce];
-        bytes memory rawMessage = storedMessage.message;
-        if (rawMessage.length == 0) revert MessageNotFound(nonce);
-        if (storedMessage.executed) revert MessageAlreadyExecuted(nonce);
-        IExecutionManager messageExecutionManager = _getAMBStorage().messageExecutionManager;
-
+        // Check if the execution manager is set
+        AMBStorage.AMB storage ambStorage = AMBStorage.get();
+        IExecutionManager messageExecutionManager = ambStorage.messageExecutionManager;
         if (address(messageExecutionManager) == address(0)) revert ExecutionManagerNotSet();
 
-        bytes memory encodedMetadata = storedMessage.encodedMetadata;
-        AMBTypes.MessageType msgType = MessageBridgeLib._readMessageType(encodedMetadata); // Ensure the message type is valid
+        // Check if the message exists
+        AMBStorage.StoredMessage storage storedMessage = ambStorage.n3ToEvmMessages[nonce];
+        bytes memory rawMessage = storedMessage.message;
+        if (rawMessage.length == 0) revert MessageNotFound(nonce);
 
-        AMBTypes.MetadataExecutable memory metadata;
+        // Check if the message is of type executable
+        bytes memory encodedMetadata = storedMessage.encodedMetadata;
+        AMBTypes.MessageType msgType = MessageBridgeLib._readMessageType(encodedMetadata);
         if (msgType != AMBTypes.MessageType.EXECUTABLE) revert MessageBridgeLib.UnsupportedMessageType(msgType);
-        else metadata = abi.decode(encodedMetadata, (AMBTypes.MetadataExecutable));
+
+        // Check if the message was already executed
+        AMBStorage.ExecutableState storage executableState = ambStorage.n3ToEvmExecutableStates[nonce];
+        if (executableState.executed) revert MessageAlreadyExecuted(nonce);
 
         // Check if the message execution window has expired
-        AMBTypes.MessageConfig memory config = _getMessageBridgeConfig();
-        uint256 expiry = metadata.timestamp + config.executionWindowSeconds;
-        if (block.timestamp > expiry) revert ExecutionWindowExpired(expiry, block.timestamp);
-
-        // Mark as executed
-        storedMessage.executed = true;
+        if (block.timestamp > executableState.expirationTimestamp) {
+            revert ExecutionWindowExpired(executableState.expirationTimestamp, block.timestamp);
+        }
+        // Mark as executed to avoid reentrancy issues
+        executableState.executed = true;
 
         // Execute the message using the execution manager
         AMBTypes.Result memory result = messageExecutionManager.executeMessage{value: msg.value}(nonce, rawMessage);
 
-        if (metadata.storeResult) _getAMBStorage().n3ToEvmExecutionResults[nonce] = result;
-
+        // Store encode response and emit event
+        AMBTypes.MetadataExecutable memory metadata = abi.decode(encodedMetadata, (AMBTypes.MetadataExecutable));
+        if (metadata.storeResult) ambStorage.n3ToEvmExecutionResults[nonce] = abi.encode(result);
         emit MessageExecuted(nonce, result);
 
         return result;
     }
 
     function setMessageBridgeFee(uint256 _fee) external override onlyGovernor {
-        _setMessageBridgeFee(_fee);
+        if (_fee == 0) revert InvalidFee();
+        AMBStorage.get().messageBridgeState.config.fee = _fee;
         emit MessageWithdrawalFeeChange(_fee);
     }
 
     function setMaxMessageSize(uint256 _maxSize) external override onlyGovernor {
-        _setMaxMessageSize(_maxSize);
+        if (_maxSize == 0) revert InvalidValue();
+        AMBStorage.get().messageBridgeState.config.maxMessageSize = _maxSize;
         emit MaxMessageSizeChange(_maxSize);
     }
 
-    function setMaxNrMessages(uint256 _maxDeposits) external override onlyGovernor {
-        _setMaxNrMessages(_maxDeposits);
-        emit MaxNrMessagesChange(_maxDeposits);
+    function setMaxNrMessages(uint256 _maxNrMessages) external override onlyGovernor {
+        if (_maxNrMessages == 0) revert InvalidValue();
+        AMBStorage.get().messageBridgeState.config.maxNrMessages = _maxNrMessages;
+        emit MaxNrMessagesChange(_maxNrMessages);
     }
 
     function setMessageExecutor(address _executor) external override onlyGovernor {
-        _getAMBStorage().messageExecutionManager = IExecutionManager(_executor);
+        AMBStorage.get().messageExecutionManager = IExecutionManager(_executor);
         emit MessageExecutorSet(_executor);
     }
 
     function setExecutionWindowSeconds(uint256 windowSeconds) external override onlyGovernor {
-        _setExecutionWindowSeconds(windowSeconds);
+        if (windowSeconds == 0) revert InvalidValue();
+        AMBStorage.get().messageBridgeState.config.executionWindowSeconds = windowSeconds;
         emit MessageExecutionWindowChange(windowSeconds);
     }
 
     function _authorizeUpgrade(address newImplementation) internal virtual override onlyAdmin {}
 
     // Add public getter functions for testing
-    function n3ToEvmMessages(uint256 nonce) external view returns (AMBTypes.StoredMessage memory storedMessage) {
-        storedMessage = _getAMBStorage().n3ToEvmMessages[nonce];
+    function n3ToEvmMessages(uint256 nonce) external view returns (AMBStorage.StoredMessage memory storedMessage) {
+        storedMessage = AMBStorage.get().n3ToEvmMessages[nonce];
     }
 
-    function getMessageBridgeState() external view returns (AMBTypes.MessageBridgeState memory) {
-        return _getAMBStorage().messageBridgeState;
+    function getMessageBridgeState() external view returns (AMBStorage.MessageBridgeState memory) {
+        return AMBStorage.get().messageBridgeState;
     }
 
     // Modifiers
@@ -416,17 +421,17 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     }
 
     modifier onlyRelayer() {
-        if (msg.sender != _getAMBStorage().management.getRelayer()) revert NotRelayer();
+        if (msg.sender != AMBStorage.get().management.getRelayer()) revert NotRelayer();
         _;
     }
 
     modifier onlyGovernor() {
-        if (msg.sender != _getAMBStorage().management.getGovernor()) revert NotGovernor();
+        if (msg.sender != AMBStorage.get().management.getGovernor()) revert NotGovernor();
         _;
     }
 
     modifier onlyGovernorOrSecurityGuard() {
-        AMBStorage storage store = _getAMBStorage();
+        AMBStorage.AMB storage store = AMBStorage.get();
         if (msg.sender != store.management.getGovernor() && msg.sender != store.management.getSecurityGuard()) {
             revert NoAuthorization();
         }
@@ -439,39 +444,39 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     }
 
     modifier whenMessageBridgeNotPaused() {
-        if (_getAMBStorage().messageBridgeState.paused) revert MessageBridgePaused();
+        if (AMBStorage.get().messageBridgeState.paused) revert MessageBridgePaused();
         _;
     }
 
     modifier whenMessageBridgePaused() {
-        if (!_getAMBStorage().messageBridgeState.paused) revert MessageBridgeNotPaused();
+        if (!AMBStorage.get().messageBridgeState.paused) revert MessageBridgeNotPaused();
         _;
     }
 
     modifier whenSendingNotPaused() {
-        if (_getAMBStorage().sendingPaused) revert SendingPaused();
+        if (AMBStorage.get().messageBridgeState.sendingPaused) revert SendingPaused();
         _;
     }
 
     modifier whenSendingPaused() {
-        if (!_getAMBStorage().sendingPaused) revert SendingNotPaused();
+        if (!AMBStorage.get().messageBridgeState.sendingPaused) revert SendingNotPaused();
         _;
     }
 
     modifier whenExecutingNotPaused() {
-        if (_getAMBStorage().executingPaused) revert ExecutingPaused();
+        if (AMBStorage.get().messageBridgeState.executingPaused) revert ExecutingPaused();
         _;
     }
 
     modifier whenExecutingPaused() {
-        if (!_getAMBStorage().executingPaused) revert ExecutingNotPaused();
+        if (!AMBStorage.get().messageBridgeState.executingPaused) revert ExecutingNotPaused();
         _;
     }
 
     // Internal functions to be discarded
 
     function _messageBridgeIsSet() internal view returns (bool) {
-        return _getAMBStorage().messageBridgeState.config.maxMessageSize != 0;
+        return AMBStorage.get().messageBridgeState.config.maxMessageSize != 0;
     }
 
     function _setMessageBridge(
@@ -486,65 +491,19 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         if (_maxMessageSize == 0) revert InvalidValue();
         if (_maxNrMessages == 0) revert InvalidValue();
 
-        _getAMBStorage().messageBridgeState = AMBTypes.MessageBridgeState({
+        AMBStorage.get().messageBridgeState = AMBStorage.MessageBridgeState({
             paused: true,
+            sendingPaused: false,
+            executingPaused: false,
             n3ToEvmState: StorageTypes.State({nonce: 0, root: 0x0}),
             evmToN3State: StorageTypes.State({nonce: 0, root: 0x0}),
-            config: AMBTypes.MessageConfig({
+            config: AMBStorage.MessageConfig({
                 fee: _fee,
                 maxMessageSize: _maxMessageSize,
                 maxNrMessages: _maxNrMessages,
                 executionWindowSeconds: _executionWindowSeconds
             })
         });
-    }
-
-    function _pauseMessageBridge() internal {
-        _getAMBStorage().messageBridgeState.paused = true;
-    }
-
-    function _unpauseMessageBridge() internal {
-        _getAMBStorage().messageBridgeState.paused = false;
-    }
-
-    function _getMessageBridgeConfig() internal view returns (AMBTypes.MessageConfig memory config) {
-        return _getAMBStorage().messageBridgeState.config;
-    }
-
-    function _getMessageBridgeN3ToEvmState() internal view returns (StorageTypes.State memory state) {
-        return _getAMBStorage().messageBridgeState.n3ToEvmState;
-    }
-
-    function _setMessageBridgeN3ToEvmState(StorageTypes.State memory state) internal {
-        _getAMBStorage().messageBridgeState.n3ToEvmState = state;
-    }
-
-    function _getMessageBridgeEvmToN3State() internal view returns (StorageTypes.State memory state) {
-        return _getAMBStorage().messageBridgeState.evmToN3State;
-    }
-
-    function _setMessageBridgeEvmToN3State(StorageTypes.State memory state) internal {
-        _getAMBStorage().messageBridgeState.evmToN3State = state;
-    }
-
-    function _setMessageBridgeFee(uint256 _fee) internal {
-        if (_fee == 0) revert InvalidFee();
-        _getAMBStorage().messageBridgeState.config.fee = _fee;
-    }
-
-    function _setMaxMessageSize(uint256 _maxMessageSize) internal {
-        if (_maxMessageSize == 0) revert InvalidValue();
-        _getAMBStorage().messageBridgeState.config.maxMessageSize = _maxMessageSize;
-    }
-
-    function _setMaxNrMessages(uint256 _maxNrMessages) internal {
-        if (_maxNrMessages == 0) revert InvalidValue();
-        _getAMBStorage().messageBridgeState.config.maxNrMessages = _maxNrMessages;
-    }
-
-    function _setExecutionWindowSeconds(uint256 _executionWindowSeconds) internal {
-        if (_executionWindowSeconds == 0) revert InvalidValue();
-        _getAMBStorage().messageBridgeState.config.executionWindowSeconds = _executionWindowSeconds;
     }
 
     /**
@@ -564,6 +523,6 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
             (bool success,) = payable(_from).call{value: _msgValue - _fee}("");
             if (!success) revert TransferFailed();
         }
-        _getAMBStorage().unclaimedRewards += _fee;
+        AMBStorage.get().unclaimedFees += _fee;
     }
 }
