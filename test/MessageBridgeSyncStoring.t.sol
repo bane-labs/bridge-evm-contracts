@@ -27,7 +27,7 @@ import {Upgrades} from "../lib/openzeppelin-foundry-upgrades/src/Upgrades.sol";
 import {console2} from "../lib/openzeppelin-foundry-upgrades/lib/forge-std/src/console2.sol";
 
 contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
-    function test_StoreAndExecuteMessageWithTryoutFunctionWithArgs_SyncTest() public {
+    function test_SyncTest_StoreMessageAndThenExecuteSuccessfully() public {
         // Deploy test contract
         TestContract testContract = new TestContract();
 
@@ -88,17 +88,19 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
             hex"00000000000000000000000000000000000000000000000000000000000000200000000000000000000000001d1499e622d69689cdf9004d05ec547d650ff2110000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000044cadc7a78000000000000000000000000000000000000000000000000000000000000006400000000000000000000000000000000000000000000000000000000000000c800000000000000000000000000000000000000000000000000000000"
         );
 
-        // Output of the event of sending the above raw message
-        // // metadata+msghash+root
-        // 400421002106a1075d52980128146b496d02917756d2f4f6e16e2b061875706caeef2001
-        // = {0,1753728485281,6b496d02917756d2f4f6e16e2b061875706caeef,true}
-        // f6250a416b970cec73cf1a37502a203179dadc9ea7770cb513fd7911248a6576
-        // 61767a02fb2c69e52dbd50f7034804a28551005199c6dacef6c05e0dc5aa68d6
+        // expected msg hash: 
+        // with nonce: 1
+        // with message type: 0 // EXECUTABLE
+        // with timestamp: 1753776888950
+        // with sender: 0x639Ab3eEC9bFc00d00E0e608ec2DF87C7D98D79a
+        // with store result: true
+        // with raw message:
+        // 00000000000000000000000000000000000000000000000000000000000000200000000000000000000000001d1499e622d69689cdf9004d05ec547d650ff2110000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000044cadc7a78000000000000000000000000000000000000000000000000000000000000006400000000000000000000000000000000000000000000000000000000000000c800000000000000000000000000000000000000000000000000000000
 
         // Create metadata for the message
         AMBTypes.MetadataExecutable memory metadata = AMBTypes.MetadataExecutable({
             msgType: AMBTypes.MessageType.EXECUTABLE,
-            timestamp: 1753731472616, // N3 timestamp in milliseconds
+            timestamp: 1753776888950, // N3 timestamp in milliseconds
             sender: address(0x639Ab3eEC9bFc00d00E0e608ec2DF87C7D98D79a),
             storeResult: true
         });
@@ -112,7 +114,7 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
         // The following expected concatenated bytes were the outcome in the event of sending the above raw message on the N3 contract
         assertEq(
             packedMessage,
-            hex"00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000198528a9ce8639ab3eec9bfc00d00e0e608ec2df87c7d98d79a0100000000000000000000000000000000000000000000000000000000000000200000000000000000000000001d1499e622d69689cdf9004d05ec547d650ff2110000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000044cadc7a78000000000000000000000000000000000000000000000000000000000000006400000000000000000000000000000000000000000000000000000000000000c800000000000000000000000000000000000000000000000000000000"
+            hex"00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000198553f9c76639ab3eec9bfc00d00e0e608ec2df87c7d98d79a0100000000000000000000000000000000000000000000000000000000000000200000000000000000000000001d1499e622d69689cdf9004d05ec547d650ff2110000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000044cadc7a78000000000000000000000000000000000000000000000000000000000000006400000000000000000000000000000000000000000000000000000000000000c800000000000000000000000000000000000000000000000000000000"
         );
 
         bytes32 actualMsgHash = MessageBridgeLib._hashMessageBridgeOp(1, abi.encode(metadata), message);
@@ -120,7 +122,7 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
         // The following expected hash was the outcome in the event of sending the above message on the N3 contract
         assertEq(
             actualMsgHash,
-            hex"9aa1ed575b335ac37130e30a21d7f8f6746e4f5036113ff516b91841b468559c",
+            hex"c5e8122e5466b9c10e150d08df380a10771467d5f6e21c5234a167f690b8934f",
             "Message hash should match expected value"
         );
 
@@ -131,7 +133,7 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
         bytes32 newEvmRoot = BridgeLib._computeNewRoot(previousRoot, actualMsgHash);
         assertEq(
             newEvmRoot,
-            hex"56f217582879e59a39195e5b45efb35c1fa0cfc6d03569b2f6b1f53777508c56",
+            hex"3facb48372d8e7249e3e937f17dcc44f7f1a2978e1652aaa70291789ce7c6b46",
             "New EVM root should match expected value"
         );
 
@@ -158,5 +160,83 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
         messageBridgeProxy.executeMessage(1);
 
         assertEq(testContract.counter(), 1, "Counter should be incremented to 1 after execution");
+    }
+
+    function test_SyncTest_StoreOnlyMessage() public {
+        storeDummyMessageForStoreOnlySyncTest(); // make sure the nonce is at 1 when we start this test
+        AMBStorage.MessageBridgeState memory initialBridgeState = messageBridgeProxy.getMessageBridgeState();
+        bytes32 initialEvmRoot = initialBridgeState.n3ToEvmState.root;
+
+        bytes memory message = hex"54686572652773206e6f776865726520492063616e277420676f2e2054686572652773206e6f7768657265204920776f6e27742066696e6420796f752e";
+
+        // expected msg hash: 8537f0ee02066de1943c2205cd4621209dd1ec1a61ae887c5d394d130b63709a
+        // with nonce: 2
+        // with message type: 1 // STORE_ONLY
+        // with timestamp: 1753777092836
+        // with sender: 0x639Ab3eEC9bFc00d00E0e608ec2DF87C7D98D79a
+        // with raw message:
+        // 54686572652773206e6f776865726520492063616e277420676f2e2054686572652773206e6f7768657265204920776f6e27742066696e6420796f752e
+
+        // Create metadata for the message
+        AMBTypes.MetadataStoreOnly memory metadata = AMBTypes.MetadataStoreOnly({
+            msgType: AMBTypes.MessageType.STORE_ONLY,
+            timestamp: 1753777092836, // N3 timestamp in milliseconds
+            sender: address(0x639Ab3eEC9bFc00d00E0e608ec2DF87C7D98D79a)
+        });
+
+        bytes memory packedMessage = abi.encodePacked(
+            uint256(2), metadata.msgType, metadata.timestamp, metadata.sender, message
+        );
+
+        console2.logString("Packed message:");
+        console2.logBytes(packedMessage);
+        // The following expected concatenated bytes were the outcome in the event of sending the above raw message on the N3 contract
+        assertEq(
+            packedMessage,
+            hex"000000000000000000000000000000000000000000000000000000000000000201000000000000000000000000000000000000000000000000000001985542b8e4639ab3eec9bfc00d00e0e608ec2df87c7d98d79a54686572652773206e6f776865726520492063616e277420676f2e2054686572652773206e6f7768657265204920776f6e27742066696e6420796f752e"
+        );
+
+        bytes32 actualMsgHash = MessageBridgeLib._hashMessageBridgeOp(2, abi.encode(metadata), message);
+        console2.logBytes32(actualMsgHash);
+        // The following expected hash was the outcome in the event of sending the above message on the N3 contract
+        assertEq(
+            actualMsgHash,
+            hex"8537f0ee02066de1943c2205cd4621209dd1ec1a61ae887c5d394d130b63709a",
+            "Message hash should match expected value"
+        );
+
+        // What the initial root should be based on the presetup of the test
+        assertEq(initialEvmRoot, hex"0d3e5e507d5bbe00832f282ca33df9eadabbd5763ec421f3c162cb56d6717abb");
+
+        bytes32 newEvmRoot = BridgeLib._computeNewRoot(initialEvmRoot, actualMsgHash);
+        assertEq(
+            newEvmRoot,
+            hex"fb2685cee11e114869c8a7f8b5ccfd08c9c669bb8db88a0eba51940307d1d7b4",
+            "New EVM root should match expected value"
+        );
+
+        AMBTypes.MessageData[] memory messages = new AMBTypes.MessageData[](1);
+        messages[0] = AMBTypes.MessageData({nonce: 2, message: message, encodedMetadata: abi.encode(metadata)});
+
+        BridgeLib.Signature[] memory signatures = generateValidSignatures(newEvmRoot);
+
+        vm.prank(relayer);
+        vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
+        emit IMessageBridge.MessageDepositRootUpdate(2, newEvmRoot);
+        vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
+        emit IMessageBridge.MessageDeposit(2, message);
+        messageBridgeProxy.storeMessage(newEvmRoot, signatures, messages);
+
+        vm.expectRevert(abi.encodeWithSelector(MessageBridgeLib.UnsupportedMessageType.selector, AMBTypes.MessageType.STORE_ONLY));
+        messageBridgeProxy.executeMessage(2);
+    }
+
+    function storeDummyMessageForStoreOnlySyncTest() private {
+        // Create a dummy message
+        bytes memory dummyMessage =
+            abi.encode(AMBTypes.Call({allowFailure: false, target: address(0), value: 0, callData: ""}));
+
+        // Store the dummy message with the specified nonce
+        storeMessage(1, dummyMessage, "");
     }
 }
