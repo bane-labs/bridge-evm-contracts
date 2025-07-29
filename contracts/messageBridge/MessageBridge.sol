@@ -194,6 +194,10 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         _sendMessageWithMetadata(_message, encodedMetadata);
     }
 
+    /**
+     * @notice Sends a result message for a previously executed message.
+     * @param _relatedMessageNonce The nonce of the related message that was executed.
+     */
     function sendResultMessage(uint256 _relatedMessageNonce)
         external
         payable
@@ -250,6 +254,12 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         emit MessageSent(newNonce, _message, block.timestamp, from, messageHash, newRoot);
     }
 
+    /**
+     * @notice Stores messages sent from the Neo N3 blockchain.
+     * @param _depositRoot The root of the deposit tree.
+     * @param _signatures The signatures of the validators.
+     * @param _messages The messages to be stored.
+     */
     function storeMessage(
         bytes32 _depositRoot,
         BridgeLib.Signature[] calldata _signatures,
@@ -315,12 +325,11 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         AMBStorage.AMB storage ambStorage = AMBStorage.get();
         AMBTypes.MessageType msgType = MessageBridgeLib._readMessageType(encodedMetadata);
         if (msgType == AMBTypes.MessageType.EXECUTABLE) {
-            AMBTypes.MetadataExecutable memory metadata = abi.decode(encodedMetadata, (AMBTypes.MetadataExecutable));
-            // Since this is an N3 timestamp, we normalize it to seconds
-            uint256 normalizedTimestamp = metadata.timestamp / 1000;
             uint256 window = ambStorage.messageBridgeState.config.executionWindowSeconds;
+            // Use the block timestamp to set the expiration timestamp for the executable message
+            // in case the relayer is down and does not relay the message in time.
             ambStorage.n3ToEvmExecutableStates[nonce] =
-                AMBStorage.ExecutableState({executed: false, expirationTimestamp: normalizedTimestamp + window});
+                AMBStorage.ExecutableState({executed: false, expirationTimestamp: block.timestamp + window});
         }
     }
 
