@@ -26,7 +26,7 @@ import {Options} from "../lib/openzeppelin-foundry-upgrades/src/Options.sol";
 import {Upgrades} from "../lib/openzeppelin-foundry-upgrades/src/Upgrades.sol";
 import {console2} from "../lib/openzeppelin-foundry-upgrades/lib/forge-std/src/console2.sol";
 
-contract MessageBridgeSyncSending is MessageBridgeTestHelper {
+contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
     function test_StoreAndExecuteMessageWithTryoutFunctionWithArgs_SyncTest() public {
         // Deploy test contract
         TestContract testContract = new TestContract();
