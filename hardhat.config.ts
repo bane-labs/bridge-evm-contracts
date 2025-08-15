@@ -23,6 +23,12 @@ const config: HardhatUserConfig = {
     },
   },
   networks: {
+    localhost: {
+      url: "http://127.0.0.1:8545"
+    },
+    hardhat: {
+      // See its defaults
+    },
     neoxTestnet: {
       url: "https://testnet.rpc.banelabs.org",
       chainId: 12227332,
