@@ -3,6 +3,8 @@ pragma solidity 0.8.25;
 
 import {IBridgeManagement} from "../interfaces/IBridgeManagement.sol";
 import {AMBStorage} from "../library/AMBStorage.sol";
+import {AMBTypes} from "../library/AMBTypes.sol";
+import {MessageBridgeLib} from "../library/MessageBridgeLib.sol";
 import {StorageTypes} from "../library/StorageTypes.sol";
 import {MessageBridge} from "../messageBridge/MessageBridge.sol";
 
@@ -52,5 +54,25 @@ contract TestMessageBridge is MessageBridge {
                 executionWindowSeconds: _executionWindowSeconds
             })
         });
+    }
+
+    /// @notice Stores a message in the AMB storage.
+    /// @param messageData The message data to be stored, including nonce, encoded metadata, and the raw message.
+    /// @dev This function is used to simulate the storage of a message in the AMB storage.
+    function storeSingleMessage(AMBTypes.MessageData memory messageData) external {
+        AMBStorage.AMB storage ambStorage = AMBStorage.get();
+        ambStorage.evmMessages[messageData.nonce] =
+            AMBStorage.StoredMessage({encodedMetadata: messageData.encodedMetadata, rawMessage: messageData.message});
+
+        AMBTypes.MessageType msgType = MessageBridgeLib._readMessageType(messageData.encodedMetadata);
+        if (msgType == AMBTypes.MessageType.EXECUTABLE) {
+            uint256 window = ambStorage.messageBridgeState.config.executionWindowSeconds;
+            // Use the block timestamp to set the expiration timestamp for the executable message
+            // in case the relayer is down and does not relay the message in time.
+            ambStorage.evmExecutableStates[messageData.nonce] =
+                AMBStorage.ExecutableState({executed: false, expirationTimestamp: block.timestamp + window});
+        }
+
+        emit MessageDeposit(messageData.nonce, messageData.message);
     }
 }
