@@ -5,7 +5,7 @@ import {IBridgeManagement} from "../interfaces/IBridgeManagement.sol";
 import {IExecutionManager} from "../messageBridge/interfaces/IExecutionManager.sol";
 import {StorageTypes} from "./StorageTypes.sol";
 
-library AMBStorage {
+abstract contract AMBStorage {
     //keccak256(abi.encode(uint256(keccak256("AMB.storage")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 private constant AMBStorageLocation = 0xd6595d2280e6cba67baf67ff997445e733b244161e59228efeb7032069381100;
 
@@ -46,13 +46,13 @@ library AMBStorage {
         uint256 expirationTimestamp;
     }
 
-    function get() internal pure returns (AMB storage $) {
+    function getStorage() internal pure returns (AMB storage $) {
         assembly {
             $.slot := AMBStorageLocation
         }
     }
 
-    function getConfig() internal view returns (AMBStorage.MessageConfig memory config) {
-        return AMBStorage.get().messageBridgeState.config;
+    function getConfig() internal view returns (MessageConfig memory config) {
+        return getStorage().messageBridgeState.config;
     }
 }
