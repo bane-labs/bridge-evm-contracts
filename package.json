@@ -137,7 +137,6 @@
     "fs-extra": "^7.0.1",
     "fs-readdir-recursive": "^1.1.0",
     "fs.realpath": "^1.0.0",
-    "fsevents": "^2.3.3",
     "function-bind": "^1.1.1",
     "functional-red-black-tree": "^1.0.1",
     "get-caller-file": "^2.0.5",
