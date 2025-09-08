@@ -22,11 +22,9 @@ interface IMessageBridge {
     event MessageExecuted(uint256 indexed nonce, AMBTypes.Result result);
     event MessageSent(
         uint256 indexed nonce,
-        bytes message,
-        uint256 timestamp,
         address indexed sender,
-        bytes32 messageHash,
-        bytes32 newRoot
+        bytes encodedMetadata,
+        bytes message
     );
 
     function pauseMessageBridge() external;

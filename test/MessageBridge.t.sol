@@ -1189,11 +1189,9 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         vm.expectEmit(true, true, true, true);
         emit IMessageBridge.MessageSent(
             initialNonce + 1, // nonce
-            message, // message
-            block.timestamp, // timestamp
             address(this), // sender
-            expectedMessageHash, // messageHash
-            expectedRoot // newRoot
+            encodedMetadata, // encodedMetadata
+            message // message
         );
 
         // Send the message with the required fee
@@ -1415,8 +1413,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         // Expect the MessageSent event
         vm.expectEmit(true, true, true, true);
         emit IMessageBridge.MessageSent(
-            initialNonce + 1, resultData, block.timestamp, address(this), expectedMessageHash, expectedRoot
-        );
+            initialNonce + 1, address(this), expectedMetadata, resultData);
 
         // Send the result message
         messageBridgeProxy.sendResultMessage{value: messageFee}(nonce);
