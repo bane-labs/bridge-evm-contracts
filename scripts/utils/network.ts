@@ -26,10 +26,8 @@ export async function printNetworkConfiguration() {
     if (localNetwork) {
         console.log("Network:                              Local Hardhat Network");
         console.log("Chain Id:                            ", chainId.toString());
-    } else if (chainId === NEOX_TESTNET_CHAIN_ID) {
-        console.log("Network:                              Neo X Testnet");
-        console.log("Chain Id:                            ", chainId.toString());
-    } else {
-        throw new Error("Unknown Network");
+    } else if (network.name) {
+        console.log('Network:                              ', network.name);
+        console.log('Chain ID:                             ', chainId.toString());
     }
 }

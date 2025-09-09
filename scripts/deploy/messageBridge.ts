@@ -16,7 +16,7 @@ export async function deployMessageBridge(managementAddress: string, deployer: W
     await fundIfLocalNetwork([deployer.address]);
     // Deploy the bridge contract behind a proxy
     const MessageBridgeFactory = (await ethers.getContractFactory("TestMessageBridge")).connect(deployer);
-    const msgBridgeProxy = await upgrades.deployProxy(MessageBridgeFactory, [managementAddress, SENDING_FEE, MAX_MESSAGE_SIZE, MAX_NR_MESSAGES, EXECUTION_WINDOW_SECONDS], { kind: "uups", unsafeAllow: ["constructor"], txOverrides: { maxFeePerGas: MAX_FEE_PER_GAS, maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS } });
+    const msgBridgeProxy = await upgrades.deployProxy(MessageBridgeFactory, [managementAddress, SENDING_FEE, MAX_MESSAGE_SIZE, MAX_NR_MESSAGES, EXECUTION_WINDOW_SECONDS], { kind: "uups", unsafeAllow: ["constructor", "missing-initializer"], txOverrides: { maxFeePerGas: MAX_FEE_PER_GAS, maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS } });
     await msgBridgeProxy.waitForDeployment();
     const msgBridge = await ethers.getContractAt("TestMessageBridge", await msgBridgeProxy.getAddress());
 
