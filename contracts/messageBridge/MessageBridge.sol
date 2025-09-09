@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import {AMBStorage} from "../library/AMBStorage.sol";
+import {AMBStorage} from "./AMBStorage.sol";
 import {AMBTypes} from "../library/AMBTypes.sol";
 import {BridgeLib} from "../library/BridgeLib.sol";
 import {IBridgeManagement} from "../interfaces/IBridgeManagement.sol";

@@ -2,7 +2,7 @@
 pragma solidity 0.8.25;
 
 import {IBridgeManagement} from "../interfaces/IBridgeManagement.sol";
-import {AMBStorage} from "../library/AMBStorage.sol";
+import {AMBStorage} from "../messageBridge/AMBStorage.sol";
 import {AMBTypes} from "../library/AMBTypes.sol";
 import {MessageBridgeLib} from "../library/MessageBridgeLib.sol";
 import {StorageTypes} from "../library/StorageTypes.sol";

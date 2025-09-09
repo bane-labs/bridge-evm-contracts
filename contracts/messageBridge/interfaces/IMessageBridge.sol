@@ -3,7 +3,7 @@ pragma solidity 0.8.25;
 
 import {AMBTypes} from "../../library/AMBTypes.sol";
 import {BridgeLib} from "../../library/BridgeLib.sol";
-import {AMBStorage} from "../../library/AMBStorage.sol";
+import {AMBStorage} from "../AMBStorage.sol";
 
 interface IMessageBridge {
     event MessageBridgePause();

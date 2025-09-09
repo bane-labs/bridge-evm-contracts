@@ -3,7 +3,7 @@ pragma solidity 0.8.25;
 
 import {IBridgeManagement} from "../interfaces/IBridgeManagement.sol";
 import {IExecutionManager} from "../messageBridge/interfaces/IExecutionManager.sol";
-import {StorageTypes} from "./StorageTypes.sol";
+import {StorageTypes} from "../library/StorageTypes.sol";
 
 abstract contract AMBStorage {
     //keccak256(abi.encode(uint256(keccak256("AMB.storage")) - 1)) & ~bytes32(uint256(0xff))
