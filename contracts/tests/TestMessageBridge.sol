@@ -2,7 +2,7 @@
 pragma solidity 0.8.25;
 
 import {IBridgeManagement} from "../interfaces/IBridgeManagement.sol";
-import {AMBStorage} from "../library/AMBStorage.sol";
+import {AMBStorage} from "../messageBridge/AMBStorage.sol";
 import {AMBTypes} from "../library/AMBTypes.sol";
 import {MessageBridgeLib} from "../library/MessageBridgeLib.sol";
 import {StorageTypes} from "../library/StorageTypes.sol";
@@ -25,7 +25,7 @@ contract TestMessageBridge is MessageBridge {
         initializer
     {
         __ReentrancyGuard_init();
-        AMBStorage.get().management = IBridgeManagement(_management);
+        getStorage().management = IBridgeManagement(_management);
         _setMessageBridge(_fee, _maxMessageSize, _maxNrMessages, _executionWindowSeconds);
     }
 
@@ -41,13 +41,13 @@ contract TestMessageBridge is MessageBridge {
         if (_maxMessageSize == 0) revert InvalidValue();
         if (_maxNrMessages == 0) revert InvalidValue();
 
-        AMBStorage.get().messageBridgeState = AMBStorage.MessageBridgeState({
+        getStorage().messageBridgeState = MessageBridgeState({
             paused: true,
             sendingPaused: false,
             executingPaused: false,
             evmState: StorageTypes.State({nonce: 0, root: 0x0}),
             n3State: StorageTypes.State({nonce: 0, root: 0x0}),
-            config: AMBStorage.MessageConfig({
+            config: MessageConfig({
                 fee: _fee,
                 maxMessageSize: _maxMessageSize,
                 maxNrMessages: _maxNrMessages,
@@ -60,7 +60,7 @@ contract TestMessageBridge is MessageBridge {
     /// @param messageData The message data to be stored, including nonce, encoded metadata, and the raw message.
     /// @dev This function is used to simulate the storage of a message in the AMB storage.
     function storeSingleMessage(AMBTypes.MessageData memory messageData) external {
-        AMBStorage.AMB storage ambStorage = AMBStorage.get();
+        AMBStorage.AMB storage ambStorage = getStorage();
         ambStorage.evmMessages[messageData.nonce] =
             AMBStorage.StoredMessage({encodedMetadata: messageData.encodedMetadata, rawMessage: messageData.message});
 

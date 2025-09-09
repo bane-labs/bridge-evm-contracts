@@ -3,7 +3,7 @@ pragma solidity 0.8.25;
 
 import {MessageBridgeTestHelper} from "./MessageBridgeTestHelper.sol";
 import {AMBTypes} from "../contracts/library/AMBTypes.sol";
-import {AMBStorage} from "../contracts/library/AMBStorage.sol";
+import {AMBStorage} from "../contracts/messageBridge/AMBStorage.sol";
 import {BridgeLib} from "../contracts/library/BridgeLib.sol";
 import {MessageBridgeLib} from "../contracts/library/MessageBridgeLib.sol";
 import {StorageTypes} from "../contracts/library/StorageTypes.sol";

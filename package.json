@@ -371,7 +371,7 @@
     "@openzeppelin/hardhat-upgrades": "^3.0.5",
     "chai": "^4.3.10",
     "ethers": "^6.13.0",
-    "hardhat": "^2.22.5",
+    "hardhat": "^2.26.3",
     "merkletreejs": "^0.3.11",
     "mocha": "^10.2.0",
     "typechain": "^8.3.2"
