@@ -259,7 +259,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         getStorage().messageBridgeState.n3State = StorageTypes.State({nonce: newNonce, root: newRoot});
 
         // Emit event with all relevant information
-        emit MessageSent(newNonce, from, _encodedMetadata, _message);
+        emit MessageSent(newNonce, from, _encodedMetadata, _message, messageHash, newRoot);
     }
 
     /**

@@ -24,7 +24,9 @@ interface IMessageBridge {
         uint256 indexed nonce,
         address indexed sender,
         bytes encodedMetadata,
-        bytes message
+        bytes message,
+        bytes32 messageHash,
+        bytes32 newRoot
     );
 
     function pauseMessageBridge() external;
