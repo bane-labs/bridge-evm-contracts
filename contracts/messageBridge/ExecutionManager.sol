@@ -12,6 +12,8 @@ contract ExecutionManager is IExecutionManager, AccessControl {
     error ExecutionFailed(bytes returnData);
     //0x626ade30
     error ValueMismatch(uint256 providedValue, uint256 expectedValue);
+    //0xf0c49d44
+    error RefundFailed();
 
     constructor(address bridge) {
         _grantRole(BRIDGE_ROLE, bridge);
@@ -20,7 +22,8 @@ contract ExecutionManager is IExecutionManager, AccessControl {
     // Only the bridge contract can execute messages
     function executeMessage(
         uint256, // nonce
-        bytes calldata rawMessage
+        bytes calldata rawMessage,
+        address payable refundAddress
     )
         external
         payable
@@ -28,12 +31,22 @@ contract ExecutionManager is IExecutionManager, AccessControl {
         onlyRole(BRIDGE_ROLE)
         returns (AMBTypes.Result memory result)
     {
+
         // If rawMessage contains data that doesn't match the structure of the Call struct
         // the transaction will fail with a decoding error
         AMBTypes.Call memory call = abi.decode(rawMessage, (AMBTypes.Call));
 
         (bool success, bytes memory returnData) = _executeCall(call.target, call.value, call.callData);
-        if (!success && !call.allowFailure) revert ExecutionFailed(returnData);
+        if (!success) {
+            // If the call failed and it's not allowed to fail, revert the entire transaction
+            if (!call.allowFailure) revert ExecutionFailed(returnData);
+            // If the call is allowed to fail, refund the value sent for the call (if any)
+            if (call.value > 0) {
+                (bool refundSuccess,) = refundAddress.call{value: call.value}("");
+                // If the refund fails, revert the entire transaction to avoid losing funds
+                if (!refundSuccess) revert RefundFailed();
+            }
+        }
 
         result = AMBTypes.Result({success: success, returnData: returnData});
     }

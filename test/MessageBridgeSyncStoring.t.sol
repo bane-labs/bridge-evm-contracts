@@ -271,8 +271,9 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
             relatedMessageNonce: 1
         });
 
-        bytes memory packedMessage =
-            abi.encodePacked(uint256(1), metadata.msgType, metadata.timestamp, metadata.sender, metadata.relatedMessageNonce, message);
+        bytes memory packedMessage = abi.encodePacked(
+            uint256(1), metadata.msgType, metadata.timestamp, metadata.sender, metadata.relatedMessageNonce, message
+        );
 
         console2.logString("Packed message:");
         console2.logBytes(packedMessage);

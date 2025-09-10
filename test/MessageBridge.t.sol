@@ -1,19 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import {MessageBridgeTestHelper} from "./MessageBridgeTestHelper.sol";
 import {AMBTypes} from "../contracts/library/AMBTypes.sol";
-import {AMBStorage} from "../contracts/messageBridge/AMBStorage.sol";
 import {BridgeLib} from "../contracts/library/BridgeLib.sol";
 import {MessageBridgeLib} from "../contracts/library/MessageBridgeLib.sol";
 import {StorageTypes} from "../contracts/library/StorageTypes.sol";
+import {AMBStorage} from "../contracts/messageBridge/AMBStorage.sol";
 import {ExecutionManager} from "../contracts/messageBridge/ExecutionManager.sol";
 import {MessageBridge} from "../contracts/messageBridge/MessageBridge.sol";
 import {IMessageBridge} from "../contracts/messageBridge/interfaces/IMessageBridge.sol";
 import {ReentrancyAttacker} from "../contracts/tests/ReentrancyAttacker.sol";
-import {SigUtils} from "../contracts/tests/SigUtils.sol";
-import {TestBridgeManagement} from "../contracts/tests/TestBridgeManagement.sol";
-import {TestMessageBridge} from "../contracts/tests/TestMessageBridge.sol";
+import {FailingContract, RefundReceiver, NonPayableContract} from "../contracts/tests/RefundTestContracts.sol";
 import {TestContract} from "../contracts/tests/TestContract.sol";
 import {TestPayableContract} from "../contracts/tests/TestPayableContract.sol";
 import {CommonBase} from "../lib/forge-std/src/Base.sol";
@@ -21,9 +18,7 @@ import {StdAssertions} from "../lib/forge-std/src/StdAssertions.sol";
 import {StdChains} from "../lib/forge-std/src/StdChains.sol";
 import {StdCheats, StdCheatsSafe} from "../lib/forge-std/src/StdCheats.sol";
 import {StdUtils} from "../lib/forge-std/src/StdUtils.sol";
-import {Test} from "../lib/forge-std/src/Test.sol";
-import {Options} from "../lib/openzeppelin-foundry-upgrades/src/Options.sol";
-import {Upgrades} from "../lib/openzeppelin-foundry-upgrades/src/Upgrades.sol";
+import {MessageBridgeTestHelper} from "./MessageBridgeTestHelper.sol";
 
 contract MessageBridgeTest is MessageBridgeTestHelper {
     function test_StorageSlot() public pure {
@@ -1415,7 +1410,8 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         // Expect the MessageSent event
         vm.expectEmit(true, true, true, true);
         emit IMessageBridge.MessageSent(
-            initialNonce + 1, address(this), expectedMetadata, resultData, expectedMessageHash, expectedRoot);
+            initialNonce + 1, address(this), expectedMetadata, resultData, expectedMessageHash, expectedRoot
+        );
 
         // Send the result message
         messageBridgeProxy.sendResultMessage{value: messageFee}(nonce);
@@ -1880,5 +1876,262 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         // Verify the result matches the execution result
         assertEq(result.success, executionResult.success, "Execution result success should match");
         assertEq(result.returnData, executionResult.returnData, "Execution result return data should match");
+    }
+
+    // Message execution tests with refunds
+
+    function test_ExecuteMessage_FailureWithRefund_EOA() public {
+        // Deploy a contract that always fails
+        FailingContract failingContract = new FailingContract();
+        address eoa = makeAddr("eoa");
+        vm.deal(eoa, 10 ether);
+
+        uint256 testValue = 1 ether;
+
+        // Create message that will fail but allows failure
+        bytes memory messageData = abi.encode(
+            AMBTypes.Call({
+                allowFailure: true,
+                target: address(failingContract),
+                value: testValue,
+                callData: abi.encodeWithSignature("alwaysFail()")
+            })
+        );
+
+        storeMessage(1, messageData, "");
+
+        uint256 balanceBefore = eoa.balance;
+
+        // EOA executes message - should get refund
+        vm.prank(eoa);
+        AMBTypes.Result memory result = messageBridgeProxy.executeMessage{value: testValue}(1);
+
+        // Verify call failed but message execution succeeded
+        assertFalse(result.success, "Target call should have failed");
+        assertTrue(messageBridgeProxy.getExecutableState(1).executed, "Message should be marked as executed");
+
+        // Verify EOA got refunded
+        uint256 balanceAfter = eoa.balance;
+        assertEq(balanceAfter, balanceBefore, "EOA should be refunded");
+    }
+
+    function test_ExecuteMessage_FailureWithRefund_Contract() public {
+        // Deploy contracts for testing
+        FailingContract failingContract = new FailingContract();
+        RefundReceiver refundReceiver = new RefundReceiver();
+        vm.deal(address(refundReceiver), 10 ether);
+
+        uint256 testValue = 1 ether;
+
+        // Create message that will fail but allows failure
+        bytes memory messageData = abi.encode(
+            AMBTypes.Call({
+                allowFailure: true,
+                target: address(failingContract),
+                value: testValue,
+                callData: abi.encodeWithSignature("alwaysFail()")
+            })
+        );
+
+        storeMessage(1, messageData, "");
+
+        uint256 balanceBefore = address(refundReceiver).balance;
+        uint256 refundCountBefore = refundReceiver.refundCount();
+
+        // Contract executes message - should get refund
+        vm.prank(address(refundReceiver));
+        AMBTypes.Result memory result = messageBridgeProxy.executeMessage{value: testValue}(1);
+
+        // Verify call failed but message execution succeeded
+        assertFalse(result.success, "Target call should have failed");
+        assertTrue(messageBridgeProxy.getExecutableState(1).executed, "Message should be marked as executed");
+
+        // Verify contract got refunded
+        uint256 balanceAfter = address(refundReceiver).balance;
+        uint256 refundCountAfter = refundReceiver.refundCount();
+
+        assertEq(balanceAfter, balanceBefore, "Contract should be refunded");
+        assertEq(refundCountAfter, refundCountBefore + 1, "Refund should be tracked");
+    }
+
+    function test_ExecuteMessage_FailureNoRefund_ZeroValue() public {
+        // Deploy a contract that always fails
+        FailingContract failingContract = new FailingContract();
+        address eoa = makeAddr("eoa");
+        vm.deal(eoa, 10 ether);
+
+        // Create message with zero value that will fail but allows failure
+        bytes memory messageData = abi.encode(
+            AMBTypes.Call({
+                allowFailure: true,
+                target: address(failingContract),
+                value: 0,
+                callData: abi.encodeWithSignature("alwaysFail()")
+            })
+        );
+
+        storeMessage(1, messageData, "");
+
+        uint256 balanceBefore = eoa.balance;
+
+        // Execute with zero value - no refund needed
+        vm.prank(eoa);
+        AMBTypes.Result memory result = messageBridgeProxy.executeMessage{value: 0}(1);
+
+        // Verify call failed but message execution succeeded
+        assertFalse(result.success, "Target call should have failed");
+        assertTrue(messageBridgeProxy.getExecutableState(1).executed, "Message should be marked as executed");
+
+        // Balance should be unchanged (no refund needed)
+        uint256 balanceAfter = eoa.balance;
+        assertEq(balanceAfter, balanceBefore, "No balance change expected for zero value");
+    }
+
+    function test_ExecuteMessage_RefundFails_RevertsTransaction() public {
+        // Deploy contracts for testing
+        FailingContract failingContract = new FailingContract();
+        NonPayableContract nonPayableContract = new NonPayableContract();
+        vm.deal(address(nonPayableContract), 10 ether);
+
+        uint256 testValue = 1 ether;
+
+        // Create message that will fail but allows failure
+        bytes memory messageData = abi.encode(
+            AMBTypes.Call({
+                allowFailure: true,
+                target: address(failingContract),
+                value: testValue,
+                callData: abi.encodeWithSignature("alwaysFail()")
+            })
+        );
+
+        storeMessage(1, messageData, "");
+
+        // Non-payable contract tries to execute - refund should fail
+        vm.prank(address(nonPayableContract));
+        vm.expectRevert(abi.encodeWithSelector(ExecutionManager.RefundFailed.selector));
+        messageBridgeProxy.executeMessage{value: testValue}(1);
+
+        // Message should NOT be marked as executed due to refund failure
+        assertFalse(
+            messageBridgeProxy.getExecutableState(1).executed, "Message should not be executed due to refund failure"
+        );
+    }
+
+    function test_ExecuteMessage_AllowFailureFalse_RevertsTransaction() public {
+        // Deploy a contract that always fails
+        FailingContract failingContract = new FailingContract();
+        address eoa = makeAddr("eoa");
+        vm.deal(eoa, 10 ether);
+
+        uint256 testValue = 1 ether;
+
+        // Create message that will fail and does NOT allow failure
+        bytes memory messageData = abi.encode(
+            AMBTypes.Call({
+                allowFailure: false,
+                target: address(failingContract),
+                value: testValue,
+                callData: abi.encodeWithSelector(FailingContract.alwaysFail.selector)
+            })
+        );
+
+        storeMessage(1, messageData, "");
+        // Execute should revert entirely - no refund attempt
+        vm.prank(eoa);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ExecutionManager.ExecutionFailed.selector, abi.encodeWithSelector(FailingContract.AlwaysFails.selector)
+            )
+        );
+        messageBridgeProxy.executeMessage{value: testValue}(1);
+
+        // Message should NOT be marked as executed
+        assertFalse(messageBridgeProxy.getExecutableState(1).executed, "Message should not be executed");
+    }
+
+    function test_ExecuteMessage_ValueMismatch_RefundScenario() public {
+        FailingContract failingContract = new FailingContract();
+        address eoa = makeAddr("eoa");
+        vm.deal(eoa, 10 ether);
+
+        uint256 testValue = 1 ether;
+
+        bytes memory messageData = abi.encode(
+            AMBTypes.Call({
+                allowFailure: false,
+                target: address(failingContract),
+                value: testValue,
+                callData: abi.encodeWithSignature("alwaysFail()")
+            })
+        );
+
+        storeMessage(1, messageData, "");
+
+        // Send wrong value (less than required) - should revert with ValueMismatch
+        vm.prank(eoa);
+        vm.expectRevert(abi.encodeWithSelector(ExecutionManager.ValueMismatch.selector, testValue / 2, testValue));
+        messageBridgeProxy.executeMessage{value: testValue / 2}(1);
+
+        // Send wrong value (greater than required) - should revert with ValueMismatch
+        vm.prank(eoa);
+        vm.expectRevert(abi.encodeWithSelector(ExecutionManager.ValueMismatch.selector, testValue * 2, testValue));
+        messageBridgeProxy.executeMessage{value: testValue * 2}(1);
+    }
+
+    function test_ExecuteMessage_MultipleRefundScenarios() public {
+        // Deploy test contracts
+        FailingContract failingContract = new FailingContract();
+        RefundReceiver refundReceiver = new RefundReceiver();
+        address eoa = makeAddr("eoa");
+
+        vm.deal(address(refundReceiver), 10 ether);
+        vm.deal(eoa, 10 ether);
+
+        // Message 1: allowFailure = true, should refund
+        bytes memory messageData1 = abi.encode(
+            AMBTypes.Call({
+                allowFailure: true,
+                target: address(failingContract),
+                value: 0.5 ether,
+                callData: abi.encodeWithSignature("alwaysFail()")
+            })
+        );
+
+        // Message 2: allowFailure = true, zero value, no refund needed
+        bytes memory messageData2 = abi.encode(
+            AMBTypes.Call({
+                allowFailure: true,
+                target: address(failingContract),
+                value: 0,
+                callData: abi.encodeWithSignature("alwaysFail()")
+            })
+        );
+
+        // Store messages
+        storeMessage(1, messageData1, "");
+        storeMessage(2, messageData2, "");
+
+        // Execute first message from refund receiver
+        uint256 balanceBefore = address(refundReceiver).balance;
+        vm.prank(address(refundReceiver));
+        messageBridgeProxy.executeMessage{value: 0.5 ether}(1);
+
+        // Verify refund received
+        assertEq(address(refundReceiver).balance, balanceBefore, "Should receive refund");
+        (uint256 refundCount,) = refundReceiver.getRefundInfo();
+        assertEq(refundCount, 1, "Should have one refund");
+
+        // Execute second message from EOA
+        uint256 eoaBalanceBefore = eoa.balance;
+        vm.prank(eoa);
+        messageBridgeProxy.executeMessage{value: 0}(2);
+
+        // Verify no balance change for zero value
+        assertEq(eoa.balance, eoaBalanceBefore, "EOA balance should remain unchanged");
+
+        // Verify refund receiver didn't get another refund
+        (uint256 finalRefundCount,) = refundReceiver.getRefundInfo();
+        assertEq(finalRefundCount, 1, "Should still have only one refund");
     }
 }
