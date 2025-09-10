@@ -369,8 +369,9 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         getStorage().evmExecutableStates[nonce].executed = true;
 
         // Execute the message using the execution manager
-        AMBTypes.Result memory result =
-            messageExecutionManager.executeMessage{value: msg.value}(nonce, ambStorage.evmMessages[nonce].rawMessage);
+        AMBTypes.Result memory result = messageExecutionManager.executeMessage{value: msg.value}(
+            nonce, ambStorage.evmMessages[nonce].rawMessage, payable(msg.sender)
+        );
 
         // Store encode response and emit event
         AMBTypes.MetadataExecutable memory metadata =
