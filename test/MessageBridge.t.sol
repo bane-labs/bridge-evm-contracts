@@ -2068,10 +2068,15 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
 
         storeMessage(1, messageData, "");
 
-        // Send wrong value - should revert with ValueMismatch
+        // Send wrong value (less than required) - should revert with ValueMismatch
         vm.prank(eoa);
         vm.expectRevert(abi.encodeWithSelector(ExecutionManager.ValueMismatch.selector, testValue / 2, testValue));
         messageBridgeProxy.executeMessage{value: testValue / 2}(1);
+
+        // Send wrong value (greater than required) - should revert with ValueMismatch
+        vm.prank(eoa);
+        vm.expectRevert(abi.encodeWithSelector(ExecutionManager.ValueMismatch.selector, testValue * 2, testValue));
+        messageBridgeProxy.executeMessage{value: testValue * 2}(1);
     }
 
     function test_ExecuteMessage_MultipleRefundScenarios() public {

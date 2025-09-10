@@ -12,7 +12,7 @@ contract ExecutionManager is IExecutionManager, AccessControl {
     error ExecutionFailed(bytes returnData);
     //0x626ade30
     error ValueMismatch(uint256 providedValue, uint256 expectedValue);
-    //0x0a5b63b0
+    //0xf0c49d44
     error RefundFailed();
 
     constructor(address bridge) {
@@ -31,6 +31,7 @@ contract ExecutionManager is IExecutionManager, AccessControl {
         onlyRole(BRIDGE_ROLE)
         returns (AMBTypes.Result memory result)
     {
+
         // If rawMessage contains data that doesn't match the structure of the Call struct
         // the transaction will fail with a decoding error
         AMBTypes.Call memory call = abi.decode(rawMessage, (AMBTypes.Call));
@@ -41,7 +42,7 @@ contract ExecutionManager is IExecutionManager, AccessControl {
             if (!call.allowFailure) revert ExecutionFailed(returnData);
             // If the call is allowed to fail, refund the value sent for the call (if any)
             if (call.value > 0) {
-                (bool refundSuccess,) = payable(refundAddress).call{value: call.value}("");
+                (bool refundSuccess,) = refundAddress.call{value: call.value}("");
                 // If the refund fails, revert the entire transaction to avoid losing funds
                 if (!refundSuccess) revert RefundFailed();
             }
