@@ -28,6 +28,69 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         assertEq(storageSlot, computedSlot, "Storage slot should match expected value");
     }
 
+    function test_AllGetters() public {
+        // Test getManagement()
+        address management = address(messageBridgeProxy.getManagement());
+        assertEq(management, address(managementProxy), "Management should match the management proxy");
+
+        // Test getMessageExecutionManager()
+        address executionMgr = address(messageBridgeProxy.getMessageExecutionManager());
+        assertEq(executionMgr, address(executionManager), "Execution manager should match");
+
+        // Test getMessageBridgeState()
+        AMBStorage.MessageBridgeState memory state = messageBridgeProxy.getMessageBridgeState();
+        assertFalse(state.paused, "Bridge should not be paused initially");
+        assertFalse(state.sendingPaused, "Sending should not be paused initially");
+        assertFalse(state.executingPaused, "Executing should not be paused initially");
+
+        // Test getUnclaimedFees() - should be 0 initially
+        uint256 initialFees = messageBridgeProxy.getUnclaimedFees();
+        assertEq(initialFees, 0, "Initial unclaimed fees should be 0");
+
+        // Store a message to test the remaining getters
+        AMBTypes.MessageData[] memory messages = new AMBTypes.MessageData[](1);
+        messages[0] = AMBTypes.MessageData({
+            nonce: state.evmState.nonce + 1,
+            message: testMessage2,
+            encodedMetadata: abi.encode(
+                AMBTypes.MetadataExecutable({
+                    msgType: AMBTypes.MessageType.EXECUTABLE,
+                    timestamp: block.timestamp,
+                    sender: address(this),
+                    storeResult: true
+                })
+            )
+        });
+
+        bytes32 previousRoot = state.evmState.root;
+        bytes32 depositRoot = MessageBridgeLib._computeNewTopRoot(previousRoot, messages);
+        BridgeLib.Signature[] memory signatures = generateValidSignatures(depositRoot);
+        vm.prank(relayer);
+        messageBridgeProxy.storeMessage(depositRoot, signatures, messages);
+
+        // Test getEvmMessage()
+        AMBStorage.StoredMessage memory storedMessage = messageBridgeProxy.getEvmMessage(messages[0].nonce);
+        assertEq(storedMessage.rawMessage, testMessage2, "Stored message should match original");
+        assertEq(storedMessage.encodedMetadata, messages[0].encodedMetadata, "Stored metadata should match");
+
+        // Test getEvmExecutableState() before execution
+        AMBStorage.ExecutableState memory stateBefore = messageBridgeProxy.getEvmExecutableState(1);
+        assertFalse(stateBefore.executed, "Message should not be executed initially");
+        assertGt(stateBefore.expirationTimestamp, block.timestamp, "Expiration should be in future");
+
+        // Execute the message
+        vm.prank(governor);
+        messageBridgeProxy.executeMessage(messages[0].nonce);
+
+        // Test getEvmExecutableState() after execution
+        AMBStorage.ExecutableState memory stateAfter = messageBridgeProxy.getEvmExecutableState(messages[0].nonce);
+        assertTrue(stateAfter.executed, "Message should be executed");
+
+        // Test getEvmExecutionResult()
+        bytes memory executionResult = messageBridgeProxy.getEvmExecutionResult(messages[0].nonce);
+        assertGt(executionResult.length, 0, "Execution result should be stored");
+    }
+
     function test_MessageBridgePauseUnpause() public {
         // Test pausing
         vm.prank(governor);

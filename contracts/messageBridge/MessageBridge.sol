@@ -432,10 +432,6 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         storedMessage = getStorage().evmMessages[nonce];
     }
 
-    function getMessageBridgeState() external view returns (MessageBridgeState memory) {
-        return getStorage().messageBridgeState;
-    }
-
     // Modifiers
 
     modifier onlyAdmin() {

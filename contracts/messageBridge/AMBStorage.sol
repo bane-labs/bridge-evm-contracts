@@ -46,6 +46,34 @@ abstract contract AMBStorage {
         uint256 expirationTimestamp;
     }
 
+    function getManagement() external view returns (IBridgeManagement) {
+        return getStorage().management;
+    }
+
+    function getMessageExecutionManager() external view returns (IExecutionManager) {
+        return getStorage().messageExecutionManager;
+    }
+
+    function getMessageBridgeState() external view returns (MessageBridgeState memory) {
+        return getStorage().messageBridgeState;
+    }
+
+    function getUnclaimedFees() external view returns (uint256) {
+        return getStorage().unclaimedFees;
+    }
+
+    function getEvmMessage(uint256 messageId) external view returns (StoredMessage memory) {
+        return getStorage().evmMessages[messageId];
+    }
+
+    function getEvmExecutionResult(uint256 messageId) external view returns (bytes memory) {
+        return getStorage().evmExecutionResults[messageId];
+    }
+
+    function getEvmExecutableState(uint256 messageId) external view returns (ExecutableState memory) {
+        return getStorage().evmExecutableStates[messageId];
+    }
+
     function getStorage() internal pure returns (AMB storage $) {
         assembly {
             $.slot := AMBStorageLocation
