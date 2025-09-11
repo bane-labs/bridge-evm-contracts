@@ -31,7 +31,6 @@ contract ExecutionManager is IExecutionManager, AccessControl {
         onlyRole(BRIDGE_ROLE)
         returns (AMBTypes.Result memory result)
     {
-
         // If rawMessage contains data that doesn't match the structure of the Call struct
         // the transaction will fail with a decoding error
         AMBTypes.Call memory call = abi.decode(rawMessage, (AMBTypes.Call));

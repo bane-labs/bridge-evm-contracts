@@ -162,6 +162,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         payable
         whenMessageBridgeNotPaused
         whenSendingNotPaused
+        returns (uint256 nonce)
     {
         AMBTypes.MetadataExecutable memory metadata = AMBTypes.MetadataExecutable({
             msgType: AMBTypes.MessageType.EXECUTABLE,
@@ -170,21 +171,27 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
             storeResult: _storeResult
         });
         bytes memory encodedMetadata = abi.encode(metadata);
-        _sendMessageWithMetadata(_message, encodedMetadata);
+        nonce = _sendMessageWithMetadata(_message, encodedMetadata);
     }
 
     /**
      * @notice Sends a store-only message to the Neo N3 blockchain.
      * @param _message The message to be sent.
      */
-    function sendMessage(bytes calldata _message) external payable whenMessageBridgeNotPaused whenSendingNotPaused {
+    function sendMessage(bytes calldata _message)
+        external
+        payable
+        whenMessageBridgeNotPaused
+        whenSendingNotPaused
+        returns (uint256 nonce)
+    {
         AMBTypes.MetadataStoreOnly memory metadata = AMBTypes.MetadataStoreOnly({
             msgType: AMBTypes.MessageType.STORE_ONLY,
             timestamp: block.timestamp,
             sender: msg.sender
         });
         bytes memory encodedMetadata = abi.encode(metadata);
-        _sendMessageWithMetadata(_message, encodedMetadata);
+        nonce = _sendMessageWithMetadata(_message, encodedMetadata);
     }
 
     /**
@@ -196,6 +203,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         payable
         whenMessageBridgeNotPaused
         whenSendingNotPaused
+        returns (uint256 nonce)
     {
         AMBStorage.AMB storage ambStorage = getStorage();
 
@@ -216,7 +224,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         });
         bytes memory encodedMetadata = abi.encode(metadata);
 
-        _sendMessageWithMetadata(resultMessage, encodedMetadata);
+        nonce = _sendMessageWithMetadata(resultMessage, encodedMetadata);
     }
 
     /**
@@ -235,7 +243,13 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         return abi.decode(message, (AMBTypes.Result));
     }
 
-    function _sendMessageWithMetadata(bytes memory _message, bytes memory _encodedMetadata) private {
+    function _sendMessageWithMetadata(
+        bytes memory _message,
+        bytes memory _encodedMetadata
+    )
+        private
+        returns (uint256 nonce)
+    {
         MessageConfig memory config = getConfig();
 
         // Check message size against max allowed size
@@ -247,19 +261,19 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
 
         // Compute the new root and update the message state
         StorageTypes.State memory state = getStorage().messageBridgeState.n3State;
-        uint256 newNonce = state.nonce + 1;
+        nonce = state.nonce + 1;
 
         // Create message hash
-        bytes32 messageHash = MessageBridgeLib._hashMessageBridgeOp(newNonce, _encodedMetadata, _message);
+        bytes32 messageHash = MessageBridgeLib._hashMessageBridgeOp(nonce, _encodedMetadata, _message);
 
         // Compute new root
         bytes32 newRoot = BridgeLib._computeNewRoot(state.root, messageHash);
 
         // Update the state
-        getStorage().messageBridgeState.n3State = StorageTypes.State({nonce: newNonce, root: newRoot});
+        getStorage().messageBridgeState.n3State = StorageTypes.State({nonce: nonce, root: newRoot});
 
         // Emit event with all relevant information
-        emit MessageSent(newNonce, from, _encodedMetadata, _message, messageHash, newRoot);
+        emit MessageSent(nonce, from, _encodedMetadata, _message, messageHash, newRoot);
     }
 
     /**

@@ -1164,6 +1164,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         // Get the initial state
         StorageTypes.State memory n3State = messageBridgeProxy.getMessageBridgeState().n3State;
         uint256 initialNonce = n3State.nonce;
+        uint256 expectedNonce = initialNonce + 1;
         bytes32 initialRoot = n3State.root;
 
         bytes memory encodedMetadata = abi.encode(
@@ -1175,7 +1176,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         );
 
         // Create the expected message hash
-        bytes32 expectedMessageHash = MessageBridgeLib._hashMessageBridgeOp(initialNonce + 1, encodedMetadata, message);
+        bytes32 expectedMessageHash = MessageBridgeLib._hashMessageBridgeOp(expectedNonce, encodedMetadata, message);
 
         // Calculate the expected root
         bytes32 expectedRoot = BridgeLib._computeNewRoot(initialRoot, expectedMessageHash);
@@ -1183,7 +1184,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         // Set up event expectations
         vm.expectEmit(true, true, true, true);
         emit IMessageBridge.MessageSent(
-            initialNonce + 1, // nonce
+            expectedNonce, // nonce
             address(this), // sender
             encodedMetadata, // encodedMetadata
             message, // message
@@ -1192,13 +1193,14 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         );
 
         // Send the message with the required fee
-        messageBridgeProxy.sendMessage{value: messageFee}(message);
+        uint256 newNonce = messageBridgeProxy.sendMessage{value: messageFee}(message);
+        assertEq(newNonce, expectedNonce, "Returned nonce should match expected");
 
         // Get the updated state
         StorageTypes.State memory updatedState = messageBridgeProxy.getMessageBridgeState().n3State;
 
         // Verify state changes
-        assertEq(updatedState.nonce, initialNonce + 1, "Nonce should be incremented");
+        assertEq(updatedState.nonce, expectedNonce, "Nonce should be incremented");
         assertEq(updatedState.root, expectedRoot, "Root should be updated correctly");
     }
 
@@ -1248,15 +1250,17 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         // Get the initial state
         StorageTypes.State memory n3State = messageBridgeProxy.getMessageBridgeState().n3State;
         uint256 initialNonce = n3State.nonce;
+        uint256 expectedNonce = initialNonce + 1;
 
         // Send the message (should not revert)
-        messageBridgeProxy.sendMessage{value: messageFee}(exactSizeMessage);
+        uint256 newNonce = messageBridgeProxy.sendMessage{value: messageFee}(exactSizeMessage);
+        assertEq(newNonce, expectedNonce, "Returned nonce should match expected nonce");
 
         // Get the updated state
         StorageTypes.State memory updatedState = messageBridgeProxy.getMessageBridgeState().n3State;
 
         // Verify nonce increment
-        assertEq(updatedState.nonce, initialNonce + 1, "Nonce should be incremented");
+        assertEq(updatedState.nonce, expectedNonce, "Nonce should be incremented");
     }
 
     function test_SendMessage_WhenMessageBridgePaused() public {
@@ -1389,6 +1393,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         // Get initial state for result message
         StorageTypes.State memory n3State = messageBridgeProxy.getMessageBridgeState().n3State;
         uint256 initialNonce = n3State.nonce;
+        uint256 expectedNonce = initialNonce + 1;
         bytes32 initialRoot = n3State.root;
 
         // Create expected metadata for result message
@@ -1403,22 +1408,22 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
 
         // Calculate expected values
         bytes memory resultData = abi.encode(executionResult);
-        bytes32 expectedMessageHash =
-            MessageBridgeLib._hashMessageBridgeOp(initialNonce + 1, expectedMetadata, resultData);
+        bytes32 expectedMessageHash = MessageBridgeLib._hashMessageBridgeOp(expectedNonce, expectedMetadata, resultData);
         bytes32 expectedRoot = BridgeLib._computeNewRoot(initialRoot, expectedMessageHash);
 
         // Expect the MessageSent event
         vm.expectEmit(true, true, true, true);
         emit IMessageBridge.MessageSent(
-            initialNonce + 1, address(this), expectedMetadata, resultData, expectedMessageHash, expectedRoot
+            expectedNonce, address(this), expectedMetadata, resultData, expectedMessageHash, expectedRoot
         );
 
         // Send the result message
-        messageBridgeProxy.sendResultMessage{value: messageFee}(nonce);
+        uint256 newNonce = messageBridgeProxy.sendResultMessage{value: messageFee}(nonce);
+        assertEq(newNonce, expectedNonce, "Returned nonce should match expected");
 
         // Verify state changes
         StorageTypes.State memory updatedState = messageBridgeProxy.getMessageBridgeState().n3State;
-        assertEq(updatedState.nonce, initialNonce + 1, "Nonce should be incremented");
+        assertEq(updatedState.nonce, expectedNonce, "Nonce should be incremented");
         assertEq(updatedState.root, expectedRoot, "Root should be updated correctly");
     }
 
@@ -1586,13 +1591,15 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         // Get initial state for result message
         StorageTypes.State memory n3State = messageBridgeProxy.getMessageBridgeState().n3State;
         uint256 initialNonce = n3State.nonce;
+        uint256 expectedNonce = initialNonce + 1;
 
         // Send the result message (should work even with failed execution result)
-        messageBridgeProxy.sendResultMessage{value: messageFee}(nonce);
+        uint256 newNonce = messageBridgeProxy.sendResultMessage{value: messageFee}(nonce);
+        assertEq(newNonce, expectedNonce, "Returned nonce should match expected");
 
         // Verify state changes
         StorageTypes.State memory updatedState = messageBridgeProxy.getMessageBridgeState().n3State;
-        assertEq(updatedState.nonce, initialNonce + 1, "Nonce should be incremented");
+        assertEq(updatedState.nonce, expectedNonce, "Nonce should be incremented");
     }
 
     function test_SendResultMessage_MultipleCalls() public {
