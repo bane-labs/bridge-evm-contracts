@@ -14,7 +14,7 @@ contract ExecutingNonceTestContract {
     }
 
     function captureExecutingNonce() external returns (uint256) {
-        uint256 nonce = ExecutionManager(executionManager).getExecutingNonce();
+        uint256 nonce = ExecutionManager(executionManager).executingNonce();
         capturedNonce = nonce;
         emit NonceCapture(nonce, msg.sender);
         return nonce;

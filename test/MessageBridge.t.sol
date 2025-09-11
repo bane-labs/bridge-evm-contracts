@@ -2157,7 +2157,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         storeMessage(expectedNonce, message, "");
 
         // Verify the executing nonce is 0 before execution (not executing anything)
-        uint256 nonceBefore = executionManager.getExecutingNonce();
+        uint256 nonceBefore = executionManager.executingNonce();
         assertEq(nonceBefore, 0, "Executing nonce should be 0 when not executing");
 
         // Expect the NonceCapture event to be emitted with the correct nonce
@@ -2171,7 +2171,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         assertTrue(result.success, "Message execution should succeed");
 
         // Verify the executing nonce is back to 0 after execution
-        uint256 nonceAfter = executionManager.getExecutingNonce();
+        uint256 nonceAfter = executionManager.executingNonce();
         assertEq(nonceAfter, 0, "Executing nonce should be 0 after execution completes");
 
         // Verify the contract captured the correct nonce during execution
