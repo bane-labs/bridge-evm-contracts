@@ -257,7 +257,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
 
         // Process the fee for message sending
         address from = msg.sender;
-        _processBridgeFee(from, msg.value, config.fee);
+        _captureFeeAndRefundExcessToEOA(from, msg.value, config.fee);
 
         // Compute the new root and update the message state
         StorageTypes.State memory state = getStorage().messageBridgeState.n3State;
@@ -498,7 +498,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
      * @param _msgValue the value sent with the transaction.
      * @param _fee the required fee.
      */
-    function _processBridgeFee(address _from, uint256 _msgValue, uint256 _fee) private {
+    function _captureFeeAndRefundExcessToEOA(address _from, uint256 _msgValue, uint256 _fee) private {
         // Revert if the provided value is lower than the required fee.
         if (_msgValue < _fee) revert InsufficientFee(_fee, _msgValue);
         // Refund the sender (only EOAs) if the provided value is higher than the required fee.
