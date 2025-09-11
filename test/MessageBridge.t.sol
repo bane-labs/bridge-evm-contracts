@@ -10,6 +10,7 @@ import {ExecutionManager} from "../contracts/messageBridge/ExecutionManager.sol"
 import {MessageBridge} from "../contracts/messageBridge/MessageBridge.sol";
 import {IMessageBridge} from "../contracts/messageBridge/interfaces/IMessageBridge.sol";
 import {ReentrancyAttacker} from "../contracts/tests/ReentrancyAttacker.sol";
+import {ExecutingNonceTestContract} from "../contracts/tests/ExecutingNonceTestContract.sol";
 import {FailingContract, RefundReceiver, NonPayableContract} from "../contracts/tests/RefundTestContracts.sol";
 import {TestContract} from "../contracts/tests/TestContract.sol";
 import {TestPayableContract} from "../contracts/tests/TestPayableContract.sol";
@@ -2133,5 +2134,52 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         // Verify refund receiver didn't get another refund
         (uint256 finalRefundCount,) = refundReceiver.getRefundInfo();
         assertEq(finalRefundCount, 1, "Should still have only one refund");
+    }
+
+    // Test to check executing nonce is accessible during execution
+    function test_ExecuteMessage_ExecutingNonceAccessible() public {
+        // Deploy the test contract that can capture the executing nonce
+        ExecutingNonceTestContract nonceTestContract = new ExecutingNonceTestContract(address(executionManager));
+
+        // Create a message that calls the captureExecutingNonce function
+        bytes memory callData = abi.encodeWithSelector(ExecutingNonceTestContract.captureExecutingNonce.selector);
+        AMBTypes.Call memory call = AMBTypes.Call({
+            allowFailure: false,
+            target: address(nonceTestContract),
+            value: 0,
+            callData: callData
+        });
+
+        bytes memory message = abi.encode(call);
+        uint256 expectedNonce = 1;
+
+        // Store the message
+        storeMessage(expectedNonce, message, "");
+
+        // Verify the executing nonce is 0 before execution (not executing anything)
+        uint256 nonceBefore = executionManager.executingNonce();
+        assertEq(nonceBefore, 0, "Executing nonce should be 0 when not executing");
+
+        // Expect the NonceCapture event to be emitted with the correct nonce
+        vm.expectEmit(true, true, true, true, address(nonceTestContract));
+        emit ExecutingNonceTestContract.NonceCapture(expectedNonce, address(executionManager));
+
+        // Execute the message
+        AMBTypes.Result memory result = messageBridgeProxy.executeMessage(expectedNonce);
+
+        // Verify execution was successful
+        assertTrue(result.success, "Message execution should succeed");
+
+        // Verify the executing nonce is back to 0 after execution
+        uint256 nonceAfter = executionManager.executingNonce();
+        assertEq(nonceAfter, 0, "Executing nonce should be 0 after execution completes");
+
+        // Verify the contract captured the correct nonce during execution
+        uint256 capturedNonce = nonceTestContract.getCapturedNonce();
+        assertEq(capturedNonce, expectedNonce, "Contract should have captured the executing nonce");
+
+        // Decode the return data to verify the function returned the correct nonce
+        uint256 returnedNonce = abi.decode(result.returnData, (uint256));
+        assertEq(returnedNonce, expectedNonce, "Function should have returned the executing nonce");
     }
 }
