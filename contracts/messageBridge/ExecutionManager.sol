@@ -16,6 +16,8 @@ contract ExecutionManager is IExecutionManager, AccessControl {
     error ValueMismatch(uint256 providedValue, uint256 expectedValue);
     //0xf0c49d44
     error RefundFailed();
+    //0x7f12c702
+    error SelfCallNotAllowed();
 
     constructor(address bridge) {
         _grantRole(BRIDGE_ROLE, bridge);
@@ -33,10 +35,13 @@ contract ExecutionManager is IExecutionManager, AccessControl {
         onlyRole(BRIDGE_ROLE)
         returns (AMBTypes.Result memory result)
     {
-        executingNonce = nonce;
         // If rawMessage contains data that doesn't match the structure of the Call struct
         // the transaction will fail with a decoding error
         AMBTypes.Call memory call = abi.decode(rawMessage, (AMBTypes.Call));
+
+        if (call.target == address(this)) revert SelfCallNotAllowed();
+
+        executingNonce = nonce;
 
         (bool success, bytes memory returnData) = _executeCall(call.target, call.value, call.callData);
         if (!success) {
@@ -50,8 +55,9 @@ contract ExecutionManager is IExecutionManager, AccessControl {
             }
         }
 
-        result = AMBTypes.Result({success: success, returnData: returnData});
         executingNonce = 0;
+
+        result = AMBTypes.Result({success: success, returnData: returnData});
     }
 
     function _executeCall(
