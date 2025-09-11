@@ -46,57 +46,69 @@ abstract contract AMBStorage {
         uint256 expirationTimestamp;
     }
 
-    function getManagement() external view returns (IBridgeManagement) {
+    function management() external view returns (IBridgeManagement) {
         return getStorage().management;
     }
 
-    function getMessageExecutionManager() external view returns (IExecutionManager) {
+    function executionManager() external view returns (IExecutionManager) {
         return getStorage().messageExecutionManager;
     }
 
-    function getMessageBridgeState() external view returns (MessageBridgeState memory) {
+    function messageBridgeState() external view returns (MessageBridgeState memory) {
         return getStorage().messageBridgeState;
     }
 
-    function getUnclaimedFees() external view returns (uint256) {
+    function unclaimedFees() external view returns (uint256) {
         return getStorage().unclaimedFees;
     }
 
-    function getEvmMessage(uint256 nonce) external view returns (StoredMessage memory) {
+    function evmMessage(uint256 nonce) external view returns (StoredMessage memory) {
         return getStorage().evmMessages[nonce];
     }
 
-    function getEvmExecutionResult(uint256 nonce) external view returns (bytes memory) {
+    function evmExecutionResult(uint256 nonce) external view returns (bytes memory) {
         return getStorage().evmExecutionResults[nonce];
     }
 
-    function getEvmExecutableState(uint256 nonce) external view returns (ExecutableState memory) {
+    function evmExecutableState(uint256 nonce) external view returns (ExecutableState memory) {
         return getStorage().evmExecutableStates[nonce];
     }
 
-    // Message Brridge state getters
-    function getEvmState() external view returns (StorageTypes.State memory) {
+    // Message Bridge state getters
+    function evmState() external view returns (StorageTypes.State memory) {
         return getStorage().messageBridgeState.evmState;
     }
 
-    function getN3State() external view returns (StorageTypes.State memory) {
+    function n3State() external view returns (StorageTypes.State memory) {
         return getStorage().messageBridgeState.n3State;
     }
 
-    // Config getters also used internally
-    function getMessageBridgeFee() public view returns (uint256) {
+    // Public config getters (also used internally)
+    function messageBridgePaused() public view returns (bool) {
+        return getStorage().messageBridgeState.paused;
+    }
+
+    function sendingPaused() public view returns (bool) {
+        return getStorage().messageBridgeState.sendingPaused;
+    }
+
+    function executingPaused() public view returns (bool) {
+        return getStorage().messageBridgeState.executingPaused;
+    }
+
+    function sendingFee() public view returns (uint256) {
         return getStorage().messageBridgeState.config.fee;
     }
 
-    function getMaxMessageSize() public view returns (uint256) {
+    function maxMessageSize() public view returns (uint256) {
         return getStorage().messageBridgeState.config.maxMessageSize;
     }
 
-    function getMaxNrMessages() public view returns (uint256) {
+    function maxNrMessages() public view returns (uint256) {
         return getStorage().messageBridgeState.config.maxNrMessages;
     }
 
-    function getExecutionWindowSeconds() public view returns (uint256) {
+    function executionWindowSeconds() public view returns (uint256) {
         return getStorage().messageBridgeState.config.executionWindowSeconds;
     }
 
