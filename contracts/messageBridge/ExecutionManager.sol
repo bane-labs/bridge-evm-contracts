@@ -8,6 +8,8 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 contract ExecutionManager is IExecutionManager, AccessControl {
     bytes32 public constant BRIDGE_ROLE = keccak256("BRIDGE_ROLE");
 
+    uint256 private constant EXECUTING_NONCE_SLOT = 0;
+
     //0x15fcd675
     error ExecutionFailed(bytes returnData);
     //0x626ade30
@@ -19,9 +21,15 @@ contract ExecutionManager is IExecutionManager, AccessControl {
         _grantRole(BRIDGE_ROLE, bridge);
     }
 
+    function getExecutingNonce() external view returns (uint256 nonce) {
+        assembly {
+            nonce := tload(EXECUTING_NONCE_SLOT)
+        }
+    }
+
     // Only the bridge contract can execute messages
     function executeMessage(
-        uint256, // nonce
+        uint256 nonce,
         bytes calldata rawMessage,
         address payable refundAddress
     )
@@ -31,7 +39,7 @@ contract ExecutionManager is IExecutionManager, AccessControl {
         onlyRole(BRIDGE_ROLE)
         returns (AMBTypes.Result memory result)
     {
-
+        _setExecutingNonce(nonce);
         // If rawMessage contains data that doesn't match the structure of the Call struct
         // the transaction will fail with a decoding error
         AMBTypes.Call memory call = abi.decode(rawMessage, (AMBTypes.Call));
@@ -49,6 +57,7 @@ contract ExecutionManager is IExecutionManager, AccessControl {
         }
 
         result = AMBTypes.Result({success: success, returnData: returnData});
+        _unSetExecutingNonce();
     }
 
     function _executeCall(
@@ -62,5 +71,17 @@ contract ExecutionManager is IExecutionManager, AccessControl {
         if (msg.value != value) revert ValueMismatch(msg.value, value);
 
         (success, returnData) = target.call{value: value}(callData);
+    }
+
+    function _setExecutingNonce(uint256 value) internal {
+        assembly {
+            tstore(EXECUTING_NONCE_SLOT, value)
+        }
+    }
+
+    function _unSetExecutingNonce() internal {
+        assembly {
+            tstore(EXECUTING_NONCE_SLOT, 0)
+        }
     }
 }
