@@ -62,15 +62,15 @@ abstract contract AMBStorage {
         return getStorage().unclaimedFees;
     }
 
-    function evmMessage(uint256 nonce) external view returns (StoredMessage memory) {
+    function getEvmMessage(uint256 nonce) external view returns (StoredMessage memory) {
         return getStorage().evmMessages[nonce];
     }
 
-    function evmExecutionResult(uint256 nonce) external view returns (bytes memory) {
+    function getEvmExecutionResult(uint256 nonce) external view returns (bytes memory) {
         return getStorage().evmExecutionResults[nonce];
     }
 
-    function evmExecutableState(uint256 nonce) external view returns (ExecutableState memory) {
+    function getEvmExecutableState(uint256 nonce) external view returns (ExecutableState memory) {
         return getStorage().evmExecutableStates[nonce];
     }
 
