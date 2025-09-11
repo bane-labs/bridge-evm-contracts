@@ -62,25 +62,47 @@ abstract contract AMBStorage {
         return getStorage().unclaimedFees;
     }
 
-    function getEvmMessage(uint256 messageId) external view returns (StoredMessage memory) {
-        return getStorage().evmMessages[messageId];
+    function getEvmMessage(uint256 nonce) external view returns (StoredMessage memory) {
+        return getStorage().evmMessages[nonce];
     }
 
-    function getEvmExecutionResult(uint256 messageId) external view returns (bytes memory) {
-        return getStorage().evmExecutionResults[messageId];
+    function getEvmExecutionResult(uint256 nonce) external view returns (bytes memory) {
+        return getStorage().evmExecutionResults[nonce];
     }
 
-    function getEvmExecutableState(uint256 messageId) external view returns (ExecutableState memory) {
-        return getStorage().evmExecutableStates[messageId];
+    function getEvmExecutableState(uint256 nonce) external view returns (ExecutableState memory) {
+        return getStorage().evmExecutableStates[nonce];
+    }
+
+    // Message Brridge state getters
+    function getEvmState() external view returns (StorageTypes.State memory) {
+        return getStorage().messageBridgeState.evmState;
+    }
+
+    function getN3State() external view returns (StorageTypes.State memory) {
+        return getStorage().messageBridgeState.n3State;
+    }
+
+    // Config getters also used internally
+    function getMessageBridgeFee() public view returns (uint256) {
+        return getStorage().messageBridgeState.config.fee;
+    }
+
+    function getMaxMessageSize() public view returns (uint256) {
+        return getStorage().messageBridgeState.config.maxMessageSize;
+    }
+
+    function getMaxNrMessages() public view returns (uint256) {
+        return getStorage().messageBridgeState.config.maxNrMessages;
+    }
+
+    function getExecutionWindowSeconds() public view returns (uint256) {
+        return getStorage().messageBridgeState.config.executionWindowSeconds;
     }
 
     function getStorage() internal pure returns (AMB storage $) {
         assembly {
             $.slot := AMBStorageLocation
         }
-    }
-
-    function getConfig() internal view returns (MessageConfig memory config) {
-        return getStorage().messageBridgeState.config;
     }
 }

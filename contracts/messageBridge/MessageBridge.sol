@@ -250,14 +250,13 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         private
         returns (uint256 nonce)
     {
-        MessageConfig memory config = getConfig();
-
+        uint256 maxSize = getMaxMessageSize();
         // Check message size against max allowed size
-        if (_message.length > config.maxMessageSize) revert MessageTooLarge(config.maxMessageSize, _message.length);
+        if (_message.length > maxSize) revert MessageTooLarge(maxSize, _message.length);
 
         // Process the fee for message sending
         address from = msg.sender;
-        _processBridgeFee(from, msg.value, config.fee);
+        _processBridgeFee(from, msg.value, getMessageBridgeFee());
 
         // Compute the new root and update the message state
         StorageTypes.State memory state = getStorage().messageBridgeState.n3State;
@@ -298,9 +297,8 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         if (messageLength == 0) revert NoMessages();
 
         StorageTypes.State memory state = getStorage().messageBridgeState.evmState;
-        MessageConfig memory config = getConfig();
 
-        if (messageLength > config.maxNrMessages) revert TooManyMessages();
+        if (messageLength > getMaxNrMessages()) revert TooManyMessages();
 
         // Check if nonces are in sequence
         // More gas-efficient nonce validation that doesn't update a variable on each iteration
@@ -346,7 +344,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         AMB storage ambStorage = getStorage();
         AMBTypes.MessageType msgType = MessageBridgeLib._readMessageType(encodedMetadata);
         if (msgType == AMBTypes.MessageType.EXECUTABLE) {
-            uint256 window = ambStorage.messageBridgeState.config.executionWindowSeconds;
+            uint256 window = getExecutionWindowSeconds();
             // Use the block timestamp to set the expiration timestamp for the executable message
             // in case the relayer is down and does not relay the message in time.
             ambStorage.evmExecutableStates[nonce] =
@@ -426,11 +424,6 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     }
 
     function _authorizeUpgrade(address newImplementation) internal virtual override onlyAdmin {}
-
-    // Add public getter functions for testing
-    function n3ToEvmMessages(uint256 nonce) external view returns (StoredMessage memory storedMessage) {
-        storedMessage = getStorage().evmMessages[nonce];
-    }
 
     // Modifiers
 

@@ -863,7 +863,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
 
         // Get the stored Call struct components - public mappings return struct components, not the struct itself
 
-        bytes memory message1 = messageBridgeProxy.n3ToEvmMessages(messages[0].nonce).rawMessage;
+        bytes memory message1 = messageBridgeProxy.getEvmMessage(messages[0].nonce).rawMessage;
         AMBTypes.Call memory actualCall = abi.decode(message1, (AMBTypes.Call));
 
         // Verify that stored Call struct components match the expected ones
@@ -872,7 +872,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         assertEq(actualCall.allowFailure, expectedCall1.allowFailure, "First message allowFailure should match");
         assertEq(actualCall.callData, expectedCall1.callData, "First message callData should match");
 
-        bytes memory message2 = messageBridgeProxy.n3ToEvmMessages(messages[1].nonce).rawMessage;
+        bytes memory message2 = messageBridgeProxy.getEvmMessage(messages[1].nonce).rawMessage;
         actualCall = abi.decode(message2, (AMBTypes.Call));
         assertEq(actualCall.target, expectedCall2.target, "Second message target should match");
         assertEq(actualCall.value, expectedCall2.value, "Second message value should match");
@@ -1028,8 +1028,8 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         AMBTypes.Call memory expectedCall2 = abi.decode(testMessage2, (AMBTypes.Call));
 
         // Get the stored Call struct components - public mappings return struct components, not the struct itself
-        bytes memory message1 = messageBridgeProxy.n3ToEvmMessages(messages1[0].nonce).rawMessage;
-        bytes memory message2 = messageBridgeProxy.n3ToEvmMessages(messages2[0].nonce).rawMessage;
+        bytes memory message1 = messageBridgeProxy.getEvmMessage(messages1[0].nonce).rawMessage;
+        bytes memory message2 = messageBridgeProxy.getEvmMessage(messages2[0].nonce).rawMessage;
         AMBTypes.Call memory actualCall1 = abi.decode(message1, (AMBTypes.Call));
         AMBTypes.Call memory actualCall2 = abi.decode(message2, (AMBTypes.Call));
 
@@ -1107,7 +1107,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         uint256 timestamp2 = block.timestamp * 1000; // Pretend timestamp is in milliseconds
         storeMessage(nonce2, message2, "");
 
-        AMBStorage.StoredMessage memory storedMessage1 = messageBridgeProxy.n3ToEvmMessages(nonce1);
+        AMBStorage.StoredMessage memory storedMessage1 = messageBridgeProxy.getEvmMessage(nonce1);
         AMBTypes.MetadataExecutable memory metadata1 = getExecutableMetadata(nonce1);
         bytes memory storedRawMessage1 = storedMessage1.rawMessage;
         // verify first message metadata
@@ -1117,7 +1117,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         // Verify raw message is stored correctly
         assertEq(storedRawMessage1, message1, "First message content should match");
 
-        AMBStorage.StoredMessage memory storedMessage2 = messageBridgeProxy.n3ToEvmMessages(nonce2);
+        AMBStorage.StoredMessage memory storedMessage2 = messageBridgeProxy.getEvmMessage(nonce2);
         AMBTypes.MetadataExecutable memory metadata2 = getExecutableMetadata(nonce2);
         bytes memory storedRawMessage2 = storedMessage2.rawMessage;
         // verify second message metadata
@@ -1170,7 +1170,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         messageBridgeProxy.storeMessage(depositRoot, signatures, messages);
 
         // Retrieve the stored metadata and verify it
-        AMBStorage.StoredMessage memory storedMessage = messageBridgeProxy.n3ToEvmMessages(messages[0].nonce);
+        AMBStorage.StoredMessage memory storedMessage = messageBridgeProxy.getEvmMessage(messages[0].nonce);
         AMBTypes.MetadataExecutable memory metadata = getExecutableMetadata(messages[0].nonce);
         bytes memory storedRawMessage = storedMessage.rawMessage;
         address storedSender = metadata.sender;
@@ -2213,12 +2213,8 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
 
         // Create a message that calls the captureExecutingNonce function
         bytes memory callData = abi.encodeWithSelector(ExecutingNonceTestContract.captureExecutingNonce.selector);
-        AMBTypes.Call memory call = AMBTypes.Call({
-            allowFailure: false,
-            target: address(nonceTestContract),
-            value: 0,
-            callData: callData
-        });
+        AMBTypes.Call memory call =
+            AMBTypes.Call({allowFailure: false, target: address(nonceTestContract), value: 0, callData: callData});
 
         bytes memory message = abi.encode(call);
         uint256 expectedNonce = 1;

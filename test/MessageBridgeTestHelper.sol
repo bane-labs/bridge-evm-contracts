@@ -168,7 +168,7 @@ abstract contract MessageBridgeTestHelper is Test, SigUtils {
 
     // Helper function to decode executable metadata from stored message
     function getExecutableMetadata(uint256 nonce) internal view returns (AMBTypes.MetadataExecutable memory) {
-        bytes memory encodedMetadata = messageBridgeProxy.n3ToEvmMessages(nonce).encodedMetadata;
+        bytes memory encodedMetadata = messageBridgeProxy.getEvmMessage(nonce).encodedMetadata;
         AMBTypes.MessageType msgType = MessageBridgeLib._readMessageType(encodedMetadata);
         if (msgType == AMBTypes.MessageType.EXECUTABLE) {
             return abi.decode(encodedMetadata, (AMBTypes.MetadataExecutable));
