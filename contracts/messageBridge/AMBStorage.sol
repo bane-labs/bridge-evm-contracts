@@ -46,11 +46,11 @@ abstract contract AMBStorage {
         uint256 expirationTimestamp;
     }
 
-    function management() external view returns (IBridgeManagement) {
+    function management() public view returns (IBridgeManagement) {
         return getStorage().management;
     }
 
-    function executionManager() external view returns (IExecutionManager) {
+    function executionManager() public view returns (IExecutionManager) {
         return getStorage().messageExecutionManager;
     }
 
@@ -62,24 +62,24 @@ abstract contract AMBStorage {
         return getStorage().unclaimedFees;
     }
 
-    function getEvmMessage(uint256 nonce) external view returns (StoredMessage memory) {
+    function getEvmMessage(uint256 nonce) public view returns (StoredMessage memory) {
         return getStorage().evmMessages[nonce];
     }
 
-    function getEvmExecutionResult(uint256 nonce) external view returns (bytes memory) {
+    function getEvmExecutionResult(uint256 nonce) public view returns (bytes memory) {
         return getStorage().evmExecutionResults[nonce];
     }
 
-    function getEvmExecutableState(uint256 nonce) external view returns (ExecutableState memory) {
+    function getEvmExecutableState(uint256 nonce) public view returns (ExecutableState memory) {
         return getStorage().evmExecutableStates[nonce];
     }
 
     // Message Bridge state getters
-    function evmState() external view returns (StorageTypes.State memory) {
+    function evmState() public view returns (StorageTypes.State memory) {
         return getStorage().messageBridgeState.evmState;
     }
 
-    function n3State() external view returns (StorageTypes.State memory) {
+    function n3State() public view returns (StorageTypes.State memory) {
         return getStorage().messageBridgeState.n3State;
     }
 
