@@ -46,13 +46,75 @@ abstract contract AMBStorage {
         uint256 expirationTimestamp;
     }
 
+    function management() external view returns (IBridgeManagement) {
+        return getStorage().management;
+    }
+
+    function executionManager() external view returns (IExecutionManager) {
+        return getStorage().messageExecutionManager;
+    }
+
+    function messageBridgeState() external view returns (MessageBridgeState memory) {
+        return getStorage().messageBridgeState;
+    }
+
+    function unclaimedFees() external view returns (uint256) {
+        return getStorage().unclaimedFees;
+    }
+
+    function getEvmMessage(uint256 nonce) external view returns (StoredMessage memory) {
+        return getStorage().evmMessages[nonce];
+    }
+
+    function getEvmExecutionResult(uint256 nonce) external view returns (bytes memory) {
+        return getStorage().evmExecutionResults[nonce];
+    }
+
+    function getEvmExecutableState(uint256 nonce) external view returns (ExecutableState memory) {
+        return getStorage().evmExecutableStates[nonce];
+    }
+
+    // Message Bridge state getters
+    function evmState() external view returns (StorageTypes.State memory) {
+        return getStorage().messageBridgeState.evmState;
+    }
+
+    function n3State() external view returns (StorageTypes.State memory) {
+        return getStorage().messageBridgeState.n3State;
+    }
+
+    // Public config getters (also used internally)
+    function messageBridgePaused() public view returns (bool) {
+        return getStorage().messageBridgeState.paused;
+    }
+
+    function sendingPaused() public view returns (bool) {
+        return getStorage().messageBridgeState.sendingPaused;
+    }
+
+    function executingPaused() public view returns (bool) {
+        return getStorage().messageBridgeState.executingPaused;
+    }
+
+    function sendingFee() public view returns (uint256) {
+        return getStorage().messageBridgeState.config.fee;
+    }
+
+    function maxMessageSize() public view returns (uint256) {
+        return getStorage().messageBridgeState.config.maxMessageSize;
+    }
+
+    function maxNrMessages() public view returns (uint256) {
+        return getStorage().messageBridgeState.config.maxNrMessages;
+    }
+
+    function executionWindowSeconds() public view returns (uint256) {
+        return getStorage().messageBridgeState.config.executionWindowSeconds;
+    }
+
     function getStorage() internal pure returns (AMB storage $) {
         assembly {
             $.slot := AMBStorageLocation
         }
-    }
-
-    function getConfig() internal view returns (MessageConfig memory config) {
-        return getStorage().messageBridgeState.config;
     }
 }

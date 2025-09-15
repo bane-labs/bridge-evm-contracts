@@ -90,10 +90,6 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         emit MessageBridgeUnpause();
     }
 
-    function isMessageBridgePaused() external view override returns (bool) {
-        return getStorage().messageBridgeState.paused;
-    }
-
     function pauseSending() external override onlyGovernorOrSecurityGuard whenSendingNotPaused {
         getStorage().messageBridgeState.sendingPaused = true;
         emit SendingPause();
@@ -104,10 +100,6 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         emit SendingUnpause();
     }
 
-    function isSendingPaused() external view override returns (bool) {
-        return getStorage().messageBridgeState.sendingPaused;
-    }
-
     function pauseExecuting() external override onlyGovernorOrSecurityGuard whenExecutingNotPaused {
         getStorage().messageBridgeState.executingPaused = true;
         emit ExecutingPause();
@@ -116,10 +108,6 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     function unpauseExecuting() external override onlyGovernor whenExecutingPaused {
         getStorage().messageBridgeState.executingPaused = false;
         emit ExecutingUnpause();
-    }
-
-    function isExecutingPaused() external view override returns (bool) {
-        return getStorage().messageBridgeState.executingPaused;
     }
 
     /**
@@ -250,14 +238,13 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         private
         returns (uint256 nonce)
     {
-        MessageConfig memory config = getConfig();
-
+        uint256 maxSize = maxMessageSize();
         // Check message size against max allowed size
-        if (_message.length > config.maxMessageSize) revert MessageTooLarge(config.maxMessageSize, _message.length);
+        if (_message.length > maxSize) revert MessageTooLarge(maxSize, _message.length);
 
         // Process the fee for message sending
         address from = msg.sender;
-        _captureFeeAndRefundExcessToEOA(from, msg.value, config.fee);
+        _captureFeeAndRefundExcessToEOA(from, msg.value, sendingFee());
 
         // Compute the new root and update the message state
         StorageTypes.State memory state = getStorage().messageBridgeState.n3State;
@@ -298,9 +285,8 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         if (messageLength == 0) revert NoMessages();
 
         StorageTypes.State memory state = getStorage().messageBridgeState.evmState;
-        MessageConfig memory config = getConfig();
 
-        if (messageLength > config.maxNrMessages) revert TooManyMessages();
+        if (messageLength > maxNrMessages()) revert TooManyMessages();
 
         // Check if nonces are in sequence
         // More gas-efficient nonce validation that doesn't update a variable on each iteration
@@ -346,7 +332,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         AMB storage ambStorage = getStorage();
         AMBTypes.MessageType msgType = MessageBridgeLib._readMessageType(encodedMetadata);
         if (msgType == AMBTypes.MessageType.EXECUTABLE) {
-            uint256 window = ambStorage.messageBridgeState.config.executionWindowSeconds;
+            uint256 window = executionWindowSeconds();
             // Use the block timestamp to set the expiration timestamp for the executable message
             // in case the relayer is down and does not relay the message in time.
             ambStorage.evmExecutableStates[nonce] =
@@ -368,8 +354,8 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     {
         // Check if the execution manager is set
         AMBStorage.AMB storage ambStorage = getStorage();
-        IExecutionManager messageExecutionManager = ambStorage.messageExecutionManager;
-        if (address(messageExecutionManager) == address(0)) revert ExecutionManagerNotSet();
+        IExecutionManager execManager = ambStorage.messageExecutionManager;
+        if (address(execManager) == address(0)) revert ExecutionManagerNotSet();
 
         // Check if the message was already executed
         AMBStorage.ExecutableState memory executableState = getExecutableState(nonce);
@@ -383,7 +369,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         getStorage().evmExecutableStates[nonce].executed = true;
 
         // Execute the message using the execution manager
-        AMBTypes.Result memory result = messageExecutionManager.executeMessage{value: msg.value}(
+        AMBTypes.Result memory result = execManager.executeMessage{value: msg.value}(
             nonce, ambStorage.evmMessages[nonce].rawMessage, payable(msg.sender)
         );
 
@@ -426,15 +412,6 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     }
 
     function _authorizeUpgrade(address newImplementation) internal virtual override onlyAdmin {}
-
-    // Add public getter functions for testing
-    function n3ToEvmMessages(uint256 nonce) external view returns (StoredMessage memory storedMessage) {
-        storedMessage = getStorage().evmMessages[nonce];
-    }
-
-    function getMessageBridgeState() external view returns (MessageBridgeState memory) {
-        return getStorage().messageBridgeState;
-    }
 
     // Modifiers
 
