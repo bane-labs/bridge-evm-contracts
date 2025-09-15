@@ -12,6 +12,7 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 
 using EnumerableSet for EnumerableSet.AddressSet;
 
+/// @custom:oz-upgrades-unsafe-allow missing-initializer
 contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {

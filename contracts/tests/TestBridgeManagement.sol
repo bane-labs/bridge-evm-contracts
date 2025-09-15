@@ -31,6 +31,7 @@ contract TestBridgeManagement is BridgeManagementImpl {
     // The initialization version should reflect the latest release version of the contract that required a reinitialization.
 
     // Allow non-admins to initialize the contract for testing purposes.
+    /// @custom:oz-upgrades-validate-as-initializer
     function initialize(
         address _owner,
         address _relayer,

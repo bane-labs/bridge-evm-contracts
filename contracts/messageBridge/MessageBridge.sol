@@ -12,6 +12,7 @@ import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/ut
 import {StorageTypes} from "../library/StorageTypes.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
+/// @custom:oz-upgrades-unsafe-allow missing-initializer
 contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgradeable, AMBStorage {
     address public constant GOV_ADMIN = 0x1212000000000000000000000000000000000000;
 
