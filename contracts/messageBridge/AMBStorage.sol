@@ -18,6 +18,7 @@ abstract contract AMBStorage {
         mapping(uint256 => StoredMessage) evmMessages;
         mapping(uint256 => bytes) evmExecutionResults;
         mapping(uint256 => ExecutableState) evmExecutableStates;
+        mapping(uint256 => uint256) resultN3NonceToExecutableNonce;
     }
 
     struct MessageBridgeState {

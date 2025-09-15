@@ -135,7 +135,7 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
             "Message hash should match expected value"
         );
 
-        AMBStorage.MessageBridgeState memory bridgeState = messageBridgeProxy.getMessageBridgeState();
+        AMBStorage.MessageBridgeState memory bridgeState = messageBridgeProxy.messageBridgeState();
         bytes32 previousRoot = bridgeState.evmState.root;
         assertEq(previousRoot, hex"0000000000000000000000000000000000000000000000000000000000000000"); // Initial root should be zero
 
@@ -164,7 +164,7 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
         emit IMessageBridge.MessageDepositRootUpdate(1, newEvmRoot);
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
         emit IMessageBridge.MessageDeposit(1, message);
-        messageBridgeProxy.storeMessage(newEvmRoot, signatures, messages);
+        messageBridgeProxy.storeMessages(newEvmRoot, signatures, messages);
     }
 
     function _executeMessageAndVerify(TestContract testContract) private {
@@ -179,7 +179,7 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
 
     function test_SyncTest_StoreOnlyMessage() public {
         storeDummyMessageForStoreOnlySyncTest(); // make sure the nonce is at 1 when we start this test
-        AMBStorage.MessageBridgeState memory initialBridgeState = messageBridgeProxy.getMessageBridgeState();
+        AMBStorage.MessageBridgeState memory initialBridgeState = messageBridgeProxy.messageBridgeState();
         bytes32 initialEvmRoot = initialBridgeState.evmState.root;
 
         bytes memory message =
@@ -240,7 +240,7 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
         emit IMessageBridge.MessageDepositRootUpdate(2, newEvmRoot);
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
         emit IMessageBridge.MessageDeposit(2, message);
-        messageBridgeProxy.storeMessage(newEvmRoot, signatures, messages);
+        messageBridgeProxy.storeMessages(newEvmRoot, signatures, messages);
 
         vm.expectRevert(
             abi.encodeWithSelector(MessageBridgeLib.UnsupportedMessageType.selector, AMBTypes.MessageType.STORE_ONLY)
@@ -250,7 +250,7 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
 
     function test_SyncTest_ResultMessage() public {
         // storeDummyMessageForStoreOnlySyncTest(); // make sure the nonce is at 1 when we start this test
-        AMBStorage.MessageBridgeState memory initialBridgeState = messageBridgeProxy.getMessageBridgeState();
+        AMBStorage.MessageBridgeState memory initialBridgeState = messageBridgeProxy.messageBridgeState();
         bytes32 initialEvmRoot = initialBridgeState.evmState.root;
 
         bytes memory message = hex"210340420f";
@@ -312,7 +312,7 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
         emit IMessageBridge.MessageDepositRootUpdate(1, newEvmRoot);
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
         emit IMessageBridge.MessageDeposit(1, message);
-        messageBridgeProxy.storeMessage(newEvmRoot, signatures, messages);
+        messageBridgeProxy.storeMessages(newEvmRoot, signatures, messages);
 
         vm.expectRevert(
             abi.encodeWithSelector(MessageBridgeLib.UnsupportedMessageType.selector, AMBTypes.MessageType.RESULT)

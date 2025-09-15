@@ -49,7 +49,9 @@ interface IMessageBridge {
         returns (uint256 nonce);
     function sendResultMessage(uint256 relatedMessageNonce) external payable returns (uint256 nonce);
     function getResult(uint256 relatedMessageNonce) external view returns (AMBTypes.Result memory result);
-    function storeMessage(
+    function getN3ResultNonce(uint256 relatedMessageNonce) external view returns (uint256);
+    function getN3Result(uint256 relatedMessageNonce) external view returns (bytes memory);
+    function storeMessages(
         bytes32 depositRoot,
         BridgeLib.Signature[] calldata signatures,
         AMBTypes.MessageData[] calldata messages

@@ -225,6 +225,26 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         return abi.decode(message, (AMBTypes.Result));
     }
 
+    /**
+     * @notice Gets the nonce of the result message corresponding to a related message nonce.
+     * @param relatedMessageNonce The nonce of the related message.
+     * @return nonce The nonce of the result message.
+     */
+    function getN3ResultNonce(uint256 relatedMessageNonce) external view returns (uint256) {
+        return getStorage().resultN3NonceToExecutableNonce[relatedMessageNonce];
+    }
+
+    /**
+     * @notice Gets the raw result message for a previously executed message.
+     * @param relatedMessageNonce The nonce of the related message that was executed.
+     * @return result The raw result message bytes.
+     */
+    function getN3Result(uint256 relatedMessageNonce) external view returns (bytes memory) {
+        uint256 resultNonce = getStorage().resultN3NonceToExecutableNonce[relatedMessageNonce];
+        if (resultNonce == 0) return new bytes(0); // No result message was sent to N3 so we return empty bytes
+        return getEvmMessage(resultNonce).rawMessage;
+    }
+
     function _sendMessageWithMetadata(
         bytes memory _message,
         bytes memory _encodedMetadata
@@ -263,7 +283,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
      * @param _signatures The signatures of the validators.
      * @param _messages The messages to be stored.
      */
-    function storeMessage(
+    function storeMessages(
         bytes32 _depositRoot,
         BridgeLib.Signature[] calldata _signatures,
         AMBTypes.MessageData[] calldata _messages
@@ -329,6 +349,9 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
             // in case the relayer is down and does not relay the message in time.
             getStorage().evmExecutableStates[nonce] =
                 ExecutableState({executed: false, expirationTimestamp: block.timestamp + window});
+        } else if (msgType == AMBTypes.MessageType.RESULT) {
+            AMBTypes.MetadataResult memory metadata = abi.decode(encodedMetadata, (AMBTypes.MetadataResult));
+            getStorage().resultN3NonceToExecutableNonce[metadata.relatedMessageNonce] = nonce;
         }
     }
 
