@@ -99,6 +99,7 @@ contract TestBridge is BridgeImpl {
     // The initialization version should reflect the latest release version of the contract that required a reinitialization.
 
     // Allow non-admins to call the upgrade function for testing purposes.
+    /// @custom:oz-upgrades-validate-as-initializer
     function initialize(address _management) external reinitializer(3) {
         // reinitializer mocks the current version of the contract
         __ReentrancyGuard_init();

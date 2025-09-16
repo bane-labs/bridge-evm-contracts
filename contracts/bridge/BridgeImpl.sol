@@ -8,6 +8,7 @@ import "../interfaces/INativeBridge.sol";
 import "../interfaces/ITokenBridge.sol";
 import "./BridgeStorage.sol";
 
+/// @custom:oz-upgrades-unsafe-allow missing-initializer
 contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
