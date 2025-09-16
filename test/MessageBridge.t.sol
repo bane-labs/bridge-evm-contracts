@@ -820,8 +820,16 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         // Step 1: Send an executable message from EVM to N3
         bytes memory executableMessage = abi.encodePacked("Test executable message to N3");
 
+        // Test that no result exists for the upcoming executable message nonce
+        uint256 upcomingNonce = messageBridgeProxy.messageBridgeState().evmState.nonce + 1;
+        uint256 nonExistentResultNonce = messageBridgeProxy.getN3ResultNonce(upcomingNonce);
+        assertEq(nonExistentResultNonce, 0, "No result should exist for upcoming executable message nonce");
+        bytes memory nonExistentResult = messageBridgeProxy.getN3Result(upcomingNonce);
+        assertEq(nonExistentResult.length, 0, "No result data should exist for upcoming executable message nonce");
+
         // Send the executable message and get its nonce
         uint256 executableNonce = messageBridgeProxy.sendExecutableMessage{value: messageFee}(executableMessage, true);
+        assertEq(executableNonce, upcomingNonce, "Executable message nonce should match upcoming nonce");
 
         // Verify the message was sent
         StorageTypes.State memory n3State = messageBridgeProxy.messageBridgeState().n3State;

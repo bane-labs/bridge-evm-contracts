@@ -231,7 +231,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
      * @return nonce The nonce of the result message.
      */
     function getN3ResultNonce(uint256 relatedMessageNonce) external view returns (uint256) {
-        return getStorage().resultN3NonceToExecutableNonce[relatedMessageNonce];
+        return getResultN3NonceToExecutableNonce(relatedMessageNonce);
     }
 
     /**
@@ -240,7 +240,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
      * @return result The raw result message bytes.
      */
     function getN3Result(uint256 relatedMessageNonce) external view returns (bytes memory) {
-        uint256 resultNonce = getStorage().resultN3NonceToExecutableNonce[relatedMessageNonce];
+        uint256 resultNonce = getResultN3NonceToExecutableNonce(relatedMessageNonce);
         if (resultNonce == 0) return new bytes(0); // No result message was sent to N3 so we return empty bytes
         return getEvmMessage(resultNonce).rawMessage;
     }
