@@ -226,21 +226,12 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     }
 
     /**
-     * @notice Gets the nonce of the result message corresponding to a related message nonce.
-     * @param relatedMessageNonce The nonce of the related message.
-     * @return nonce The nonce of the result message.
-     */
-    function getN3ResultNonce(uint256 relatedMessageNonce) external view returns (uint256) {
-        return getResultN3NonceToExecutableNonce(relatedMessageNonce);
-    }
-
-    /**
      * @notice Gets the raw result message for a previously executed message.
      * @param relatedMessageNonce The nonce of the related message that was executed.
      * @return result The raw result message bytes.
      */
     function getN3Result(uint256 relatedMessageNonce) external view returns (bytes memory) {
-        uint256 resultNonce = getResultN3NonceToExecutableNonce(relatedMessageNonce);
+        uint256 resultNonce = getN3ResultNonce(relatedMessageNonce);
         if (resultNonce == 0) return new bytes(0); // No result message was sent to N3 so we return empty bytes
         return getEvmMessage(resultNonce).rawMessage;
     }
@@ -351,7 +342,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
                 ExecutableState({executed: false, expirationTimestamp: block.timestamp + window});
         } else if (msgType == AMBTypes.MessageType.RESULT) {
             AMBTypes.MetadataResult memory metadata = abi.decode(encodedMetadata, (AMBTypes.MetadataResult));
-            getStorage().resultN3NonceToExecutableNonce[metadata.relatedMessageNonce] = nonce;
+            getStorage().executableNonceToN3ResultNonce[metadata.relatedMessageNonce] = nonce;
         }
     }
 

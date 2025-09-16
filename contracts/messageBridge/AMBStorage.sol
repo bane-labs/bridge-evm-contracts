@@ -18,7 +18,7 @@ abstract contract AMBStorage {
         mapping(uint256 => StoredMessage) evmMessages;
         mapping(uint256 => bytes) evmExecutionResults;
         mapping(uint256 => ExecutableState) evmExecutableStates;
-        mapping(uint256 => uint256) resultN3NonceToExecutableNonce;
+        mapping(uint256 => uint256) executableNonceToN3ResultNonce;
     }
 
     struct MessageBridgeState {
@@ -75,8 +75,8 @@ abstract contract AMBStorage {
         return getStorage().evmExecutableStates[nonce];
     }
 
-    function getResultN3NonceToExecutableNonce(uint256 n3ResultNonce) public view returns (uint256) {
-        return getStorage().resultN3NonceToExecutableNonce[n3ResultNonce];
+    function getN3ResultNonce(uint256 relatedMessageNonce) public view returns (uint256) {
+        return getStorage().executableNonceToN3ResultNonce[relatedMessageNonce];
     }
 
     // Message Bridge state getters
