@@ -18,6 +18,7 @@ abstract contract AMBStorage {
         mapping(uint256 => StoredMessage) evmMessages;
         mapping(uint256 => bytes) evmExecutionResults;
         mapping(uint256 => ExecutableState) evmExecutableStates;
+        mapping(uint256 => uint256) executableNonceToN3ResultNonce;
     }
 
     struct MessageBridgeState {
@@ -74,6 +75,10 @@ abstract contract AMBStorage {
         return getStorage().evmExecutableStates[nonce];
     }
 
+    function getN3ResultNonce(uint256 relatedMessageNonce) public view returns (uint256) {
+        return getStorage().executableNonceToN3ResultNonce[relatedMessageNonce];
+    }
+
     // Message Bridge state getters
     function evmState() public view returns (StorageTypes.State memory) {
         return getStorage().messageBridgeState.evmState;
@@ -112,6 +117,11 @@ abstract contract AMBStorage {
         return getStorage().messageBridgeState.config.executionWindowSeconds;
     }
 
+    /**
+     * @notice Returns the storage struct located at the predefined storage slot.
+     * @dev This should be used only for writing to the storage. For reading, use the individual getters.
+     * @return $ The storage struct.
+     */
     function getStorage() internal pure returns (AMB storage $) {
         assembly {
             $.slot := AMBStorageLocation

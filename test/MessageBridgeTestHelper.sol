@@ -118,7 +118,7 @@ abstract contract MessageBridgeTestHelper is Test, SigUtils {
             )
         });
 
-        StorageTypes.State memory evmState = messageBridgeProxy.getMessageBridgeState().evmState;
+        StorageTypes.State memory evmState = messageBridgeProxy.messageBridgeState().evmState;
         bytes32 previousRoot = evmState.root;
         bytes32 depositRoot = MessageBridgeLib._computeNewTopRoot(previousRoot, messages);
         BridgeLib.Signature[] memory signatures = generateValidSignatures(depositRoot);
@@ -129,7 +129,7 @@ abstract contract MessageBridgeTestHelper is Test, SigUtils {
         }
 
         vm.prank(relayer);
-        messageBridgeProxy.storeMessage(depositRoot, signatures, messages);
+        messageBridgeProxy.storeMessages(depositRoot, signatures, messages);
     }
 
     // Helper function to store a message with custom storeResult setting
@@ -148,13 +148,13 @@ abstract contract MessageBridgeTestHelper is Test, SigUtils {
             )
         });
 
-        StorageTypes.State memory evmState = messageBridgeProxy.getMessageBridgeState().evmState;
+        StorageTypes.State memory evmState = messageBridgeProxy.messageBridgeState().evmState;
         bytes32 previousRoot = evmState.root;
         bytes32 depositRoot = MessageBridgeLib._computeNewTopRoot(previousRoot, messages);
         BridgeLib.Signature[] memory signatures = generateValidSignatures(depositRoot);
 
         vm.prank(relayer);
-        messageBridgeProxy.storeMessage(depositRoot, signatures, messages);
+        messageBridgeProxy.storeMessages(depositRoot, signatures, messages);
     }
 
     function storeDummyMessage(uint256 nonce) internal {
