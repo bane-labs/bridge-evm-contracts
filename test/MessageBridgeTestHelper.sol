@@ -99,7 +99,7 @@ abstract contract MessageBridgeTestHelper is Test, SigUtils {
 
         // Unpause the message bridge
         vm.prank(governor);
-        messageBridgeProxy.unpauseMessageBridge();
+        messageBridgeProxy.unpause();
     }
 
     // Helper function to store a single message with generated signatures

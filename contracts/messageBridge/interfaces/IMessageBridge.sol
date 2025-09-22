@@ -6,8 +6,8 @@ import {BridgeLib} from "../../library/BridgeLib.sol";
 import {AMBStorage} from "../AMBStorage.sol";
 
 interface IMessageBridge {
-    event MessageBridgePause();
-    event MessageBridgeUnpause();
+    event Pause();
+    event Unpause();
     event SendingPause();
     event SendingUnpause();
     event ExecutingPause();
@@ -29,8 +29,8 @@ interface IMessageBridge {
         bytes32 newRoot
     );
 
-    function pauseMessageBridge() external;
-    function unpauseMessageBridge() external;
+    function pause() external;
+    function unpause() external;
     function pauseSending() external;
     function unpauseSending() external;
     function pauseExecuting() external;

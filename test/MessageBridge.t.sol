@@ -94,7 +94,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
     function test_MessageBridgePauseUnpause() public {
         // Test pausing
         vm.prank(governor);
-        messageBridgeProxy.pauseMessageBridge();
+        messageBridgeProxy.pause();
 
         // Try to deposit a message while paused (should revert)
         AMBTypes.MessageData[] memory messages = new AMBTypes.MessageData[](1);
@@ -122,7 +122,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
 
         // Unpause and try again
         vm.prank(governor);
-        messageBridgeProxy.unpauseMessageBridge();
+        messageBridgeProxy.unpause();
 
         // Now it should work (not reverting)
         vm.prank(relayer);
@@ -1395,7 +1395,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
 
         // Pause the message bridge
         vm.prank(governor);
-        messageBridgeProxy.pauseMessageBridge();
+        messageBridgeProxy.pause();
 
         // Expect revert due to message bridge being paused
         vm.expectRevert(abi.encodeWithSelector(MessageBridge.MessageBridgePaused.selector));
@@ -1618,7 +1618,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
 
         // Pause the message bridge
         vm.prank(governor);
-        messageBridgeProxy.pauseMessageBridge();
+        messageBridgeProxy.pause();
 
         // Try to send result message while paused
         vm.expectRevert(abi.encodeWithSelector(MessageBridge.MessageBridgePaused.selector));

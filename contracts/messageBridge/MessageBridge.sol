@@ -75,14 +75,14 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     //0x90b8ec18
     error TransferFailed();
 
-    function pauseMessageBridge() external override onlyGovernorOrSecurityGuard whenMessageBridgeNotPaused {
+    function pause() external override onlyGovernorOrSecurityGuard whenNotPaused {
         getStorage().messageBridgeState.paused = true;
-        emit MessageBridgePause();
+        emit Pause();
     }
 
-    function unpauseMessageBridge() external override onlyGovernor whenMessageBridgePaused {
+    function unpause() external override onlyGovernor whenPaused {
         getStorage().messageBridgeState.paused = false;
-        emit MessageBridgeUnpause();
+        emit Unpause();
     }
 
     function pauseSending() external override onlyGovernorOrSecurityGuard whenSendingNotPaused {
@@ -141,7 +141,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     )
         external
         payable
-        whenMessageBridgeNotPaused
+        whenNotPaused
         whenSendingNotPaused
         returns (uint256 nonce)
     {
@@ -162,7 +162,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     function sendMessage(bytes calldata _message)
         external
         payable
-        whenMessageBridgeNotPaused
+        whenNotPaused
         whenSendingNotPaused
         returns (uint256 nonce)
     {
@@ -182,7 +182,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     function sendResultMessage(uint256 _relatedMessageNonce)
         external
         payable
-        whenMessageBridgeNotPaused
+        whenNotPaused
         whenSendingNotPaused
         returns (uint256 nonce)
     {
@@ -277,7 +277,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         external
         override
         onlyRelayer
-        whenMessageBridgeNotPaused
+        whenNotPaused
         nonReentrant
     {
         // Check parameter validity
@@ -438,12 +438,12 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         _;
     }
 
-    modifier whenMessageBridgeNotPaused() {
+    modifier whenNotPaused() {
         if (messageBridgePaused()) revert MessageBridgePaused();
         _;
     }
 
-    modifier whenMessageBridgePaused() {
+    modifier whenPaused() {
         if (!messageBridgePaused()) revert MessageBridgeNotPaused();
         _;
     }
