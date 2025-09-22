@@ -40,8 +40,6 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     error MessageNotFound(uint256 nonce);
     //0x25ecb492
     error ResultNotFound(uint256 nonce);
-    //0x774249f8
-    error MessageBridgeNotSet();
     //0xa4c897b0
     error MessageBridgePaused();
     //0xfa5fc19e
@@ -54,10 +52,6 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     error ExecutingPaused();
     //0x61654835
     error ExecutingNotPaused();
-    //0x018e5d6a
-    error InvalidMessageSize();
-    //0x000bf7e9
-    error MessageRootMismatch();
     //0xd221f922
     error ExecutionManagerNotSet();
     //0x2ad81d67
