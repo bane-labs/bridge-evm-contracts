@@ -20,13 +20,13 @@ interface IMessageBridge {
     event MessageExecutionWindowChange(uint256 windowSeconds);
     event MessageExecutorSet(address indexed executor);
     event MessageExecuted(uint256 indexed nonce, AMBTypes.Result result);
-    event MessageSent(
+    event MessageSend(
         uint256 indexed nonce,
         address indexed sender,
         bytes encodedMetadata,
         bytes message,
         bytes32 messageHash,
-        bytes32 newRoot
+        bytes32 newEvmRoot
     );
 
     function pause() external;

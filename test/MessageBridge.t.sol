@@ -1309,7 +1309,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
 
         // Set up event expectations
         vm.expectEmit(true, true, true, true);
-        emit IMessageBridge.MessageSent(
+        emit IMessageBridge.MessageSend(
             expectedNonce, // nonce
             address(this), // sender
             encodedMetadata, // encodedMetadata
@@ -1537,9 +1537,9 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         bytes32 expectedMessageHash = MessageBridgeLib._hashMessageBridgeOp(expectedNonce, expectedMetadata, resultData);
         bytes32 expectedRoot = BridgeLib._computeNewRoot(initialRoot, expectedMessageHash);
 
-        // Expect the MessageSent event
+        // Expect the MessageSend event
         vm.expectEmit(true, true, true, true);
-        emit IMessageBridge.MessageSent(
+        emit IMessageBridge.MessageSend(
             expectedNonce, address(this), expectedMetadata, resultData, expectedMessageHash, expectedRoot
         );
 
