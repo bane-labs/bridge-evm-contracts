@@ -161,7 +161,7 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
 
         vm.prank(relayer);
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
-        emit IMessageBridge.MessageDepositRootUpdate(1, newEvmRoot);
+        emit IMessageBridge.EvmRootUpdate(1, newEvmRoot);
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
         emit IMessageBridge.MessageDeposit(1, message);
         messageBridgeProxy.storeMessages(newEvmRoot, signatures, messages);
@@ -237,7 +237,7 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
 
         vm.prank(relayer);
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
-        emit IMessageBridge.MessageDepositRootUpdate(2, newEvmRoot);
+        emit IMessageBridge.EvmRootUpdate(2, newEvmRoot);
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
         emit IMessageBridge.MessageDeposit(2, message);
         messageBridgeProxy.storeMessages(newEvmRoot, signatures, messages);
@@ -309,7 +309,7 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
 
         vm.prank(relayer);
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
-        emit IMessageBridge.MessageDepositRootUpdate(1, newEvmRoot);
+        emit IMessageBridge.EvmRootUpdate(1, newEvmRoot);
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
         emit IMessageBridge.MessageDeposit(1, message);
         messageBridgeProxy.storeMessages(newEvmRoot, signatures, messages);

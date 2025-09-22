@@ -265,12 +265,12 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
 
     /**
      * @notice Stores messages sent from the Neo N3 blockchain.
-     * @param _depositRoot The root of the deposit tree.
+     * @param _evmRoot The root of the EVM hash chain.
      * @param _signatures The signatures of the validators.
      * @param _messages The messages to be stored.
      */
     function storeMessages(
-        bytes32 _depositRoot,
+        bytes32 _evmRoot,
         BridgeLib.Signature[] calldata _signatures,
         AMBTypes.MessageData[] calldata _messages
     )
@@ -296,17 +296,17 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         }
 
         // Validate that the provided message deposit root is equal to the computed root
-        if (MessageBridgeLib._computeNewTopRoot(state.root, _messages) != _depositRoot) revert InvalidRoot();
+        if (MessageBridgeLib._computeNewTopRoot(state.root, _messages) != _evmRoot) revert InvalidRoot();
 
         // Verify that the provided signatures are valid
-        if (!management().verifyValidatorSignatures(_depositRoot, _signatures)) {
+        if (!management().verifyValidatorSignatures(_evmRoot, _signatures)) {
             revert InvalidValidatorSignatures();
         }
 
         // Update the message bridge deposit state
         getStorage().messageBridgeState.evmState =
-            StorageTypes.State({nonce: _messages[messageLength - 1].nonce, root: _depositRoot});
-        emit MessageDepositRootUpdate(_messages[messageLength - 1].nonce, _depositRoot);
+            StorageTypes.State({nonce: _messages[messageLength - 1].nonce, root: _evmRoot});
+        emit EvmRootUpdate(_messages[messageLength - 1].nonce, _evmRoot);
 
         // Store messages
         for (uint256 i = 0; i < messageLength; i++) {

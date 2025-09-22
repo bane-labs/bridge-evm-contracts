@@ -13,7 +13,7 @@ interface IMessageBridge {
     event ExecutingPause();
     event ExecutingUnpause();
     event MessageDeposit(uint256 indexed nonce, bytes message);
-    event MessageDepositRootUpdate(uint256 indexed nonce, bytes32 depositRoot);
+    event EvmRootUpdate(uint256 indexed nonce, bytes32 evmRoot);
     event MessageWithdrawalFeeChange(uint256 fee);
     event MaxMessageSizeChange(uint256 maxSize);
     event MaxNrMessagesChange(uint256 maxDeposits);
@@ -51,7 +51,7 @@ interface IMessageBridge {
     function getResult(uint256 relatedMessageNonce) external view returns (AMBTypes.Result memory result);
     function getN3Result(uint256 relatedMessageNonce) external view returns (bytes memory);
     function storeMessages(
-        bytes32 depositRoot,
+        bytes32 evmRoot,
         BridgeLib.Signature[] calldata signatures,
         AMBTypes.MessageData[] calldata messages
     )
