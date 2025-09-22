@@ -324,7 +324,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
 
         _saveAdditionalState(messageData.nonce, messageData.encodedMetadata);
 
-        emit MessageDeposit(messageData.nonce, messageData.message);
+        emit Store(messageData.nonce, messageData.message);
     }
 
     function _saveAdditionalState(uint256 nonce, bytes memory encodedMetadata) private {

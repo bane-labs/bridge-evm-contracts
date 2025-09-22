@@ -73,6 +73,6 @@ contract TestMessageBridge is MessageBridge {
                 AMBStorage.ExecutableState({executed: false, expirationTimestamp: block.timestamp + window});
         }
 
-        emit MessageDeposit(messageData.nonce, messageData.message);
+        emit Store(messageData.nonce, messageData.message);
     }
 }
