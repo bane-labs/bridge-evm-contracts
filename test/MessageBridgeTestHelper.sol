@@ -93,9 +93,9 @@ abstract contract MessageBridgeTestHelper is Test, SigUtils {
         // Deploy and set up the Message Executor
         executionManager = new ExecutionManager(messageBridgeProxyAddress);
 
-        // Set the message executor in the bridge
+        // Set the execution manager in the bridge
         vm.prank(governor);
-        messageBridgeProxy.setMessageExecutor(address(executionManager));
+        messageBridgeProxy.setExecutionManager(address(executionManager));
 
         // Unpause the message bridge
         vm.prank(governor);

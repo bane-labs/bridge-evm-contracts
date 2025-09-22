@@ -401,9 +401,9 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         emit MaxNrMessagesChange(_maxNrMessages);
     }
 
-    function setMessageExecutor(address _executor) external override onlyGovernor {
+    function setExecutionManager(address _executor) external override onlyGovernor {
         getStorage().messageExecutionManager = IExecutionManager(_executor);
-        emit MessageExecutorSet(_executor);
+        emit ExecutionManagerChange(_executor);
     }
 
     function setExecutionWindowSeconds(uint256 windowSeconds) external override onlyGovernor {

@@ -18,7 +18,7 @@ interface IMessageBridge {
     event MaxMessageSizeChange(uint256 maxSize);
     event MaxNrMessagesChange(uint256 maxDeposits);
     event MessageExecutionWindowChange(uint256 windowSeconds);
-    event MessageExecutorSet(address indexed executor);
+    event ExecutionManagerChange(address indexed executor);
     event MessageExecuted(uint256 indexed nonce, AMBTypes.Result result);
     event MessageSend(
         uint256 indexed nonce,
@@ -61,6 +61,6 @@ interface IMessageBridge {
     function setSendingFee(uint256 fee) external;
     function setMaxMessageSize(uint256 maxSize) external;
     function setMaxNrMessages(uint256 maxNrMessages) external;
-    function setMessageExecutor(address executor) external;
+    function setExecutionManager(address executor) external;
     function setExecutionWindowSeconds(uint256 windowSeconds) external;
 }
