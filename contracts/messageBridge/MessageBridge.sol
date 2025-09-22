@@ -378,7 +378,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         AMBTypes.MetadataExecutable memory metadata =
             abi.decode(getEvmMessage(nonce).encodedMetadata, (AMBTypes.MetadataExecutable));
         if (metadata.storeResult) getStorage().evmExecutionResults[nonce] = abi.encode(result);
-        emit MessageExecuted(nonce, result);
+        emit Execution(nonce, result);
 
         return result;
     }

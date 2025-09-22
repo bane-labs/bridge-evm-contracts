@@ -171,7 +171,7 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
         vm.expectEmit(true, true, true, true, address(testContract));
         emit TestContract.TestEvent(1, address(executionManager));
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
-        emit IMessageBridge.MessageExecuted(1, AMBTypes.Result({success: true, returnData: abi.encode(300)}));
+        emit IMessageBridge.Execution(1, AMBTypes.Result({success: true, returnData: abi.encode(300)}));
         messageBridgeProxy.executeMessage(1);
 
         assertEq(testContract.counter(), 1, "Counter should be incremented to 1 after execution");

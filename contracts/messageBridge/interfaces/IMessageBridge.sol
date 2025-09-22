@@ -19,7 +19,7 @@ interface IMessageBridge {
     event MaxNrMessagesChange(uint256 maxDeposits);
     event MessageExecutionWindowChange(uint256 windowSeconds);
     event ExecutionManagerChange(address indexed executor);
-    event MessageExecuted(uint256 indexed nonce, AMBTypes.Result result);
+    event Execution(uint256 indexed nonce, AMBTypes.Result result);
     event MessageSend(
         uint256 indexed nonce,
         address indexed sender,
