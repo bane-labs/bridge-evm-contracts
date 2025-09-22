@@ -155,7 +155,8 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
         private
     {
         AMBTypes.MessageData[] memory messages = new AMBTypes.MessageData[](1);
-        messages[0] = AMBTypes.MessageData({nonce: 1, message: message, encodedMetadata: abi.encode(metadata)});
+        bytes memory encodedMetadata = abi.encode(metadata);
+        messages[0] = AMBTypes.MessageData({nonce: 1, message: message, encodedMetadata: encodedMetadata});
 
         BridgeLib.Signature[] memory signatures = generateValidSignatures(newEvmRoot);
 
@@ -163,7 +164,7 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
         emit IMessageBridge.EvmRootUpdate(1, newEvmRoot);
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
-        emit IMessageBridge.Store(1, message);
+        emit IMessageBridge.Store(1, encodedMetadata);
         messageBridgeProxy.storeMessages(newEvmRoot, signatures, messages);
     }
 
@@ -231,7 +232,8 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
         );
 
         AMBTypes.MessageData[] memory messages = new AMBTypes.MessageData[](1);
-        messages[0] = AMBTypes.MessageData({nonce: 2, message: message, encodedMetadata: abi.encode(metadata)});
+        bytes memory encodedMetadata = abi.encode(metadata);
+        messages[0] = AMBTypes.MessageData({nonce: 2, message: message, encodedMetadata: encodedMetadata});
 
         BridgeLib.Signature[] memory signatures = generateValidSignatures(newEvmRoot);
 
@@ -239,7 +241,7 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
         emit IMessageBridge.EvmRootUpdate(2, newEvmRoot);
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
-        emit IMessageBridge.Store(2, message);
+        emit IMessageBridge.Store(2, encodedMetadata);
         messageBridgeProxy.storeMessages(newEvmRoot, signatures, messages);
 
         vm.expectRevert(
@@ -303,7 +305,8 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
         );
 
         AMBTypes.MessageData[] memory messages = new AMBTypes.MessageData[](1);
-        messages[0] = AMBTypes.MessageData({nonce: 1, message: message, encodedMetadata: abi.encode(metadata)});
+        bytes memory encodedMetadata = abi.encode(metadata);
+        messages[0] = AMBTypes.MessageData({nonce: 1, message: message, encodedMetadata: encodedMetadata});
 
         BridgeLib.Signature[] memory signatures = generateValidSignatures(newEvmRoot);
 
@@ -311,7 +314,7 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
         emit IMessageBridge.EvmRootUpdate(1, newEvmRoot);
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
-        emit IMessageBridge.Store(1, message);
+        emit IMessageBridge.Store(1, encodedMetadata);
         messageBridgeProxy.storeMessages(newEvmRoot, signatures, messages);
 
         vm.expectRevert(

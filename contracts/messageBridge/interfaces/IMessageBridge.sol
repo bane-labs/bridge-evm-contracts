@@ -12,7 +12,7 @@ interface IMessageBridge {
     event SendingUnpause();
     event ExecutingPause();
     event ExecutingUnpause();
-    event Store(uint256 indexed nonce, bytes message);
+    event Store(uint256 indexed nonce, bytes metadata);
     event EvmRootUpdate(uint256 indexed nonce, bytes32 evmRoot);
     event SendingFeeChange(uint256 fee);
     event MaxMessageSizeChange(uint256 maxSize);
