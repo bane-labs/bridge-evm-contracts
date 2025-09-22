@@ -383,10 +383,10 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         return result;
     }
 
-    function setMessageBridgeFee(uint256 _fee) external override onlyGovernor {
+    function setSendingFee(uint256 _fee) external override onlyGovernor {
         if (_fee == 0) revert InvalidFee();
         getStorage().messageBridgeState.config.fee = _fee;
-        emit MessageWithdrawalFeeChange(_fee);
+        emit SendingFeeChange(_fee);
     }
 
     function setMaxMessageSize(uint256 _maxSize) external override onlyGovernor {
