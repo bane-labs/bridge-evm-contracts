@@ -40,8 +40,6 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     error MessageNotFound(uint256 nonce);
     //0x25ecb492
     error ResultNotFound(uint256 nonce);
-    //0x774249f8
-    error MessageBridgeNotSet();
     //0xa4c897b0
     error MessageBridgePaused();
     //0xfa5fc19e
@@ -54,10 +52,6 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     error ExecutingPaused();
     //0x61654835
     error ExecutingNotPaused();
-    //0x018e5d6a
-    error InvalidMessageSize();
-    //0x000bf7e9
-    error MessageRootMismatch();
     //0xd221f922
     error ExecutionManagerNotSet();
     //0x2ad81d67
@@ -81,14 +75,14 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     //0x90b8ec18
     error TransferFailed();
 
-    function pauseMessageBridge() external override onlyGovernorOrSecurityGuard whenMessageBridgeNotPaused {
+    function pause() external override onlyGovernorOrSecurityGuard whenNotPaused {
         getStorage().messageBridgeState.paused = true;
-        emit MessageBridgePause();
+        emit Pause();
     }
 
-    function unpauseMessageBridge() external override onlyGovernor whenMessageBridgePaused {
+    function unpause() external override onlyGovernor whenPaused {
         getStorage().messageBridgeState.paused = false;
-        emit MessageBridgeUnpause();
+        emit Unpause();
     }
 
     function pauseSending() external override onlyGovernorOrSecurityGuard whenSendingNotPaused {
@@ -147,7 +141,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     )
         external
         payable
-        whenMessageBridgeNotPaused
+        whenNotPaused
         whenSendingNotPaused
         returns (uint256 nonce)
     {
@@ -168,7 +162,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     function sendMessage(bytes calldata _message)
         external
         payable
-        whenMessageBridgeNotPaused
+        whenNotPaused
         whenSendingNotPaused
         returns (uint256 nonce)
     {
@@ -188,7 +182,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
     function sendResultMessage(uint256 _relatedMessageNonce)
         external
         payable
-        whenMessageBridgeNotPaused
+        whenNotPaused
         whenSendingNotPaused
         returns (uint256 nonce)
     {
@@ -266,24 +260,24 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         getStorage().messageBridgeState.n3State = StorageTypes.State({nonce: nonce, root: newRoot});
 
         // Emit event with all relevant information
-        emit MessageSent(nonce, from, _encodedMetadata, _message, messageHash, newRoot);
+        emit MessageSend(nonce, from, _encodedMetadata, _message, messageHash, newRoot);
     }
 
     /**
      * @notice Stores messages sent from the Neo N3 blockchain.
-     * @param _depositRoot The root of the deposit tree.
+     * @param _evmRoot The root of the EVM hash chain.
      * @param _signatures The signatures of the validators.
      * @param _messages The messages to be stored.
      */
     function storeMessages(
-        bytes32 _depositRoot,
+        bytes32 _evmRoot,
         BridgeLib.Signature[] calldata _signatures,
         AMBTypes.MessageData[] calldata _messages
     )
         external
         override
         onlyRelayer
-        whenMessageBridgeNotPaused
+        whenNotPaused
         nonReentrant
     {
         // Check parameter validity
@@ -302,17 +296,17 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         }
 
         // Validate that the provided message deposit root is equal to the computed root
-        if (MessageBridgeLib._computeNewTopRoot(state.root, _messages) != _depositRoot) revert InvalidRoot();
+        if (MessageBridgeLib._computeNewTopRoot(state.root, _messages) != _evmRoot) revert InvalidRoot();
 
         // Verify that the provided signatures are valid
-        if (!management().verifyValidatorSignatures(_depositRoot, _signatures)) {
+        if (!management().verifyValidatorSignatures(_evmRoot, _signatures)) {
             revert InvalidValidatorSignatures();
         }
 
         // Update the message bridge deposit state
         getStorage().messageBridgeState.evmState =
-            StorageTypes.State({nonce: _messages[messageLength - 1].nonce, root: _depositRoot});
-        emit MessageDepositRootUpdate(_messages[messageLength - 1].nonce, _depositRoot);
+            StorageTypes.State({nonce: _messages[messageLength - 1].nonce, root: _evmRoot});
+        emit EvmRootUpdate(_messages[messageLength - 1].nonce, _evmRoot);
 
         // Store messages
         for (uint256 i = 0; i < messageLength; i++) {
@@ -330,7 +324,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
 
         _saveAdditionalState(messageData.nonce, messageData.encodedMetadata);
 
-        emit MessageDeposit(messageData.nonce, messageData.message);
+        emit Store(messageData.nonce, messageData.encodedMetadata);
     }
 
     function _saveAdditionalState(uint256 nonce, bytes memory encodedMetadata) private {
@@ -384,15 +378,15 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         AMBTypes.MetadataExecutable memory metadata =
             abi.decode(getEvmMessage(nonce).encodedMetadata, (AMBTypes.MetadataExecutable));
         if (metadata.storeResult) getStorage().evmExecutionResults[nonce] = abi.encode(result);
-        emit MessageExecuted(nonce, result);
+        emit Execution(nonce, result);
 
         return result;
     }
 
-    function setMessageBridgeFee(uint256 _fee) external override onlyGovernor {
+    function setSendingFee(uint256 _fee) external override onlyGovernor {
         if (_fee == 0) revert InvalidFee();
         getStorage().messageBridgeState.config.fee = _fee;
-        emit MessageWithdrawalFeeChange(_fee);
+        emit SendingFeeChange(_fee);
     }
 
     function setMaxMessageSize(uint256 _maxSize) external override onlyGovernor {
@@ -407,9 +401,9 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         emit MaxNrMessagesChange(_maxNrMessages);
     }
 
-    function setMessageExecutor(address _executor) external override onlyGovernor {
+    function setExecutionManager(address _executor) external override onlyGovernor {
         getStorage().messageExecutionManager = IExecutionManager(_executor);
-        emit MessageExecutorSet(_executor);
+        emit ExecutionManagerChange(_executor);
     }
 
     function setExecutionWindowSeconds(uint256 windowSeconds) external override onlyGovernor {
@@ -444,12 +438,12 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         _;
     }
 
-    modifier whenMessageBridgeNotPaused() {
+    modifier whenNotPaused() {
         if (messageBridgePaused()) revert MessageBridgePaused();
         _;
     }
 
-    modifier whenMessageBridgePaused() {
+    modifier whenPaused() {
         if (!messageBridgePaused()) revert MessageBridgeNotPaused();
         _;
     }

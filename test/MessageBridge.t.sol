@@ -94,7 +94,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
     function test_MessageBridgePauseUnpause() public {
         // Test pausing
         vm.prank(governor);
-        messageBridgeProxy.pauseMessageBridge();
+        messageBridgeProxy.pause();
 
         // Try to deposit a message while paused (should revert)
         AMBTypes.MessageData[] memory messages = new AMBTypes.MessageData[](1);
@@ -122,7 +122,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
 
         // Unpause and try again
         vm.prank(governor);
-        messageBridgeProxy.unpauseMessageBridge();
+        messageBridgeProxy.unpause();
 
         // Now it should work (not reverting)
         vm.prank(relayer);
@@ -279,9 +279,9 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         vm.expectEmit(true, true, true, true, address(testContract));
         emit TestContract.TestEvent(1, address(executionManager));
 
-        // Expect the MessageExecuted event to be emitted with correct parameters
+        // Expect the Execution event to be emitted with correct parameters
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
-        emit IMessageBridge.MessageExecuted(nonce, AMBTypes.Result({success: true, returnData: abi.encode(1)}));
+        emit IMessageBridge.Execution(nonce, AMBTypes.Result({success: true, returnData: abi.encode(1)}));
 
         // Execute the message
         AMBTypes.Result memory result = messageBridgeProxy.executeMessage(nonce);
@@ -324,9 +324,9 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         vm.expectEmit(true, true, true, true, address(testContract));
         emit TestContract.PaymentReceived(paymentAmount, address(executionManager));
 
-        // Expect the MessageExecuted event to be emitted with correct parameters
+        // Expect the Execution event to be emitted with correct parameters
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
-        emit IMessageBridge.MessageExecuted(nonce, AMBTypes.Result({success: true, returnData: abi.encode(true)}));
+        emit IMessageBridge.Execution(nonce, AMBTypes.Result({success: true, returnData: abi.encode(true)}));
 
         // Execute the message
         AMBTypes.Result memory result = messageBridgeProxy.executeMessage{value: paymentAmount}(nonce);
@@ -370,9 +370,9 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         bytes memory expectedErrorData =
             abi.encodeWithSelector(TestContract.ValueMismatch.selector, declaredAmount, actualAmount);
 
-        // Expect the MessageExecuted event to be emitted with failure result
+        // Expect the Execution event to be emitted with failure result
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
-        emit IMessageBridge.MessageExecuted(nonce, AMBTypes.Result({success: false, returnData: expectedErrorData}));
+        emit IMessageBridge.Execution(nonce, AMBTypes.Result({success: false, returnData: expectedErrorData}));
 
         // Execute the message - this should fail but not revert the transaction
         AMBTypes.Result memory result = messageBridgeProxy.executeMessage{value: actualAmount}(nonce);
@@ -431,9 +431,9 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         vm.expectEmit(true, true, true, true, address(testContract));
         emit TestContract.DirectEthReceived(address(executionManager));
 
-        // Expect the MessageExecuted event to be emitted with success result
+        // Expect the Execution event to be emitted with success result
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
-        emit IMessageBridge.MessageExecuted(nonce, AMBTypes.Result({success: true, returnData: ""}));
+        emit IMessageBridge.Execution(nonce, AMBTypes.Result({success: true, returnData: ""}));
 
         // Execute the message
         AMBTypes.Result memory result = messageBridgeProxy.executeMessage{value: 1 ether}(nonce);
@@ -469,9 +469,9 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         vm.expectEmit(true, true, true, true, address(testContract));
         emit TestContract.FallbackCalled(address(executionManager), 1 ether, addressBytes);
 
-        // Expect the MessageExecuted event to be emitted with success result
+        // Expect the Execution event to be emitted with success result
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
-        emit IMessageBridge.MessageExecuted(nonce, AMBTypes.Result({success: true, returnData: ""}));
+        emit IMessageBridge.Execution(nonce, AMBTypes.Result({success: true, returnData: ""}));
 
         // Execute the message
         AMBTypes.Result memory result = messageBridgeProxy.executeMessage{value: 1 ether}(nonce);
@@ -1309,7 +1309,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
 
         // Set up event expectations
         vm.expectEmit(true, true, true, true);
-        emit IMessageBridge.MessageSent(
+        emit IMessageBridge.MessageSend(
             expectedNonce, // nonce
             address(this), // sender
             encodedMetadata, // encodedMetadata
@@ -1395,7 +1395,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
 
         // Pause the message bridge
         vm.prank(governor);
-        messageBridgeProxy.pauseMessageBridge();
+        messageBridgeProxy.pause();
 
         // Expect revert due to message bridge being paused
         vm.expectRevert(abi.encodeWithSelector(MessageBridge.MessageBridgePaused.selector));
@@ -1537,9 +1537,9 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         bytes32 expectedMessageHash = MessageBridgeLib._hashMessageBridgeOp(expectedNonce, expectedMetadata, resultData);
         bytes32 expectedRoot = BridgeLib._computeNewRoot(initialRoot, expectedMessageHash);
 
-        // Expect the MessageSent event
+        // Expect the MessageSend event
         vm.expectEmit(true, true, true, true);
-        emit IMessageBridge.MessageSent(
+        emit IMessageBridge.MessageSend(
             expectedNonce, address(this), expectedMetadata, resultData, expectedMessageHash, expectedRoot
         );
 
@@ -1618,7 +1618,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
 
         // Pause the message bridge
         vm.prank(governor);
-        messageBridgeProxy.pauseMessageBridge();
+        messageBridgeProxy.pause();
 
         // Try to send result message while paused
         vm.expectRevert(abi.encodeWithSelector(MessageBridge.MessageBridgePaused.selector));

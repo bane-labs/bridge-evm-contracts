@@ -6,31 +6,31 @@ import {BridgeLib} from "../../library/BridgeLib.sol";
 import {AMBStorage} from "../AMBStorage.sol";
 
 interface IMessageBridge {
-    event MessageBridgePause();
-    event MessageBridgeUnpause();
+    event Pause();
+    event Unpause();
     event SendingPause();
     event SendingUnpause();
     event ExecutingPause();
     event ExecutingUnpause();
-    event MessageDeposit(uint256 indexed nonce, bytes message);
-    event MessageDepositRootUpdate(uint256 indexed nonce, bytes32 depositRoot);
-    event MessageWithdrawalFeeChange(uint256 fee);
+    event Store(uint256 indexed nonce, bytes metadata);
+    event EvmRootUpdate(uint256 indexed nonce, bytes32 evmRoot);
+    event SendingFeeChange(uint256 fee);
     event MaxMessageSizeChange(uint256 maxSize);
     event MaxNrMessagesChange(uint256 maxDeposits);
     event MessageExecutionWindowChange(uint256 windowSeconds);
-    event MessageExecutorSet(address indexed executor);
-    event MessageExecuted(uint256 indexed nonce, AMBTypes.Result result);
-    event MessageSent(
+    event ExecutionManagerChange(address indexed executor);
+    event Execution(uint256 indexed nonce, AMBTypes.Result result);
+    event MessageSend(
         uint256 indexed nonce,
         address indexed sender,
         bytes encodedMetadata,
         bytes message,
         bytes32 messageHash,
-        bytes32 newRoot
+        bytes32 newEvmRoot
     );
 
-    function pauseMessageBridge() external;
-    function unpauseMessageBridge() external;
+    function pause() external;
+    function unpause() external;
     function pauseSending() external;
     function unpauseSending() external;
     function pauseExecuting() external;
@@ -51,16 +51,16 @@ interface IMessageBridge {
     function getResult(uint256 relatedMessageNonce) external view returns (AMBTypes.Result memory result);
     function getN3Result(uint256 relatedMessageNonce) external view returns (bytes memory);
     function storeMessages(
-        bytes32 depositRoot,
+        bytes32 evmRoot,
         BridgeLib.Signature[] calldata signatures,
         AMBTypes.MessageData[] calldata messages
     )
         external;
 
     function executeMessage(uint256 nonce) external payable returns (AMBTypes.Result memory);
-    function setMessageBridgeFee(uint256 fee) external;
+    function setSendingFee(uint256 fee) external;
     function setMaxMessageSize(uint256 maxSize) external;
     function setMaxNrMessages(uint256 maxNrMessages) external;
-    function setMessageExecutor(address executor) external;
+    function setExecutionManager(address executor) external;
     function setExecutionWindowSeconds(uint256 windowSeconds) external;
 }
