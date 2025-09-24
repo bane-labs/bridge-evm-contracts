@@ -37,14 +37,21 @@ contract MessageBridgeSyncSending is MessageBridgeTestHelper {
             sender: sender,
             storeResult: true
         });
-        bytes32 hashedBridgeOp = MessageBridgeLib._hashMessageBridgeOp(nonce, abi.encode(metadata), msgBytes);
+        //assert encoded metadata is correct
+        bytes memory encodedMetadata = abi.encode(metadata);
+        assertEq(
+            encodedMetadata,
+            //  ↓type                                                         |↓                        timestamp                             |↓                                                  sender       |↓store result
+            hex"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000687ca84000000000000000000000000069ecca587293047be4c59159bf8bc399985c160d0000000000000000000000000000000000000000000000000000000000000001"
+        );
+        bytes32 hashedBridgeOp = MessageBridgeLib._hashMessageBridgeOp(nonce, encodedMetadata, msgBytes);
         bytes memory concatenated = abi.encodePacked(
             nonce, metadata.msgType, metadata.timestamp, metadata.sender, metadata.storeResult, msgBytes
         );
         assertEq(
             concatenated,
             //                                                                  ↓type                                                                                                     ↓store result
-            // |                                                          nonce| |                                                      timestamp |                                sender| |                                                                            message bytes|
+            // |↓                                                         nonce| |↓                                                    timestamp|↓                               sender  | |↓                                                                           message bytes|
             hex"00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000687ca84069ecca587293047be4c59159bf8bc399985c160d01400428141418e358c565207768eae8d237241e85d3e9f1cb280573746f72652101024002210101210440a87c68"
         );
         bytes32 expected = keccak256(concatenated);
