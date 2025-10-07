@@ -25,17 +25,15 @@ export async function deployMessageBridge(managementAddress: string, deployer: W
     console.log("Message Bridge Logic deployed at: ", await upgrades.erc1967.getImplementationAddress(await msgBridge.getAddress()));
 
     console.log("\n# Message Bridge Configuration");
-    const managementSlot = "0xd6595d2280e6cba67baf67ff997445e733b244161e59228efeb7032069381100";
-    const management = await ethers.provider.getStorage(await msgBridge.getAddress(), managementSlot);
-    console.log("Management Slot:                  ", management);
-    const msgBridgeState = await msgBridge.getMessageBridgeState();
-    console.log("Message Bridge Paused:            ", msgBridgeState.paused);
-    console.log("Message Bridge Sending Paused:    ", msgBridgeState.sendingPaused);
-    console.log("Message Bridge Executing Paused:  ", msgBridgeState.executingPaused);
-    console.log("Message Bridge Sending Fee:       ", msgBridgeState.config.fee);
-    console.log("Message Bridge Max Msg Size:      ", msgBridgeState.config.maxMessageSize);
-    console.log("Message Bridge Max Nr Messages:   ", msgBridgeState.config.maxNrMessages);
-    console.log("Message Bridge Execution Window:  ", msgBridgeState.config.executionWindowSeconds);
+    console.log("Management Contract:              ", await msgBridge.management());
+    console.log("Message Executor:                 ", await msgBridge.executionManager());
+    console.log("Message Bridge Paused:            ", await msgBridge.messageBridgePaused());
+    console.log("Message Bridge Sending Paused:    ", await msgBridge.sendingPaused());
+    console.log("Message Bridge Executing Paused:  ", await msgBridge.executingPaused());
+    console.log("Message Bridge Sending Fee:       ", await msgBridge.sendingFee());
+    console.log("Message Bridge Max Msg Size:      ", await msgBridge.maxMessageSize());
+    console.log("Message Bridge Max Nr Messages:   ", await msgBridge.maxNrMessages());
+    console.log("Message Bridge Execution Window:  ", await msgBridge.executionWindowSeconds());
     return msgBridge;
 }
 
@@ -57,9 +55,6 @@ export async function deployMessageBridgeContracts(): Promise<TestMessageBridge>
     // Set the message executor
     const governor = getGovernor(ethers.provider)
     await fundIfLocalNetwork([governor.address]);
-    await msgBridge.connect(governor).setMessageExecutor(await executionManager.getAddress());
-    const executionManagerSlot = "0xd6595d2280e6cba67baf67ff997445e733b244161e59228efeb7032069381101";
-    const executionManagerSet = await ethers.provider.getStorage(await msgBridge.getAddress(), executionManagerSlot);
-    console.log("Execution Manager Slot in Message Bridge: ", executionManagerSet);
+    await msgBridge.connect(governor).setExecutionManager(await executionManager.getAddress());
     return msgBridge;
 }
