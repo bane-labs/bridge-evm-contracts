@@ -25,8 +25,8 @@ export async function deployMessageBridge(managementAddress: string, deployer: W
     console.log("Message Bridge Logic deployed at: ", await upgrades.erc1967.getImplementationAddress(await msgBridge.getAddress()));
 
     console.log("\n# Message Bridge Configuration");
-    console.log("Management Slot:                  ", await msgBridge.management());
-    console.log("Message Executor Slot:            ", await msgBridge.executionManager());
+    console.log("Management Contract:              ", await msgBridge.management());
+    console.log("Message Executor:                 ", await msgBridge.executionManager());
     console.log("Message Bridge Paused:            ", await msgBridge.messageBridgePaused());
     console.log("Message Bridge Sending Paused:    ", await msgBridge.sendingPaused());
     console.log("Message Bridge Executing Paused:  ", await msgBridge.executingPaused());
