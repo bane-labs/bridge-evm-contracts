@@ -26,7 +26,6 @@ export async function deployMessageBridge(managementAddress: string, deployer: W
 
     console.log("\n# Message Bridge Configuration");
     console.log("Management Contract:              ", await msgBridge.management());
-    console.log("Message Executor:                 ", await msgBridge.executionManager());
     console.log("Message Bridge Paused:            ", await msgBridge.messageBridgePaused());
     console.log("Message Bridge Sending Paused:    ", await msgBridge.sendingPaused());
     console.log("Message Bridge Executing Paused:  ", await msgBridge.executingPaused());
@@ -56,5 +55,6 @@ export async function deployMessageBridgeContracts(): Promise<TestMessageBridge>
     const governor = getGovernor(ethers.provider)
     await fundIfLocalNetwork([governor.address]);
     await msgBridge.connect(governor).setExecutionManager(await executionManager.getAddress());
+    console.log("Message Executor:                 ", await msgBridge.executionManager());
     return msgBridge;
 }
