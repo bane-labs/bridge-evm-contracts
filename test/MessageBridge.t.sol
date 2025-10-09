@@ -9,8 +9,8 @@ import {AMBStorage} from "../contracts/messageBridge/AMBStorage.sol";
 import {ExecutionManager} from "../contracts/messageBridge/ExecutionManager.sol";
 import {MessageBridge} from "../contracts/messageBridge/MessageBridge.sol";
 import {IMessageBridge} from "../contracts/messageBridge/interfaces/IMessageBridge.sol";
-import {ReentrancyAttacker} from "../contracts/tests/ReentrancyAttacker.sol";
 import {ExecutingNonceTestContract} from "../contracts/tests/ExecutingNonceTestContract.sol";
+import {ReentrancyAttacker} from "../contracts/tests/ReentrancyAttacker.sol";
 import {FailingContract, RefundReceiver, NonPayableContract} from "../contracts/tests/RefundTestContracts.sol";
 import {TestContract} from "../contracts/tests/TestContract.sol";
 import {TestPayableContract} from "../contracts/tests/TestPayableContract.sol";
@@ -924,7 +924,6 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         AMBTypes.Call memory expectedCall2 = abi.decode(testMessage2, (AMBTypes.Call));
 
         // Get the stored Call struct components - public mappings return struct components, not the struct itself
-
         bytes memory message1 = messageBridgeProxy.getEvmMessage(messages[0].nonce).rawMessage;
         AMBTypes.Call memory actualCall = abi.decode(message1, (AMBTypes.Call));
 
@@ -2309,5 +2308,54 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         // Decode the return data to verify the function returned the correct nonce
         uint256 returnedNonce = abi.decode(result.returnData, (uint256));
         assertEq(returnedNonce, expectedNonce, "Function should have returned the executing nonce");
+    }
+
+    // Test to check storage cost of storing messages
+    function test_StoreMessages_StorageCost() public {
+        // Create multiple messages to store
+        uint256 numMessages = 10;
+        AMBTypes.MessageData[] memory messages = new AMBTypes.MessageData[](numMessages);
+        for (uint256 i = 0; i < numMessages; i++) {
+            bytes memory message = abi.encodePacked("Test message ", i);
+            messages[i] = AMBTypes.MessageData({
+                nonce: i + 1,
+                message: message,
+                encodedMetadata: abi.encode(
+                    AMBTypes.MetadataExecutable({
+                        msgType: AMBTypes.MessageType(uint8 (i % 3)),
+                        timestamp: block.timestamp,
+                        sender: address(this),
+                        storeResult: false
+                    })
+                )
+            });
+        }
+
+        // Compute deposit root
+        StorageTypes.State memory evmState = messageBridgeProxy.messageBridgeState().evmState;
+        bytes32 previousRoot = evmState.root;
+        bytes32 depositRoot = MessageBridgeLib._computeNewTopRoot(previousRoot, messages);
+        BridgeLib.Signature[] memory signatures = generateValidSignatures(depositRoot);
+
+        // Measure gas cost of storing messages
+        vm.record();
+        vm.prank(relayer);
+        uint256 gasBefore = gasleft();
+        messageBridgeProxy.storeMessages(depositRoot, signatures, messages);
+        uint256 gasAfter = gasleft();
+        uint256 gasUsed = gasBefore - gasAfter;
+
+        // Verify the messages are stored
+        for (uint256 i = 0; i < numMessages; i++) {
+            AMBStorage.StoredMessage memory message = messageBridgeProxy.getEvmMessage(i + 1);
+            assertEq(keccak256(message.rawMessage), keccak256(messages[i].message), "Stored message should match");
+            assertEq(
+                keccak256(message.encodedMetadata),
+                keccak256(messages[i].encodedMetadata),
+                "Stored metadata should match"
+            );
+        }
+
+        emit log_named_uint("Gas used to store messages", gasUsed);
     }
 }
