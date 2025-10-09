@@ -1,11 +1,11 @@
-import { ethers, upgrades } from "hardhat";
-import { Wallet } from "ethers";
-import { printFeeConfiguration, MAX_FEE_PER_GAS, MAX_PRIORITY_FEE_PER_GAS } from "../utils/constants";
-import { fundIfLocalNetwork, printNetworkConfiguration } from "../utils/network";
-import { getDeployer, getGovernor } from "../utils/wallet";
-import { deployBridgeManagement } from "./management";
-import { deployExecutionManager } from "./executionManager";
-import { TestMessageBridge } from "../../typechain-types";
+import {ethers, upgrades} from 'hardhat';
+import {Wallet} from 'ethers';
+import {MAX_FEE_PER_GAS, MAX_PRIORITY_FEE_PER_GAS, printFeeConfiguration} from '../utils/constants';
+import {fundIfLocalNetwork, printNetworkConfiguration} from '../utils/network';
+import {getDeployer, getGovernor} from '../utils/wallet';
+import {deployBridgeManagement} from './management';
+import {deployExecutionManager} from './executionManager';
+import {TestMessageBridge} from '../../typechain-types';
 
 // IMPORTANT: This script deploys the TestMessageBridge contract, which is a test contract that is not meant to be used in production.
 export async function deployMessageBridge(managementAddress: string, deployer: Wallet): Promise<TestMessageBridge> {
@@ -54,7 +54,8 @@ export async function deployMessageBridgeContracts(): Promise<TestMessageBridge>
     // Set the message executor
     const governor = getGovernor(ethers.provider)
     await fundIfLocalNetwork([governor.address]);
-    await msgBridge.connect(governor).setExecutionManager(await executionManager.getAddress());
-    console.log("Message Executor:                 ", await msgBridge.executionManager());
+    const tx = await msgBridge.connect(governor).setExecutionManager(await executionManager.getAddress());
+    await tx.wait();
+    console.log('Message Executor:                 ', await msgBridge.executionManager());
     return msgBridge;
 }
