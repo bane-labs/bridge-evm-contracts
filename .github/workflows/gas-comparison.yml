@@ -1,0 +1,40 @@
+name: Gas Cost Comparison
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - test/storage-cost-AFTER-amb-08
+
+jobs:
+  gas-comparison:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        fetch-depth: 0  # Fetch all history for branch switching
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@v1
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install bc calculator
+      run: sudo apt-get update && sudo apt-get install -y bc
+
+    - name: Make gas comparison script executable
+      run: chmod +x test/test-gas-comparison.sh
+
+    - name: Run gas comparison
+      run: ./test/test-gas-comparison.sh
+

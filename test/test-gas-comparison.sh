@@ -17,7 +17,7 @@ echo "Current branch: $ORIGINAL_BRANCH"
 cleanup() {
     echo ""
     echo "=== Returning to original state ==="
-    if [ ! -z "$ORIGINAL_BRANCH" ]; then
+    if [ -n "$ORIGINAL_BRANCH" ]; then
         git checkout "$ORIGINAL_BRANCH"
         echo "Returned to branch: $ORIGINAL_BRANCH"
     else
@@ -64,7 +64,7 @@ echo "=== Gas Usage Comparison ==="
 echo "BEFORE gas usage: $BEFORE_GAS"
 echo "AFTER gas usage:  $AFTER_GAS"
 
-if [ ! -z "$BEFORE_GAS" ] && [ ! -z "$AFTER_GAS" ]; then
+if [ -n "$BEFORE_GAS" ] && [ -n "$AFTER_GAS" ]; then
     DIFFERENCE=$((AFTER_GAS - BEFORE_GAS))
     if [ $DIFFERENCE -gt 0 ]; then
         echo "Gas INCREASE: +$DIFFERENCE"
