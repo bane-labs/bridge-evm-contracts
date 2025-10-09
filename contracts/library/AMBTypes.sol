@@ -30,22 +30,32 @@ library AMBTypes {
     }
 
     struct MetadataExecutable {
-        MessageType msgType;
+        // Slot 1
+        MessageType msgType; // 1 byte
+        bool storeResult; // 1 byte
+        address sender; // 20 bytes
+        // bytes remaining in slot 1 (10 bytes)
+        // Slot 2
         uint256 timestamp;
-        address sender;
-        bool storeResult;
     }
 
     struct MetadataStoreOnly {
-        MessageType msgType;
+        // Slot 1
+        MessageType msgType; // 1 byte
+        address sender; // 20 bytes
+        // bytes remaining in slot 1 (11 bytes)
+        // Slot 2
         uint256 timestamp;
-        address sender;
     }
 
     struct MetadataResult {
-        MessageType msgType;
+        // Slot 1
+        MessageType msgType; // 1 byte
+        address sender; // 20 bytes
+        // bytes remaining in slot 1 (11 bytes)
+        // Slot 2
         uint256 timestamp;
-        address sender;
+        // Slot 3
         uint256 relatedMessageNonce; // The nonce of the message that this result is related to
     }
 }
