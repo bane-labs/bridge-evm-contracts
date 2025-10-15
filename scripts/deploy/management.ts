@@ -14,18 +14,18 @@ export async function deployBridgeManagement(deployer: Wallet): Promise<TestBrid
     const governor = getGovernor(ethers.provider);
     const securityGuard = owner;
     const funder = owner;
-    await fundIfLocalNetwork([deployer.address, owner.address]);
+    await fundIfLocalNetwork([deployer.address, owner.address], false);
     // Deploy the management contract behind a proxy
     const ManagementFactory = (await ethers.getContractFactory("TestBridgeManagement")).connect(deployer);
     const managementProxy = await upgrades.deployProxy(ManagementFactory, [owner.address, relayer.address, 2, [validator01.address, validator02.address], governor.address, securityGuard.address, funder.address], { kind: "uups", unsafeAllow: ["constructor", "missing-initializer"], txOverrides: { maxFeePerGas: MAX_FEE_PER_GAS, maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS } });
     await managementProxy.waitForDeployment();
     const management = await ethers.getContractAt("TestBridgeManagement", await managementProxy.getAddress());
 
-    console.log("\n# Deployment");
-    console.log("Management Proxy Address: ", await management.getAddress());
-    console.log("Management Logic Address: ", await upgrades.erc1967.getImplementationAddress(await management.getAddress()));
+    console.log("\n📝 Deployment of BridgeManagement");
+    console.log("BridgeManagement Proxy: ", await management.getAddress());
+    console.log("BridgeManagement Logic: ", await upgrades.erc1967.getImplementationAddress(await management.getAddress()));
 
-    console.log("\n# Roles");
+    console.log("\n👉 Roles");
     console.log("Owner:               ", await management.owner());
     console.log("Relayer:             ", await management.getRelayer());
     console.log("Validator Threshold: ", (await management.getValidatorThreshold()).toString());
