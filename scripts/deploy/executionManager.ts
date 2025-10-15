@@ -5,8 +5,8 @@ import { fundIfLocalNetwork } from "../utils/network";
 import { ExecutionManager } from "../../typechain-types";
 
 // IMPORTANT: This script deploys the ExecutionManager contract.
-export async function deployExecutionManager(deployer: Wallet, bridgeAddress: any): Promise<ExecutionManager> {
-    await fundIfLocalNetwork([deployer.address]);
+export async function deployExecutionManager(deployer: Wallet, bridgeAddress: any, checkRole = true): Promise<ExecutionManager> {
+    await fundIfLocalNetwork([deployer.address], false);
 
     // Deploy the execution manager contract
     const executionManager = await (await ethers.getContractFactory("ExecutionManager"))
@@ -20,8 +20,8 @@ export async function deployExecutionManager(deployer: Wallet, bridgeAddress: an
     await executionManager.waitForDeployment();
 
     const contractAddress = await executionManager.getAddress();
-    console.log("Execution Manager deployed at:            ", contractAddress);
-    console.log("Message Bridge Contract address used:     ", bridgeAddress);
+    console.log("\n📝 Deployment of ExecutionManager");
+    console.log("Execution Manager: ", contractAddress);
 
     // Verify the contract has code deployed
     // Added this b/c in the devnet the BRIDGE_ROLE check was giving `0x` and causing an error in deployments
@@ -36,13 +36,14 @@ export async function deployExecutionManager(deployer: Wallet, bridgeAddress: an
         throw new Error('Contract deployment failed - no code at address');
     }
 
-    try {
-        const bridgeRole = await executionManager.BRIDGE_ROLE();
-        console.log("Verification of Bridge Role:              ", await executionManager.hasRole(bridgeRole, bridgeAddress));
-    } catch (error) {
-        console.error("Error calling BRIDGE_ROLE - check if function exists in contract");
-        throw error;
+    if (checkRole) {
+        try {
+            const bridgeRole = await executionManager.BRIDGE_ROLE();
+            console.log("Verification of Bridge Role: ", await executionManager.hasRole(bridgeRole, bridgeAddress));
+        } catch (error) {
+            console.error("Error calling BRIDGE_ROLE - check if function exists in contract");
+            throw error;
+        }
     }
-
     return executionManager;
 }

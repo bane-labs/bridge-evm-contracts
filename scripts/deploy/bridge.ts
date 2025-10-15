@@ -8,24 +8,19 @@ import { deployBridgeManagement } from "./management";
 
 // IMPORTANT: This script deploys the TestBridge contract, which is a test contract that is not meant to be used in production.
 export async function deployBridge(managementAddress: string, deployer: Wallet, owner: Wallet): Promise<TestBridge> {
-    await fundIfLocalNetwork([deployer.address, owner.address]);
+    await fundIfLocalNetwork([deployer.address, owner.address], false);
     // Deploy the bridge contract behind a proxy
     const BridgeFactory = (await ethers.getContractFactory("TestBridge")).connect(deployer);
     const bridgeProxy = await upgrades.deployProxy(BridgeFactory, [managementAddress], { kind: "uups", unsafeAllow: ["constructor"], txOverrides: { maxFeePerGas: MAX_FEE_PER_GAS, maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS } });
     await bridgeProxy.waitForDeployment();
     const bridge = await ethers.getContractAt("TestBridge", await bridgeProxy.getAddress());
 
-    console.log("\n# Deployment");
-    console.log("Bridge Proxy Address:     ", await bridge.getAddress());
-    console.log("Bridge Logic Address:     ", await upgrades.erc1967.getImplementationAddress(await bridge.getAddress()));
+    console.log("\n📝 Deployment of Bridge");
+    console.log("Bridge Proxy: ", await bridge.getAddress());
+    console.log("Bridge Logic: ", await upgrades.erc1967.getImplementationAddress(await bridge.getAddress()));
 
-    console.log("\n# Bridge Configuration");
+    console.log("\n💾 Bridge Configuration");
     console.log("Linked Management:          ", await bridge.management());
-    const nativeBridge = await bridge.nativeBridge();
-    console.log("Native Bridge Fee:          ", ethers.formatEther(nativeBridge.config.fee));
-    console.log("Native Bridge Min Amount:   ", ethers.formatEther(nativeBridge.config.minAmount));
-    console.log("Native Bridge Max Amount:   ", ethers.formatEther(nativeBridge.config.maxAmount));
-    console.log("Native Bridge Max Deposits: ", nativeBridge.config.maxDeposits.toString());
     return bridge;
 }
 

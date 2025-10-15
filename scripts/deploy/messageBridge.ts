@@ -13,26 +13,26 @@ export async function deployMessageBridge(managementAddress: string, deployer: W
     const MAX_MESSAGE_SIZE = 10240; // 10 kb
     const MAX_NR_MESSAGES = 100;
     const EXECUTION_WINDOW_SECONDS = 3600 * 24; // 1 day
-    await fundIfLocalNetwork([deployer.address]);
+    await fundIfLocalNetwork([deployer.address], false);
     // Deploy the bridge contract behind a proxy
     const MessageBridgeFactory = (await ethers.getContractFactory("TestMessageBridge")).connect(deployer);
     const msgBridgeProxy = await upgrades.deployProxy(MessageBridgeFactory, [managementAddress, SENDING_FEE, MAX_MESSAGE_SIZE, MAX_NR_MESSAGES, EXECUTION_WINDOW_SECONDS], { kind: "uups", unsafeAllow: ["constructor", "missing-initializer"], txOverrides: { maxFeePerGas: MAX_FEE_PER_GAS, maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS } });
     await msgBridgeProxy.waitForDeployment();
     const msgBridge = await ethers.getContractAt("TestMessageBridge", await msgBridgeProxy.getAddress());
 
-    console.log("\n# Deployment");
-    console.log("Message Bridge Proxy deployed at: ", await msgBridge.getAddress());
-    console.log("Message Bridge Logic deployed at: ", await upgrades.erc1967.getImplementationAddress(await msgBridge.getAddress()));
+    console.log("\n📝 Deployment of MessageBridge");
+    console.log("MessageBridge Proxy: ", await msgBridge.getAddress());
+    console.log("MessageBridge Logic: ", await upgrades.erc1967.getImplementationAddress(await msgBridge.getAddress()));
 
-    console.log("\n# Message Bridge Configuration");
-    console.log("Management Contract:              ", await msgBridge.management());
-    console.log("Message Bridge Paused:            ", await msgBridge.messageBridgePaused());
-    console.log("Message Bridge Sending Paused:    ", await msgBridge.sendingPaused());
-    console.log("Message Bridge Executing Paused:  ", await msgBridge.executingPaused());
-    console.log("Message Bridge Sending Fee:       ", await msgBridge.sendingFee());
-    console.log("Message Bridge Max Msg Size:      ", await msgBridge.maxMessageSize());
-    console.log("Message Bridge Max Nr Messages:   ", await msgBridge.maxNrMessages());
-    console.log("Message Bridge Execution Window:  ", await msgBridge.executionWindowSeconds());
+    console.log("\n💾 MessageBridge Configuration");
+    console.log("Management Contract:             ", await msgBridge.management());
+    console.log("MessageBridge Paused:            ", await msgBridge.messageBridgePaused());
+    console.log("MessageBridge Sending Paused:    ", await msgBridge.sendingPaused());
+    console.log("MessageBridge Executing Paused:  ", await msgBridge.executingPaused());
+    console.log("MessageBridge Sending Fee:       ", await msgBridge.sendingFee());
+    console.log("MessageBridge Max Msg Size:      ", await msgBridge.maxMessageSize());
+    console.log("MessageBridge Max Nr Messages:   ", await msgBridge.maxNrMessages());
+    console.log("MessageBridge Execution Window:  ", await msgBridge.executionWindowSeconds());
     return msgBridge;
 }
 
@@ -53,9 +53,9 @@ export async function deployMessageBridgeContracts(): Promise<TestMessageBridge>
 
     // Set the message executor
     const governor = getGovernor(ethers.provider)
-    await fundIfLocalNetwork([governor.address]);
+    await fundIfLocalNetwork([governor.address], false);
     const tx = await msgBridge.connect(governor).setExecutionManager(await executionManager.getAddress());
     await tx.wait();
-    console.log('Message Executor:                 ', await msgBridge.executionManager());
+    console.log("Message Executor: ", await msgBridge.executionManager());
     return msgBridge;
 }
