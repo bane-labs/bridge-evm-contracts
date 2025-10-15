@@ -35,7 +35,8 @@ export async function deployAll(): Promise<void> {
     const governor = getGovernor(ethers.provider);
     
     await fundIfLocalNetwork([governor.address], false);
-    await messageBridge.connect(governor).setExecutionManager(executionManagerAddress);
+    const setExecManagerTx = await messageBridge.connect(governor).setExecutionManager(executionManagerAddress);
+    await setExecManagerTx.wait();
 
     await ensureConsistentState(management, bridge, messageBridge, executionManager);
 
