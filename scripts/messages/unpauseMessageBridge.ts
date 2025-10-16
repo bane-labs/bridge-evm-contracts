@@ -7,7 +7,7 @@ import {DEFAULT_TX_OVERRIDES} from '../utils/constants';
  * Simplified script to unpause all aspects of the MessageBridge contract
  *
  * This script will attempt to unpause:
- * 1. Main bridge functionality (unpause)
+ * 1. Message bridge (unpause)
  * 2. Message sending (unpauseSending)
  * 3. Message execution (unpauseExecuting)
  *
@@ -24,6 +24,80 @@ interface UnpauseResult {
   txHash?: string;
   error?: string;
   alreadyUnpaused?: boolean;
+}
+
+interface AlreadyUnpausedPredicates {
+  errorName: string;
+  errorSelector: string;
+}
+
+/**
+ * Performs an unpause operation with centralized error handling
+ */
+async function performUnpause(
+  operationName: string,
+  unpauseFunction: () => Promise<any>,
+  predicates: AlreadyUnpausedPredicates
+): Promise<UnpauseResult> {
+  console.log(`\nAttempting to unpause ${operationName.toLowerCase()}...`);
+
+  try {
+    const tx = await unpauseFunction();
+    console.log(`Transaction sent: ${tx.hash}`);
+    const receipt = await tx.wait();
+
+    if (receipt) {
+      console.log(`Transaction confirmed in block: ${receipt.blockNumber}`);
+      console.log(`${operationName} unpaused successfully`);
+      return {
+        operation: `${operationName} Unpause`,
+        success: true,
+        txHash: tx.hash,
+      };
+    } else {
+      console.log('Transaction receipt not available');
+      return {
+        operation: `${operationName} Unpause`,
+        success: false,
+        error: 'Transaction receipt not available',
+      };
+    }
+  } catch (error: any) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.log('Error message:', errorMsg);
+
+    // Check for specific "already unpaused" error conditions
+    let isAlreadyUnpaused = false;
+
+    // Check for custom error by name (if ethers decoded it)
+    if (error.errorName === predicates.errorName) {
+      isAlreadyUnpaused = true;
+    }
+    // Check for custom error selector
+    else if (error.data && error.data.startsWith(predicates.errorSelector)) {
+      isAlreadyUnpaused = true;
+    }
+    // Check for explicit error message (fallback)
+    else if (errorMsg.includes(predicates.errorName)) {
+      isAlreadyUnpaused = true;
+    }
+
+    if (isAlreadyUnpaused) {
+      console.log(`${operationName} is already unpaused`);
+      return {
+        operation: `${operationName} Unpause`,
+        success: true,
+        alreadyUnpaused: true,
+      };
+    } else {
+      console.error(`Failed to unpause ${operationName.toLowerCase()}:`, errorMsg);
+      return {
+        operation: `${operationName} Unpause`,
+        success: false,
+        error: errorMsg,
+      };
+    }
+  }
 }
 
 async function main() {
@@ -58,125 +132,38 @@ async function main() {
 
   const results: UnpauseResult[] = [];
 
-  // 1. Unpause main bridge functionality
-  console.log('\n1. Attempting to unpause main bridge functionality...');
-  try {
-    const tx = await messageBridge.unpause(DEFAULT_TX_OVERRIDES);
-    console.log(`Transaction sent: ${tx.hash}`);
-    const receipt = await tx.wait();
-    if (receipt) {
-      console.log(`Transaction confirmed in block: ${receipt.blockNumber}`);
-      console.log('Main bridge unpaused successfully');
-      results.push({
-        operation: 'Main Bridge Unpause',
-        success: true,
-        txHash: tx.hash,
-      });
-    } else {
-      console.log('Transaction receipt not available');
+  // 1. Unpause message bridge functionality
+  const messageBridgeResult = await performUnpause(
+    'Message Bridge',
+    () => messageBridge.unpause(DEFAULT_TX_OVERRIDES),
+    {
+      errorName: 'MessageBridgeNotPaused',
+      errorSelector: '0xfa5fc19e',
     }
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : String(error);
-    // log the error message for debugging
-    console.log('Error message:', errorMsg);
-    // Check for various "already unpaused" error conditions
-    if (errorMsg.includes('MessageBridgeNotPaused') ||
-        errorMsg.includes('NotPaused') ||
-        errorMsg.includes('already') ||
-        (errorMsg.includes('execution reverted') && !errorMsg.includes('NoAuthorization'))) {
-      console.log('Main bridge is already unpaused');
-      results.push({
-        operation: 'Main Bridge Unpause',
-        success: true,
-        alreadyUnpaused: true,
-      });
-    } else {
-      console.error('Failed to unpause main bridge:', errorMsg);
-      results.push({
-        operation: 'Main Bridge Unpause',
-        success: false,
-        error: errorMsg,
-      });
-    }
-  }
+  );
+  results.push(messageBridgeResult);
 
   // 2. Unpause sending functionality
-  console.log('\n2. Attempting to unpause message sending...');
-  try {
-    const tx = await messageBridge.unpauseSending(DEFAULT_TX_OVERRIDES);
-    console.log(`Transaction sent: ${tx.hash}`);
-    const receipt = await tx.wait();
-    if (receipt) {
-      console.log(`Transaction confirmed in block: ${receipt.blockNumber}`);
-      console.log('Message sending unpaused successfully');
-      results.push({
-        operation: 'Sending Unpause',
-        success: true,
-        txHash: tx.hash,
-      });
+  const sendingResult = await performUnpause(
+    'Message Sending',
+    () => messageBridge.unpauseSending(DEFAULT_TX_OVERRIDES),
+    {
+      errorName: 'SendingNotPaused',
+      errorSelector: '0x26e7ced5',
     }
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : String(error);
-    console.log('Error message:', errorMsg);
-    // Check for various "already unpaused" error conditions
-    if (errorMsg.includes('SendingNotPaused') ||
-        errorMsg.includes('NotPaused') ||
-        errorMsg.includes('already') ||
-        (errorMsg.includes('execution reverted') && !errorMsg.includes('NoAuthorization'))) {
-      console.log('Message sending is already unpaused');
-      results.push({
-        operation: 'Sending Unpause',
-        success: true,
-        alreadyUnpaused: true,
-      });
-    } else {
-      console.error('Failed to unpause sending:', errorMsg);
-      results.push({
-        operation: 'Sending Unpause',
-        success: false,
-        error: errorMsg,
-      });
-    }
-  }
+  );
+  results.push(sendingResult);
 
   // 3. Unpause executing functionality
-  console.log('\n3. Attempting to unpause message execution...');
-  try {
-    const tx = await messageBridge.unpauseExecuting(DEFAULT_TX_OVERRIDES);
-    console.log(`Transaction sent: ${tx.hash}`);
-    const receipt = await tx.wait();
-    if (receipt) {
-      console.log(`Transaction confirmed in block: ${receipt.blockNumber}`);
-      console.log('Message execution unpaused successfully');
-      results.push({
-        operation: 'Executing Unpause',
-        success: true,
-        txHash: tx.hash,
-      });
+  const executingResult = await performUnpause(
+    'Message Execution',
+    () => messageBridge.unpauseExecuting(DEFAULT_TX_OVERRIDES),
+    {
+      errorName: 'ExecutingNotPaused',
+      errorSelector: '0x61654835',
     }
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : String(error);
-    console.log('Error message:', errorMsg);
-    // Check for various "already unpaused" error conditions
-    if (errorMsg.includes('ExecutingNotPaused') ||
-        errorMsg.includes('NotPaused') ||
-        errorMsg.includes('already') ||
-        (errorMsg.includes('execution reverted') && !errorMsg.includes('NoAuthorization'))) {
-      console.log('Message execution is already unpaused');
-      results.push({
-        operation: 'Executing Unpause',
-        success: true,
-        alreadyUnpaused: true,
-      });
-    } else {
-      console.error('Failed to unpause executing:', errorMsg);
-      results.push({
-        operation: 'Executing Unpause',
-        success: false,
-        error: errorMsg,
-      });
-    }
-  }
+  );
+  results.push(executingResult);
 
   // Summary
   console.log('\n' + '='.repeat(50));

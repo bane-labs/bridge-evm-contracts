@@ -1,6 +1,6 @@
 import {ethers} from 'hardhat';
 import {encodeStringMessage, MessageBridgeUtils, MessageType} from '../utils/messageBridgeUtils';
-import {getOwner} from '../utils/wallet';
+import {getPersonalWallet} from '../utils/wallet';
 
 /**
  * Command-line script for sending messages to MessageBridge
@@ -81,7 +81,7 @@ async function main() {
     console.log(`- Message Type: ${config.messageType}`);
     console.log(`- Store Result: ${config.storeResult}`);
 
-    const signer = getOwner(ethers.provider);
+    const signer = getPersonalWallet(ethers.provider);
     console.log(`- Sender: ${await signer.getAddress()}\n`);
 
     const messageBridge = await MessageBridgeUtils.create(config.messageBridgeAddress, signer);

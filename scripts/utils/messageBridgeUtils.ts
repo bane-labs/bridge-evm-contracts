@@ -37,17 +37,17 @@ export interface SendMessageResult {
   /** Message nonce */
   nonce: bigint;
   /** Transaction receipt */
-  receipt: any;
+  receipt: TransactionReceipt;
 }
 
 /**
  * Utility class for interacting with MessageBridge contracts
  */
 export class MessageBridgeUtils {
-  private messageBridge: Contract;
+  private messageBridge: MessageBridge;
   private signer: Signer;
 
-  private constructor(messageBridge: Contract, signer: Signer) {
+  private constructor(messageBridge: MessageBridge, signer: Signer) {
     this.messageBridge = messageBridge;
     this.signer = signer;
   }
@@ -79,7 +79,7 @@ export class MessageBridgeUtils {
     }
 
     // Get fee amount
-    const fee = feeAmount || await this.messageBridge.sendingFee();
+    const fee = feeAmount ?? await this.messageBridge.sendingFee();
 
     console.log(`Sending ${type === MessageType.EXECUTABLE ? 'executable' : 'store-only'} message...`);
     console.log(`Message: ${message}`);
@@ -110,9 +110,10 @@ export class MessageBridgeUtils {
       console.log(`Transaction confirmed in block: ${receipt.blockNumber}`);
 
       // Extract nonce from MessageSend event
+      let parsedLog: any;
       const messageSendEvent = receipt.logs.find((log: any) => {
         try {
-          const parsedLog = this.messageBridge.interface.parseLog(log);
+          parsedLog = this.messageBridge.interface.parseLog(log);
           return parsedLog?.name === 'MessageSend';
         } catch {
           return false;
@@ -121,7 +122,6 @@ export class MessageBridgeUtils {
 
       let nonce: bigint;
       if (messageSendEvent) {
-        const parsedLog = this.messageBridge.interface.parseLog(messageSendEvent);
         nonce = parsedLog?.args.nonce;
         console.log(`Message sent with nonce: ${nonce}`);
       } else {
@@ -145,12 +145,9 @@ export class MessageBridgeUtils {
    */
   async getExecutableState(nonce: bigint) {
     try {
-      const state = await this.messageBridge.getExecutableState(nonce);
+      const state: ExecutableStateStructOutput = await this.messageBridge.getExecutableState(nonce);
       console.log(`Executable state for nonce ${nonce}:`);
       console.log(`  Executed: ${state.executed}`);
-      console.log(`  Success: ${state.success}`);
-      console.log(`  Return data: ${state.returnData}`);
-      console.log(`  Execution timestamp: ${state.executionTimestamp}`);
       return state;
     } catch (error) {
       console.error(`Error getting executable state for nonce ${nonce}:`, error);
