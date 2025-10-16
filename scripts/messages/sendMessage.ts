@@ -1,6 +1,6 @@
-import { ethers } from "hardhat";
-import { MessageBridgeUtils, MessageType, encodeEvmCall, encodeStringMessage } from "../utils/messageBridgeUtils";
-import { getOwner } from "../utils/wallet";
+import {ethers} from 'hardhat';
+import {encodeStringMessage, MessageBridgeUtils, MessageType} from '../utils/messageBridgeUtils';
+import {getOwner} from '../utils/wallet';
 
 /**
  * Command-line script for sending messages to MessageBridge
@@ -13,11 +13,6 @@ import { getOwner } from "../utils/wallet";
  * - MESSAGE_TYPE: "executable" or "store-only"
  * - MESSAGE_DATA: Hex-encoded message data
  * - STORE_RESULT: "true" or "false" (for executable messages only)
- * - TARGET_CONTRACT: Contract address (for EVM calls)
- * - FUNCTION_SIGNATURE: Function signature (for EVM calls)
- * - FUNCTION_PARAMS: JSON array of function parameters (for EVM calls)
- * - ALLOW_FAILURE: "true" or "false" (for EVM calls)
- * - CALL_VALUE: ETH value to send with call (for EVM calls)
  */
 
 interface ScriptConfig {
@@ -25,34 +20,15 @@ interface ScriptConfig {
   messageType: "executable" | "store-only";
   messageData?: string;
   storeResult?: boolean;
-  targetContract?: string;
-  functionSignature?: string;
-  functionParams?: any[];
-  allowFailure?: boolean;
-  callValue?: bigint;
 }
 
 function parseConfig(): ScriptConfig {
-  const config: ScriptConfig = {
-    messageBridgeAddress: process.env.MESSAGE_BRIDGE_ADDRESS || "",
-    messageType: (process.env.MESSAGE_TYPE as "executable" | "store-only") || "store-only",
+  return {
+    messageBridgeAddress: process.env.MESSAGE_BRIDGE_ADDRESS || '',
+    messageType: (process.env.MESSAGE_TYPE as 'executable' | 'store-only') || 'store-only',
     messageData: process.env.MESSAGE_DATA,
-    storeResult: process.env.STORE_RESULT !== "false",
-    targetContract: process.env.TARGET_CONTRACT,
-    functionSignature: process.env.FUNCTION_SIGNATURE,
-    allowFailure: process.env.ALLOW_FAILURE === "true",
-    callValue: process.env.CALL_VALUE ? ethers.parseEther(process.env.CALL_VALUE) : 0n
+    storeResult: process.env.STORE_RESULT !== 'false',
   };
-
-  if (process.env.FUNCTION_PARAMS) {
-    try {
-      config.functionParams = JSON.parse(process.env.FUNCTION_PARAMS);
-    } catch (error) {
-      throw new Error("Invalid FUNCTION_PARAMS JSON format");
-    }
-  }
-
-  return config;
 }
 
 function validateConfig(config: ScriptConfig): void {
@@ -68,20 +44,9 @@ function validateConfig(config: ScriptConfig): void {
     throw new Error("MESSAGE_TYPE must be either 'executable' or 'store-only'");
   }
 
-  // For executable messages, we need either messageData or contract call parameters
-  if (config.messageType === "executable") {
-    if (!config.messageData && (!config.targetContract || !config.functionSignature)) {
-      throw new Error("For executable messages, provide either MESSAGE_DATA or (TARGET_CONTRACT + FUNCTION_SIGNATURE)");
-    }
-
-    if (config.targetContract && !ethers.isAddress(config.targetContract)) {
-      throw new Error("TARGET_CONTRACT must be a valid Ethereum address");
-    }
-  }
-
-  // For store-only messages, we need messageData
-  if (config.messageType === "store-only" && !config.messageData) {
-    throw new Error("For store-only messages, MESSAGE_DATA is required");
+  // For both executable and store-only messages, we need messageData
+  if (!config.messageData) {
+    throw new Error('MESSAGE_DATA is required');
   }
 }
 
@@ -98,22 +63,11 @@ MessageBridge CLI Usage:
 3. Executable message with custom data:
    MESSAGE_BRIDGE_ADDRESS=0x... MESSAGE_TYPE=executable MESSAGE_DATA=0x... STORE_RESULT=true npx hardhat run scripts/messages/sendMessage.ts
 
-4. Executable message with ERC20 balanceOf call:
-   MESSAGE_BRIDGE_ADDRESS=0x... MESSAGE_TYPE=executable TARGET_CONTRACT=0x... FUNCTION_SIGNATURE="balanceOf(address)" FUNCTION_PARAMS='["0x..."]' npx hardhat run scripts/messages/sendMessage.ts
-
-5. Executable message with custom contract call:
-   MESSAGE_BRIDGE_ADDRESS=0x... MESSAGE_TYPE=executable TARGET_CONTRACT=0x... FUNCTION_SIGNATURE="transfer(address,uint256)" FUNCTION_PARAMS='["0x...", "1000000000000000000"]' CALL_VALUE=0.1 npx hardhat run scripts/messages/sendMessage.ts
-
 Environment Variables:
 - MESSAGE_BRIDGE_ADDRESS: (Required) Address of the MessageBridge contract
 - MESSAGE_TYPE: (Required) "executable" or "store-only"
-- MESSAGE_DATA: Raw hex message data (alternative to contract call)
+- MESSAGE_DATA: (Required) Raw hex message data or string
 - STORE_RESULT: "true" or "false" (default: true, for executable only)
-- TARGET_CONTRACT: Contract address for EVM calls
-- FUNCTION_SIGNATURE: Function signature like "balanceOf(address)"
-- FUNCTION_PARAMS: JSON array of function parameters
-- ALLOW_FAILURE: "true" or "false" (default: false, for EVM calls)
-- CALL_VALUE: ETH value to send with call (for EVM calls)
 `);
 }
 
@@ -134,40 +88,13 @@ async function main() {
 
     let messageData: string;
 
-    // Determine message data
-    if (config.messageData) {
-      // Use provided message data
-      if (config.messageData.startsWith("0x")) {
-        messageData = config.messageData;
-      } else {
-        // Treat as string and encode
-        messageData = encodeStringMessage(config.messageData);
-        console.log(`Encoded string message: ${messageData}`);
-      }
-    } else if (config.targetContract && config.functionSignature) {
-      // Build EVM call
-      console.log("Building EVM call:");
-      console.log(`- Target: ${config.targetContract}`);
-      console.log(`- Function: ${config.functionSignature}`);
-      console.log(`- Parameters: ${JSON.stringify(config.functionParams || [])}`);
-      console.log(`- Value: ${ethers.formatEther(config.callValue || 0n)} ETH`);
-      console.log(`- Allow Failure: ${config.allowFailure}`);
-
-      // Create interface and encode function call
-      const functionInterface = new ethers.Interface([`function ${config.functionSignature}`]);
-      const functionName = config.functionSignature.split("(")[0];
-      const callData = functionInterface.encodeFunctionData(functionName, config.functionParams || []);
-
-      messageData = encodeEvmCall(
-        config.targetContract,
-        callData,
-        config.callValue || 0n,
-        config.allowFailure || false
-      );
-
-      console.log(`Encoded EVM call: ${messageData}\n`);
+    // Use provided message data
+    if (config.messageData.startsWith('0x')) {
+      messageData = config.messageData;
     } else {
-      throw new Error("No valid message data provided");
+      // Treat as string and encode
+      messageData = encodeStringMessage(config.messageData);
+      console.log(`Encoded string message: ${messageData}`);
     }
 
     // Send the message
