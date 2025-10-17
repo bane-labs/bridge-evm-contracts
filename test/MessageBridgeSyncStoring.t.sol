@@ -29,10 +29,10 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
         bytes memory message = _prepareMessage(testContract, arg1, arg2);
 
         // Create metadata and compute hashes
-        (AMBTypes.MetadataExecutable memory metadata, bytes32 newEvmRoot) = _createMetadataAndComputeHashes(message);
+        (AMBTypes.MetadataExecutable memory metadata, bytes32 newNeoToEvmRoot) = _createMetadataAndComputeHashes(message);
 
         // Store the message
-        _storeMessage(metadata, message, newEvmRoot);
+        _storeMessage(metadata, message, newNeoToEvmRoot);
 
         // Execute the message and verify results
         _executeMessageAndVerify(testContract);
@@ -104,7 +104,7 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
     function _createMetadataAndComputeHashes(bytes memory message)
         private
         view
-        returns (AMBTypes.MetadataExecutable memory metadata, bytes32 newEvmRoot)
+        returns (AMBTypes.MetadataExecutable memory metadata, bytes32 newNeoToEvmRoot)
     {
         // Create metadata for the message
         metadata = AMBTypes.MetadataExecutable({
@@ -136,12 +136,12 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
         );
 
         AMBStorage.MessageBridgeState memory bridgeState = messageBridgeProxy.messageBridgeState();
-        bytes32 previousRoot = bridgeState.evmState.root;
+        bytes32 previousRoot = bridgeState.neoToEvmState.root;
         assertEq(previousRoot, hex"0000000000000000000000000000000000000000000000000000000000000000"); // Initial root should be zero
 
-        newEvmRoot = BridgeLib._computeNewRoot(previousRoot, actualMsgHash);
+        newNeoToEvmRoot = BridgeLib._computeNewRoot(previousRoot, actualMsgHash);
         assertEq(
-            newEvmRoot,
+            newNeoToEvmRoot,
             hex"3facb48372d8e7249e3e937f17dcc44f7f1a2978e1652aaa70291789ce7c6b46",
             "New EVM root should match expected value"
         );
@@ -150,7 +150,7 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
     function _storeMessage(
         AMBTypes.MetadataExecutable memory metadata,
         bytes memory message,
-        bytes32 newEvmRoot
+        bytes32 newNeoToEvmRoot
     )
         private
     {
@@ -158,14 +158,14 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
         bytes memory encodedMetadata = abi.encode(metadata);
         messages[0] = AMBTypes.MessageData({nonce: 1, message: message, encodedMetadata: encodedMetadata});
 
-        BridgeLib.Signature[] memory signatures = generateValidSignatures(newEvmRoot);
+        BridgeLib.Signature[] memory signatures = generateValidSignatures(newNeoToEvmRoot);
 
         vm.prank(relayer);
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
-        emit IMessageBridge.EvmRootUpdate(1, newEvmRoot);
+        emit IMessageBridge.NeoToEvmRootUpdate(1, newNeoToEvmRoot);
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
         emit IMessageBridge.Store(1, encodedMetadata);
-        messageBridgeProxy.storeMessages(newEvmRoot, signatures, messages);
+        messageBridgeProxy.storeMessages(newNeoToEvmRoot, signatures, messages);
     }
 
     function _executeMessageAndVerify(TestContract testContract) private {
@@ -181,7 +181,7 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
     function test_SyncTest_StoreOnlyMessage() public {
         storeDummyMessageForStoreOnlySyncTest(); // make sure the nonce is at 1 when we start this test
         AMBStorage.MessageBridgeState memory initialBridgeState = messageBridgeProxy.messageBridgeState();
-        bytes32 initialEvmRoot = initialBridgeState.evmState.root;
+        bytes32 initialNeoToEvmRoot = initialBridgeState.neoToEvmState.root;
 
         bytes memory message =
             hex"54686572652773206e6f776865726520492063616e277420676f2e2054686572652773206e6f7768657265204920776f6e27742066696e6420796f752e";
@@ -222,11 +222,11 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
         );
 
         // What the initial root should be based on the presetup of the test
-        assertEq(initialEvmRoot, hex"0d3e5e507d5bbe00832f282ca33df9eadabbd5763ec421f3c162cb56d6717abb");
+        assertEq(initialNeoToEvmRoot, hex"0d3e5e507d5bbe00832f282ca33df9eadabbd5763ec421f3c162cb56d6717abb");
 
-        bytes32 newEvmRoot = BridgeLib._computeNewRoot(initialEvmRoot, actualMsgHash);
+        bytes32 newNeoToEvmRoot = BridgeLib._computeNewRoot(initialNeoToEvmRoot, actualMsgHash);
         assertEq(
-            newEvmRoot,
+            newNeoToEvmRoot,
             hex"fb2685cee11e114869c8a7f8b5ccfd08c9c669bb8db88a0eba51940307d1d7b4",
             "New EVM root should match expected value"
         );
@@ -235,14 +235,14 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
         bytes memory encodedMetadata = abi.encode(metadata);
         messages[0] = AMBTypes.MessageData({nonce: 2, message: message, encodedMetadata: encodedMetadata});
 
-        BridgeLib.Signature[] memory signatures = generateValidSignatures(newEvmRoot);
+        BridgeLib.Signature[] memory signatures = generateValidSignatures(newNeoToEvmRoot);
 
         vm.prank(relayer);
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
-        emit IMessageBridge.EvmRootUpdate(2, newEvmRoot);
+        emit IMessageBridge.NeoToEvmRootUpdate(2, newNeoToEvmRoot);
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
         emit IMessageBridge.Store(2, encodedMetadata);
-        messageBridgeProxy.storeMessages(newEvmRoot, signatures, messages);
+        messageBridgeProxy.storeMessages(newNeoToEvmRoot, signatures, messages);
 
         vm.expectRevert(
             abi.encodeWithSelector(MessageBridgeLib.UnsupportedMessageType.selector, AMBTypes.MessageType.STORE_ONLY)
@@ -253,7 +253,7 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
     function test_SyncTest_ResultMessage() public {
         // storeDummyMessageForStoreOnlySyncTest(); // make sure the nonce is at 1 when we start this test
         AMBStorage.MessageBridgeState memory initialBridgeState = messageBridgeProxy.messageBridgeState();
-        bytes32 initialEvmRoot = initialBridgeState.evmState.root;
+        bytes32 initialNeoToEvmRoot = initialBridgeState.neoToEvmState.root;
 
         bytes memory message = hex"210340420f";
 
@@ -295,11 +295,11 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
         );
 
         // What the initial root should be based on the presetup of the test
-        assertEq(initialEvmRoot, hex"0000000000000000000000000000000000000000000000000000000000000000");
+        assertEq(initialNeoToEvmRoot, hex"0000000000000000000000000000000000000000000000000000000000000000");
 
-        bytes32 newEvmRoot = BridgeLib._computeNewRoot(initialEvmRoot, actualMsgHash);
+        bytes32 newNeoToEvmRoot = BridgeLib._computeNewRoot(initialNeoToEvmRoot, actualMsgHash);
         assertEq(
-            newEvmRoot,
+            newNeoToEvmRoot,
             hex"f35faf897372612929949a29991880c3f7e77281410c942270f0017385c37b16",
             "New EVM root should match expected value"
         );
@@ -308,14 +308,14 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
         bytes memory encodedMetadata = abi.encode(metadata);
         messages[0] = AMBTypes.MessageData({nonce: 1, message: message, encodedMetadata: encodedMetadata});
 
-        BridgeLib.Signature[] memory signatures = generateValidSignatures(newEvmRoot);
+        BridgeLib.Signature[] memory signatures = generateValidSignatures(newNeoToEvmRoot);
 
         vm.prank(relayer);
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
-        emit IMessageBridge.EvmRootUpdate(1, newEvmRoot);
+        emit IMessageBridge.NeoToEvmRootUpdate(1, newNeoToEvmRoot);
         vm.expectEmit(true, true, true, true, address(messageBridgeProxy));
         emit IMessageBridge.Store(1, encodedMetadata);
-        messageBridgeProxy.storeMessages(newEvmRoot, signatures, messages);
+        messageBridgeProxy.storeMessages(newNeoToEvmRoot, signatures, messages);
 
         vm.expectRevert(
             abi.encodeWithSelector(MessageBridgeLib.UnsupportedMessageType.selector, AMBTypes.MessageType.RESULT)

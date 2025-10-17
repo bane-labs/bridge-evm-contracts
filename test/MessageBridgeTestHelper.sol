@@ -118,8 +118,8 @@ abstract contract MessageBridgeTestHelper is Test, SigUtils {
             )
         });
 
-        StorageTypes.State memory evmState = messageBridgeProxy.messageBridgeState().evmState;
-        bytes32 previousRoot = evmState.root;
+        StorageTypes.State memory neoToEvmState = messageBridgeProxy.messageBridgeState().neoToEvmState;
+        bytes32 previousRoot = neoToEvmState.root;
         bytes32 depositRoot = MessageBridgeLib._computeNewTopRoot(previousRoot, messages);
         BridgeLib.Signature[] memory signatures = generateValidSignatures(depositRoot);
 
@@ -148,8 +148,8 @@ abstract contract MessageBridgeTestHelper is Test, SigUtils {
             )
         });
 
-        StorageTypes.State memory evmState = messageBridgeProxy.messageBridgeState().evmState;
-        bytes32 previousRoot = evmState.root;
+        StorageTypes.State memory neoToEvmState = messageBridgeProxy.neoToEvmState();
+        bytes32 previousRoot = neoToEvmState.root;
         bytes32 depositRoot = MessageBridgeLib._computeNewTopRoot(previousRoot, messages);
         BridgeLib.Signature[] memory signatures = generateValidSignatures(depositRoot);
 

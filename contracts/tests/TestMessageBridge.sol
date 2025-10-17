@@ -45,8 +45,8 @@ contract TestMessageBridge is MessageBridge {
             paused: true,
             sendingPaused: false,
             executingPaused: false,
-            evmState: StorageTypes.State({nonce: 0, root: 0x0}),
-            n3State: StorageTypes.State({nonce: 0, root: 0x0}),
+            neoToEvmState: StorageTypes.State({nonce: 0, root: 0x0}),
+            evmToNeoState: StorageTypes.State({nonce: 0, root: 0x0}),
             config: MessageConfig({
                 fee: _fee,
                 maxMessageSize: _maxMessageSize,
