@@ -265,7 +265,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
 
     /**
      * @notice Stores messages sent from the Neo N3 blockchain.
-     * @param _neoToEvmRoot The root of the the Neo to EVM hash chain.
+     * @param _neoToEvmRoot The root of the Neo to EVM hash chain.
      * @param _signatures The signatures of the validators.
      * @param _messages The messages to be stored.
      */
