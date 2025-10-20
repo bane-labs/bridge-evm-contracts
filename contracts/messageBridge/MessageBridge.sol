@@ -225,8 +225,8 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
      * @param relatedMessageNonce The nonce of the related message that was executed.
      * @return result The raw result message bytes.
      */
-    function getN3Result(uint256 relatedMessageNonce) external view returns (bytes memory) {
-        uint256 resultNonce = getN3ResultNonce(relatedMessageNonce);
+    function getNeoExecutionResult(uint256 relatedMessageNonce) external view returns (bytes memory) {
+        uint256 resultNonce = getNeoExecutionResultNonce(relatedMessageNonce);
         if (resultNonce == 0) return new bytes(0); // No result message was sent to N3 so we return empty bytes
         return getEvmMessage(resultNonce).rawMessage;
     }

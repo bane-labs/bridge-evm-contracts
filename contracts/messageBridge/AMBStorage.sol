@@ -75,7 +75,7 @@ abstract contract AMBStorage {
         return getStorage().evmExecutableStates[nonce];
     }
 
-    function getN3ResultNonce(uint256 relatedMessageNonce) public view returns (uint256) {
+    function getNeoExecutionResultNonce(uint256 relatedMessageNonce) public view returns (uint256) {
         return getStorage().executableNonceToN3ResultNonce[relatedMessageNonce];
     }
 

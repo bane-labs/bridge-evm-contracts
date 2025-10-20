@@ -822,9 +822,9 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
 
         // Test that no result exists for the upcoming executable message nonce
         uint256 upcomingNonce = messageBridgeProxy.neoToEvmState().nonce + 1;
-        uint256 nonExistentResultNonce = messageBridgeProxy.getN3ResultNonce(upcomingNonce);
+        uint256 nonExistentResultNonce = messageBridgeProxy.getNeoExecutionResultNonce(upcomingNonce);
         assertEq(nonExistentResultNonce, 0, "No result should exist for upcoming executable message nonce");
-        bytes memory nonExistentResult = messageBridgeProxy.getN3Result(upcomingNonce);
+        bytes memory nonExistentResult = messageBridgeProxy.getNeoExecutionResult(upcomingNonce);
         assertEq(nonExistentResult.length, 0, "No result data should exist for upcoming executable message nonce");
 
         // Send the executable message and get its nonce
@@ -862,19 +862,19 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         vm.prank(relayer);
         messageBridgeProxy.storeMessages(depositRoot, signatures, resultMessages);
 
-        // Step 3: Test getN3ResultNonce function
-        uint256 resultNonce = messageBridgeProxy.getN3ResultNonce(executableNonce);
+        // Step 3: Test getNeoExecutionResultNonce function
+        uint256 resultNonce = messageBridgeProxy.getNeoExecutionResultNonce(executableNonce);
         assertEq(resultNonce, resultMessages[0].nonce, "Should return the correct result message nonce");
 
-        // Step 4: Test getN3Result function
-        bytes memory retrievedResult = messageBridgeProxy.getN3Result(executableNonce);
+        // Step 4: Test getNeoExecutionResult function
+        bytes memory retrievedResult = messageBridgeProxy.getNeoExecutionResult(executableNonce);
         assertEq(retrievedResult, resultMessageData, "Should return the correct result message data");
 
         // Step 5: Test with non-existent executable message
-        uint256 nonExistentNonce = messageBridgeProxy.getN3ResultNonce(999);
+        uint256 nonExistentNonce = messageBridgeProxy.getNeoExecutionResultNonce(999);
         assertEq(nonExistentNonce, 0, "Should return 0 for non-existent executable message");
 
-        bytes memory emptyResult = messageBridgeProxy.getN3Result(999);
+        bytes memory emptyResult = messageBridgeProxy.getNeoExecutionResult(999);
         assertEq(emptyResult.length, 0, "Should return empty bytes for non-existent executable message");
     }
 
