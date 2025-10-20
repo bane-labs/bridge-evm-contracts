@@ -225,8 +225,8 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
      * @param relatedMessageNonce The nonce of the related message that was executed.
      * @return result The raw result message bytes.
      */
-    function getN3Result(uint256 relatedMessageNonce) external view returns (bytes memory) {
-        uint256 resultNonce = getN3ResultNonce(relatedMessageNonce);
+    function getNeoExecutionResult(uint256 relatedMessageNonce) external view returns (bytes memory) {
+        uint256 resultNonce = getNeoExecutionResultNonce(relatedMessageNonce);
         if (resultNonce == 0) return new bytes(0); // No result message was sent to N3 so we return empty bytes
         return getEvmMessage(resultNonce).rawMessage;
     }
@@ -247,7 +247,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         _captureFeeAndRefundExcessToEOA(from, msg.value, sendingFee());
 
         // Compute the new root and update the message state
-        StorageTypes.State memory state = n3State();
+        StorageTypes.State memory state = evmToNeoState();
         nonce = state.nonce + 1;
 
         // Create message hash
@@ -257,7 +257,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         bytes32 newRoot = BridgeLib._computeNewRoot(state.root, messageHash);
 
         // Update the state
-        getStorage().messageBridgeState.n3State = StorageTypes.State({nonce: nonce, root: newRoot});
+        getStorage().messageBridgeState.evmToNeoState = StorageTypes.State({nonce: nonce, root: newRoot});
 
         // Emit event with all relevant information
         emit MessageSend(nonce, from, _encodedMetadata, _message, messageHash, newRoot);
@@ -265,12 +265,12 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
 
     /**
      * @notice Stores messages sent from the Neo N3 blockchain.
-     * @param _evmRoot The root of the EVM hash chain.
+     * @param _neoToEvmRoot The root of the Neo to EVM hash chain.
      * @param _signatures The signatures of the validators.
      * @param _messages The messages to be stored.
      */
     function storeMessages(
-        bytes32 _evmRoot,
+        bytes32 _neoToEvmRoot,
         BridgeLib.Signature[] calldata _signatures,
         AMBTypes.MessageData[] calldata _messages
     )
@@ -284,7 +284,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         uint256 messageLength = _messages.length;
         if (messageLength == 0) revert NoMessages();
 
-        StorageTypes.State memory state = evmState();
+        StorageTypes.State memory state = neoToEvmState();
 
         if (messageLength > maxNrMessages()) revert TooManyMessages();
 
@@ -296,17 +296,17 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         }
 
         // Validate that the provided message deposit root is equal to the computed root
-        if (MessageBridgeLib._computeNewTopRoot(state.root, _messages) != _evmRoot) revert InvalidRoot();
+        if (MessageBridgeLib._computeNewTopRoot(state.root, _messages) != _neoToEvmRoot) revert InvalidRoot();
 
         // Verify that the provided signatures are valid
-        if (!management().verifyValidatorSignatures(_evmRoot, _signatures)) {
+        if (!management().verifyValidatorSignatures(_neoToEvmRoot, _signatures)) {
             revert InvalidValidatorSignatures();
         }
 
         // Update the message bridge deposit state
-        getStorage().messageBridgeState.evmState =
-            StorageTypes.State({nonce: _messages[messageLength - 1].nonce, root: _evmRoot});
-        emit EvmRootUpdate(_messages[messageLength - 1].nonce, _evmRoot);
+        getStorage().messageBridgeState.neoToEvmState =
+            StorageTypes.State({nonce: _messages[messageLength - 1].nonce, root: _neoToEvmRoot});
+        emit NeoToEvmRootUpdate(_messages[messageLength - 1].nonce, _neoToEvmRoot);
 
         // Store messages
         for (uint256 i = 0; i < messageLength; i++) {

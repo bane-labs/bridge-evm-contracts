@@ -25,8 +25,8 @@ abstract contract AMBStorage {
         bool paused;
         bool sendingPaused;
         bool executingPaused;
-        StorageTypes.State evmState;
-        StorageTypes.State n3State;
+        StorageTypes.State neoToEvmState;
+        StorageTypes.State evmToNeoState;
         MessageConfig config;
     }
 
@@ -75,17 +75,17 @@ abstract contract AMBStorage {
         return getStorage().evmExecutableStates[nonce];
     }
 
-    function getN3ResultNonce(uint256 relatedMessageNonce) public view returns (uint256) {
+    function getNeoExecutionResultNonce(uint256 relatedMessageNonce) public view returns (uint256) {
         return getStorage().executableNonceToN3ResultNonce[relatedMessageNonce];
     }
 
     // Message Bridge state getters
-    function evmState() public view returns (StorageTypes.State memory) {
-        return getStorage().messageBridgeState.evmState;
+    function neoToEvmState() public view returns (StorageTypes.State memory) {
+        return getStorage().messageBridgeState.neoToEvmState;
     }
 
-    function n3State() public view returns (StorageTypes.State memory) {
-        return getStorage().messageBridgeState.n3State;
+    function evmToNeoState() public view returns (StorageTypes.State memory) {
+        return getStorage().messageBridgeState.evmToNeoState;
     }
 
     // Public config getters (also used internally)
