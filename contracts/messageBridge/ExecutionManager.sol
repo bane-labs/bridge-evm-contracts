@@ -33,7 +33,7 @@ contract ExecutionManager is IExecutionManager, AccessControl {
         payable
         override
         onlyRole(BRIDGE_ROLE)
-        returns (AMBTypes.Result memory result)
+        returns (AMBTypes.Result[] memory result)
     {
         // If rawMessage contains data that doesn't match the structure of the Call struct
         // the transaction will fail with a decoding error
@@ -57,7 +57,7 @@ contract ExecutionManager is IExecutionManager, AccessControl {
 
         executingNonce = 0;
 
-        result = AMBTypes.Result({success: success, returnData: returnData});
+        result[0] = AMBTypes.Result({success: success, returnData: returnData});
     }
 
     function _executeCall(

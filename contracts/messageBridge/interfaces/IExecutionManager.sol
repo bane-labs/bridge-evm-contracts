@@ -11,5 +11,5 @@ interface IExecutionManager {
     )
         external
         payable
-        returns (AMBTypes.Result memory result);
+        returns (AMBTypes.Result[] memory result);
 }

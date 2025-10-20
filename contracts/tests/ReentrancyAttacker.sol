@@ -27,7 +27,7 @@ contract ReentrancyAttacker {
 
         // Only attempt reentrancy if in attack mode
         if (attackMode) {
-            try bridge.executeMessage(messageNonce) returns (AMBTypes.Result memory) {
+            try bridge.executeMessage(messageNonce) returns (AMBTypes.Result[] memory) {
                 secondCallSucceeded = true;
                 return true;
             } catch Error(string memory error) {
