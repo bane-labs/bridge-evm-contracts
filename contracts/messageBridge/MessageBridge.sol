@@ -187,11 +187,9 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         returns (uint256 nonce)
     {
         // Check if the message exists by checking if it has content
-        if (getEvmMessage(_relatedMessageNonce).rawMessage.length == 0) {
-            revert MessageNotFound(_relatedMessageNonce);
-        }
+        if (getEvmMessage(_relatedMessageNonce).rawMessage.length == 0) revert MessageNotFound(_relatedMessageNonce);
 
-        bytes memory resultMessage = getEvmExecutionResult(_relatedMessageNonce);
+        bytes memory resultMessage = getEncodedEvmExecutionResult(_relatedMessageNonce);
         // Check if a result was stored for this message
         if (resultMessage.length == 0) revert ResultNotFound(_relatedMessageNonce);
 
@@ -211,13 +209,11 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
      * @param relatedMessageNonce The nonce of the related message that was executed.
      * @return result The result of the message execution.
      */
-    function getResult(uint256 relatedMessageNonce) external view returns (AMBTypes.Result memory result) {
-        if (getEvmMessage(relatedMessageNonce).rawMessage.length == 0) {
-            revert MessageNotFound(relatedMessageNonce);
-        }
-        bytes memory message = getEvmExecutionResult(relatedMessageNonce);
+    function getEvmExecutionResult(uint256 relatedMessageNonce) external view returns (AMBTypes.Result memory result) {
+        if (getEvmMessage(relatedMessageNonce).rawMessage.length == 0) revert MessageNotFound(relatedMessageNonce);
+        bytes memory message = getEncodedEvmExecutionResult(relatedMessageNonce);
         if (message.length == 0) revert ResultNotFound(relatedMessageNonce);
-        return abi.decode(message, (AMBTypes.Result));
+        result = abi.decode(message, (AMBTypes.Result));
     }
 
     /**
@@ -299,9 +295,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         if (MessageBridgeLib._computeNewTopRoot(state.root, _messages) != _neoToEvmRoot) revert InvalidRoot();
 
         // Verify that the provided signatures are valid
-        if (!management().verifyValidatorSignatures(_neoToEvmRoot, _signatures)) {
-            revert InvalidValidatorSignatures();
-        }
+        if (!management().verifyValidatorSignatures(_neoToEvmRoot, _signatures)) revert InvalidValidatorSignatures();
 
         // Update the message bridge deposit state
         getStorage().messageBridgeState.neoToEvmState =
@@ -370,9 +364,8 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         getStorage().evmExecutableStates[nonce].executed = true;
 
         // Execute the message using the execution manager
-        AMBTypes.Result memory result = execManager.executeMessage{value: msg.value}(
-            nonce, getEvmMessage(nonce).rawMessage, payable(msg.sender)
-        );
+        AMBTypes.Result memory result =
+            execManager.executeMessage{value: msg.value}(nonce, getEvmMessage(nonce).rawMessage, payable(msg.sender));
 
         // Store encode response and emit event
         AMBTypes.MetadataExecutable memory metadata =

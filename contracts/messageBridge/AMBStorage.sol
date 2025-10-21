@@ -67,7 +67,7 @@ abstract contract AMBStorage {
         return getStorage().evmMessages[nonce];
     }
 
-    function getEvmExecutionResult(uint256 nonce) public view returns (bytes memory) {
+    function getEncodedEvmExecutionResult(uint256 nonce) internal view returns (bytes memory) {
         return getStorage().evmExecutionResults[nonce];
     }
 
