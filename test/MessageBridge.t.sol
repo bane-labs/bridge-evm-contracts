@@ -87,8 +87,8 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         assertTrue(stateAfter.executed, "Message should be executed");
 
         // Test getEvmExecutionResult()
-        bytes memory executionResult = messageBridgeProxy.getEvmExecutionResult(messages[0].nonce);
-        assertGt(executionResult.length, 0, "Execution result should be stored");
+        AMBTypes.Result memory executionResult = messageBridgeProxy.getEvmExecutionResult(messages[0].nonce);
+        assertEq(executionResult.success, true, "Execution result should be stored");
     }
 
     function test_MessageBridgePauseUnpause() public {
@@ -1886,7 +1886,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
 
         // Expect revert with MessageNotFound error
         vm.expectRevert(abi.encodeWithSelector(MessageBridge.MessageNotFound.selector, nonExistentNonce));
-        messageBridgeProxy.getResult(nonExistentNonce);
+        messageBridgeProxy.getEvmExecutionResult(nonExistentNonce);
     }
 
     // test getResult with existing message but no stored result
@@ -1904,7 +1904,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         messageBridgeProxy.executeMessage(nonce);
         // Try to get result for the executed message - should revert
         vm.expectRevert(abi.encodeWithSelector(MessageBridge.ResultNotFound.selector, nonce));
-        messageBridgeProxy.getResult(nonce);
+        messageBridgeProxy.getEvmExecutionResult(nonce);
     }
 
     // test getResult with existing message and stored result
@@ -1925,7 +1925,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         assertTrue(executionResult.success, "Message execution should succeed");
 
         // Get the result for the executed message
-        AMBTypes.Result memory result = messageBridgeProxy.getResult(nonce);
+        AMBTypes.Result memory result = messageBridgeProxy.getEvmExecutionResult(nonce);
 
         // Verify the result matches the execution result
         assertEq(result.success, executionResult.success, "Execution result success should match");
@@ -1946,7 +1946,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         AMBTypes.Result memory executionResult = messageBridgeProxy.executeMessage(nonce);
         assertFalse(executionResult.success, "Message execution should fail");
         // Get the result for the executed message
-        AMBTypes.Result memory result = messageBridgeProxy.getResult(nonce);
+        AMBTypes.Result memory result = messageBridgeProxy.getEvmExecutionResult(nonce);
         // Verify the result matches the execution result
         assertEq(result.success, executionResult.success, "Execution result success should match");
         assertEq(result.returnData, executionResult.returnData, "Execution result return data should match");
@@ -1966,7 +1966,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         AMBTypes.Result memory executionResult = messageBridgeProxy.executeMessage(nonce);
         assertTrue(executionResult.success, "Message execution should succeed");
         // Get the result for the executed message
-        AMBTypes.Result memory result = messageBridgeProxy.getResult(nonce);
+        AMBTypes.Result memory result = messageBridgeProxy.getEvmExecutionResult(nonce);
         // Verify the result matches the execution result
         assertEq(result.success, executionResult.success, "Execution result success should match");
         assertEq(result.returnData, executionResult.returnData, "Execution result return data should match");
@@ -1987,7 +1987,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         assertTrue(executionResult.success, "Message execution should succeed");
         // Expect revert when trying to get result for a message that did not store result
         vm.expectRevert(abi.encodeWithSelector(MessageBridge.ResultNotFound.selector, nonce));
-        messageBridgeProxy.getResult(nonce);
+        messageBridgeProxy.getEvmExecutionResult(nonce);
     }
 
     // test getResult with failWithPanic() method from TestContract
@@ -2005,7 +2005,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         AMBTypes.Result memory executionResult = messageBridgeProxy.executeMessage(nonce);
         assertFalse(executionResult.success, "Message execution should fail with panic");
         // Get the result for the executed message
-        AMBTypes.Result memory result = messageBridgeProxy.getResult(nonce);
+        AMBTypes.Result memory result = messageBridgeProxy.getEvmExecutionResult(nonce);
         // Verify the result matches the execution result
         assertEq(result.success, executionResult.success, "Execution result success should match");
         assertEq(result.returnData, executionResult.returnData, "Execution result return data should match");

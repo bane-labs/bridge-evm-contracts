@@ -29,7 +29,8 @@ contract MessageBridgeSyncStoring is MessageBridgeTestHelper {
         bytes memory message = _prepareMessage(testContract, arg1, arg2);
 
         // Create metadata and compute hashes
-        (AMBTypes.MetadataExecutable memory metadata, bytes32 newNeoToEvmRoot) = _createMetadataAndComputeHashes(message);
+        (AMBTypes.MetadataExecutable memory metadata, bytes32 newNeoToEvmRoot) =
+            _createMetadataAndComputeHashes(message);
 
         // Store the message
         _storeMessage(metadata, message, newNeoToEvmRoot);
