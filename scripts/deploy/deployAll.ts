@@ -6,7 +6,7 @@ import { deployBridgeManagement } from "./management";
 import { deployBridge } from "./bridge";
 import { deployMessageBridge } from "./messageBridge";
 import { deployExecutionManager } from "./executionManager";
-import { TestBridgeManagement, TestBridge, TestMessageBridge, ExecutionManager } from "../../typechain-types";
+import { TestBridgeManagement, TestBridge, MessageBridge, ExecutionManager } from "../../typechain-types";
 
 export async function deployAll(): Promise<void> {
     console.log("\n#####################################################################");
@@ -47,7 +47,7 @@ export async function deployAll(): Promise<void> {
     console.log("ExecutionManager: ", executionManagerAddress);
 }
 
-async function ensureConsistentState(management: TestBridgeManagement, bridge: TestBridge, messageBridge: TestMessageBridge, executionManager: ExecutionManager): Promise<void> {
+async function ensureConsistentState(management: TestBridgeManagement, bridge: TestBridge, messageBridge: MessageBridge, executionManager: ExecutionManager): Promise<void> {
     const managementAddress = await management.getAddress();
     const messageBridgeAddress = await messageBridge.getAddress();
     const executionManagerAddress = await executionManager.getAddress();
