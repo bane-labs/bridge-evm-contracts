@@ -29,8 +29,10 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
         uint256 _maxNrMessages,
         uint256 _executionWindowSeconds
     )
-        public
+        external
+        virtual
         initializer
+        onlyAdmin
     {
         __ReentrancyGuard_init();
         getStorage().management = IBridgeManagement(_management);

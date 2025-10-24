@@ -6,7 +6,7 @@ import { deployBridgeManagement } from "./management";
 import { deployBridge } from "./bridge";
 import { deployMessageBridge } from "./messageBridge";
 import { deployExecutionManager } from "./executionManager";
-import { TestBridgeManagement, TestBridge, MessageBridge, ExecutionManager } from "../../typechain-types";
+import { TestBridgeManagement, TestBridge, TestMessageBridge, ExecutionManager } from "../../typechain-types";
 
 export async function deployAll(): Promise<void> {
     console.log("\n#####################################################################");
@@ -40,36 +40,36 @@ export async function deployAll(): Promise<void> {
 
     await ensureConsistentState(management, bridge, messageBridge, executionManager);
 
-    console.log("\n🏁 Summary of Deployed Contracts (without logic addresses)");
+    console.log("\nSummary of Deployed Contracts (without logic addresses)");
     console.log("BridgeManagement: ", managementAddress);
     console.log("Bridge:           ", bridgeAddress);
     console.log("MessageBridge:    ", messageBridgeAddress);
     console.log("ExecutionManager: ", executionManagerAddress);
 }
 
-async function ensureConsistentState(management: TestBridgeManagement, bridge: TestBridge, messageBridge: MessageBridge, executionManager: ExecutionManager): Promise<void> {
+async function ensureConsistentState(management: TestBridgeManagement, bridge: TestBridge, messageBridge: TestMessageBridge, executionManager: ExecutionManager): Promise<void> {
     const managementAddress = await management.getAddress();
     const messageBridgeAddress = await messageBridge.getAddress();
     const executionManagerAddress = await executionManager.getAddress();
 
-    console.log("\n🔍 Ensuring consistent state across deployed contracts...");
+    console.log("\nEnsuring consistent state across deployed contracts...");
     if (matches(await bridge.management(), managementAddress)) {
-        console.log("✅ BridgeManagement address correctly set on Bridge contract");
+        console.log("✓ BridgeManagement address correctly set on Bridge contract");
     } else {
         throw new Error("BridgeManagement address on Bridge does not match deployed management contract address");
     }
     if (matches(await messageBridge.management(), managementAddress)) {
-        console.log("✅ BridgeManagement address correctly set on MessageBridge contract");
+        console.log("✓ BridgeManagement address correctly set on MessageBridge contract");
     } else {
         throw new Error("BridgeManagement address on MessageBridge does not match deployed BridgeManagement contract address");
     }
     if (matches(await messageBridge.executionManager(), executionManagerAddress)) {
-        console.log("✅ ExecutionManager address correctly set on MessageBridge contract");
+        console.log("✓ ExecutionManager address correctly set on MessageBridge contract");
     } else {
         throw new Error("ExecutionManager address on MessageBridge does not match deployed ExecutionManager contract address");
     }
     if (await executionManager.hasRole(await executionManager.BRIDGE_ROLE(), messageBridgeAddress)) {
-        console.log("✅ MessageBridge has bridge role privileges on ExecutionManager contract");
+        console.log("✓ MessageBridge has bridge role privileges on ExecutionManager contract");
     } else {
         throw new Error("MessageBridge does not have bridge role privileges on ExecutionManager contract");
     }

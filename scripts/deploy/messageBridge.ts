@@ -5,26 +5,26 @@ import {fundIfLocalNetwork, printNetworkConfiguration} from '../utils/network';
 import {getDeployer, getGovernor} from '../utils/wallet';
 import {deployBridgeManagement} from './management';
 import {deployExecutionManager} from './executionManager';
-import {MessageBridge} from '../../typechain-types';
+import {TestMessageBridge} from '../../typechain-types';
 
-// IMPORTANT: This script deploys the MessageBridge contract, which is a test contract that is not meant to be used in production.
-export async function deployMessageBridge(managementAddress: string, deployer: Wallet): Promise<MessageBridge> {
+// IMPORTANT: This script deploys the TestMessageBridge contract, which is a test contract that is not meant to be used in production.
+export async function deployMessageBridge(managementAddress: string, deployer: Wallet): Promise<TestMessageBridge> {
     const SENDING_FEE = ethers.parseEther("0.1");
     const MAX_MESSAGE_SIZE = 10240; // 10 kb
     const MAX_NR_MESSAGES = 100;
     const EXECUTION_WINDOW_SECONDS = 3600 * 24; // 1 day
     await fundIfLocalNetwork([deployer.address], false);
     // Deploy the bridge contract behind a proxy
-    const MessageBridgeFactory = (await ethers.getContractFactory("MessageBridge")).connect(deployer);
+    const MessageBridgeFactory = (await ethers.getContractFactory("TestMessageBridge")).connect(deployer);
     const msgBridgeProxy = await upgrades.deployProxy(MessageBridgeFactory, [managementAddress, SENDING_FEE, MAX_MESSAGE_SIZE, MAX_NR_MESSAGES, EXECUTION_WINDOW_SECONDS], { kind: "uups", unsafeAllow: ["constructor", "missing-initializer"], txOverrides: { maxFeePerGas: MAX_FEE_PER_GAS, maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS } });
     await msgBridgeProxy.waitForDeployment();
-    const msgBridge = await ethers.getContractAt("MessageBridge", await msgBridgeProxy.getAddress());
+    const msgBridge = await ethers.getContractAt("TestMessageBridge", await msgBridgeProxy.getAddress());
 
-    console.log("\n📝 Deployment of MessageBridge");
+    console.log("\nDeployment of MessageBridge");
     console.log("MessageBridge Proxy: ", await msgBridge.getAddress());
     console.log("MessageBridge Logic: ", await upgrades.erc1967.getImplementationAddress(await msgBridge.getAddress()));
 
-    console.log("\n💾 MessageBridge Configuration");
+    console.log("\nMessageBridge Configuration");
     console.log("Management Contract:             ", await msgBridge.management());
     console.log("MessageBridge Paused:            ", await msgBridge.messageBridgePaused());
     console.log("MessageBridge Sending Paused:    ", await msgBridge.sendingPaused());
@@ -36,7 +36,7 @@ export async function deployMessageBridge(managementAddress: string, deployer: W
     return msgBridge;
 }
 
-export async function deployMessageBridgeContracts(): Promise<MessageBridge> {
+export async function deployMessageBridgeContracts(): Promise<TestMessageBridge> {
     console.log("\n#####################################################################");
     console.log("################ MessageBridge Contracts Deployment #################");
     console.log("#####################################################################");

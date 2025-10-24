@@ -80,7 +80,7 @@ abstract contract MessageBridgeTestHelper is Test, SigUtils {
 
         // Deploy the MessageBridge implementation
         messageBridgeProxyAddress = Upgrades.deployUUPSProxy(
-            "MessageBridge.sol",
+            "TestMessageBridge.sol",
             abi.encodeCall(
                 MessageBridge.initialize,
                 (managementProxyAddress, messageFee, maxMessageSize, maxNrMessages, executionWindowSeconds)

@@ -15,7 +15,7 @@ export async function deployNeoTokenContract(deployer: Wallet): Promise<NeoToken
     await neoTokenProxy.waitForDeployment();
     const neoToken = await ethers.getContractAt("NeoToken", await neoTokenProxy.getAddress());
 
-    console.log("\n# Deployment");
+    console.log("\nDeployment");
     console.log("Neo Token Address: ", await neoToken.getAddress());
     console.log("Minted Tokens: ", ethers.formatEther(await neoToken.totalSupply()));
     return neoToken;
@@ -25,7 +25,7 @@ async function main() {
     const deployer = getPersonalWallet(ethers.provider);
     await fundIfLocalNetwork([deployer.address]);
     const neoToken = await deployNeoTokenContract(deployer);
-    console.log("\n# NeoToken Contract Deployment Completed");
+    console.log("\nNeoToken Contract Deployment Completed");
 }
 
 main().catch((error) => {

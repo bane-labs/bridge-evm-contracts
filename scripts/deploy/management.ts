@@ -21,11 +21,11 @@ export async function deployBridgeManagement(deployer: Wallet): Promise<TestBrid
     await managementProxy.waitForDeployment();
     const management = await ethers.getContractAt("TestBridgeManagement", await managementProxy.getAddress());
 
-    console.log("\n📝 Deployment of BridgeManagement");
+    console.log("\nDeployment of BridgeManagement");
     console.log("BridgeManagement Proxy: ", await management.getAddress());
     console.log("BridgeManagement Logic: ", await upgrades.erc1967.getImplementationAddress(await management.getAddress()));
 
-    console.log("\n👉 Roles");
+    console.log("\nRoles");
     console.log("Owner:               ", await management.owner());
     console.log("Relayer:             ", await management.getRelayer());
     console.log("Validator Threshold: ", (await management.getValidatorThreshold()).toString());

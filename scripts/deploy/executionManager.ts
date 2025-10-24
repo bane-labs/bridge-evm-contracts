@@ -20,7 +20,7 @@ export async function deployExecutionManager(deployer: Wallet, bridgeAddress: an
     await executionManager.waitForDeployment();
 
     const contractAddress = await executionManager.getAddress();
-    console.log("\n📝 Deployment of ExecutionManager");
+    console.log("\nDeployment of ExecutionManager");
     console.log("Execution Manager: ", contractAddress);
 
     // Verify the contract has code deployed

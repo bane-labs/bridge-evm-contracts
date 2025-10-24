@@ -15,11 +15,11 @@ export async function deployBridge(managementAddress: string, deployer: Wallet, 
     await bridgeProxy.waitForDeployment();
     const bridge = await ethers.getContractAt("TestBridge", await bridgeProxy.getAddress());
 
-    console.log("\n📝 Deployment of Bridge");
+    console.log("\nDeployment of Bridge");
     console.log("Bridge Proxy: ", await bridge.getAddress());
     console.log("Bridge Logic: ", await upgrades.erc1967.getImplementationAddress(await bridge.getAddress()));
 
-    console.log("\n💾 Bridge Configuration");
+    console.log("\nBridge Configuration");
     console.log("Linked Management:          ", await bridge.management());
     return bridge;
 }
