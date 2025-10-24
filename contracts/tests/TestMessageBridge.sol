@@ -16,8 +16,9 @@ contract TestMessageBridge is MessageBridge {
         uint256 _maxNrMessages,
         uint256 _executionWindowSeconds
     )
-        public
+        external
         override
+        initializer
     {
         __initialize(_management, _fee, _maxMessageSize, _maxNrMessages, _executionWindowSeconds);
     }
