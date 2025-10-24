@@ -1296,7 +1296,7 @@ contract BridgeImplementationForgeTest is Test, SigUtils {
 
         // Bridge balance should decrease for zero address deposit (funds are burned)
         assertEq(address(bridgeContract).balance, bridgeBalanceBefore - toEthDecimals(zeroAddressDeposit.amount));
-        // Asert zero address has balance increased
+        // Assert zero address has balance increased
         assertEq(address(0).balance, toEthDecimals(zeroAddressDeposit.amount));
 
         (, StorageTypes.State memory depositState,,) = bridgeContract.nativeBridge();
