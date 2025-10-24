@@ -11,7 +11,6 @@ import {IMessageBridge} from "../contracts/messageBridge/interfaces/IMessageBrid
 import {ReentrancyAttacker} from "../contracts/tests/ReentrancyAttacker.sol";
 import {SigUtils} from "../contracts/tests/SigUtils.sol";
 import {TestBridgeManagement} from "../contracts/tests/TestBridgeManagement.sol";
-import {TestMessageBridge} from "../contracts/tests/TestMessageBridge.sol";
 import {TestPayableContract} from "../contracts/tests/TestPayableContract.sol";
 import {CommonBase} from "../lib/forge-std/src/Base.sol";
 import {StdAssertions} from "../lib/forge-std/src/StdAssertions.sol";
@@ -23,7 +22,7 @@ import {Options} from "../lib/openzeppelin-foundry-upgrades/src/Options.sol";
 import {Upgrades} from "../lib/openzeppelin-foundry-upgrades/src/Upgrades.sol";
 
 abstract contract MessageBridgeTestHelper is Test, SigUtils {
-    TestMessageBridge messageBridgeProxy;
+    MessageBridge messageBridgeProxy;
     address messageBridgeProxyAddress;
 
     // Management
@@ -83,12 +82,12 @@ abstract contract MessageBridgeTestHelper is Test, SigUtils {
         messageBridgeProxyAddress = Upgrades.deployUUPSProxy(
             "TestMessageBridge.sol",
             abi.encodeCall(
-                TestMessageBridge.initialize,
+                MessageBridge.initialize,
                 (managementProxyAddress, messageFee, maxMessageSize, maxNrMessages, executionWindowSeconds)
             ),
             opts
         );
-        messageBridgeProxy = TestMessageBridge(payable(messageBridgeProxyAddress));
+        messageBridgeProxy = MessageBridge(payable(messageBridgeProxyAddress));
 
         // Deploy and set up the Message Executor
         executionManager = new ExecutionManager(messageBridgeProxyAddress);

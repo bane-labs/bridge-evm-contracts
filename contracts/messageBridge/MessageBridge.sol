@@ -12,14 +12,60 @@ import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/ut
 import {StorageTypes} from "../library/StorageTypes.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-/// @custom:oz-upgrades-unsafe-allow missing-initializer
 contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgradeable, AMBStorage {
     address public constant GOV_ADMIN = 0x1212000000000000000000000000000000000000;
 
     uint32 public constant VERSION = 1;
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
+    }
+
+    function initialize(
+        address _management,
+        uint256 _fee,
+        uint256 _maxMessageSize,
+        uint256 _maxNrMessages,
+        uint256 _executionWindowSeconds
+    )
+        external
+        virtual
+        onlyAdmin
+        initializer
+    {
+        __initialize(_management, _fee, _maxMessageSize, _maxNrMessages, _executionWindowSeconds);
+    }
+
+    function __initialize(
+        address _management,
+        uint256 _fee,
+        uint256 _maxMessageSize,
+        uint256 _maxNrMessages,
+        uint256 _executionWindowSeconds
+    )
+        internal
+        onlyInitializing
+    {
+        __ReentrancyGuard_init();
+        getStorage().management = IBridgeManagement(_management);
+        if (_fee == 0) revert InvalidFee();
+        if (_maxMessageSize == 0) revert InvalidValue();
+        if (_maxNrMessages == 0) revert InvalidValue();
+
+        getStorage().messageBridgeState = MessageBridgeState({
+            paused: true,
+            sendingPaused: false,
+            executingPaused: false,
+            neoToEvmState: StorageTypes.State({nonce: 0, root: 0x0}),
+            evmToNeoState: StorageTypes.State({nonce: 0, root: 0x0}),
+            config: MessageConfig({
+                fee: _fee,
+                maxMessageSize: _maxMessageSize,
+                maxNrMessages: _maxNrMessages,
+                executionWindowSeconds: _executionWindowSeconds
+            })
+        });
     }
 
     //0x79828e03

@@ -20,11 +20,11 @@ export async function deployMessageBridge(managementAddress: string, deployer: W
     await msgBridgeProxy.waitForDeployment();
     const msgBridge = await ethers.getContractAt("TestMessageBridge", await msgBridgeProxy.getAddress());
 
-    console.log("\n📝 Deployment of MessageBridge");
+    console.log("\nDeployment of MessageBridge");
     console.log("MessageBridge Proxy: ", await msgBridge.getAddress());
     console.log("MessageBridge Logic: ", await upgrades.erc1967.getImplementationAddress(await msgBridge.getAddress()));
 
-    console.log("\n💾 MessageBridge Configuration");
+    console.log("\nMessageBridge Configuration");
     console.log("Management Contract:             ", await msgBridge.management());
     console.log("MessageBridge Paused:            ", await msgBridge.messageBridgePaused());
     console.log("MessageBridge Sending Paused:    ", await msgBridge.sendingPaused());
