@@ -205,7 +205,7 @@ contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgrad
      * @notice Sends a store-only message to the Neo N3 blockchain.
      * @param _message The message to be sent.
      */
-    function sendMessage(bytes calldata _message)
+    function sendStoreOnlyMessage(bytes calldata _message)
         external
         payable
         whenNotPaused

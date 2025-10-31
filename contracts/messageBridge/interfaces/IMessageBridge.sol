@@ -39,7 +39,6 @@ interface IMessageBridge {
         external
         view
         returns (AMBStorage.ExecutableState memory executableState);
-    function sendMessage(bytes calldata message) external payable returns (uint256 nonce);
     function sendExecutableMessage(
         bytes calldata _message,
         bool storeResult
@@ -47,6 +46,7 @@ interface IMessageBridge {
         external
         payable
         returns (uint256 nonce);
+    function sendStoreOnlyMessage(bytes calldata message) external payable returns (uint256 nonce);
     function sendResultMessage(uint256 relatedMessageNonce) external payable returns (uint256 nonce);
     function getEvmExecutionResult(uint256 relatedMessageNonce) external view returns (AMBTypes.Result memory result);
     function getNeoExecutionResult(uint256 relatedMessageNonce) external view returns (bytes memory result);
