@@ -97,7 +97,7 @@ export class MessageBridgeUtils {
           { value: fee, ...DEFAULT_TX_OVERRIDES }
         );
       } else if (type === MessageType.STORE_ONLY) {
-        tx = await this.messageBridge.sendMessage(
+        tx = await this.messageBridge.sendStoreOnlyMessage(
           message,
           { value: fee, ...DEFAULT_TX_OVERRIDES }
         );

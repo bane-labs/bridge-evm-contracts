@@ -197,7 +197,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         messageBridgeProxy.sendExecutableMessage(testMessage1, false);
 
         vm.expectRevert(abi.encodeWithSelector(MessageBridge.SendingPaused.selector));
-        messageBridgeProxy.sendMessage(testMessage1);
+        messageBridgeProxy.sendStoreOnlyMessage(testMessage1);
     }
 
     function test_pauseExecuting() public {
@@ -1319,7 +1319,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         );
 
         // Send the message with the required fee
-        uint256 newNonce = messageBridgeProxy.sendMessage{value: messageFee}(message);
+        uint256 newNonce = messageBridgeProxy.sendStoreOnlyMessage{value: messageFee}(message);
         assertEq(newNonce, expectedNonce, "Returned nonce should match expected");
 
         // Get the updated state
@@ -1341,7 +1341,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         vm.expectRevert(abi.encodeWithSelector(MessageBridge.InsufficientFee.selector, messageFee, insufficientFee));
 
         // Send the message with insufficient fee
-        messageBridgeProxy.sendMessage{value: insufficientFee}(message);
+        messageBridgeProxy.sendStoreOnlyMessage{value: insufficientFee}(message);
     }
 
     function test_SendMessage_MessageTooLarge() public {
@@ -1360,7 +1360,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         );
 
         // Send the oversized message
-        messageBridgeProxy.sendMessage{value: messageFee}(largeMessage);
+        messageBridgeProxy.sendStoreOnlyMessage{value: messageFee}(largeMessage);
     }
 
     function test_SendMessage_ExactMaxMessageSize() public {
@@ -1379,7 +1379,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         uint256 expectedNonce = initialNonce + 1;
 
         // Send the message (should not revert)
-        uint256 newNonce = messageBridgeProxy.sendMessage{value: messageFee}(exactSizeMessage);
+        uint256 newNonce = messageBridgeProxy.sendStoreOnlyMessage{value: messageFee}(exactSizeMessage);
         assertEq(newNonce, expectedNonce, "Returned nonce should match expected nonce");
 
         // Get the updated state
@@ -1401,7 +1401,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         vm.expectRevert(abi.encodeWithSelector(MessageBridge.MessageBridgePaused.selector));
 
         // Attempt to send a message while the message bridge is paused
-        messageBridgeProxy.sendMessage{value: messageFee}(message);
+        messageBridgeProxy.sendStoreOnlyMessage{value: messageFee}(message);
     }
 
     function test_SendMessage_ExcessFeeRefund() public {
@@ -1420,7 +1420,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         // Send the message with excess fee
         // Impersonate an EOA to send the message
         vm.prank(owner);
-        messageBridgeProxy.sendMessage{value: excessFee}(message);
+        messageBridgeProxy.sendStoreOnlyMessage{value: excessFee}(message);
 
         // Track balance after sending
         uint256 balanceAfter = address(owner).balance;
@@ -1443,7 +1443,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         // Try to send message from the contract with excess fee
         vm.prank(address(testContract));
         vm.expectRevert(abi.encodeWithSelector(MessageBridge.ExactFeeRequired.selector, messageFee, messageFee * 2));
-        messageBridgeProxy.sendMessage{value: messageFee * 2}(message);
+        messageBridgeProxy.sendStoreOnlyMessage{value: messageFee * 2}(message);
     }
 
     function test_SendMessage_EmptyMessage() public {
@@ -1451,7 +1451,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         bytes memory emptyMessage = new bytes(0);
 
         // Send the empty message
-        messageBridgeProxy.sendMessage{value: messageFee}(emptyMessage);
+        messageBridgeProxy.sendStoreOnlyMessage{value: messageFee}(emptyMessage);
 
         // Get the updated state
         StorageTypes.State memory updatedState = messageBridgeProxy.evmToNeoState();
@@ -1467,21 +1467,21 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         bytes memory message3 = abi.encodePacked("Third message");
 
         // Send first message
-        messageBridgeProxy.sendMessage{value: messageFee}(message1);
+        messageBridgeProxy.sendStoreOnlyMessage{value: messageFee}(message1);
 
         // Get the state after first message
         StorageTypes.State memory state1 = messageBridgeProxy.evmToNeoState();
         assertEq(state1.nonce, 1, "Nonce should be 1 after first message");
 
         // Send second message
-        messageBridgeProxy.sendMessage{value: messageFee}(message2);
+        messageBridgeProxy.sendStoreOnlyMessage{value: messageFee}(message2);
 
         // Get the state after second message
         StorageTypes.State memory state2 = messageBridgeProxy.evmToNeoState();
         assertEq(state2.nonce, 2, "Nonce should be 2 after second message");
 
         // Send third message
-        messageBridgeProxy.sendMessage{value: messageFee}(message3);
+        messageBridgeProxy.sendStoreOnlyMessage{value: messageFee}(message3);
 
         // Get the state after third message
         StorageTypes.State memory state3 = messageBridgeProxy.evmToNeoState();
