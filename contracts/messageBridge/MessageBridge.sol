@@ -15,7 +15,7 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 contract MessageBridge is IMessageBridge, ReentrancyGuardUpgradeable, UUPSUpgradeable, AMBStorage {
     address public constant GOV_ADMIN = 0x1212000000000000000000000000000000000000;
 
-    uint32 public constant VERSION = 1;
+    string public constant VERSION = "1.0.0";
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {

@@ -8,6 +8,8 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 contract ExecutionManager is IExecutionManager, AccessControl {
     bytes32 public constant BRIDGE_ROLE = keccak256("BRIDGE_ROLE");
 
+    string public constant VERSION = "1.0.0";
+
     uint256 public executingNonce;
 
     //0x15fcd675
