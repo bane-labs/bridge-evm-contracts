@@ -1,8 +1,7 @@
 const { getMessageBridgeFromEnv } = require("../utils/addresses");
-const { DEFAULT_TX_OVERRIDES } = require("../utils/constants");
 
 async function getExecutionResult(messageBridge, nonce) {
-    const { success, returnData } = await messageBridge.getResult(nonce, DEFAULT_TX_OVERRIDES);
+    const { success, returnData } = await messageBridge.getEvmExecutionResult(nonce);
     console.log("Execution result:");
     console.log(success);
     console.log(returnData);
