@@ -1,17 +1,9 @@
 import { ethers } from "hardhat";
-<<<<<<< Updated upstream:scripts/deployTokenAndRegisterNeo.ts
-import { deployTokenContract } from "./deploy/token";
-import { getBridgeFromEnv, N3_NEO_ADDRESS } from "./utils/addresses";
-import { fundIfLocalNetwork } from "./utils/network";
-import { registerTokenWithScalingFactor } from "./utils/registration";
-import { getDeployer, getGovernor } from "./utils/wallet";
-=======
 import { deployTokenContract } from "../deploy/token";
 import { getBridgeFromEnv, N3_NEO_ADDRESS } from "../utils/addresses";
 import { fundIfLocalNetwork } from "../utils/network";
 import { registerTokenWithScalingFactor } from "../utils/registration";
-import {getDeployer, getGovernor } from '../utils/wallet';
->>>>>>> Stashed changes:scripts/registration/deployTokenAndRegisterNeo.ts
+import { getDeployer, getGovernor } from "../utils/wallet";
 
 async function main() {
     const deployer = getDeployer(ethers.provider);
