@@ -1,8 +1,8 @@
 import { ethers } from "hardhat";
-import { getBridgeFromEnv } from "./utils/addresses";
-import { fundIfLocalNetwork } from "./utils/network";
-import { getGovernor } from "./utils/wallet";
-import { DEFAULT_TX_OVERRIDES } from "./utils/constants";
+import { getBridgeFromEnv } from "../utils/addresses";
+import { fundIfLocalNetwork } from "../utils/network";
+import { getGovernor } from "../utils/wallet";
+import { DEFAULT_TX_OVERRIDES } from "../utils/constants";
 
 /**
  * Script to unpause a specific token bridge
@@ -19,7 +19,7 @@ import { DEFAULT_TX_OVERRIDES } from "./utils/constants";
  * - Token must be registered with the bridge
  */
 
-async function main() {
+export async function main() {
     const tokenAddress = process.env.TOKEN_ADDRESS;
 
     if (!tokenAddress) {

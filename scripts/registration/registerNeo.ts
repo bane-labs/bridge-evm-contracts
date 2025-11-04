@@ -1,8 +1,8 @@
 import { ethers } from "hardhat";
-import { N3_NEO_ADDRESS, getBridgeFromEnv, getNeoXTokenFromEnv } from "./utils/addresses";
-import { fundIfLocalNetwork } from "./utils/network";
-import { registerTokenWithScalingFactor } from "./utils/registration";
-import { getDeployer, getOwner } from "./utils/wallet";
+import { N3_NEO_ADDRESS, getBridgeFromEnv, getNeoXTokenFromEnv } from "../utils/addresses";
+import { fundIfLocalNetwork } from "../utils/network";
+import { registerTokenWithScalingFactor } from "../utils/registration";
+import { getDeployer, getOwner } from "../utils/wallet";
 
 async function main() {
     const deployer = getDeployer(ethers.provider);
