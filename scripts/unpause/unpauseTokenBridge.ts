@@ -1,8 +1,7 @@
 import { ethers } from "hardhat";
-import { getBridgeFromEnv } from "../utils/addresses";
-import { fundIfLocalNetwork } from "../utils/network";
-import { getGovernor } from "../utils/wallet";
+import { validateTokenAddress, checkTokenRegistration, executeUnpause, UnpauseConfig } from "./unpauseUtils";
 import { DEFAULT_TX_OVERRIDES } from "../utils/constants";
+import { getBridgeFromEnv } from "../utils/addresses";
 
 /**
  * Script to unpause a specific token bridge
@@ -20,92 +19,27 @@ import { DEFAULT_TX_OVERRIDES } from "../utils/constants";
  */
 
 export async function main() {
-    const tokenAddress = process.env.TOKEN_ADDRESS;
+    const tokenAddress = await validateTokenAddress(process.env.TOKEN_ADDRESS);
 
-    if (!tokenAddress) {
-        throw new Error("TOKEN_ADDRESS environment variable is required");
-    }
-
-    if (!ethers.isAddress(tokenAddress)) {
-        throw new Error(`Invalid token address: ${tokenAddress}`);
-    }
-
-    console.log(`\nUnpausing Token Bridge for: ${tokenAddress}`);
-    console.log("=" .repeat(60));
-
-    // Get the governor wallet
-    const governor = getGovernor(ethers.provider);
-    await fundIfLocalNetwork([governor.address]);
-
-    console.log(`Governor address: ${governor.address}`);
-
-    // Get the bridge contract
+    // Custom pre-check for token registration
     const bridge = await getBridgeFromEnv(ethers.provider);
-    const bridgeAddress = await bridge.getAddress();
-    console.log(`Bridge address: ${bridgeAddress}`);
+    await checkTokenRegistration(bridge, tokenAddress);
 
-    try {
-        // Check if token is registered by checking if it exists in tokenBridges mapping
-        console.log("\nChecking token registration...");
-        const tokenBridgeStruct = await bridge.tokenBridges(tokenAddress);
-        const isRegistered = tokenBridgeStruct.config.fee > 0; // If fee is set, token is registered
-        console.log(`Token registered: ${isRegistered}`);
+    const config: UnpauseConfig = {
+        title: `Token Bridge (${tokenAddress})`,
+        checkPausedMethod: async (bridge) => await bridge.getTokenbridgePaused(tokenAddress),
+        unpauseMethod: async (bridge, governor) =>
+            await bridge.connect(governor).unpauseTokenBridge(tokenAddress, DEFAULT_TX_OVERRIDES),
+        tokenAddress: tokenAddress
+    };
 
-        if (!isRegistered) {
-            throw new Error(`Token ${tokenAddress} is not registered with the bridge`);
-        }
-
-        // Check current pause status using TestBridge helper method
-        console.log("\nChecking current token bridge status...");
-        const tokenBridgePaused = await bridge.getTokenbridgePaused(tokenAddress);
-        console.log(`Token bridge paused: ${tokenBridgePaused}`);
-
-        if (!tokenBridgePaused) {
-            console.log("Token bridge is already unpaused!");
-            return;
-        }
-
-        // Unpause the token bridge
-        console.log(`\nUnpausing token bridge for ${tokenAddress}...`);
-        const tx = await bridge.connect(governor).unpauseTokenBridge(tokenAddress, DEFAULT_TX_OVERRIDES);
-        console.log(`Transaction hash: ${tx.hash}`);
-
-        const receipt = await tx.wait();
-        console.log(`Token bridge unpaused successfully!`);
-        console.log(`Gas used: ${receipt?.gasUsed.toString()}`);
-        console.log(`Block number: ${receipt?.blockNumber}`);
-
-        // Verify the unpause
-        console.log("\nVerifying unpause...");
-        const updatedTokenBridgePaused = await bridge.getTokenbridgePaused(tokenAddress);
-        console.log(`Token bridge paused: ${updatedTokenBridgePaused}`);
-
-        if (updatedTokenBridgePaused) {
-            throw new Error("Token bridge is still paused after unpause transaction");
-        }
-
-        console.log("\nToken bridge unpause completed successfully!");
-
-    } catch (error: any) {
-        console.error("\nError unpausing token bridge:");
-
-        if (error.reason) {
-            console.error(`Reason: ${error.reason}`);
-        }
-
-        if (error.code) {
-            console.error(`Code: ${error.code}`);
-        }
-
-        if (error.message) {
-            console.error(`Message: ${error.message}`);
-        }
-
-        throw error;
-    }
+    await executeUnpause(config);
 }
 
-main().catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
-});
+// Only execute main() if this script is run directly (not imported)
+if (require.main === module) {
+    main().catch((error) => {
+        console.error(error);
+        process.exitCode = 1;
+    });
+}

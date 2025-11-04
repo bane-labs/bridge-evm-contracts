@@ -1,7 +1,5 @@
 import { ethers } from "hardhat";
-import { getBridgeFromEnv } from "../utils/addresses";
-import { fundIfLocalNetwork } from "../utils/network";
-import { getGovernor } from "../utils/wallet";
+import { executeUnpause, UnpauseConfig } from "./unpauseUtils";
 import { DEFAULT_TX_OVERRIDES } from "../utils/constants";
 
 /**
@@ -19,65 +17,23 @@ import { DEFAULT_TX_OVERRIDES } from "../utils/constants";
  */
 
 export async function main() {
-    console.log(`\nUnpausing Native Bridge`);
-    console.log("=" .repeat(40));
+    const config: UnpauseConfig = {
+        title: "Native Bridge",
+        checkPausedMethod: async (bridge) => {
+            const nativeBridgeStruct = await bridge.nativeBridge();
+            return nativeBridgeStruct.paused;
+        },
+        unpauseMethod: async (bridge, governor) =>
+            await bridge.connect(governor).unpauseNativeBridge(DEFAULT_TX_OVERRIDES)
+    };
 
-    // Get the governor wallet
-    const governor = getGovernor(ethers.provider);
-    await fundIfLocalNetwork([governor.address]);
-
-    console.log(`Governor address: ${governor.address}`);
-
-    // Get the bridge contract
-    const bridge = await getBridgeFromEnv(ethers.provider);
-    const bridgeAddress = await bridge.getAddress();
-    console.log(`Bridge address: ${bridgeAddress}`);
-
-    try {
-        // Check current native bridge status
-        console.log("\nChecking current native bridge status...");
-        const nativeBridgeStruct = await bridge.nativeBridge();
-        const nativeBridgePaused = nativeBridgeStruct.paused;
-        console.log(`Native bridge paused: ${nativeBridgePaused}`);
-
-        if (nativeBridgePaused) {
-            console.log("\nUnpausing native bridge...");
-            const tx = await bridge.connect(governor).unpauseNativeBridge(DEFAULT_TX_OVERRIDES);
-            console.log(`Transaction hash: ${tx.hash}`);
-            const receipt = await tx.wait();
-            console.log(`Native bridge unpaused successfully! Gas used: ${receipt?.gasUsed.toString()}`);
-        } else {
-            console.log("Native bridge is already unpaused!");
-        }
-
-        // Verify final status
-        console.log("\nVerifying final native bridge status...");
-        const finalNativeBridgeStruct = await bridge.nativeBridge();
-        const finalNativeBridgePaused = finalNativeBridgeStruct.paused;
-        console.log(`Native bridge paused: ${finalNativeBridgePaused}`);
-
-        console.log(`\nNative bridge unpause operation completed successfully!`);
-
-    } catch (error: any) {
-        console.error("\nError during native bridge unpause:");
-
-        if (error.reason) {
-            console.error(`Reason: ${error.reason}`);
-        }
-
-        if (error.code) {
-            console.error(`Code: ${error.code}`);
-        }
-
-        if (error.message) {
-            console.error(`Message: ${error.message}`);
-        }
-
-        throw error;
-    }
+    await executeUnpause(config);
 }
 
-main().catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
-});
+// Only execute main() if this script is run directly (not imported)
+if (require.main === module) {
+    main().catch((error) => {
+        console.error(error);
+        process.exitCode = 1;
+    });
+}

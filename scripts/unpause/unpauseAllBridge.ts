@@ -35,18 +35,18 @@ interface UnpauseOperation {
 
 // Import the main functions from individual unpause scripts
 async function unpauseBridgeLogic(): Promise<void> {
-    const { main: unpauseBridgeMain } = await import("./unpauseBridge");
-    await unpauseBridgeMain();
+    const { main: unpauseBridge } = await import("./unpauseBridge");
+    await unpauseBridge();
 }
 
 async function unpauseWithdrawalsLogic(): Promise<void> {
-    const { main: unpauseWithdrawalsMain } = await import("./unpauseWithdrawals");
-    await unpauseWithdrawalsMain();
+    const { main: unpauseWithdrawals } = await import("./unpauseWithdrawals");
+    await unpauseWithdrawals();
 }
 
 async function unpauseNativeBridgeLogic(): Promise<void> {
-    const { main: unpauseNativeBridgeMain } = await import("./unpauseNativeBridge");
-    await unpauseNativeBridgeMain();
+    const { main: unpauseNativeBridge } = await import("./unpauseNativeBridge");
+    await unpauseNativeBridge();
 }
 
 async function unpauseTokenBridgeLogic(tokenAddress: string): Promise<void> {
@@ -55,8 +55,8 @@ async function unpauseTokenBridgeLogic(tokenAddress: string): Promise<void> {
     process.env.TOKEN_ADDRESS = tokenAddress;
 
     try {
-        const { main: unpauseTokenBridgeMain } = await import("./unpauseTokenBridge");
-        await unpauseTokenBridgeMain();
+        const { main: unpauseTokenBridge } = await import("./unpauseTokenBridge");
+        await unpauseTokenBridge();
     } finally {
         // Restore original environment variable
         if (originalTokenAddress) {
@@ -148,7 +148,6 @@ async function main() {
 
         for (let i = 0; i < tokenAddresses.length; i++) {
             const tokenAddress = tokenAddresses[i];
-            console.log(`\n4.${i + 1}. Unpausing token bridge for ${tokenAddress}...`);
 
             try {
                 await unpauseTokenBridgeLogic(tokenAddress);
@@ -200,12 +199,6 @@ async function main() {
     } else {
         console.log(`\nSome operations failed (${failedOperations}/${totalOperations}). Check individual logs above for details.`);
     }
-
-    console.log("\nIndividual scripts available for specific operations:");
-    console.log("   - npx hardhat run scripts/unpause/unpauseBridge.ts --network <network>");
-    console.log("   - npx hardhat run scripts/unpause/unpauseWithdrawals.ts --network <network>");
-    console.log("   - npx hardhat run scripts/unpause/unpauseNativeBridge.ts --network <network>");
-    console.log("   - TOKEN_ADDRESS=0x... npx hardhat run scripts/unpause/unpauseTokenBridge.ts --network <network>");
 }
 
 main().catch((error) => {
