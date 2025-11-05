@@ -4,7 +4,8 @@ import {getDeployer, getOwner} from './utils/wallet';
 import { fundAddress } from "./utils/funding";
 
 async function sendETHToBridge() {
-    // Only the owner wallet can send ETH to the bridge because it holds the FUNDER role
+    // Only the account that has the FUNDER role in the bridge can send ETH to it
+    // This function expects the owner to have the FUNDER role (this script is only intended to be used in test envs).
     const owner = getOwner(ethers.provider);
     console.log(`Using owner wallet: ${owner.address}`);
 
