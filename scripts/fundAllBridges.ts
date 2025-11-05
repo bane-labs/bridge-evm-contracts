@@ -4,7 +4,7 @@ import {getDeployer, getOwner} from './utils/wallet';
 import { fundAddress } from "./utils/funding";
 
 async function sendETHToBridge() {
-    // Get the owner wallet
+    // Only the owner wallet can send ETH to the bridge because it holds the FUNDER role
     const owner = getOwner(ethers.provider);
     console.log(`Using owner wallet: ${owner.address}`);
 
@@ -14,7 +14,9 @@ async function sendETHToBridge() {
     console.log(`Bridge contract address: ${bridgeAddress}`);
 
     // Amount to send (can be customized via env variable or hardcoded)
-    const amount = process.env.ETH_AMOUNT ? ethers.parseEther(process.env.ETH_AMOUNT) : ethers.parseEther("0.01");
+    const amount = process.env.ETH_AMOUNT ?
+        ethers.parseEther(process.env.ETH_AMOUNT) :
+        ethers.parseEther("10"); // Default to 10 ETH
     console.log(`Sending ${ethers.formatEther(amount)} ETH to bridge...`);
 
     // Send ETH to the bridge contract
@@ -38,7 +40,7 @@ async function sendERC20ToBridge() {
 
     // Get the deployer wallet
     const deployer = getDeployer(ethers.provider);
-    console.log(`Using owner wallet: ${deployer.address}`);
+    console.log(`Using deployer wallet: ${deployer.address}`);
 
     // Get the bridge contract from environment variable
     const bridge = await getBridgeFromEnv(ethers.provider);
