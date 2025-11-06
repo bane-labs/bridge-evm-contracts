@@ -1,7 +1,8 @@
 import { ethers } from "hardhat";
-import { Contract, Signer } from "ethers";
+import { Signer, TransactionReceipt} from 'ethers';
 import { fundIfLocalNetwork } from "./network";
 import { DEFAULT_TX_OVERRIDES } from "./constants";
+import {AMBStorage, MessageBridge} from '../../typechain-types';
 
 /**
  * Message types supported by the MessageBridge
@@ -145,7 +146,7 @@ export class MessageBridgeUtils {
    */
   async getExecutableState(nonce: bigint) {
     try {
-      const state: ExecutableStateStructOutput = await this.messageBridge.getExecutableState(nonce);
+      const state: AMBStorage.ExecutableStateStructOutput = await this.messageBridge.getExecutableState(nonce);
       console.log(`Executable state for nonce ${nonce}:`);
       console.log(`  Executed: ${state.executed}`);
       return state;
@@ -176,7 +177,7 @@ export class MessageBridgeUtils {
    */
   async getResult(relatedMessageNonce: bigint) {
     try {
-      const result = await this.messageBridge.getResult(relatedMessageNonce);
+      const result = await this.messageBridge.getEvmExecutionResult(relatedMessageNonce);
       console.log(`Result for message nonce ${relatedMessageNonce}:`);
       console.log(`  Success: ${result.success}`);
       console.log(`  Return data: ${result.returnData}`);
@@ -207,7 +208,7 @@ export async function createMessageBridgeUtils(messageBridgeAddress: string, sig
 /**
  * Helper function to encode an EVM call for executable messages
  */
-export function encodeEvmCall(target: string, callData: string, value: bigint = 0n, allowFailure: boolean = false): string {
+export function encodeEvmCall(target: string, allowFailure: boolean = false, value: bigint = 0n, callData: string): string {
   const abiCoder = new ethers.AbiCoder();
   const callStructAbi = ["tuple(address target, bool allowFailure, uint256 value, bytes callData)"];
 
