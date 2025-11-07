@@ -11,7 +11,7 @@ const NEOX_TESTNET_ACCOUNTS = vars.has("NEOX_TESTNET_PRIVATE_KEY") ? [vars.get("
 const NEOX_MAINNET_ACCOUNTS = vars.has("NEOX_MAINNET_PRIVATE_KEY") ? [vars.get("NEOX_MAINNET_PRIVATE_KEY")] : [];
 
 const NEOX_DEVNET_RPC_URL = vars.has("NEOX_DEVNET_RPC_URL") ? vars.get("NEOX_DEVNET_RPC_URL") : "http://localhost:8562";
-const NEOX_DEVNET_CHAIN_ID = vars.has("NEOX_DEVNET_CHAIN_ID") ? parseInt(vars.get("NEOX_DEVNET_CHAIN_ID")) : 2312251829;
+const NEOX_DEVNET_CHAIN_ID = vars.has("NEOX_DEVNET_CHAIN_ID") ? parseInt(vars.get("NEOX_DEVNET_CHAIN_ID")) : 2312051126;
 const NEOX_DEVNET_GAS_PRICE = vars.has("NEOX_DEVNET_GAS_PRICE") ? parseInt(vars.get("NEOX_DEVNET_GAS_PRICE")) : 4000000000;
 
 /** @type import('hardhat/config').HardhatUserConfig */
