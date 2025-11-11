@@ -1,11 +1,11 @@
-import {ethers} from 'hardhat';
-import {DEFAULT_TX_OVERRIDES} from '../../utils/constants';
+import { ethers } from 'hardhat';
+import { DEFAULT_TX_OVERRIDES } from '../../utils/constants';
 import { getGovernorFundedIfLocal, getMessageBridge } from '../helper';
-import { performUnpause, UnpauseResult } from '../../utils/pausingHelper';
+import { performUnpause, PausingActionResult } from '../../utils/pausingHelper';
 import { MessageBridge } from '../../../typechain-types';
 import { Wallet } from 'ethers';
 
-export async function checkAndUnpauseExecuting(messageBridge: MessageBridge, governor: Wallet): Promise<UnpauseResult> {
+export async function checkAndUnpauseExecuting(messageBridge: MessageBridge, governor: Wallet): Promise<PausingActionResult> {
     return await performUnpause(
         'Message Execution',
         () => messageBridge.executingPaused(),
@@ -23,7 +23,7 @@ async function main() {
 
     const pauseResult = await checkAndUnpauseExecuting(messageBridge, governor);
 
-    if (pauseResult.alreadyUnpaused) {
+    if (pauseResult.actionRedundant) {
         console.log('Message executing is already unpaused');
         return;
     } else {

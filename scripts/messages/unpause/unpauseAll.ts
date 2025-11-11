@@ -1,5 +1,5 @@
-import {ethers} from 'hardhat';
-import { UnpauseResult } from '../../utils/pausingHelper';
+import { ethers } from 'hardhat';
+import { PausingActionResult } from '../../utils/pausingHelper';
 import { getGovernorFundedIfLocal, getMessageBridge } from '../helper';
 import { checkAndUnpause as checkAndUnpause } from './unpause';
 import { checkAndUnpauseExecuting } from './unpauseExecuting';
@@ -30,7 +30,7 @@ async function main() {
   console.log('\nAttempting unpause operations...');
   console.log('Note: Operations will be skipped automatically if components are already unpaused');
 
-  const results: UnpauseResult[] = [];
+  const results: PausingActionResult[] = [];
 
   // // 1. Unpause message bridge functionality
   const unpauseResult = await checkAndUnpause(messageBridge, governor);
@@ -55,7 +55,7 @@ async function main() {
 
   results.forEach((result, index) => {
     console.log(`\n${index + 1}. ${result.operation}`);
-    if (result.alreadyUnpaused) {
+    if (result.actionRedundant) {
       console.log('   Status: Already unpaused');
       alreadyUnpausedCount++;
     } else if (result.success) {

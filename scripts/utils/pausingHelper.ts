@@ -1,25 +1,12 @@
-export interface UnpauseResult {
+export interface PausingActionResult {
   operation: string;
   success: boolean;
   txHash?: string;
   error?: string;
-  alreadyUnpaused?: boolean;
+  actionRedundant?: boolean;
 }
 
-export interface PauseResult {
-  operation: string;
-  success: boolean;
-  txHash?: string;
-  error?: string;
-  alreadyPaused?: boolean;
-}
-
-interface AlreadyUnpausedPredicates {
-  errorName: string;
-  errorSelector: string;
-}
-
-interface AlreadyPausedPredicates {
+interface ErrorPredicate {
   errorName: string;
   errorSelector: string;
 }
@@ -31,76 +18,15 @@ export async function performUnpause(
   operationName: string,
   isPaused: () => Promise<boolean>,
   unpauseFunction: () => Promise<any>,
-  predicates: AlreadyUnpausedPredicates
-): Promise<UnpauseResult> {
-
-  if (!(await isPaused())) {
-    return {
-      operation: `${operationName} Unpause`,
-      success: true,
-      alreadyUnpaused: true,
-    };
-  }
-
-  console.log(`\n${operationName} is paused, attempting to unpause...`);
-
-  try {
-    const tx = await unpauseFunction();
-    console.log(`Transaction sent: ${tx.hash}`);
-    const receipt = await tx.wait();
-
-    if (receipt) {
-      console.log(`Transaction confirmed in block: ${receipt.blockNumber}`);
-      console.log(`${operationName} unpaused successfully`);
-      return {
-        operation: `${operationName} Unpause`,
-        success: true,
-        txHash: tx.hash,
-      };
-    } else {
-      console.log('Transaction receipt not available');
-      return {
-        operation: `${operationName} Unpause`,
-        success: false,
-        error: 'Transaction receipt not available',
-      };
-    }
-  } catch (error: any) {
-    const errorMsg = error instanceof Error ? error.message : String(error);
-    console.log('Error message:', errorMsg);
-
-    // Check for specific "already unpaused" error conditions
-    let isAlreadyUnpaused = false;
-
-    // Check for custom error by name (if ethers decoded it)
-    if (error.errorName === predicates.errorName) {
-      isAlreadyUnpaused = true;
-    }
-    // Check for custom error selector
-    else if (error.data && error.data.startsWith(predicates.errorSelector)) {
-      isAlreadyUnpaused = true;
-    }
-    // Check for explicit error message (fallback)
-    else if (errorMsg.includes(predicates.errorName)) {
-      isAlreadyUnpaused = true;
-    }
-
-    if (isAlreadyUnpaused) {
-      console.log(`${operationName} is already unpaused`);
-      return {
-        operation: `${operationName} Unpause`,
-        success: true,
-        alreadyUnpaused: true,
-      };
-    } else {
-      console.error(`Failed to unpause ${operationName.toLowerCase()}:`, errorMsg);
-      return {
-        operation: `${operationName} Unpause`,
-        success: false,
-        error: errorMsg,
-      };
-    }
-  }
+  predicate: ErrorPredicate
+): Promise<PausingActionResult> {
+  return await performPausingAction(
+    "unpause",
+    operationName,
+    isPaused,
+    unpauseFunction,
+    predicate
+  );
 }
 
 /**
@@ -110,36 +36,70 @@ export async function performPause(
   operationName: string,
   isPaused: () => Promise<boolean>,
   pauseFunction: () => Promise<any>,
-  predicates: AlreadyPausedPredicates
-): Promise<PauseResult> {
+  predicate: ErrorPredicate
+): Promise<PausingActionResult> {
+  return await performPausingAction(
+    "pause",
+    operationName,
+    isPaused,
+    pauseFunction,
+    predicate
+  );
+}
 
-  if (await isPaused()) {
-    return {
-      operation: `${operationName} Pause`,
-      success: true,
-      alreadyPaused: true,
-    };
+async function performPausingAction(
+  pausingAction: "pause" | "unpause",
+  operationName: string,
+  isPaused: () => Promise<boolean>,
+  pausingFunction: () => Promise<any>,
+  predicate: ErrorPredicate
+): Promise<PausingActionResult> {
+  const pauseName = pausingAction === "pause" ? "Pause" : "Unpause";
+  const isCurrentlyPaused = await isPaused()
+
+  if (isCurrentlyPaused) {
+    console.log(`${operationName} is currently paused.`);
+    if (pausingAction === "pause") {
+      console.log(`No action needed; ${operationName} is already paused.`);
+      return {
+        operation: `${operationName} Pause`,
+        success: true,
+        actionRedundant: true,
+      };
+    } else {
+      console.log(`${operationName} is paused, proceeding to unpause.`);
+    }
+  } else {
+    console.log(`${operationName} is currently not paused.`);
+    if (pausingAction === "unpause") {
+      console.log(`No action needed; ${operationName} is already unpaused.`);
+      return {
+        operation: `${operationName} Unpause`,
+        success: true,
+        actionRedundant: true,
+      };
+    } else {
+      console.log(`${operationName} is not paused, proceeding to pause.`);
+    }
   }
 
-  console.log(`\n${operationName} is not paused, attempting to pause...`);
-
   try {
-    const tx = await pauseFunction();
+    const tx = await pausingFunction();
     console.log(`Transaction sent: ${tx.hash}`);
     const receipt = await tx.wait();
 
     if (receipt) {
       console.log(`Transaction confirmed in block: ${receipt.blockNumber}`);
-      console.log(`${operationName} paused successfully`);
+      console.log(`${operationName} ${pauseName} successfully`);
       return {
-        operation: `${operationName} Pause`,
+        operation: `${operationName} ${pauseName}`,
         success: true,
         txHash: tx.hash,
       };
     } else {
       console.log('Transaction receipt not available');
       return {
-        operation: `${operationName} Pause`,
+        operation: `${operationName} ${pauseName}`,
         success: false,
         error: 'Transaction receipt not available',
       };
@@ -148,33 +108,33 @@ export async function performPause(
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.log('Error message:', errorMsg);
 
-    // Check for specific "already paused" error conditions
-    let isAlreadyPaused = false;
+    // Check for specific error predicates
+    let predicateMatchFound = false;
 
     // Check for custom error by name (if ethers decoded it)
-    if (error.errorName === predicates.errorName) {
-      isAlreadyPaused = true;
+    if (error.errorName === predicate.errorName) {
+      predicateMatchFound = true;
     }
     // Check for custom error selector
-    else if (error.data && error.data.startsWith(predicates.errorSelector)) {
-      isAlreadyPaused = true;
+    else if (error.data && error.data.startsWith(predicate.errorSelector)) {
+      predicateMatchFound = true;
     }
     // Check for explicit error message (fallback)
-    else if (errorMsg.includes(predicates.errorName)) {
-      isAlreadyPaused = true;
+    else if (errorMsg.includes(predicate.errorName)) {
+      predicateMatchFound = true;
     }
 
-    if (isAlreadyPaused) {
-      console.log(`${operationName} is already paused`);
+    if (predicateMatchFound) {
+      console.log(`${operationName} is already ${pausingAction}d`);
       return {
-        operation: `${operationName} Pause`,
+        operation: `${operationName} ${pauseName}`,
         success: true,
-        alreadyPaused: true,
+        actionRedundant: true,
       };
     } else {
-      console.error(`Failed to pause ${operationName.toLowerCase()}:`, errorMsg);
+      console.error(`Failed to ${pausingAction} ${operationName.toLowerCase()}:`, errorMsg);
       return {
-        operation: `${operationName} Pause`,
+        operation: `${operationName} ${pauseName}`,
         success: false,
         error: errorMsg,
       };
