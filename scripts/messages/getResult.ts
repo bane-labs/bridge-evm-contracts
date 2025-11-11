@@ -9,8 +9,8 @@ async function getExecutionResult(messageBridge: MessageBridge, nonce: number): 
     console.log(`Executable state - Executed: ${state.executed}, Expiration: ${expirationDate}`);
 
 
-    const { success, returnData } = await messageBridge.getEvmExecutionResult(nonce);
-    console.log(`EVM execution result - Success: ${success}, Data: ${returnData}`);
+    const result = await messageBridge.getEvmExecutionResult(nonce);
+    console.log(`EVM execution result - Success: ${result.success}, Data: ${result.returnData}`);
   } catch (error) {
     console.log(`EVM execution result not found for nonce ${nonce}`);
   }

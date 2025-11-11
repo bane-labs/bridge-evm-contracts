@@ -3,8 +3,8 @@ import {ethers} from 'hardhat';
 
 // ERC20 balanceOf(address) function signature
 const functionSignature = "balanceOf(address)";
-const address = process.env.ADDRESS || "0xb156115f737be58a9115febe08dc474c8117aebd";
-const erc20Target = process.env.ERC20_TARGET || "0x05fd43b3eFcb4ff1CA08229cAEcf67Bc21D0C0a3";
+const address = process.env.ADDRESS || "0x1212000000000000000000000000000000000004";
+const erc20Target = process.env.ERC20_TARGET || "0xab0a26b8d903f36acb4bf9663f8d2de0672433cd";
 const value = BigInt(process.env.VALUE || "0");
 
 const iface = new ethers.Interface([`function ${functionSignature}`]);
