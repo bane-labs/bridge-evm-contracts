@@ -54,33 +54,19 @@ async function performPausingAction(
   pausingFunction: () => Promise<any>,
   predicate: ErrorPredicate
 ): Promise<PausingActionResult> {
-  const pauseName = pausingAction === "pause" ? "Pause" : "Unpause";
-  const isCurrentlyPaused = await isPaused()
-
-  if (isCurrentlyPaused) {
-    console.log(`${operationName} is currently paused.`);
-    if (pausingAction === "pause") {
-      console.log(`No action needed; ${operationName} is already paused.`);
-      return {
-        operation: `${operationName} Pause`,
-        success: true,
-        actionRedundant: true,
-      };
-    } else {
-      console.log(`${operationName} is paused, proceeding to unpause.`);
-    }
-  } else {
-    console.log(`${operationName} is currently not paused.`);
-    if (pausingAction === "unpause") {
-      console.log(`No action needed; ${operationName} is already unpaused.`);
-      return {
-        operation: `${operationName} Unpause`,
-        success: true,
-        actionRedundant: true,
-      };
-    } else {
-      console.log(`${operationName} is not paused, proceeding to pause.`);
-    }
+  const shouldPause = pausingAction === "pause"
+  const isCurrentlyPaused = await isPaused();
+  
+  const pauseName = shouldPause ? "Pause" : "Unpause";
+  const isInDesiredState = shouldPause ? isCurrentlyPaused : !isCurrentlyPaused
+  
+  if (isInDesiredState) {
+    console.log(`${operationName} is already ${pausingAction}d.`);
+    return {
+      operation: `${operationName} ${pauseName}`,
+      success: true,
+      actionRedundant: true,
+    };
   }
 
   try {
@@ -90,7 +76,7 @@ async function performPausingAction(
 
     if (receipt) {
       console.log(`Transaction confirmed in block: ${receipt.blockNumber}`);
-      console.log(`${operationName} ${pauseName} successfully`);
+      console.log(`${operationName} ${pausingAction}d successfully`);
       return {
         operation: `${operationName} ${pauseName}`,
         success: true,
