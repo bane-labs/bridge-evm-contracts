@@ -1,5 +1,5 @@
-import {ethers} from 'hardhat';
-import { PauseResult } from '../../utils/pausingHelper';
+import { ethers } from 'hardhat';
+import { PausingActionResult } from '../../utils/pausingHelper';
 import { getGovernorFundedIfLocal, getMessageBridge } from '../helper';
 import { checkAndPause } from './pause';
 import { checkAndPauseExecuting } from './pauseExecuting';
@@ -30,7 +30,7 @@ async function main() {
   console.log('\nAttempting pause operations...');
   console.log('Note: Operations will be skipped automatically if components are already paused');
 
-  const results: PauseResult[] = [];
+  const results: PausingActionResult[] = [];
 
   // // 1. Pause message bridge functionality
   const pauseResult = await checkAndPause(messageBridge, governor);
@@ -55,7 +55,7 @@ async function main() {
 
   results.forEach((result, index) => {
     console.log(`\n${index + 1}. ${result.operation}`);
-    if (result.alreadyPaused) {
+    if (result.actionRedundant) {
       console.log('   Status: Already paused');
       alreadyPausedCount++;
     } else if (result.success) {
