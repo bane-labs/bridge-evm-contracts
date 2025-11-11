@@ -3,14 +3,14 @@ import { Wallet } from "ethers";
 import { TestBridgeManagement } from "../../typechain-types/contracts/tests";
 import { MAX_FEE_PER_GAS, MAX_PRIORITY_FEE_PER_GAS } from "../utils/constants";
 import { fundIfLocalNetwork } from "../utils/network";
-import { getOwner, getRelayer, getValidator01, getValdiator02, getGovernor } from "../utils/wallet";
+import { getOwner, getRelayer, getValidator01, getValidator02, getGovernor } from "../utils/wallet";
 
 // IMPORTANT: This script deploys the TestBridgeManagement contract, which is a test contract that is not meant to be used in production.
 export async function deployBridgeManagement(deployer: Wallet): Promise<TestBridgeManagement> {
     const owner = getOwner(ethers.provider);
     const relayer = getRelayer();
     const validator01 = getValidator01();
-    const validator02 = getValdiator02();
+    const validator02 = getValidator02();
     const governor = getGovernor(ethers.provider);
     const securityGuard = owner;
     const funder = owner;
