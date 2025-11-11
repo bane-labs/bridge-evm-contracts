@@ -2,7 +2,7 @@ import { ethers } from "hardhat";
 import { Signer, TransactionReceipt} from 'ethers';
 import { fundIfLocalNetwork } from "./network";
 import { DEFAULT_TX_OVERRIDES } from "./constants";
-import {AMBStorage, MessageBridge} from '../../typechain-types';
+import { AMBStorage, MessageBridge } from '../../typechain-types';
 
 /**
  * Message types supported by the MessageBridge
@@ -108,6 +108,9 @@ export class MessageBridgeUtils {
 
       console.log(`Transaction sent: ${tx.hash}`);
       receipt = await tx.wait();
+      if (!receipt) {
+        throw new Error("Transaction receipt not available");
+      }
       console.log(`Transaction confirmed in block: ${receipt.blockNumber}`);
 
       // Extract nonce from MessageSend event
