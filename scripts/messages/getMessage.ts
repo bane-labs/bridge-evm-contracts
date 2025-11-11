@@ -1,86 +1,76 @@
-import { getMessageBridgeFromEnv } from '../utils/addresses';
-import { MessageBridge } from '../../typechain-types';
+import { getPersonalWallet } from '../utils/wallet';
+import { getNonceFromEnv, MessageBridgeUtils } from '../utils/messageBridgeUtils';
 import { ethers } from 'hardhat';
 import { AbiCoder } from 'ethers';
 
-async function getMessage(messageBridge: MessageBridge, nonce: number): Promise<void> {
-  const storedMessage = await messageBridge.getEvmMessage(nonce);
-  const abiCoder = new ethers.AbiCoder();
+async function getMessageWithDetails(messageBridgeUtils: MessageBridgeUtils, nonce: bigint): Promise<void> {
 
-  console.log('Encoded Metadata:', storedMessage.encodedMetadata);
+    const storedMessage = await messageBridgeUtils.getMessage(nonce);
 
-  let decodedMetadata;
-  if (storedMessage.encodedMetadata.length > 2) {
+    let decodedMetadata;
+    const abiCoder = new ethers.AbiCoder();
+    if (storedMessage.encodedMetadata.length > 2) {
 
-    const type = getMetadataType(abiCoder, storedMessage);
+        const type = getMetadataType(abiCoder, storedMessage);
 
-    let metadataStructAbi = getMetadataStructAbi(type);
+        let metadataStructAbi = getMetadataStructAbi(type);
 
-    decodedMetadata = abiCoder.decode(metadataStructAbi, storedMessage.encodedMetadata);
-    console.log(`Decoded Metadata (Type ${type}):`, decodedMetadata);
-  }
-
-  console.log('Raw Message:', storedMessage.rawMessage);
-  if (decodedMetadata && decodedMetadata[0].msgType === 0n) {
-    console.log('Decoding Call Structure...');
-    try {
-      const callStructAbi = ['tuple(address target, bool allowFailure, uint256 value, bytes callData)'];
-      const decodedCall = abiCoder.decode(callStructAbi, storedMessage.rawMessage);
-      console.log('Decoded Call Structure:', decodedCall);
-    } catch (e) {
-      throw new Error('Failed to get call structure ABI');
+        decodedMetadata = abiCoder.decode(metadataStructAbi, storedMessage.encodedMetadata);
+        console.log(`Decoded Metadata (Type ${type}):`, decodedMetadata);
     }
-  }
+
+    console.log('Raw Message:', storedMessage.rawMessage);
+    if (decodedMetadata && decodedMetadata[0].msgType === 0n) {
+        console.log('Decoding Call Structure...');
+        try {
+            const callStructAbi = ['tuple(address target, bool allowFailure, uint256 value, bytes callData)'];
+            const decodedCall = abiCoder.decode(callStructAbi, storedMessage.rawMessage);
+            console.log('Decoded Call Structure:', decodedCall);
+        } catch (e) {
+            throw new Error('Failed to get call structure ABI');
+        }
+    }
 }
 
 function getMetadataType(
     abiCoder: AbiCoder, storedMessage: [encodedMetadata: string, rawMessage: string] & {
-      encodedMetadata: string;
-      rawMessage: string
+        encodedMetadata: string;
+        rawMessage: string
     }) {
-  // First decode just the type to determine the structure
-  const typeAbi = ['uint8'];
-  const [type] = abiCoder.decode(typeAbi, storedMessage.encodedMetadata);
-  return type;
+    // First decode just the type to determine the structure
+    const typeAbi = ['uint8'];
+    const [type] = abiCoder.decode(typeAbi, storedMessage.encodedMetadata);
+    return type;
 }
 
 function getMetadataStructAbi(type: bigint): string[] {
-  let metadataStructAbi: string[];
-  switch (Number(type)) {
-    case 0: // EXECUTABLE
-      console.log('Metadata type is EXECUTABLE');
-      metadataStructAbi = ['tuple(uint8 msgType, uint256 timestamp, address sender, bool storeResult)'];
-      break;
-    case 1: // STORE_ONLY
-      console.log('Metadata type is STORE_ONLY');
-      metadataStructAbi = ['tuple(uint8 msgType, uint256 timestamp, address sender)'];
-      break;
-    case 2: // RESULT
-      console.log('Metadata type is RESULT');
-      metadataStructAbi = ['tuple(uint8 msgType, uint256 timestamp, address sender, uint256 relatedMessageNonce)'];
-      break;
-    default:
-      throw new Error(`Unknown metadata type: ${type}`);
-  }
-  return metadataStructAbi;
+    let metadataStructAbi: string[];
+    switch (Number(type)) {
+        case 0: // EXECUTABLE
+            console.log('Metadata type is EXECUTABLE');
+            metadataStructAbi = ['tuple(uint8 msgType, uint256 timestamp, address sender, bool storeResult)'];
+            break;
+        case 1: // STORE_ONLY
+            console.log('Metadata type is STORE_ONLY');
+            metadataStructAbi = ['tuple(uint8 msgType, uint256 timestamp, address sender)'];
+            break;
+        case 2: // RESULT
+            console.log('Metadata type is RESULT');
+            metadataStructAbi = ['tuple(uint8 msgType, uint256 timestamp, address sender, uint256 relatedMessageNonce)'];
+            break;
+        default:
+            throw new Error(`Unknown metadata type: ${type}`);
+    }
+    return metadataStructAbi;
 }
 
 async function main(): Promise<void> {
-  const envNonce = process.env.NONCE;
-  if (!envNonce) {
-    throw new Error('Please set the NONCE environment variable');
-  }
-
-  const nonce = parseInt(envNonce, 10);
-  if (isNaN(nonce)) {
-    throw new Error('NONCE must be a valid number');
-  }
-
-  const messageBridge = await getMessageBridgeFromEnv();
-  await getMessage(messageBridge, nonce);
+    const sender = getPersonalWallet(ethers.provider);
+    const messageBridgeUtils = await MessageBridgeUtils.createFromHHVars(sender);
+    await getMessageWithDetails(messageBridgeUtils, getNonceFromEnv());
 }
 
 main().catch((error) => {
-  console.error('Error:', error.message);
-  process.exitCode = 1;
+    console.error('Error:', error.message);
+    process.exitCode = 1;
 });

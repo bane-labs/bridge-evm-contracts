@@ -84,7 +84,7 @@ async function main() {
         const signer = getPersonalWallet(ethers.provider);
         console.log(`- Sender: ${await signer.getAddress()}\n`);
 
-        const messageBridge = await MessageBridgeUtils.create(config.messageBridgeAddress, signer);
+        const messageBridge = await MessageBridgeUtils.createFromAddress(config.messageBridgeAddress, signer);
 
         let messageData: string;
 

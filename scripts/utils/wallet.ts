@@ -39,7 +39,7 @@ export function getValidator01(): Wallet {
     return getWalletFromFile("wallets/validator01.json", VALIDATOR01_PASSWORD);
 }
 
-export function getValdiator02(): Wallet {
+export function getValidator02(): Wallet {
     return getWalletFromFile("wallets/validator02.json", VALIDATOR02_PASSWORD);
 }
 

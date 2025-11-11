@@ -5,7 +5,7 @@ import {AMBTypes} from "./AMBTypes.sol";
 import {BridgeLib} from "./BridgeLib.sol";
 
 library MessageBridgeLib {
-    // 0x735e7a9d
+    // 0x8309d873
     error UnsupportedMessageType(AMBTypes.MessageType msgType);
 
     /**

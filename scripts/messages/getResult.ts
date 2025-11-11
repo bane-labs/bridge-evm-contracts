@@ -1,41 +1,32 @@
-import { getMessageBridgeFromEnv } from '../utils/addresses';
-import { MessageBridge } from '../../typechain-types';
+import { getPersonalWallet } from '../utils/wallet';
+import { decodeMessageBridgeError, getNonceFromEnv, MessageBridgeUtils } from '../utils/messageBridgeUtils';
+import { ethers } from 'hardhat';
 
-async function getExecutionResult(messageBridge: MessageBridge, nonce: number): Promise<void> {
-  try {
-    const state = await messageBridge.getExecutableState(nonce);
-    // log both fields of the state here on one line, not just the executed field
-    const expirationDate = new Date(Number(state.expirationTimestamp) * 1000);
-    console.log(`Executable state - Executed: ${state.executed}, Expiration: ${expirationDate}`);
+async function getExecutionResult(messageBridgeUtils: MessageBridgeUtils, nonce: bigint): Promise<void> {
+    try {
+        await messageBridgeUtils.getExecutableState(nonce);
+    } catch (error: any) {
+        console.error(`Error getting execution result for nonce ${nonce}:`);
+        if (error.data) {
+            console.error('Decoded error:', decodeMessageBridgeError(error.data));
+        } else {
+            console.error('Error message:', error.message);
+        }
+    }
 
-
-    const result = await messageBridge.getEvmExecutionResult(nonce);
-    console.log(`EVM execution result - Success: ${result.success}, Data: ${result.returnData}`);
-  } catch (error) {
-    console.log(`EVM execution result not found for nonce ${nonce}`);
-  }
-
-  const neoNonce = await messageBridge.getNeoExecutionResultNonce(nonce);
-  const neoResult = await messageBridge.getNeoExecutionResult(neoNonce);
-  console.log(`NeoN3 execution result (nonce ${neoNonce}): ${neoResult}`);
+    // Get the Neo execution result
+    await messageBridgeUtils.getNeoExecutionResult(nonce);
 }
 
 async function main(): Promise<void> {
-  const envNonce = process.env.NONCE;
-  if (!envNonce) {
-    throw new Error('Please set the NONCE environment variable');
-  }
+    const sender = getPersonalWallet(ethers.provider);
+    const messageBridgeUtils = await MessageBridgeUtils.createFromHHVars(sender);
 
-  const nonce = parseInt(envNonce, 10);
-  if (isNaN(nonce)) {
-    throw new Error('NONCE must be a valid number');
-  }
-
-  const messageBridge = await getMessageBridgeFromEnv();
-  await getExecutionResult(messageBridge, nonce);
+    await getExecutionResult(messageBridgeUtils, getNonceFromEnv());
 }
 
 main().catch((error) => {
-  console.error('Error:', error.message);
-  process.exitCode = 1;
+    console.error('Error:', error.message);
+    process.exitCode = 1;
 });
+

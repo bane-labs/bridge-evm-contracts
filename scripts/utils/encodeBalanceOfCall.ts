@@ -1,5 +1,5 @@
-import {encodeEvmCall} from './messageBridgeUtils';
-import {ethers} from 'hardhat';
+import { encodeEvmCall } from './messageBridgeUtils';
+import { ethers } from 'hardhat';
 
 // ERC20 balanceOf(address) function signature
 const functionSignature = "balanceOf(address)";
@@ -16,19 +16,19 @@ const encodedEvmCall = encodeEvmCall(erc20Target, true, value, encodedCallData);
 console.log("Encoded AMBTypes.Call:", encodedEvmCall);
 
 async function callViewFunction() {
-  const provider = ethers.provider;
-  const callResult = await provider.call({
-    to: erc20Target,
-    data: encodedCallData
-  });
-  // Parse the returned hex as uint256
-  const value = BigInt(callResult);
-  console.log("Balance value:", value.toString());
+    const provider = ethers.provider;
+    const callResult = await provider.call({
+        to: erc20Target,
+        data: encodedCallData
+    });
+    // Parse the returned hex as uint256
+    const value = BigInt(callResult);
+    console.log("Balance value:", value.toString());
 }
 
 async function isContract(address: string, provider: any): Promise<boolean> {
-  const code = await provider.getCode(address);
-  return code && code !== "0x";
+    const code = await provider.getCode(address);
+    return code && code !== "0x";
 }
 
 callViewFunction().catch(console.error);
