@@ -6,12 +6,20 @@ const { DEFAULT_TX_OVERRIDES } = require("../utils/constants");
 
 async function executeMessage(messageBridge, sender, nonce) {
   await fundIfLocalNetwork([sender.address]);
-  await messageBridge.connect(sender).executeMessage(nonce, DEFAULT_TX_OVERRIDES);
+  let message = await messageBridge.connect(sender).getEvmMessage(nonce);
+  console.log("Executing message:", message);
+  const tx = await messageBridge
+    .connect(sender)
+    .executeMessage(nonce, DEFAULT_TX_OVERRIDES);
+  console.log("Transaction sent. Hash:", tx.hash);
+  const receipt = await tx.wait();
+  console.log("Transaction mined. Status:", receipt.status);
 }
 
 async function main() {
   const sender = getOwner(ethers.provider);
-  const nonce = 1;
+  const envNonce = process.env.NONCE || (() => { throw new Error("Please set the NONCE environment variable"); })();
+  const nonce = parseInt(envNonce);
   const messageBridge = await getMessageBridgeFromEnv();
   await executeMessage(messageBridge, sender, nonce);
 }
