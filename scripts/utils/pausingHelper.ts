@@ -121,7 +121,7 @@ export async function performPause(
     };
   }
 
-  console.log(`\n${operationName} is paused, attempting to pause...`);
+  console.log(`\n${operationName} is not paused, attempting to pause...`);
 
   try {
     const tx = await pauseFunction();

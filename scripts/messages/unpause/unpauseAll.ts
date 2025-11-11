@@ -17,7 +17,7 @@ import { checkAndUnpauseSending } from './unpauseSending';
  * If a component is already unpaused, the operation will be skipped with a message
  *
  * Usage:
- * MESSAGE_BRIDGE_ADDRESS=0x... npx hardhat run scripts/messages/unpauseMessageBridge.ts --network <network>
+ * MESSAGE_BRIDGE_ADDRESS=0x... npx hardhat run scripts/messages/unpause/unpauseAll.ts --network <network>
  */
 async function main() {
   const messageBridge = await getMessageBridge();

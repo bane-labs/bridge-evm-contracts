@@ -11,8 +11,8 @@ export async function checkAndPauseExecuting(messageBridge: MessageBridge, gover
         () => messageBridge.executingPaused(),
         () => messageBridge.connect(governor).pauseExecuting(DEFAULT_TX_OVERRIDES),
         {
-            errorName: 'ExecutingNotPaused', // todo
-            errorSelector: '0x61654835',
+            errorName: 'ExecutingPaused',
+            errorSelector: '0xf4700efc',
         }
     );
 }

@@ -6,18 +6,18 @@ import { checkAndPauseExecuting } from './pauseExecuting';
 import { checkAndPauseSending } from './pauseSending';
 
 /**
- * Simplified script to unpause all aspects of the MessageBridge contract
+ * Simplified script to pause all aspects of the MessageBridge contract
  *
- * This script will attempt to unpause:
- * 1. Message bridge (unpause)
- * 2. Message sending (unpauseSending)
- * 3. Message execution (unpauseExecuting)
+ * This script will attempt to pause:
+ * 1. Message bridge (pause)
+ * 2. Message sending (pauseSending)
+ * 3. Message execution (pauseExecuting)
  *
- * Note: All unpause operations require governor privileges
- * If a component is already unpaused, the operation will be skipped with a message
+ * Note: All pause operations require governor privileges
+ * If a component is already paused, the operation will be skipped with a message
  *
  * Usage:
- * MESSAGE_BRIDGE_ADDRESS=0x... npx hardhat run scripts/messages/unpauseMessageBridge.ts --network <network>
+ * MESSAGE_BRIDGE_ADDRESS=0x... npx hardhat run scripts/messages/pause/pauseAll.ts --network <network>
  */
 async function main() {
   const messageBridge = await getMessageBridge();

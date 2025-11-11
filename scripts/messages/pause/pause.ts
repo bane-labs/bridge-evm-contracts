@@ -11,8 +11,8 @@ export async function checkAndPause(messageBridge: MessageBridge, governor: Wall
         () => messageBridge.messageBridgePaused(),
         () => messageBridge.connect(governor).pause(DEFAULT_TX_OVERRIDES),
         {
-          errorName: 'MessageBridgeNotPaused', // todo
-          errorSelector: '0xfa5fc19e',
+          errorName: 'MessageBridgePaused',
+          errorSelector: '0xa4c897b0',
         }
     );
 }

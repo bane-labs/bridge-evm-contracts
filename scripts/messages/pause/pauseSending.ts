@@ -6,14 +6,14 @@ import { MessageBridge } from '../../../typechain-types';
 import { Wallet } from 'ethers';
 
 export async function checkAndPauseSending(messageBridge: MessageBridge, governor: Wallet): Promise<PauseResult> {
-    // Unpause the message bridge
+    // Pause the message bridge
     return await performPause(
         'Message Sending',
         () => messageBridge.sendingPaused(),
         () => messageBridge.connect(governor).pauseSending(DEFAULT_TX_OVERRIDES),
         {
-            errorName: 'SendingNotPaused', // todo
-            errorSelector: '0x26e7ced5',
+            errorName: 'SendingPaused',
+            errorSelector: '0x56a6145d',
         }
     );
 }
