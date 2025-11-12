@@ -1,5 +1,5 @@
 import { ethers } from 'hardhat';
-import { encodeStringMessage, MessageBridgeUtils, MessageType } from '../utils/messageBridgeUtils';
+import { encodeStringMessage, MessageBridgeWrapper, MessageType } from '../utils/messageBridgeUtils';
 import { getPersonalWallet } from '../utils/wallet';
 
 /**
@@ -84,7 +84,7 @@ async function main() {
         const signer = getPersonalWallet(ethers.provider);
         console.log(`- Sender: ${await signer.getAddress()}\n`);
 
-        const messageBridge = await MessageBridgeUtils.createFromAddress(config.messageBridgeAddress, signer);
+        const messageBridge = await MessageBridgeWrapper.createFromAddress(config.messageBridgeAddress, signer);
 
         let messageData: string;
 

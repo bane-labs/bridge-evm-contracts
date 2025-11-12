@@ -1,14 +1,14 @@
 import { ethers } from 'hardhat';
 import { getPersonalWallet } from '../utils/wallet';
-import { decodeMessageBridgeError, getNonceFromEnv, MessageBridgeUtils } from '../utils/messageBridgeUtils';
+import { decodeMessageBridgeError, getNonceFromEnv, MessageBridgeWrapper } from '../utils/messageBridgeUtils';
 
 async function main(): Promise<void> {
     const sender = getPersonalWallet(ethers.provider);
-    const messageBridgeUtils = await MessageBridgeUtils.createFromHHVars(sender);
+    const messageBridgeWrapper = await MessageBridgeWrapper.createFromHHVars(sender);
 
     let nonce = getNonceFromEnv();
     try {
-        await messageBridgeUtils.sendResultMessage(nonce);
+        await messageBridgeWrapper.sendResultMessage(nonce);
     } catch (e: any) {
         console.error(`Failed to send result message with nonce ${nonce}:`);
         if (e.data) {

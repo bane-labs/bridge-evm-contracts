@@ -1,11 +1,11 @@
 import { getPersonalWallet } from '../utils/wallet';
-import { getNonceFromEnv, MessageBridgeUtils } from '../utils/messageBridgeUtils';
+import { getNonceFromEnv, MessageBridgeWrapper } from '../utils/messageBridgeUtils';
 import { ethers } from 'hardhat';
 import { AbiCoder } from 'ethers';
 
-async function getMessageWithDetails(messageBridgeUtils: MessageBridgeUtils, nonce: bigint): Promise<void> {
+async function getMessageWithDetails(messageBridgeWrapper: MessageBridgeWrapper, nonce: bigint): Promise<void> {
 
-    const storedMessage = await messageBridgeUtils.getMessage(nonce);
+    const storedMessage = await messageBridgeWrapper.getMessage(nonce);
 
     let decodedMetadata;
     const abiCoder = new ethers.AbiCoder();
@@ -66,8 +66,8 @@ function getMetadataStructAbi(type: bigint): string[] {
 
 async function main(): Promise<void> {
     const sender = getPersonalWallet(ethers.provider);
-    const messageBridgeUtils = await MessageBridgeUtils.createFromHHVars(sender);
-    await getMessageWithDetails(messageBridgeUtils, getNonceFromEnv());
+    const messageBridgeWrapper = await MessageBridgeWrapper.createFromHHVars(sender);
+    await getMessageWithDetails(messageBridgeWrapper, getNonceFromEnv());
 }
 
 main().catch((error) => {

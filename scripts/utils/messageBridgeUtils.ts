@@ -45,7 +45,7 @@ export interface SendMessageResult {
 /**
  * Utility class for interacting with MessageBridge contracts
  */
-export class MessageBridgeUtils {
+export class MessageBridgeWrapper {
     private messageBridge: MessageBridge;
     private signer: Signer;
 
@@ -57,17 +57,17 @@ export class MessageBridgeUtils {
     /**
      * Create a new MessageBridgeUtils instance
      */
-    static async createFromAddress(messageBridgeAddress: string, signer: Signer): Promise<MessageBridgeUtils> {
+    static async createFromAddress(messageBridgeAddress: string, signer: Signer): Promise<MessageBridgeWrapper> {
         const messageBridge = await ethers.getContractAt("MessageBridge", messageBridgeAddress, signer);
-        return new MessageBridgeUtils(messageBridge, signer);
+        return new MessageBridgeWrapper(messageBridge, signer);
     }
 
     /**
      *  Create a message bridge utils instance from a MessageBridge contract instance
      *
      */
-    static async createFromHHVars(signer: Signer): Promise<MessageBridgeUtils> {
-        return new MessageBridgeUtils(await getMessageBridgeFromEnv(), signer);
+    static async createFromHHVars(signer: Signer): Promise<MessageBridgeWrapper> {
+        return new MessageBridgeWrapper(await getMessageBridgeFromEnv(), signer);
     }
 
     /**
@@ -95,62 +95,63 @@ export class MessageBridgeUtils {
         console.log(`Message: ${message}`);
         console.log(`Fee: ${ethers.formatEther(fee)} ETH`);
 
+        // Validate message type in case of wrong cast of options.type
+        if (type !== MessageType.EXECUTABLE && type !== MessageType.STORE_ONLY) {
+            throw new Error(`Unsupported message type: ${type}`);
+        }
+
         let tx;
         let receipt;
 
-        try {
-            if (type === MessageType.EXECUTABLE) {
-                console.log(`Store result: ${storeResult}`);
-                tx = await this.messageBridge.sendExecutableMessage(
-                    message,
-                    storeResult,
-                    {value: fee, ...DEFAULT_TX_OVERRIDES}
-                );
-            } else if (type === MessageType.STORE_ONLY) {
-                tx = await this.messageBridge.sendStoreOnlyMessage(
-                    message,
-                    {value: fee, ...DEFAULT_TX_OVERRIDES}
-                );
-            } else {
-                throw new Error(`Unsupported message type: ${type}`);
-            }
-
-            console.log(`Transaction sent: ${tx.hash}`);
-            receipt = await tx.wait();
-            if (!receipt) {
-                throw new Error("Transaction receipt not available");
-            }
-            console.log(`Transaction confirmed in block: ${receipt.blockNumber}`);
-
-            // Extract nonce from MessageSend event
-            let parsedLog: any;
-            const messageSendEvent = receipt.logs.find((log: any) => {
-                try {
-                    parsedLog = this.messageBridge.interface.parseLog(log);
-                    return parsedLog?.name === 'MessageSend';
-                } catch {
-                    return false;
-                }
-            });
-
-            let nonce: bigint;
-            if (messageSendEvent) {
-                nonce = parsedLog?.args.nonce;
-                console.log(`Message sent with nonce: ${nonce}`);
-            } else {
-                throw new Error("Could not find MessageSend event in transaction receipt");
-            }
-
-            return {
-                txHash: tx.hash,
-                nonce,
-                receipt
-            };
-
-        } catch (error) {
-            console.error("Error sending message:", error);
-            throw error;
+        if (type === MessageType.EXECUTABLE) {
+            console.log(`Store result: ${storeResult}`);
+            tx = await this.messageBridge.sendExecutableMessage(
+                message,
+                storeResult,
+                {value: fee, ...DEFAULT_TX_OVERRIDES}
+            );
+        } else {
+            // type === MessageType.STORE_ONLY
+            tx = await this.messageBridge.sendStoreOnlyMessage(
+                message,
+                {value: fee, ...DEFAULT_TX_OVERRIDES}
+            );
         }
+
+        console.log(`Transaction sent: ${tx.hash}`);
+        receipt = await tx.wait();
+
+        if (!receipt) {
+            throw new Error("Transaction receipt not available");
+        }
+
+        console.log(`Transaction confirmed in block: ${receipt.blockNumber}`);
+
+        // Extract nonce from MessageSend event
+        let nonce: bigint | undefined;
+
+        for (const log of receipt.logs) {
+            try {
+                const parsedLog = this.messageBridge.interface.parseLog(log);
+                if (parsedLog?.name === 'MessageSend') {
+                    nonce = parsedLog.args.nonce;
+                    console.log(`Message sent with nonce: ${nonce}`);
+                    break;
+                }
+            } catch {
+                // Skip logs that can't be parsed
+            }
+        }
+
+        if (nonce === undefined) {
+            throw new Error("Could not find MessageSend event in transaction receipt");
+        }
+
+        return {
+            txHash: tx.hash,
+            nonce,
+            receipt
+        };
     }
 
     /**
@@ -260,22 +261,6 @@ export class MessageBridgeUtils {
             return message;
         } catch (error) {
             console.error(`Error getting message for nonce ${nonce}:`, error);
-            throw error;
-        }
-    }
-
-    /**
-     * Get the execution result of a message
-     */
-    async getResult(relatedMessageNonce: bigint) {
-        try {
-            const result = await this.messageBridge.getEvmExecutionResult(relatedMessageNonce);
-            console.log(`Result for message nonce ${relatedMessageNonce}:`);
-            console.log(`  Success: ${result.success}`);
-            console.log(`  Return data: ${result.returnData}`);
-            return result;
-        } catch (error) {
-            console.error(`Error getting result for nonce ${relatedMessageNonce}:`, error);
             throw error;
         }
     }

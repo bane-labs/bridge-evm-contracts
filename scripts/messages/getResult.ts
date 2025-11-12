@@ -1,10 +1,11 @@
 import { getPersonalWallet } from '../utils/wallet';
-import { decodeMessageBridgeError, getNonceFromEnv, MessageBridgeUtils } from '../utils/messageBridgeUtils';
+import { decodeMessageBridgeError, getNonceFromEnv, MessageBridgeWrapper } from '../utils/messageBridgeUtils';
 import { ethers } from 'hardhat';
 
-async function getExecutionResult(messageBridgeUtils: MessageBridgeUtils, nonce: bigint): Promise<void> {
+async function getExecutionResult(messageBridgeWrapper: MessageBridgeWrapper, nonce: bigint): Promise<void> {
     try {
-        await messageBridgeUtils.getExecutableState(nonce);
+        await messageBridgeWrapper.getExecutableState(nonce);
+        await messageBridgeWrapper.getEvmExecutionResult(nonce);
     } catch (error: any) {
         console.error(`Error getting execution result for nonce ${nonce}:`);
         if (error.data) {
@@ -15,14 +16,14 @@ async function getExecutionResult(messageBridgeUtils: MessageBridgeUtils, nonce:
     }
 
     // Get the Neo execution result
-    await messageBridgeUtils.getNeoExecutionResult(nonce);
+    await messageBridgeWrapper.getNeoExecutionResult(nonce);
 }
 
 async function main(): Promise<void> {
     const sender = getPersonalWallet(ethers.provider);
-    const messageBridgeUtils = await MessageBridgeUtils.createFromHHVars(sender);
+    const messageBridgeWrapper = await MessageBridgeWrapper.createFromHHVars(sender);
 
-    await getExecutionResult(messageBridgeUtils, getNonceFromEnv());
+    await getExecutionResult(messageBridgeWrapper, getNonceFromEnv());
 }
 
 main().catch((error) => {
