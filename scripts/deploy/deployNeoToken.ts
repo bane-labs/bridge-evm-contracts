@@ -3,7 +3,7 @@ import { Wallet } from "ethers";
 import { NeoToken } from "../../typechain-types/contracts/token/";
 import { MAX_FEE_PER_GAS, MAX_PRIORITY_FEE_PER_GAS } from "../utils/constants";
 import { fundIfLocalNetwork } from "../utils/network";
-import { getPersonalWallet, getValdiator02 } from "../utils/wallet";
+import { getPersonalWallet } from "../utils/wallet";
 
 export async function deployNeoTokenContract(deployer: Wallet): Promise<NeoToken> {
     console.log("\n#####################################################################");

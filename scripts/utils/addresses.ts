@@ -2,6 +2,7 @@ import { Provider } from "ethers";
 import { ethers } from "hardhat";
 import { vars } from "hardhat/config";
 import { TestBridge, TestBridgeManagement, TestMessageBridge, TestToken } from "../../typechain-types/contracts/tests";
+import { MessageBridge } from "../../typechain-types";
 
 export const BRIDGE_ADDRESS = vars.has("BRIDGE_ADDRESS") ? vars.get("BRIDGE_ADDRESS") : "";
 export const MESSAGE_BRIDGE_ADDRESS = vars.has("MESSAGE_BRIDGE_ADDRESS") ? vars.get("MESSAGE_BRIDGE_ADDRESS") : "";
@@ -25,7 +26,7 @@ export async function getManagementFromEnv(provider: Provider): Promise<TestBrid
     return (await ethers.getContractAt("TestBridgeManagement", MANAGEMENT_ADDRESS)) as TestBridgeManagement;
 }
 
-export async function getMessageBridgeFromEnv(): Promise<TestMessageBridge> {
+export async function getMessageBridgeFromEnv(): Promise<MessageBridge> {
     if (MESSAGE_BRIDGE_ADDRESS === "") {
         throw new Error("MESSAGE_BRIDGE_ADDRESS is not set in the environment");
     }
