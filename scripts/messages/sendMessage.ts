@@ -1,6 +1,6 @@
-import {ethers} from 'hardhat';
-import {encodeStringMessage, MessageBridgeUtils, MessageType} from '../utils/messageBridgeUtils';
-import {getPersonalWallet} from '../utils/wallet';
+import { ethers } from 'hardhat';
+import { encodeStringMessage, MessageBridgeWrapper, MessageType } from '../utils/messageBridgeUtils';
+import { getPersonalWallet } from '../utils/wallet';
 
 /**
  * Command-line script for sending messages to MessageBridge
@@ -16,42 +16,42 @@ import {getPersonalWallet} from '../utils/wallet';
  */
 
 interface ScriptConfig {
-  messageBridgeAddress: string;
-  messageType: "executable" | "store-only";
-  messageData?: string;
-  storeResult?: boolean;
+    messageBridgeAddress: string;
+    messageType: "executable" | "store-only";
+    messageData: string;
+    storeResult?: boolean;
 }
 
 function parseConfig(): ScriptConfig {
-  return {
-    messageBridgeAddress: process.env.MESSAGE_BRIDGE_ADDRESS || '',
-    messageType: (process.env.MESSAGE_TYPE as 'executable' | 'store-only') || 'store-only',
-    messageData: process.env.MESSAGE_DATA,
-    storeResult: process.env.STORE_RESULT !== 'false',
-  };
+    return {
+        messageBridgeAddress: process.env.MESSAGE_BRIDGE_ADDRESS || '',
+        messageType: (process.env.MESSAGE_TYPE as 'executable' | 'store-only') || 'store-only',
+        messageData: process.env.MESSAGE_DATA || '',
+        storeResult: process.env.STORE_RESULT !== 'false',
+    };
 }
 
 function validateConfig(config: ScriptConfig): void {
-  if (!config.messageBridgeAddress) {
-    throw new Error("MESSAGE_BRIDGE_ADDRESS environment variable is required");
-  }
+    if (!config.messageBridgeAddress) {
+        throw new Error("MESSAGE_BRIDGE_ADDRESS environment variable is required");
+    }
 
-  if (!ethers.isAddress(config.messageBridgeAddress)) {
-    throw new Error("MESSAGE_BRIDGE_ADDRESS must be a valid Ethereum address");
-  }
+    if (!ethers.isAddress(config.messageBridgeAddress)) {
+        throw new Error("MESSAGE_BRIDGE_ADDRESS must be a valid Ethereum address");
+    }
 
-  if (!["executable", "store-only"].includes(config.messageType)) {
-    throw new Error("MESSAGE_TYPE must be either 'executable' or 'store-only'");
-  }
+    if (!["executable", "store-only"].includes(config.messageType)) {
+        throw new Error("MESSAGE_TYPE must be either 'executable' or 'store-only'");
+    }
 
-  // For both executable and store-only messages, we need messageData
-  if (!config.messageData) {
-    throw new Error('MESSAGE_DATA is required');
-  }
+    // For both executable and store-only messages, we need messageData
+    if (!config.messageData) {
+        throw new Error('MESSAGE_DATA is required');
+    }
 }
 
 function printUsage(): void {
-  console.log(`
+    console.log(`
 MessageBridge CLI Usage:
 
 1. Store-only message with custom data:
@@ -72,58 +72,59 @@ Environment Variables:
 }
 
 async function main() {
-  try {
-    const config = parseConfig();
-    validateConfig(config);
+    try {
+        const config = parseConfig();
+        validateConfig(config);
 
-    console.log("MessageBridge Configuration:");
-    console.log(`- Bridge Address: ${config.messageBridgeAddress}`);
-    console.log(`- Message Type: ${config.messageType}`);
-    console.log(`- Store Result: ${config.storeResult}`);
+        console.log("MessageBridge Configuration:");
+        console.log(`- Bridge Address: ${config.messageBridgeAddress}`);
+        console.log(`- Message Type: ${config.messageType}`);
+        console.log(`- Store Result: ${config.storeResult}`);
 
-    const signer = getPersonalWallet(ethers.provider);
-    console.log(`- Sender: ${await signer.getAddress()}\n`);
+        const signer = getPersonalWallet(ethers.provider);
+        console.log(`- Sender: ${await signer.getAddress()}\n`);
 
-    const messageBridge = await MessageBridgeUtils.create(config.messageBridgeAddress, signer);
+        const messageBridge = await MessageBridgeWrapper.createFromAddress(config.messageBridgeAddress, signer);
 
-    let messageData: string;
+        let messageData: string;
 
-    // Use provided message data
-    if (config.messageData.startsWith('0x')) {
-      messageData = config.messageData;
-    } else {
-      // Treat as string and encode
-      messageData = encodeStringMessage(config.messageData);
-      console.log(`Encoded string message: ${messageData}`);
+
+        // Use provided message data
+        if (config.messageData.startsWith('0x')) {
+            messageData = config.messageData;
+        } else {
+            // Treat as string and encode
+            messageData = encodeStringMessage(config.messageData);
+            console.log(`Encoded string message: ${messageData}`);
+        }
+
+        // Send the message
+        const messageType = config.messageType === "executable" ? MessageType.EXECUTABLE : MessageType.STORE_ONLY;
+
+        const result = await messageBridge.sendMessage({
+            message: messageData,
+            type: messageType,
+            storeResult: config.storeResult
+        });
+
+        console.log("\nMessage sent successfully!");
+        console.log(`Transaction Hash: ${result.txHash}`);
+        console.log(`Message Nonce: ${result.nonce}`);
+        console.log(`Gas Used: ${result.receipt.gasUsed}`);
+
+
+    } catch (error) {
+        console.error("Error:", error instanceof Error ? error.message : String(error));
+        console.log("\n");
+        printUsage();
+        process.exitCode = 1;
     }
-
-    // Send the message
-    const messageType = config.messageType === "executable" ? MessageType.EXECUTABLE : MessageType.STORE_ONLY;
-
-    const result = await messageBridge.sendMessage({
-      message: messageData,
-      type: messageType,
-      storeResult: config.storeResult
-    });
-
-    console.log("\nMessage sent successfully!");
-    console.log(`Transaction Hash: ${result.txHash}`);
-    console.log(`Message Nonce: ${result.nonce}`);
-    console.log(`Gas Used: ${result.receipt.gasUsed}`);
-
-
-  } catch (error) {
-    console.error("Error:", error instanceof Error ? error.message : String(error));
-    console.log("\n");
-    printUsage();
-    process.exitCode = 1;
-  }
 }
-
-// Export for use as a library
-export { main as sendMessage };
 
 // Run if executed directly
 if (require.main === module) {
-  main();
+    main().then(r => r).catch(e => {
+        console.error(e);
+        process.exitCode = 1;
+    });
 }
