@@ -137,7 +137,6 @@
     "fs-extra": "^7.0.1",
     "fs-readdir-recursive": "^1.1.0",
     "fs.realpath": "^1.0.0",
-    "fsevents": "^2.3.3",
     "function-bind": "^1.1.1",
     "functional-red-black-tree": "^1.0.1",
     "get-caller-file": "^2.0.5",
@@ -371,13 +370,16 @@
     "@openzeppelin/hardhat-upgrades": "^3.0.5",
     "chai": "^4.3.10",
     "ethers": "^6.13.0",
-    "hardhat": "^2.22.5",
+    "hardhat": "^2.26.3",
     "merkletreejs": "^0.3.11",
     "mocha": "^10.2.0",
     "typechain": "^8.3.2"
   },
   "scripts": {
-    "test": "mocha"
+    "pretest": "npx hardhat clean && npx hardhat test",
+    "test": "forge clean && forge test --gas-report -vvv",
+    "precoverage": "command -v lcov >/dev/null 2>&1 && rm -fr coverage && exit 0 || echo \"Please install lcov to generate coverage reports: https://command-not-found.com/genhtml\" && exit 1",
+    "coverage": "forge coverage --report lcov && genhtml -o coverage --branch-coverage --ignore-errors inconsistent lcov.info"
   },
   "author": "",
   "license": "ISC"

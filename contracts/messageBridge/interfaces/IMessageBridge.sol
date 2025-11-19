@@ -1,0 +1,66 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.25;
+
+import {AMBTypes} from "../../library/AMBTypes.sol";
+import {BridgeLib} from "../../library/BridgeLib.sol";
+import {AMBStorage} from "../AMBStorage.sol";
+
+interface IMessageBridge {
+    event Pause();
+    event Unpause();
+    event SendingPause();
+    event SendingUnpause();
+    event ExecutingPause();
+    event ExecutingUnpause();
+    event Store(uint256 indexed nonce, bytes metadata);
+    event NeoToEvmRootUpdate(uint256 indexed nonce, bytes32 neoToEvmRoot);
+    event SendingFeeChange(uint256 fee);
+    event MaxMessageSizeChange(uint256 maxSize);
+    event MaxNrMessagesChange(uint256 maxDeposits);
+    event MessageExecutionWindowChange(uint256 windowSeconds);
+    event ExecutionManagerChange(address indexed executor);
+    event Execution(uint256 indexed nonce, AMBTypes.Result result);
+    event MessageSend(
+        uint256 indexed nonce,
+        address indexed sender,
+        bytes encodedMetadata,
+        bytes message,
+        bytes32 messageHash,
+        bytes32 newEvmToNeoRoot
+    );
+
+    function pause() external;
+    function unpause() external;
+    function pauseSending() external;
+    function unpauseSending() external;
+    function pauseExecuting() external;
+    function unpauseExecuting() external;
+    function getExecutableState(uint256 nonce)
+        external
+        view
+        returns (AMBStorage.ExecutableState memory executableState);
+    function sendExecutableMessage(
+        bytes calldata _message,
+        bool storeResult
+    )
+        external
+        payable
+        returns (uint256 nonce);
+    function sendStoreOnlyMessage(bytes calldata message) external payable returns (uint256 nonce);
+    function sendResultMessage(uint256 relatedMessageNonce) external payable returns (uint256 nonce);
+    function getEvmExecutionResult(uint256 relatedMessageNonce) external view returns (AMBTypes.Result memory result);
+    function getNeoExecutionResult(uint256 relatedMessageNonce) external view returns (bytes memory result);
+    function storeMessages(
+        bytes32 neoToEvmRoot,
+        BridgeLib.Signature[] calldata signatures,
+        AMBTypes.MessageData[] calldata messages
+    )
+        external;
+
+    function executeMessage(uint256 nonce) external payable returns (AMBTypes.Result memory);
+    function setSendingFee(uint256 fee) external;
+    function setMaxMessageSize(uint256 maxSize) external;
+    function setMaxNrMessages(uint256 maxNrMessages) external;
+    function setExecutionManager(address executor) external;
+    function setExecutionWindowSeconds(uint256 windowSeconds) external;
+}

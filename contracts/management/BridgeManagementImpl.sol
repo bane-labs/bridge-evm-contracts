@@ -1,13 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "./BridgeManagementStorage.sol";
-import "../interfaces/IBridgeManagement.sol";
-import "../library/BridgeLib.sol";
+import {IBridgeManagement} from "../interfaces/IBridgeManagement.sol";
+import {BridgeLib} from "../library/BridgeLib.sol";
+import {ManagementLib} from "../library/ManagementLib.sol";
+import {BridgeManagementStorage} from "./BridgeManagementStorage.sol";
+import {BridgeManagementStorageV1} from "./BridgeManagementStorageV1.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 using EnumerableSet for EnumerableSet.AddressSet;
 
+/// @custom:oz-upgrades-unsafe-allow missing-initializer
 contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -119,9 +124,9 @@ contract BridgeManagementImpl is BridgeManagementStorage, IBridgeManagement {
         return funder;
     }
 
-    // Migration functionality v2 to v3
-
-    function upgradeToV3() external virtual reinitializer(3) onlyAdmin {
-        _upgradeToV3();
-    }
+    // Migration functionality
+    // commented until a reinitialization is needed
+    // function upgradeToV<version_nr>() external virtual reinitializer(<version_nr>) onlyAdmin {
+    //     _upgradeToV<version_nr>();
+    // }
 }

@@ -3,7 +3,7 @@ import { Wallet } from "ethers";
 import { NeoToken } from "../../typechain-types/contracts/token/";
 import { MAX_FEE_PER_GAS, MAX_PRIORITY_FEE_PER_GAS } from "../utils/constants";
 import { fundIfLocalNetwork } from "../utils/network";
-import { getPersonalWallet, getValdiator02 } from "../utils/wallet";
+import { getPersonalWallet } from "../utils/wallet";
 
 export async function deployNeoTokenContract(deployer: Wallet): Promise<NeoToken> {
     console.log("\n#####################################################################");
@@ -15,7 +15,7 @@ export async function deployNeoTokenContract(deployer: Wallet): Promise<NeoToken
     await neoTokenProxy.waitForDeployment();
     const neoToken = await ethers.getContractAt("NeoToken", await neoTokenProxy.getAddress());
 
-    console.log("\n# Deployment");
+    console.log("\nDeployment");
     console.log("Neo Token Address: ", await neoToken.getAddress());
     console.log("Minted Tokens: ", ethers.formatEther(await neoToken.totalSupply()));
     return neoToken;
@@ -25,7 +25,7 @@ async function main() {
     const deployer = getPersonalWallet(ethers.provider);
     await fundIfLocalNetwork([deployer.address]);
     const neoToken = await deployNeoTokenContract(deployer);
-    console.log("\n# NeoToken Contract Deployment Completed");
+    console.log("\nNeoToken Contract Deployment Completed");
 }
 
 main().catch((error) => {

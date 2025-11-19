@@ -8,6 +8,7 @@ import "../interfaces/INativeBridge.sol";
 import "../interfaces/ITokenBridge.sol";
 import "./BridgeStorage.sol";
 
+/// @custom:oz-upgrades-unsafe-allow missing-initializer
 contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -109,7 +110,7 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
         nonReentrant
     {
         StorageTypes.State memory state = _getNativeBridgeDepositState();
-        StorageTypes.NativeConfigV3 memory config = _getNativeBridgeConfig();
+        StorageTypes.NativeConfig memory config = _getNativeBridgeConfig();
         uint256 depositLength = _deposits.length;
         if (depositLength == 0) revert InvalidDepositsLength();
         if (depositLength > config.maxDeposits) revert InvalidDepositsLength();
@@ -195,7 +196,7 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
         whenNativeBridgeNotPaused
     {
         if (_to == address(0)) revert InvalidAddress();
-        StorageTypes.NativeConfigV3 memory config = _getNativeBridgeConfig();
+        StorageTypes.NativeConfig memory config = _getNativeBridgeConfig();
         uint256 fee = config.fee;
         if (msg.value < fee) revert InsufficientFee(fee, msg.value); // Prevents underflow and provides clear feedback
         // Revert if the actual fee is higher than the provided max fee.
@@ -576,9 +577,9 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
         }
     }
 
-    // Migration functionality v2 to v3
-
-    function upgradeToV3() external virtual reinitializer(3) onlyAdmin {
-        _upgradeToV3();
-    }
+    // Migration functionality
+    // commented until a reinitialization is needed
+    // function upgradeToV<version_nr>() external virtual reinitializer(<version_nr>) onlyAdmin {
+    //     _upgradeToV<version_nr>();
+    // }
 }

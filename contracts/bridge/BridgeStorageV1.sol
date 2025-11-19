@@ -30,33 +30,17 @@ abstract contract BridgeStorageV1 is ReentrancyGuardUpgradeable {
     mapping(address tokenAddress => mapping(uint256 nonce => StorageTypes.Claimable claimable) claimableTokens) public
         tokenClaimables;
 
-    // Deprecated in V3 (slots will be cleared in V3 reinitialization)
+    // Deprecated slots in V3 - deleted in v3 upgrade
     // Slots 105-113 (9 slots)
-    StorageTypes.NativeBridgeV2 public nativeBridgeV2;
+    uint256[9] private _gap1;
 
     // Slot 114
     address[] public registeredTokens;
 
     // Slot 115
-    StorageTypes.NativeBridgeV3 public nativeBridge;
+    StorageTypes.NativeBridge public nativeBridge;
 
-    function _upgradeToV3() internal onlyInitializing {
-        nativeBridge = StorageTypes.NativeBridgeV3(
-            nativeBridgeV2.paused,
-            nativeBridgeV2.depositState,
-            nativeBridgeV2.withdrawalState,
-            StorageTypes.NativeConfigV3(
-                nativeBridgeV2.config.fee,
-                nativeBridgeV2.config.minAmount,
-                nativeBridgeV2.config.maxAmount,
-                nativeBridgeV2.config.maxDeposits,
-                10
-            )
-        );
-        // Reset all values of the slots used by the deprecated nativeBridgeV2
-        nativeBridgeV2.paused = false;
-        nativeBridgeV2.depositState = StorageTypes.State(0, 0);
-        nativeBridgeV2.withdrawalState = StorageTypes.State(0, 0);
-        nativeBridgeV2.config = StorageTypes.NativeConfigV2(0, 0, 0, 0);
-    }
+    // commented until a reinitialization is needed
+    // function _upgradeToV<version_nr>() internal onlyInitializing {
+    // }
 }
