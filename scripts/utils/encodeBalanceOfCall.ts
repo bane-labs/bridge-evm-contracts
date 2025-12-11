@@ -3,22 +3,24 @@ import { ethers } from 'hardhat';
 
 // ERC20 balanceOf(address) function signature
 const functionSignature = "balanceOf(address)";
-const address = process.env.ADDRESS || "0x1212000000000000000000000000000000000004";
-const erc20Target = process.env.ERC20_TARGET || "0xab0a26b8d903f36acb4bf9663f8d2de0672433cd";
+// Personal wallet address to check balance for
+const targetAddress = process.env.ADDRESS || "0x170c095a1a24958597177cb74044138c90944bcc";
+// Neo token address (on NeoX devnet address)
+const erc20Address = process.env.ERC20_TARGET || "0x05fd43b3eFcb4ff1CA08229cAEcf67Bc21D0C0a3";
 const value = BigInt(process.env.VALUE || "0");
 
 const iface = new ethers.Interface([`function ${functionSignature}`]);
-const encodedCallData = iface.encodeFunctionData(functionSignature, [address]);
+const encodedCallData = iface.encodeFunctionData(functionSignature, [targetAddress]);
 console.log("Encoded callData:", encodedCallData);
 
 // Encode as AMBTypes.Call using MessageBridgeUtils
-const encodedEvmCall = encodeEvmCall(erc20Target, true, value, encodedCallData);
+const encodedEvmCall = encodeEvmCall(erc20Address, true, value, encodedCallData);
 console.log("Encoded AMBTypes.Call:", encodedEvmCall);
 
 async function callViewFunction() {
     const provider = ethers.provider;
     const callResult = await provider.call({
-        to: erc20Target,
+        to: erc20Address,
         data: encodedCallData
     });
     // Parse the returned hex as uint256
@@ -32,4 +34,4 @@ async function isContract(address: string, provider: any): Promise<boolean> {
 }
 
 callViewFunction().catch(console.error);
-isContract(erc20Target, ethers.provider).catch(console.error);
+isContract(erc20Address, ethers.provider).catch(console.error);
