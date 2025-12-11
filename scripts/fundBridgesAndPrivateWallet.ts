@@ -26,7 +26,7 @@ async function sendETHToBridge() {
     console.log("ETH transfer completed successfully!");
 }
 
-async function sendERC20() {
+async function sendERC20ToBridgeAndPrivateWallet() {
     // Get the token address from environment variable
     const tokenAddress = process.env.TOKEN_ADDRESS;
     if (!tokenAddress) {
@@ -81,7 +81,7 @@ async function sendERC20() {
 
 async function main() {
         await sendETHToBridge();
-        await sendERC20();
+        await sendERC20ToBridgeAndPrivateWallet();
 }
 
 main().catch((error) => {
