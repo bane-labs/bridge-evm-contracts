@@ -19,7 +19,7 @@ async function main() {
     let tokenDecimals = 18;
     try {
         const erc20Detailed = await ethers.getContractAt("TestToken", tokenAddress);
-        tokenDecimals = await erc20Detailed.decimals();
+        tokenDecimals = Number(await erc20Detailed.decimals());
     } catch {
         console.log('Could not get token decimals, using 18');
     }
@@ -31,6 +31,11 @@ async function main() {
     console.log(`Using fee from blockchain: ${ethers.formatEther(feeAmount)} ETH`);
 
     const withdrawalAmount = ethers.parseUnits(amount, tokenDecimals);
+    const decimalScalingFactor = tokenBridge.config.decimalScalingFactor;
+    const scalingDivisor = 10n ** BigInt(decimalScalingFactor);
+    if (withdrawalAmount % scalingDivisor !== 0n) {
+        throw new Error(`Withdrawal amount must be divisible by 10^${decimalScalingFactor} (${scalingDivisor}). Provided: ${withdrawalAmount}`);
+    }
 
     // Check current allowance
     const senderAddress = await signer.getAddress();
@@ -48,8 +53,10 @@ async function main() {
     // Then call withdrawToken with fee as msg.value
     const tx = await bridge.withdrawToken(tokenAddress, recipient, withdrawalAmount, { value: feeAmount });
     const receipt = await tx.wait();
+    if (!receipt) {
+        throw new Error('Transaction failed or receipt is null');
+    }
     console.log('WithdrawToken tx:', receipt.hash);
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });
-

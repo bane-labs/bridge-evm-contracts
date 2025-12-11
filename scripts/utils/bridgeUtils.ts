@@ -203,8 +203,9 @@ export class BridgeWrapper {
         const isSet = await this.bridge.nativeBridgeIsSet();
         if (!isSet) return false;
 
-        // Add additional checks if your contract has native bridge pause state
-        return true;
+        // Check that withdrawals are not paused
+        const withdrawalsPaused = await this.bridge.getWithdrawalsPaused();
+        return !withdrawalsPaused;
     }
 
     /**

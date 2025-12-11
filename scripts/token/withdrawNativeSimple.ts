@@ -26,6 +26,11 @@ async function main() {
     console.log(`Sender balance: ${ethers.formatEther(balance)} ETH`);
 
     const withdrawalAmount = ethers.parseEther(amount);
+    const decimalScalingFactor = nativeBridge.config.decimalScalingFactor;
+    const scalingDivisor = 10n ** BigInt(decimalScalingFactor);
+    if (withdrawalAmount % scalingDivisor !== 0n) {
+        throw new Error(`Withdrawal amount must be divisible by 10^${decimalScalingFactor} (${scalingDivisor}). Provided: ${withdrawalAmount}`);
+    }
     const totalValue = withdrawalAmount + feeAmount;
 
     console.log(`Withdrawal amount: ${ethers.formatEther(withdrawalAmount)} ETH`);
@@ -39,8 +44,10 @@ async function main() {
     console.log('Attempting withdrawal...');
     const tx = await bridge.withdrawNative(recipient, feeAmount, { value: totalValue });
     const receipt = await tx.wait();
+    if (!receipt) {
+        throw new Error('Transaction failed or receipt is null');
+    }
     console.log('WithdrawNative tx:', receipt.hash);
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });
-

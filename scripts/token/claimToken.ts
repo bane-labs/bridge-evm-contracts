@@ -72,9 +72,9 @@ async function main() {
         console.log("Transaction Hash:", receipt?.hash);
         console.log("Gas Used:", receipt?.gasUsed?.toString());
 
-        // Get the token balance of the claimer to show the result
-        const balance = await token.balanceOf(claimer.address);
-        console.log(`Claimer token balance after claim: ${ethers.formatEther(balance)} tokens`);
+        // Get the token balance of the receiver to show the result
+        const balance = await token.balanceOf(claimable.to);
+        console.log(`Receiver token balance after claim: ${ethers.formatEther(balance)} tokens`);
 
     } catch (error: any) {
         console.error("Claim failed:", error.message);
