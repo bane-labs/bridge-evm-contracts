@@ -305,7 +305,11 @@ contract BridgeImplementationForgeTest is Test, SigUtils {
         vm.deal(governor, 20 ether);
         vm.prank(governor);
         vm.expectRevert("not funder");
-        (bool b,) = payable(bridgeContract).call{value: 20 ether}("");
+        (bool success, ) = payable(bridgeContract).call{value: 20 ether}("");
+        (success); // No need for require(!success) after expectRevert - if the revert happens, test passes
+
+        uint newBridgeContractBalance = address(bridgeContract).balance;
+        assertEq(newBridgeContractBalance, bridgeContractBalance);
     }
 
     function test_CanFundAfterSetAsFunder() public {
@@ -596,6 +600,11 @@ contract BridgeImplementationForgeTest is Test, SigUtils {
 
         (,, StorageTypes.State memory withdrawalState,) = bridgeContract.nativeBridge();
         assertEq(withdrawalState.nonce, 2);
+        bytes32 expectedRoot = computeRoot(
+            computeRoot(bytes32(0), hashDepositOrWithdrawal(1, relayer, toNeoDecimals(withdrawalAmount1))),
+            hashDepositOrWithdrawal(2, validator1, toNeoDecimals(withdrawalAmount2))
+        );
+        assertEq(withdrawalState.root, expectedRoot);
     }
 
     function test_WithdrawWithAmountEdgeCase() public {
@@ -711,6 +720,11 @@ contract BridgeImplementationForgeTest is Test, SigUtils {
         assertEq(claimableAmount, 0);
         assertEq(validator1.balance, validator1BalanceBefore + toEthDecimals(largeDeposit.amount));
         assertEq(address(bridgeContract).balance, bridgeBalanceBefore - toEthDecimals(largeDeposit.amount));
+
+        // Trying to claim again should fail
+        vm.prank(relayer);
+        vm.expectRevert(BridgeStorage.NonexistentClaimable.selector);
+        bridgeContract.claimNative(largeDeposit.nonce);
     }
 
     function test_ClaimSuccessfulForContractAccount() public {
@@ -984,6 +998,9 @@ contract BridgeImplementationForgeTest is Test, SigUtils {
 
     // ========== NEWLY MIGRATED TESTS ==========
 
+    // Tests that deposits can be processed in multiple transactions with different batch sizes,
+    // ensuring proper state management when first processing one deposit,
+    // then processing two more deposits in a second transaction.
     function test_DepositWithMultipleTimesWithDifferentNonceArray() public {
         // First deposit with nonce 1
         bytes32 hashDepositData1 =
