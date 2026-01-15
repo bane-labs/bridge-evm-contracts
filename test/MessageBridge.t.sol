@@ -28,7 +28,7 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         assertEq(storageSlot, computedSlot, "Storage slot should match expected value");
     }
 
-    function test_Version() view public {
+    function test_Version() public view {
         assertEq(messageBridgeProxy.VERSION(), "1.0.0", "Version should match");
         assertEq(executionManager.VERSION(), "1.0.0", "Version should match");
     }

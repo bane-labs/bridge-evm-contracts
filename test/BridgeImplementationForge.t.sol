@@ -305,10 +305,10 @@ contract BridgeImplementationForgeTest is Test, SigUtils {
         vm.deal(governor, 20 ether);
         vm.prank(governor);
         vm.expectRevert("not funder");
-        (bool success, ) = payable(bridgeContract).call{value: 20 ether}("");
+        (bool success,) = payable(bridgeContract).call{value: 20 ether}("");
         (success); // No need for require(!success) after expectRevert - if the revert happens, test passes
 
-        uint newBridgeContractBalance = address(bridgeContract).balance;
+        uint256 newBridgeContractBalance = address(bridgeContract).balance;
         assertEq(newBridgeContractBalance, bridgeContractBalance);
     }
 
@@ -583,27 +583,19 @@ contract BridgeImplementationForgeTest is Test, SigUtils {
             bridgeContract.withdrawNative{value: withdrawalAmount1 + withdrawalFee}(relayer, withdrawalFee);
         }
         // Second withdrawal
+        bytes32 previousDepositHash = hashDepositOrWithdrawal(1, relayer, toNeoDecimals(withdrawalAmount1));
+        bytes32 currentRoot = computeRoot(bytes32(0), previousDepositHash);
+        bytes32  expectedDepositHash = hashDepositOrWithdrawal(2, validator1, toNeoDecimals(withdrawalAmount2));
+        bytes32 expectedRoot = computeRoot(currentRoot, expectedDepositHash);
         vm.prank(relayer);
         vm.expectEmit(true, true, true, true);
         emit INativeBridge.NativeWithdrawal(
-            2,
-            validator1,
-            toNeoDecimals(withdrawalAmount2),
-            relayer,
-            hashDepositOrWithdrawal(2, validator1, toNeoDecimals(withdrawalAmount2)),
-            computeRoot(
-                computeRoot(bytes32(0), hashDepositOrWithdrawal(1, relayer, toNeoDecimals(withdrawalAmount1))),
-                hashDepositOrWithdrawal(2, validator1, toNeoDecimals(withdrawalAmount2))
-            )
+            2, validator1, toNeoDecimals(withdrawalAmount2), relayer, expectedDepositHash, expectedRoot
         );
         bridgeContract.withdrawNative{value: withdrawalAmount2 + withdrawalFee}(validator1, withdrawalFee);
 
         (,, StorageTypes.State memory withdrawalState,) = bridgeContract.nativeBridge();
         assertEq(withdrawalState.nonce, 2);
-        bytes32 expectedRoot = computeRoot(
-            computeRoot(bytes32(0), hashDepositOrWithdrawal(1, relayer, toNeoDecimals(withdrawalAmount1))),
-            hashDepositOrWithdrawal(2, validator1, toNeoDecimals(withdrawalAmount2))
-        );
         assertEq(withdrawalState.root, expectedRoot);
     }
 
