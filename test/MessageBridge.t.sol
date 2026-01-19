@@ -2315,4 +2315,220 @@ contract MessageBridgeTest is MessageBridgeTestHelper {
         uint256 returnedNonce = abi.decode(result.returnData, (uint256));
         assertEq(returnedNonce, expectedNonce, "Function should have returned the executing nonce");
     }
+
+    function storeMultipleMessages(uint256 messageCount) internal returns (AMBTypes.MessageData[] memory) {
+        AMBTypes.MessageData[] memory messages = new AMBTypes.MessageData[](messageCount);
+
+        StorageTypes.State memory neoToEvmState = messageBridgeProxy.neoToEvmState();
+        uint256 startingNonce = neoToEvmState.nonce + 1;
+
+        for (uint256 i = 0; i < messageCount; i++) {
+            bytes memory message;
+            bytes memory encodedMetadata;
+
+            if (i % 3 == 0) {
+                message = abi.encode(AMBTypes.Call({
+                    allowFailure: false,
+                    target: address(0x1234),
+                    value: 0,
+                    callData: abi.encodeWithSignature("testFunction(uint256)", i)
+                }));
+                encodedMetadata = abi.encode(
+                    AMBTypes.MetadataExecutable({
+                        msgType: AMBTypes.MessageType.EXECUTABLE,
+                        timestamp: block.timestamp,
+                        sender: address(this),
+                        storeResult: true
+                    })
+                );
+            } else if (i % 3 == 1) {
+                message = abi.encode(AMBTypes.Call({
+                    allowFailure: true,
+                    target: address(0x5678),
+                    value: 0,
+                    callData: abi.encodeWithSignature("anotherFunction(string)", string(abi.encodePacked("msg", vm.toString(i))))
+                }));
+                encodedMetadata = abi.encode(
+                    AMBTypes.MetadataExecutable({
+                        msgType: AMBTypes.MessageType.EXECUTABLE,
+                        timestamp: block.timestamp,
+                        sender: address(this),
+                        storeResult: false
+                    })
+                );
+            } else {
+                message = abi.encodePacked("Store only message ", vm.toString(i));
+                encodedMetadata = abi.encode(
+                    AMBTypes.MetadataStoreOnly({
+                        msgType: AMBTypes.MessageType.STORE_ONLY,
+                        timestamp: block.timestamp,
+                        sender: address(this)
+                    })
+                );
+            }
+
+            messages[i] = AMBTypes.MessageData({
+                nonce: startingNonce + i,
+                message: message,
+                encodedMetadata: encodedMetadata
+            });
+        }
+
+        bytes32 previousRoot = neoToEvmState.root;
+        bytes32 depositRoot = MessageBridgeLib._computeNewTopRoot(previousRoot, messages);
+        BridgeLib.Signature[] memory signatures = generateValidSignatures(depositRoot);
+
+        vm.prank(relayer);
+        messageBridgeProxy.storeMessages(depositRoot, signatures, messages);
+
+        return messages;
+    }
+
+    function test_StoreMultipleMessages() public {
+        uint256 messageCount = 5;
+        AMBTypes.MessageData[] memory messages = storeMultipleMessages(messageCount);
+
+        for (uint256 i = 0; i < messageCount; i++) {
+            AMBStorage.StoredMessage memory storedMessage = messageBridgeProxy.getEvmMessage(messages[i].nonce);
+            assertEq(storedMessage.rawMessage, messages[i].message, "Stored message should match original");
+            assertEq(storedMessage.encodedMetadata, messages[i].encodedMetadata, "Stored metadata should match");
+        }
+
+        StorageTypes.State memory finalState = messageBridgeProxy.neoToEvmState();
+        assertEq(finalState.nonce, messages[messageCount - 1].nonce, "Final nonce should match last message nonce");
+    }
+
+    struct MessageWrapper {
+        AMBTypes.MessageType msgType;
+        bool storeResult;
+        address target;
+        uint256 value;
+        bytes callData;
+        bytes storeOnlyData;
+        address customSender;
+        uint256 customTimestamp;
+    }
+
+    function storeCustomMessages(MessageWrapper[] memory configs) internal returns (AMBTypes.MessageData[] memory) {
+        AMBTypes.MessageData[] memory messages = new AMBTypes.MessageData[](configs.length);
+
+        StorageTypes.State memory neoToEvmState = messageBridgeProxy.neoToEvmState();
+        uint256 startingNonce = neoToEvmState.nonce + 1;
+
+        for (uint256 i = 0; i < configs.length; i++) {
+            MessageWrapper memory config = configs[i];
+            bytes memory message;
+            bytes memory encodedMetadata;
+            address sender = config.customSender == address(0) ? address(this) : config.customSender;
+            uint256 timestamp = config.customTimestamp == 0 ? block.timestamp : config.customTimestamp;
+
+            if (config.msgType == AMBTypes.MessageType.EXECUTABLE) {
+                message = abi.encode(AMBTypes.Call({
+                    allowFailure: true,
+                    target: config.target,
+                    value: config.value,
+                    callData: config.callData
+                }));
+                encodedMetadata = abi.encode(
+                    AMBTypes.MetadataExecutable({
+                        msgType: AMBTypes.MessageType.EXECUTABLE,
+                        timestamp: timestamp,
+                        sender: sender,
+                        storeResult: config.storeResult
+                    })
+                );
+            } else if (config.msgType == AMBTypes.MessageType.STORE_ONLY) {
+                message = config.storeOnlyData;
+                encodedMetadata = abi.encode(
+                    AMBTypes.MetadataStoreOnly({
+                        msgType: AMBTypes.MessageType.STORE_ONLY,
+                        timestamp: timestamp,
+                        sender: sender
+                    })
+                );
+            }
+
+            messages[i] = AMBTypes.MessageData({
+                nonce: startingNonce + i,
+                message: message,
+                encodedMetadata: encodedMetadata
+            });
+        }
+
+        bytes32 previousRoot = neoToEvmState.root;
+        bytes32 depositRoot = MessageBridgeLib._computeNewTopRoot(previousRoot, messages);
+        BridgeLib.Signature[] memory signatures = generateValidSignatures(depositRoot);
+
+        vm.prank(relayer);
+        messageBridgeProxy.storeMessages(depositRoot, signatures, messages);
+
+        return messages;
+    }
+
+    function test_StoreCustomMultipleMessages() public {
+        MessageWrapper[] memory configs = new MessageWrapper[](5);
+
+        configs[0] = MessageWrapper({
+            msgType: AMBTypes.MessageType.EXECUTABLE,
+            storeResult: true,
+            target: address(0x1234),
+            value: 0,
+            callData: abi.encodeWithSignature("testFunction(uint256)", 42),
+            storeOnlyData: "",
+            customSender: address(0),
+            customTimestamp: 0
+        });
+
+        configs[1] = MessageWrapper({
+            msgType: AMBTypes.MessageType.STORE_ONLY,
+            storeResult: false,
+            target: address(0),
+            value: 0,
+            callData: "",
+            storeOnlyData: abi.encodePacked("Important data to store"),
+            customSender: address(0x9999),
+            customTimestamp: block.timestamp + 1000
+        });
+
+        configs[2] = MessageWrapper({
+            msgType: AMBTypes.MessageType.EXECUTABLE,
+            storeResult: false,
+            target: address(0x5678),
+            value: 1 ether,
+            callData: abi.encodeWithSignature("payableFunction()"),
+            storeOnlyData: "",
+            customSender: address(0),
+            customTimestamp: 0
+        });
+
+        configs[3] = MessageWrapper({
+            msgType: AMBTypes.MessageType.EXECUTABLE,
+            storeResult: true,
+            target: address(0xABCD),
+            value: 0,
+            callData: abi.encodeWithSignature("complexFunction(string,uint256)", "hello", 123),
+            storeOnlyData: "",
+            customSender: address(0x8888),
+            customTimestamp: 0
+        });
+
+        configs[4] = MessageWrapper({
+            msgType: AMBTypes.MessageType.STORE_ONLY,
+            storeResult: false,
+            target: address(0),
+            value: 0,
+            callData: "",
+            storeOnlyData: abi.encode("Structured data", 456, true),
+            customSender: address(0),
+            customTimestamp: 0
+        });
+
+        AMBTypes.MessageData[] memory messages = storeCustomMessages(configs);
+
+        for (uint256 i = 0; i < messages.length; i++) {
+            AMBStorage.StoredMessage memory storedMessage = messageBridgeProxy.getEvmMessage(messages[i].nonce);
+            assertEq(storedMessage.rawMessage, messages[i].message, "Stored message should match original");
+            assertEq(storedMessage.encodedMetadata, messages[i].encodedMetadata, "Stored metadata should match");
+        }
+    }
 }
