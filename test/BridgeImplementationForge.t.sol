@@ -568,6 +568,28 @@ contract BridgeImplementationForgeTest is Test, SigUtils {
         assertEq(relayer.balance, 0);
     }
 
+    function test_WithdrawNativeShouldReturnIncrementedNonce() public {
+        uint256 withdrawalAmount = 1 ether;
+        (,,, StorageTypes.NativeConfig memory config) = bridgeContract.nativeBridge();
+        uint256 withdrawalFee = config.fee;
+        (,, StorageTypes.State memory initialWithdrawalState,) = bridgeContract.nativeBridge();
+        uint256 initialNonce = initialWithdrawalState.nonce;
+
+        vm.deal(relayer, 2 * (withdrawalAmount + withdrawalFee));
+
+        vm.prank(relayer);
+        uint256 firstNonce = bridgeContract.withdrawNative{value: withdrawalAmount + withdrawalFee}(relayer, withdrawalFee);
+
+        vm.prank(relayer);
+        uint256 secondNonce =
+            bridgeContract.withdrawNative{value: withdrawalAmount + withdrawalFee}(validator1, withdrawalFee);
+
+        (,, StorageTypes.State memory withdrawalState,) = bridgeContract.nativeBridge();
+        assertEq(firstNonce, initialNonce + 1);
+        assertEq(secondNonce, initialNonce + 2);
+        assertEq(withdrawalState.nonce, secondNonce);
+    }
+
     function test_WithdrawMultipleTimes() public {
         uint256 withdrawalAmount1 = 1 ether;
         uint256 withdrawalAmount2 = 2 ether;
