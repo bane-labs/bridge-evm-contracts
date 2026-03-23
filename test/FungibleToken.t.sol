@@ -356,6 +356,32 @@ contract TestFungibleToken is Test, SigUtils {
         assertEq(MockERC20(neoXTokenA).balanceOf(transferUser1), balance - 888);
     }
 
+    function testWithdrawToken_ReturnsIncrementedNonce() public {
+        assertEq(bridgeProxy.isRegisteredToken(neoXTokenA), false);
+        registerTokenAndUnpause(neoXTokenA, validConfigA);
+
+        uint256 balance = 1000;
+        MockERC20(neoXTokenA).mint(transferUser0, balance);
+
+        vm.prank(transferUser0);
+        MockERC20(neoXTokenA).approve(address(bridgeProxy), balance);
+        assertEq(MockERC20(neoXTokenA).allowance(transferUser0, address(bridgeProxy)), balance);
+
+        StorageTypes.State memory initialWithdrawalState = bridgeProxy.getTokenWithdrawalState(neoXTokenA);
+        uint256 initialNonce = initialWithdrawalState.nonce;
+
+        vm.prank(transferUser0);
+        uint256 firstNonce = bridgeProxy.withdrawToken{value: validConfigA.fee}(neoXTokenA, transferUser0, 300);
+
+        vm.prank(transferUser0);
+        uint256 secondNonce = bridgeProxy.withdrawToken{value: validConfigA.fee}(neoXTokenA, transferUser1, 200);
+
+        StorageTypes.State memory withdrawalState = bridgeProxy.getTokenWithdrawalState(neoXTokenA);
+        assertEq(firstNonce, initialNonce + 1);
+        assertEq(secondNonce, initialNonce + 2);
+        assertEq(withdrawalState.nonce, secondNonce);
+    }
+
     // test case: successful withdraw token, token type is NEO, Let's call it withdraw token B
     function testWithdrawTokenB() public {
         assertEq(bridgeProxy.isRegisteredToken(neoXTokenB), false);

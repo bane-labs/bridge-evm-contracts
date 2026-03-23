@@ -47,7 +47,7 @@ interface ITokenBridge {
 
     function claimToken(address neoXToken, uint256 nonce) external;
 
-    function withdrawToken(address neoXToken, address to, uint256 amount) external payable;
+    function withdrawToken(address neoXToken, address to, uint256 amount) external payable returns (uint256 nonce);
 
     function setTokenWithdrawalFee(address[] calldata neoXTokens, uint256[] calldata fees) external;
 

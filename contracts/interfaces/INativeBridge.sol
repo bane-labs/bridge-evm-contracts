@@ -48,7 +48,7 @@ interface INativeBridge {
 
     function claimNative(uint256 _nonce) external;
 
-    function withdrawNative(address _to, uint256 _maxFee) external payable;
+    function withdrawNative(address _to, uint256 _maxFee) external payable returns (uint256 nonce);
 
     function setNativeWithdrawalFee(uint256 _fee) external;
 

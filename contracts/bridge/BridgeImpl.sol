@@ -194,6 +194,7 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
         whenWithdrawalsNotPaused
         onlyIfNativeBridgeSet
         whenNativeBridgeNotPaused
+        returns (uint256 nonce)
     {
         if (_to == address(0)) revert InvalidAddress();
         StorageTypes.NativeConfig memory config = _getNativeBridgeConfig();
@@ -214,11 +215,11 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
         uint256 amountForHashing = withdrawalAmount / (10 ** config.decimalScalingFactor);
 
         StorageTypes.State memory state = _getNativeBridgeWithdrawalState();
-        uint256 newNonce = state.nonce + 1;
-        bytes32 withdrawalHash = NativeBridgeLib._hashNativeBrideOp(newNonce, _to, amountForHashing);
+        nonce = state.nonce + 1;
+        bytes32 withdrawalHash = NativeBridgeLib._hashNativeBrideOp(nonce, _to, amountForHashing);
         bytes32 newRoot = BridgeLib._computeNewRoot(state.root, withdrawalHash);
-        _setNativeBridgeWithdrawalState(StorageTypes.State({nonce: newNonce, root: newRoot}));
-        emit NativeWithdrawal(newNonce, _to, amountForHashing, msg.sender, withdrawalHash, newRoot);
+        _setNativeBridgeWithdrawalState(StorageTypes.State({nonce: nonce, root: newRoot}));
+        emit NativeWithdrawal(nonce, _to, amountForHashing, msg.sender, withdrawalHash, newRoot);
     }
 
     function setNativeWithdrawalFee(uint256 _fee) external onlyGovernor {
@@ -439,6 +440,7 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
         whenWithdrawalsNotPaused
         onlyIfTokenRegistered(_neoXToken)
         whenTokenBridgeNotPaused(_neoXToken)
+        returns (uint256 nonce)
     {
         if (_to == address(0)) revert InvalidAddress();
         StorageTypes.TokenConfig memory config = _getTokenConfig(_neoXToken);
@@ -452,7 +454,7 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
 
         // Compute the new root and update the token withdrawal state.
         StorageTypes.State memory state = _getTokenWithdrawalState(_neoXToken);
-        uint256 newNonce = state.nonce + 1;
+        nonce = state.nonce + 1;
 
         if (config.decimalScalingFactor > 0) {
             uint256 scalingFactor = 10 ** config.decimalScalingFactor;
@@ -461,11 +463,11 @@ contract BridgeImpl is BridgeStorage, IBridge, INativeBridge, ITokenBridge {
         }
 
         bytes32 withdrawalHash =
-            TokenBridgeLib._hashTokenBridgeOp(config.neoN3Token, _neoXToken, newNonce, _to, receivedAmount);
+            TokenBridgeLib._hashTokenBridgeOp(config.neoN3Token, _neoXToken, nonce, _to, receivedAmount);
         bytes32 newRoot = BridgeLib._computeNewRoot(state.root, withdrawalHash);
-        _setTokenWithdrawalState(_neoXToken, StorageTypes.State({nonce: newNonce, root: newRoot}));
+        _setTokenWithdrawalState(_neoXToken, StorageTypes.State({nonce: nonce, root: newRoot}));
         emit TokenWithdrawal(
-            _neoXToken, config.neoN3Token, newNonce, _to, receivedAmount, from, withdrawalHash, newRoot
+            _neoXToken, config.neoN3Token, nonce, _to, receivedAmount, from, withdrawalHash, newRoot
         );
     }
 

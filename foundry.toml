@@ -11,6 +11,10 @@ ffi = true
 
 solc_version = "0.8.25"
 evm_version = "shanghai"
+# Avoid Foundry OpenChain/proxy panics in this environment by disabling network-backed lookups.
+offline = true
+# Always run full compilation so OpenZeppelin upgrades validation sees complete build-info artifacts.
+force = true
 
 optimizer = true
 ## optimizer-runs = 1
