@@ -1,0 +1,14 @@
+{
+  "network": "neox-mainnet",
+  "accounts": {
+    "personal": {
+      "type": "keystore",
+      "path": "/absolute/path/to/personal-keystore.json",
+      "passwordEnv": "OPS_PERSONAL_WALLET_PASSWORD"
+    },
+    "governor": {
+      "type": "privateKeyEnv",
+      "env": "OPS_GOVERNOR_PRIVATE_KEY"
+    }
+  }
+}

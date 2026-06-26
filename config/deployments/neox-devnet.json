@@ -1,0 +1,10 @@
+{
+  "network": "neox-devnet",
+  "contracts": {
+    "bridge": "",
+    "bridgeManagement": "",
+    "messageBridge": "",
+    "executionManager": ""
+  },
+  "tokens": {}
+}

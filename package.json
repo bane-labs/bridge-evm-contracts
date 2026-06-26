@@ -7,6 +7,7 @@
     "test": "test"
   },
   "scripts": {
+    "ops": "ts-node ops/index.ts",
     "test": "forge clean && forge test --gas-report -vvv",
     "precoverage": "command -v lcov >/dev/null 2>&1 && rm -fr coverage && exit 0 || echo \"Please install lcov to generate coverage reports: https://command-not-found.com/genhtml\" && exit 1",
     "coverage": "forge coverage --report lcov && genhtml -o coverage --branch-coverage --ignore-errors inconsistent lcov.info"

@@ -1,0 +1,10 @@
+{
+  "network": "local",
+  "contracts": {
+    "bridge": "",
+    "bridgeManagement": "",
+    "messageBridge": "",
+    "executionManager": ""
+  },
+  "tokens": {}
+}

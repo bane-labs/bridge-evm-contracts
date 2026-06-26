@@ -1,0 +1,10 @@
+{
+  "network": "neox-mainnet",
+  "contracts": {
+    "bridge": "0x1212000000000000000000000000000000000004",
+    "bridgeManagement": "0x1212000000000000000000000000000000000005",
+    "messageBridge": "0x1212000000000000000000000000000000000009",
+    "executionManager": "0x85776439bbE26A3B6F91baB0fb8Ef3fDc769f385"
+  },
+  "tokens": {}
+}

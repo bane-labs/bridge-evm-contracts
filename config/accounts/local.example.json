@@ -1,0 +1,9 @@
+{
+  "network": "local",
+  "accounts": {
+    "personal": {
+      "type": "privateKeyEnv",
+      "env": "OPS_LOCAL_PRIVATE_KEY"
+    }
+  }
+}

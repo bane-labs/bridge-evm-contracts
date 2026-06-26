@@ -1,0 +1,11 @@
+{
+  "name": "local",
+  "hardhatNetwork": "localhost",
+  "chainId": 31337,
+  "rpcUrl": "http://127.0.0.1:8545",
+  "gas": {
+    "gasPriceGwei": "4",
+    "maxFeePerGasGwei": "41",
+    "maxPriorityFeePerGasGwei": "20"
+  }
+}
