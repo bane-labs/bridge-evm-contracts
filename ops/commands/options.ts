@@ -18,3 +18,11 @@ export function requireOption(options: CommandOptions, key: string): string {
   if (!value) throw new Error(`Missing required option --${key}`);
   return value;
 }
+
+export function isHelpArg(value: string | undefined): boolean {
+  return value === "help" || value === "--help" || value === "-h";
+}
+
+export function hasHelpArg(args: string[]): boolean {
+  return args.some(isHelpArg);
+}

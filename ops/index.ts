@@ -1,3 +1,4 @@
+import { runAccountsCommand } from "./commands/accounts";
 import { runBridgeCommand } from "./commands/bridge";
 import { runConfigCommand } from "./commands/config";
 
@@ -16,6 +17,10 @@ async function main(): Promise<void> {
     await runBridgeCommand(args);
     return;
   }
+  if (group === "accounts" || group === "account") {
+    await runAccountsCommand(args);
+    return;
+  }
 
   throw new Error(`Unknown ops command group: ${group}`);
 }
@@ -24,13 +29,22 @@ function printHelp(): void {
   console.log(`Bridge ops CLI
 
 Usage:
+  npm run ops -- help
+  npm run ops -- <group> --help
   npm run ops -- config show --network <network>
+  npm run ops -- accounts list --network <network>
+  npm run ops -- accounts address --network <network> --account <name>
   npm run ops -- bridge state --network <network> [--bridge <address>] [--max-tokens <count>]
   npm run ops -- bridge token --network <network> --token <alias-or-address> [--bridge <address>]
   npm run ops -- bridge claimable --network <network> --nonce <nonce> [--token <alias-or-address>] [--bridge <address>]
 
 Networks:
   local, neox-devnet, neox-testnet, neox-mainnet
+
+Groups:
+  config      Inspect resolved config.
+  accounts    Inspect configured local accounts.
+  bridge      Read token bridge state.
 `);
 }
 
