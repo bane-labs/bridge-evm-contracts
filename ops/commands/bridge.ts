@@ -4,6 +4,7 @@ import { connectErc20Metadata } from "../clients/erc20";
 import { assertConfiguredChain, createProvider } from "../clients/provider";
 import { loadOpsConfig, resolveBridgeAddress, resolveTokenAddress } from "../config/load";
 import { formatAmount, formatBool, isEmptyClaimable, printResolvedContext } from "../format";
+import { CommandOptions, parseOptions, requireOption } from "./options";
 
 export async function runBridgeCommand(args: string[]): Promise<void> {
   const [command, ...rest] = args;
@@ -26,7 +27,7 @@ export async function runBridgeCommand(args: string[]): Promise<void> {
   throw new Error(`Unknown bridge command: ${command ?? "(missing)"}`);
 }
 
-async function bridgeState(config: ReturnType<typeof loadOpsConfig>, options: Record<string, string>): Promise<void> {
+async function bridgeState(config: ReturnType<typeof loadOpsConfig>, options: CommandOptions): Promise<void> {
   const bridgeAddress = resolveBridgeAddress(config, options.bridge);
   const provider = createProvider(config.network);
   await assertConfiguredChain(provider, config.network.chainId);
@@ -59,7 +60,7 @@ async function bridgeState(config: ReturnType<typeof loadOpsConfig>, options: Re
   await printRegisteredTokens(config, bridge, provider, options);
 }
 
-async function bridgeClaimable(config: ReturnType<typeof loadOpsConfig>, options: Record<string, string>): Promise<void> {
+async function bridgeClaimable(config: ReturnType<typeof loadOpsConfig>, options: CommandOptions): Promise<void> {
   const bridgeAddress = resolveBridgeAddress(config, options.bridge);
   const nonce = parseNonce(requireOption(options, "nonce"));
   const provider = createProvider(config.network);
@@ -96,7 +97,7 @@ async function bridgeClaimable(config: ReturnType<typeof loadOpsConfig>, options
   printClaimable(claimable, 8, "native");
 }
 
-async function bridgeToken(config: ReturnType<typeof loadOpsConfig>, options: Record<string, string>): Promise<void> {
+async function bridgeToken(config: ReturnType<typeof loadOpsConfig>, options: CommandOptions): Promise<void> {
   const bridgeAddress = resolveBridgeAddress(config, options.bridge);
   const tokenInput = requireOption(options, "token");
   const tokenAddress = resolveTokenAddress(config, tokenInput);
@@ -112,7 +113,7 @@ async function printRegisteredTokens(
   config: ReturnType<typeof loadOpsConfig>,
   bridge: ReturnType<typeof connectBridge>,
   provider: ethers.JsonRpcProvider,
-  options: Record<string, string>
+  options: CommandOptions
 ): Promise<void> {
   const maxTokens = options["max-tokens"] ? parsePositiveInteger(options["max-tokens"], "max-tokens") : 100;
 
@@ -240,23 +241,4 @@ function parsePositiveInteger(value: string, label: string): number {
   const parsed = Number(value);
   if (!Number.isSafeInteger(parsed) || parsed <= 0) throw new Error(`Invalid ${label}: ${value}`);
   return parsed;
-}
-
-function parseOptions(args: string[]): Record<string, string> {
-  const options: Record<string, string> = {};
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
-    if (!arg.startsWith("--")) throw new Error(`Unexpected positional argument: ${arg}`);
-    const key = arg.slice(2);
-    const value = args[++i];
-    if (!value || value.startsWith("--")) throw new Error(`Missing value for --${key}`);
-    options[key] = value;
-  }
-  return options;
-}
-
-function requireOption(options: Record<string, string>, key: string): string {
-  const value = options[key];
-  if (!value) throw new Error(`Missing required option --${key}`);
-  return value;
 }

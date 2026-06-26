@@ -3,7 +3,7 @@ import path from "path";
 import { ethers } from "ethers";
 import { AccountConfig, DeploymentConfig, NetworkConfig, OpsConfig } from "./types";
 
-const REPO_ROOT = path.resolve(__dirname, "../..");
+const REPO_ROOT = path.resolve(__dirname, "..", "..");
 
 const NETWORK_ALIASES: Record<string, string> = {
   neoxTestnet: "neox-testnet",
