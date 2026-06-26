@@ -14,6 +14,7 @@ Available groups:
 - `config` inspects resolved network, deployment, token, and account config.
 - `accounts` inspects local account aliases and resolves account addresses.
 - `bridge` reads token bridge state from a configured network.
+- `message` reads message bridge state from a configured network.
 
 ## Config Files
 
@@ -75,6 +76,32 @@ npm run ops -- bridge claimable --network neox-testnet --token <alias-or-address
 ```
 
 Use `--bridge <address>` on bridge commands to override the configured bridge address for one command.
+
+Print message bridge state:
+
+```sh
+npm run ops -- message state --network neox-testnet
+```
+
+Print one stored message and decoded metadata:
+
+```sh
+npm run ops -- message get --network neox-testnet --nonce <nonce>
+```
+
+Print result state for one related message nonce:
+
+```sh
+npm run ops -- message result --network neox-testnet --nonce <nonce>
+```
+
+Print executable state for one stored executable message:
+
+```sh
+npm run ops -- message executable --network neox-testnet --nonce <nonce>
+```
+
+Use `--message-bridge <address>` on message commands to override the configured message bridge address for one command.
 
 ## Accounts
 

@@ -55,6 +55,10 @@ export function resolveBridgeAddress(config: OpsConfig, override?: string): stri
   return resolveAddress("bridge", override ?? config.deployment.contracts.bridge);
 }
 
+export function resolveMessageBridgeAddress(config: OpsConfig, override?: string): string {
+  return resolveAddress("messageBridge", override ?? config.deployment.contracts.messageBridge);
+}
+
 export function resolveTokenAddress(config: OpsConfig, token: string): string {
   if (ethers.isAddress(token)) return token;
   const tokenConfig = config.deployment.tokens?.[token];
