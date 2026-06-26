@@ -2,11 +2,11 @@ import { accountSource, listAccounts, loadAccountAddress } from "../accounts/loa
 import { loadOpsConfig } from "../config/load";
 import { AccountSource } from "../config/types";
 import { printResolvedContext } from "../format";
-import { hasHelpArg, isHelpArg, parseOptions, requireOption } from "./options";
+import { hasHelpFlag, isHelpFlag, parseOptions, requireOption } from "./options";
 
 export async function runAccountsCommand(args: string[]): Promise<void> {
   const [command, ...rest] = args;
-  if (!command || isHelpArg(command) || hasHelpArg(rest)) {
+  if (!command || isHelpFlag(command) || hasHelpFlag(rest)) {
     printAccountsHelp();
     return;
   }

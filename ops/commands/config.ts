@@ -1,10 +1,10 @@
 import { loadOpsConfig } from "../config/load";
 import { printResolvedContext } from "../format";
-import { hasHelpArg, isHelpArg, parseOptions, requireOption } from "./options";
+import { hasHelpFlag, isHelpFlag, parseOptions, requireOption } from "./options";
 
 export function runConfigCommand(args: string[]): void {
   const [command, ...rest] = args;
-  if (!command || isHelpArg(command) || hasHelpArg(rest)) {
+  if (!command || isHelpFlag(command) || hasHelpFlag(rest)) {
     printConfigHelp();
     return;
   }

@@ -4,11 +4,11 @@ import { connectErc20Metadata } from "../clients/erc20";
 import { assertConfiguredChain, createProvider } from "../clients/provider";
 import { loadOpsConfig, resolveBridgeAddress, resolveTokenAddress } from "../config/load";
 import { formatAmount, formatBool, isEmptyClaimable, printResolvedContext } from "../format";
-import { CommandOptions, hasHelpArg, isHelpArg, parseOptions, requireOption } from "./options";
+import { CommandOptions, hasHelpFlag, isHelpFlag, parseOptions, requireOption } from "./options";
 
 export async function runBridgeCommand(args: string[]): Promise<void> {
   const [command, ...rest] = args;
-  if (!command || isHelpArg(command) || hasHelpArg(rest)) {
+  if (!command || isHelpFlag(command) || hasHelpFlag(rest)) {
     printBridgeHelp();
     return;
   }

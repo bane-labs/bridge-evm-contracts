@@ -67,12 +67,13 @@ function promptHidden(prompt: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const stdin = process.stdin;
     const stdout = process.stdout;
-    const wasRaw = stdin.isRaw;
+    const wasRaw = stdin.isRaw === true;
     let password = "";
 
     const cleanup = (): void => {
       stdin.removeListener("data", onData);
       stdin.setRawMode(wasRaw);
+      stdin.pause();
       stdout.write("\n");
     };
 
