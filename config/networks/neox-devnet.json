@@ -1,0 +1,11 @@
+{
+  "name": "neox-devnet",
+  "hardhatNetwork": "neoxDevnet",
+  "chainId": 2312051126,
+  "rpcUrl": "http://localhost:8562",
+  "gas": {
+    "gasPriceGwei": "4",
+    "maxFeePerGasGwei": "41",
+    "maxPriorityFeePerGasGwei": "20"
+  }
+}

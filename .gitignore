@@ -4,7 +4,7 @@
 # hardhat
 artifacts
 cache
-deployments
+/deployments
 node_modules
 
 
@@ -131,5 +131,10 @@ crytic-export
 .deps/npm/@openzeppelin
 
 # Wallets for testing
-wallets/
+/wallets/
 .openzeppelin
+
+# Local operator overrides
+config/deployments/*.local.json
+config/accounts/*.json
+!config/accounts/*.example.json

@@ -1,0 +1,11 @@
+{
+  "name": "neox-testnet",
+  "hardhatNetwork": "neoxTestnet",
+  "chainId": 12227332,
+  "rpcUrl": "https://testnet.rpc.banelabs.org",
+  "gas": {
+    "gasPriceGwei": "4",
+    "maxFeePerGasGwei": "41",
+    "maxPriorityFeePerGasGwei": "20"
+  }
+}

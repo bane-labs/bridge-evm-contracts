@@ -1,0 +1,11 @@
+{
+  "name": "neox-mainnet",
+  "hardhatNetwork": "neoxMainnet",
+  "chainId": 47763,
+  "rpcUrl": "https://mainnet-1.rpc.banelabs.org",
+  "gas": {
+    "gasPriceGwei": "4",
+    "maxFeePerGasGwei": "41",
+    "maxPriorityFeePerGasGwei": "20"
+  }
+}
