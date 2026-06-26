@@ -142,7 +142,9 @@ async function discoverRegisteredTokens(
   for (let index = 0; index < maxTokens; index++) {
     try {
       tokens.push(ethers.getAddress(await bridge.registeredTokens(index)));
-    } catch {
+    } catch (error) {
+      // registeredTokens(index) reverts when index is out of bounds; treat that as end-of-list.
+      if (!ethers.isCallException(error)) throw error;
       break;
     }
   }
@@ -246,11 +248,8 @@ function parseOptions(args: string[]): Record<string, string> {
     const arg = args[i];
     if (!arg.startsWith("--")) throw new Error(`Unexpected positional argument: ${arg}`);
     const key = arg.slice(2);
-    if (args[i + 1] === undefined || args[i + 1].startsWith("--")) {
-      options[key] = "true";
-      continue;
-    }
     const value = args[++i];
+    if (!value || value.startsWith("--")) throw new Error(`Missing value for --${key}`);
     options[key] = value;
   }
   return options;

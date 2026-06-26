@@ -25,16 +25,17 @@ export function loadOpsConfig(networkInput: string): OpsConfig {
   const accountsPath = configPath("accounts", `${networkName}.json`);
 
   const network = readJson<NetworkConfig>(networkPath, true);
-  validateNetworkConfig(network, networkPath);
+  validateNetworkConfig(network, networkPath, networkName);
 
   const baseDeployment = readJson<DeploymentConfig>(deploymentPath, false) ?? emptyDeployment(networkName);
-  validateDeploymentConfig(baseDeployment, deploymentPath);
+  validateDeploymentConfig(baseDeployment, deploymentPath, networkName);
 
   const overrideDeployment = readJson<DeploymentConfig>(deploymentOverridePath, false);
-  if (overrideDeployment) validateDeploymentConfig(overrideDeployment, deploymentOverridePath);
+  if (overrideDeployment) validateDeploymentConfig(overrideDeployment, deploymentOverridePath, networkName);
   const deployment = overrideDeployment ? mergeDeployment(baseDeployment, overrideDeployment) : baseDeployment;
 
   const accounts = readJson<AccountConfig>(accountsPath, false) ?? { network: networkName, accounts: {} };
+  validateAccountConfig(accounts, accountsPath, networkName);
 
   return {
     networkName,
@@ -87,19 +88,47 @@ function emptyDeployment(network: string): DeploymentConfig {
   return { network, contracts: {}, tokens: {} };
 }
 
-function validateNetworkConfig(config: NetworkConfig, filePath: string): void {
+function validateNetworkConfig(config: NetworkConfig, filePath: string, expectedNetwork: string): void {
   if (!config.name) throw new Error(`${relative(filePath)} is missing name`);
+  if (config.name !== expectedNetwork) {
+    throw new Error(`${relative(filePath)} declares network "${config.name}" but "${expectedNetwork}" was requested`);
+  }
   if (!Number.isInteger(config.chainId) || config.chainId <= 0) throw new Error(`${relative(filePath)} has invalid chainId`);
   if (!config.rpcUrl) throw new Error(`${relative(filePath)} is missing rpcUrl`);
 }
 
-function validateDeploymentConfig(config: DeploymentConfig, filePath: string): void {
+function validateDeploymentConfig(config: DeploymentConfig, filePath: string, expectedNetwork: string): void {
+  if (!config.network) throw new Error(`${relative(filePath)} is missing network`);
+  if (config.network !== expectedNetwork) {
+    throw new Error(`${relative(filePath)} declares network "${config.network}" but "${expectedNetwork}" was requested`);
+  }
   for (const [name, value] of Object.entries(config.contracts ?? {})) {
     if (value && !ethers.isAddress(value)) throw new Error(`${relative(filePath)} has invalid ${name} address: ${value}`);
   }
   for (const [alias, token] of Object.entries(config.tokens ?? {})) {
     if (token.neoX && !ethers.isAddress(token.neoX)) throw new Error(`${relative(filePath)} has invalid ${alias}.neoX address: ${token.neoX}`);
     if (token.neoN3 && !ethers.isAddress(token.neoN3)) throw new Error(`${relative(filePath)} has invalid ${alias}.neoN3 address: ${token.neoN3}`);
+  }
+}
+
+function validateAccountConfig(config: AccountConfig, filePath: string, expectedNetwork: string): void {
+  if (!config.network) throw new Error(`${relative(filePath)} is missing network`);
+  if (config.network !== expectedNetwork) {
+    throw new Error(`${relative(filePath)} declares network "${config.network}" but "${expectedNetwork}" was requested`);
+  }
+  for (const [name, account] of Object.entries(config.accounts ?? {})) {
+    if (account.type === "keystore") {
+      if (!account.path) throw new Error(`${relative(filePath)} account "${name}" is missing path`);
+      if (account.passwordEnv !== undefined && !account.passwordEnv) {
+        throw new Error(`${relative(filePath)} account "${name}" has an empty passwordEnv`);
+      }
+      continue;
+    }
+    if (account.type === "privateKeyEnv") {
+      if (!account.env) throw new Error(`${relative(filePath)} account "${name}" is missing env`);
+      continue;
+    }
+    throw new Error(`${relative(filePath)} account "${name}" has unsupported type`);
   }
 }
 
