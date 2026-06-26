@@ -4,7 +4,7 @@
     "personal": {
       "type": "keystore",
       "path": "/absolute/path/to/personal-keystore.json",
-      "passwordEnv": "OPS_PERSONAL_WALLET_PASSWORD"
+      "passwordEnv": "OPS_PERSONAL_KEYSTORE_PASSWORD"
     },
     "governor": {
       "type": "privateKeyEnv",

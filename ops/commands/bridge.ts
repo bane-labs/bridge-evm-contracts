@@ -4,10 +4,14 @@ import { connectErc20Metadata } from "../clients/erc20";
 import { assertConfiguredChain, createProvider } from "../clients/provider";
 import { loadOpsConfig, resolveBridgeAddress, resolveTokenAddress } from "../config/load";
 import { formatAmount, formatBool, isEmptyClaimable, printResolvedContext } from "../format";
-import { CommandOptions, parseOptions, requireOption } from "./options";
+import { CommandOptions, hasHelpFlag, isHelpFlag, parseOptions, requireOption } from "./options";
 
 export async function runBridgeCommand(args: string[]): Promise<void> {
   const [command, ...rest] = args;
+  if (!command || isHelpFlag(command) || hasHelpFlag(rest)) {
+    printBridgeHelp();
+    return;
+  }
   const options = parseOptions(rest);
   const network = requireOption(options, "network");
   const config = loadOpsConfig(network);
@@ -25,6 +29,28 @@ export async function runBridgeCommand(args: string[]): Promise<void> {
     return;
   }
   throw new Error(`Unknown bridge command: ${command ?? "(missing)"}`);
+}
+
+function printBridgeHelp(): void {
+  console.log(`Bridge commands
+
+Usage:
+  npm run ops -- bridge state --network <network> [--bridge <address>] [--max-tokens <count>]
+  npm run ops -- bridge token --network <network> --token <alias-or-address> [--bridge <address>]
+  npm run ops -- bridge claimable --network <network> --nonce <nonce> [--token <alias-or-address>] [--bridge <address>]
+
+Commands:
+  state       Print native bridge state and registered token bridges.
+  token       Print state for one token bridge.
+  claimable   Check native or token claimable state for one nonce.
+
+Options:
+  --network      Required. One of local, neox-devnet, neox-testnet, neox-mainnet.
+  --bridge       Optional bridge address override.
+  --token        Token alias from deployment config or direct token address.
+  --nonce        Claimable nonce.
+  --max-tokens   Maximum registeredTokens(index) entries to read for state.
+`);
 }
 
 async function bridgeState(config: ReturnType<typeof loadOpsConfig>, options: CommandOptions): Promise<void> {

@@ -4,6 +4,12 @@ This repository is used for the development of the Neo X contracts for the nativ
 
 The contracts in `./contracts` are under development. The contract artifacts for each corresponding release are committed in the `./release-artifacts` directory. For the source code, the corresponding tagged commit can be retrieved.
 
+## Operational CLI
+
+Use `npm run ops -- help` to inspect configured bridge deployments and local operator accounts.
+
+See [docs/ops-cli.md](docs/ops-cli.md) for command examples and local account config.
+
 ## Deployments on Neo X Mainnet and Testnet
 
 | Contract              | Hash                                    |
