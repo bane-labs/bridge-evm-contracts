@@ -1,6 +1,7 @@
 import { runAccountsCommand } from "./commands/accounts";
 import { runBridgeCommand } from "./commands/bridge";
 import { runConfigCommand } from "./commands/config";
+import { runMessageCommand } from "./commands/message";
 
 async function main(): Promise<void> {
   const [group, ...args] = process.argv.slice(2);
@@ -15,6 +16,10 @@ async function main(): Promise<void> {
   }
   if (group === "bridge") {
     await runBridgeCommand(args);
+    return;
+  }
+  if (group === "message" || group === "message-bridge") {
+    await runMessageCommand(args);
     return;
   }
   if (group === "accounts" || group === "account") {
@@ -37,6 +42,10 @@ Usage:
   npm run ops -- bridge state --network <network> [--bridge <address>] [--max-tokens <count>]
   npm run ops -- bridge token --network <network> --token <alias-or-address> [--bridge <address>]
   npm run ops -- bridge claimable --network <network> --nonce <nonce> [--token <alias-or-address>] [--bridge <address>]
+  npm run ops -- message state --network <network> [--message-bridge <address>]
+  npm run ops -- message get --network <network> --nonce <nonce> [--message-bridge <address>]
+  npm run ops -- message result --network <network> --nonce <nonce> [--message-bridge <address>]
+  npm run ops -- message executable --network <network> --nonce <nonce> [--message-bridge <address>]
 
 Networks:
   local, neox-devnet, neox-testnet, neox-mainnet
@@ -45,6 +54,7 @@ Groups:
   config      Inspect resolved config.
   accounts    Inspect configured local accounts.
   bridge      Read token bridge state.
+  message     Read message bridge state.
 `);
 }
 
