@@ -33,18 +33,18 @@ export function printTransactionSummary(context: WriteContext, summary: Transact
 }
 
 function printRequestGas(request: ethers.TransactionRequest): void {
-  const rows: Array<[string, ethers.BigNumberish | null | undefined]> = [
-    ["Gas limit", request.gasLimit],
-    ["Gas price", request.gasPrice],
-    ["Max fee per gas", request.maxFeePerGas],
-    ["Max priority fee", request.maxPriorityFeePerGas]
+  const rows: Array<[string, ethers.BigNumberish | null | undefined, "units" | "gwei"]> = [
+    ["Gas limit", request.gasLimit, "units"],
+    ["Gas price", request.gasPrice, "gwei"],
+    ["Max fee per gas", request.maxFeePerGas, "gwei"],
+    ["Max priority fee", request.maxPriorityFeePerGas, "gwei"]
   ];
   const visibleRows = rows.filter(([, value]) => value !== undefined && value !== null);
   if (visibleRows.length === 0) return;
 
   console.log("  Gas:");
-  for (const [label, value] of visibleRows) {
-    console.log(`    ${label}: ${formatGasValue(value)}`);
+  for (const [label, value, kind] of visibleRows) {
+    console.log(`    ${label}: ${kind === "units" ? formatGasLimit(value) : formatGasPrice(value)}`);
   }
 }
 
@@ -58,7 +58,12 @@ function formatWei(value: bigint | undefined): string {
   return `${ethers.formatEther(amount)} (${amount.toString()} wei)`;
 }
 
-function formatGasValue(value: ethers.BigNumberish | null | undefined): string {
+function formatGasLimit(value: ethers.BigNumberish | null | undefined): string {
+  if (value === undefined || value === null) return "";
+  return ethers.getBigInt(value).toString();
+}
+
+function formatGasPrice(value: ethers.BigNumberish | null | undefined): string {
   if (value === undefined || value === null) return "";
   const parsed = ethers.getBigInt(value);
   return `${ethers.formatUnits(parsed, "gwei")} gwei (${parsed.toString()} wei)`;

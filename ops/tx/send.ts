@@ -1,5 +1,6 @@
 import { ethers } from "ethers";
 import { WriteContext } from "./context";
+import { parseBooleanOption } from "./parse";
 
 export interface TransactionRunOptions {
   dryRun: boolean;
@@ -18,10 +19,7 @@ export type TransactionRunResult =
     };
 
 export function parseDryRunFlag(value: string | undefined): boolean {
-  if (value === undefined) return false;
-  if (value === "true" || value === "yes" || value === "1") return true;
-  if (value === "false" || value === "no" || value === "0") return false;
-  throw new Error(`Invalid --dry-run value: ${value}`);
+  return parseBooleanOption(value, "--dry-run");
 }
 
 export async function runTransactionRequest(
