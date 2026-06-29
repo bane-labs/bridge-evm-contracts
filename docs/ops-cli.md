@@ -145,3 +145,35 @@ Supported account sources:
 `accounts list` never reads secrets. `accounts address` and `accounts check` read only the selected account source unless `check` is run without `--account`.
 
 For keystore accounts, the CLI uses `passwordEnv` when set and prompts for the password otherwise. Absolute keystore paths are used as-is. Relative keystore paths are resolved from the current working directory.
+
+## Write Command Safety
+
+Write commands are added behind explicit safeguards. Read commands do not use these options.
+
+Write commands must require an account:
+
+```sh
+npm run ops -- <group> <write-command> --network neox-testnet --account personal
+```
+
+Run a write command as a dry run before broadcasting:
+
+```sh
+npm run ops -- <group> <write-command> --network neox-testnet --account personal --dry-run true
+```
+
+Dry runs build the transaction request and print the transaction summary, but do not send the transaction.
+
+Mainnet writes require explicit confirmation:
+
+```sh
+npm run ops -- <group> <write-command> --network neox-mainnet --account personal --yes true
+```
+
+Without `--yes true`, mainnet write commands refuse to send. This is only a safety prompt for accidental use of the wrong network; it is not an authorization mechanism.
+
+Current boolean options use explicit values because the CLI parser is strict:
+
+- `--dry-run true`
+- `--dry-run false`
+- `--yes true`
