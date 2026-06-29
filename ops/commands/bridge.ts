@@ -167,6 +167,8 @@ async function bridgeClaimNative(config: ReturnType<typeof loadOpsConfig>, optio
 
   printResolvedContext(config, { Bridge: bridgeAddress, Account: accountName, Sender: context.sender, Nonce: nonce.toString() });
 
+  await assertNativeClaimOpen(config, bridge);
+
   const claimable = await bridge.claimableNative(nonce);
   printClaimable(claimable, 8, "native");
   if (isEmptyClaimable(claimable)) {
@@ -218,6 +220,8 @@ async function bridgeClaimToken(config: ReturnType<typeof loadOpsConfig>, option
   console.log(`Token registered: ${formatBool(isRegistered)}`);
   if (!isRegistered) throw new Error(`Token ${tokenAddress} is not registered on ${config.networkName}`);
 
+  await assertTokenClaimOpen(config, bridge, tokenAddress);
+
   const [claimable, decimals] = await Promise.all([
     bridge.tokenClaimables(tokenAddress, nonce),
     resolveTokenDecimals(context.provider, tokenAddress, config.deployment.tokens?.[tokenInput]?.decimals)
@@ -248,6 +252,44 @@ async function bridgeClaimToken(config: ReturnType<typeof loadOpsConfig>, option
     return;
   }
   printTransactionReceipt(result.receipt);
+}
+
+async function assertNativeClaimOpen(
+  config: ReturnType<typeof loadOpsConfig>,
+  bridge: ReturnType<typeof connectBridge>
+): Promise<void> {
+  const [bridgePaused, nativeIsSet] = await Promise.all([
+    bridge.bridgePaused(),
+    bridge.nativeBridgeIsSet()
+  ]);
+
+  if (bridgePaused) {
+    throw new Error(`Bridge is paused on ${config.networkName}; cannot claim native funds.`);
+  }
+  if (!nativeIsSet) {
+    throw new Error(`Native bridge is not configured on ${config.networkName}; cannot claim native funds.`);
+  }
+
+  const nativeBridge = await bridge.nativeBridge();
+  if (nativeBridge.paused) {
+    throw new Error(`Native bridge is paused on ${config.networkName}; cannot claim native funds.`);
+  }
+}
+
+async function assertTokenClaimOpen(
+  config: ReturnType<typeof loadOpsConfig>,
+  bridge: ReturnType<typeof connectBridge>,
+  tokenAddress: string
+): Promise<void> {
+  const bridgePaused = await bridge.bridgePaused();
+  if (bridgePaused) {
+    throw new Error(`Bridge is paused on ${config.networkName}; cannot claim token funds.`);
+  }
+
+  const tokenBridge = await bridge.tokenBridges(tokenAddress);
+  if (tokenBridge.paused) {
+    throw new Error(`Token bridge ${tokenAddress} is paused on ${config.networkName}; cannot claim token funds.`);
+  }
 }
 
 async function printRegisteredTokens(
