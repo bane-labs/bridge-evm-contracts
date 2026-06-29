@@ -11,7 +11,5 @@ export function requireMainnetConfirmation(config: OpsConfig, confirmed: boolean
 }
 
 export function parseYesFlag(value: string | undefined): boolean {
-  if (value === undefined) return false;
-  if (value === "true" || value === "yes" || value === "1") return true;
-  throw new Error(`Invalid --yes value: ${value}`);
+  return value !== undefined;
 }

@@ -1,11 +1,19 @@
 export type CommandOptions = Record<string, string>;
 
-export function parseOptions(args: string[]): CommandOptions {
+export function parseOptions(args: string[], presenceFlags = new Set<string>()): CommandOptions {
   const options: CommandOptions = {};
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (!arg.startsWith("--")) throw new Error(`Unexpected positional argument: ${arg}`);
     const key = arg.slice(2);
+
+    if (presenceFlags.has(key)) {
+      const next = args[i + 1];
+      if (next && !next.startsWith("--")) throw new Error(`--${key} does not take a value`);
+      options[key] = "true";
+      continue;
+    }
+
     const value = args[++i];
     if (!value || value.startsWith("--")) throw new Error(`Missing value for --${key}`);
     options[key] = value;

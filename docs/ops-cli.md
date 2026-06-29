@@ -1,6 +1,6 @@
 # Ops CLI
 
-The ops CLI is the preferred way to inspect configured bridge deployments and local operator accounts without using Hardhat tasks or `hh vars`.
+The ops CLI is the preferred way to inspect configured bridge deployments, local operator accounts, and guarded operational transactions without using Hardhat tasks or `hh vars`.
 
 Run it through npm:
 
@@ -13,10 +13,42 @@ Available groups:
 
 - `config` inspects resolved network, deployment, token, and account config.
 - `accounts` inspects local account aliases and resolves account addresses.
-- `bridge` reads token bridge state from a configured network.
-- `message` reads message bridge state from a configured network.
+- `bridge` reads token bridge state and runs guarded bridge operations.
+- `message` reads message bridge state.
 
-## Config Files
+## Quick Start
+
+Show resolved config:
+
+```sh
+npm run ops -- config show --network neox-testnet
+```
+
+Check local account setup:
+
+```sh
+npm run ops -- accounts check --network neox-testnet
+```
+
+Read token bridge state:
+
+```sh
+npm run ops -- bridge state --network neox-testnet
+```
+
+Read message bridge state:
+
+```sh
+npm run ops -- message state --network neox-testnet
+```
+
+Dry-run a native claim:
+
+```sh
+npm run ops -- bridge claim-native --network neox-testnet --account personal --nonce <nonce> --dry-run true
+```
+
+## Configuration
 
 Committed config:
 
@@ -31,89 +63,11 @@ Local config:
 
 Every config file declares its network name. The CLI rejects mismatches, so a mainnet command cannot accidentally load a testnet accounts or deployment file.
 
-## Common Commands
-
-Show resolved config:
+Inspect resolved config:
 
 ```sh
 npm run ops -- config show --network neox-testnet
 ```
-
-List configured local account aliases:
-
-```sh
-npm run ops -- accounts list --network neox-testnet
-```
-
-Resolve one local account address:
-
-```sh
-npm run ops -- accounts address --network neox-testnet --account personal
-```
-
-Validate all configured local account sources:
-
-```sh
-npm run ops -- accounts check --network neox-testnet
-```
-
-Validate one configured local account source:
-
-```sh
-npm run ops -- accounts check --network neox-testnet --account personal
-```
-
-Print native bridge state and registered token bridges:
-
-```sh
-npm run ops -- bridge state --network neox-testnet
-```
-
-Print one token bridge state:
-
-```sh
-npm run ops -- bridge token --network neox-testnet --token <alias-or-address>
-```
-
-Check a native claimable by nonce:
-
-```sh
-npm run ops -- bridge claimable --network neox-testnet --nonce <nonce>
-```
-
-Check a token claimable by nonce:
-
-```sh
-npm run ops -- bridge claimable --network neox-testnet --token <alias-or-address> --nonce <nonce>
-```
-
-Use `--bridge <address>` on bridge commands to override the configured bridge address for one command.
-
-Print message bridge state:
-
-```sh
-npm run ops -- message state --network neox-testnet
-```
-
-Print one stored message and decoded metadata:
-
-```sh
-npm run ops -- message get --network neox-testnet --nonce <nonce>
-```
-
-Print result state for one related message nonce:
-
-```sh
-npm run ops -- message result --network neox-testnet --nonce <nonce>
-```
-
-Print executable state for one stored executable message:
-
-```sh
-npm run ops -- message executable --network neox-testnet --nonce <nonce>
-```
-
-Use `--message-bridge <address>` on message commands to override the configured message bridge address for one command.
 
 ## Accounts
 
@@ -142,13 +96,97 @@ Supported account sources:
 }
 ```
 
+List configured local account aliases:
+
+```sh
+npm run ops -- accounts list --network neox-testnet
+```
+
+Resolve one local account address:
+
+```sh
+npm run ops -- accounts address --network neox-testnet --account personal
+```
+
+Validate all configured local account sources:
+
+```sh
+npm run ops -- accounts check --network neox-testnet
+```
+
+Validate one configured local account source:
+
+```sh
+npm run ops -- accounts check --network neox-testnet --account personal
+```
+
 `accounts list` never reads secrets. `accounts address` and `accounts check` read only the selected account source unless `check` is run without `--account`.
 
 For keystore accounts, the CLI uses `passwordEnv` when set and prompts for the password otherwise. Absolute keystore paths are used as-is. Relative keystore paths are resolved from the current working directory.
 
-## Write Command Safety
+## Read Commands
 
-Write commands are added behind explicit safeguards. Read commands do not use these options.
+Read commands do not require an account and never send transactions.
+
+### Bridge Reads
+
+Print native bridge state and registered token bridges:
+
+```sh
+npm run ops -- bridge state --network neox-testnet
+```
+
+Print one token bridge state:
+
+```sh
+npm run ops -- bridge token --network neox-testnet --token <alias-or-address>
+```
+
+Check a native claimable by nonce:
+
+```sh
+npm run ops -- bridge claimable --network neox-testnet --nonce <nonce>
+```
+
+Check a token claimable by nonce:
+
+```sh
+npm run ops -- bridge claimable --network neox-testnet --token <alias-or-address> --nonce <nonce>
+```
+
+Use `--bridge <address>` on bridge commands to override the configured bridge address for one command.
+
+### Message Bridge Reads
+
+Print message bridge state:
+
+```sh
+npm run ops -- message state --network neox-testnet
+```
+
+Print one stored message and decoded metadata:
+
+```sh
+npm run ops -- message get --network neox-testnet --nonce <nonce>
+```
+
+Print result state for one related message nonce:
+
+```sh
+npm run ops -- message result --network neox-testnet --nonce <nonce>
+```
+
+Print executable state for one stored executable message:
+
+```sh
+npm run ops -- message executable --network neox-testnet --nonce <nonce>
+```
+
+Use `--message-bridge <address>` on message commands to override the configured message bridge address for one command.
+
+## Write Commands
+
+Write commands are added behind explicit safeguards.
 
 Write commands must require an account:
 
@@ -164,16 +202,80 @@ npm run ops -- <group> <write-command> --network neox-testnet --account personal
 
 Dry runs build the transaction request and print the transaction summary, but do not send the transaction.
 
-Mainnet writes require explicit confirmation:
+Mainnet writes require explicit confirmation when sending:
 
 ```sh
-npm run ops -- <group> <write-command> --network neox-mainnet --account personal --yes true
+npm run ops -- <group> <write-command> --network neox-mainnet --account personal --yes
 ```
 
-Without `--yes true`, mainnet write commands refuse to send. This is only a safety prompt for accidental use of the wrong network; it is not an authorization mechanism.
+Without `--yes`, mainnet write commands refuse to send. Mainnet dry-runs do not require `--yes` because they do not broadcast. This is only a safety prompt for accidental use of the wrong network; it is not an authorization mechanism.
 
-Current boolean options use explicit values because the CLI parser is strict:
+Current boolean mode options use explicit values because the CLI parser is strict:
 
 - `--dry-run true`
 - `--dry-run false`
-- `--yes true`
+
+The mainnet confirmation is a presence-only safety flag:
+
+- `--yes`
+
+### Bridge Claims
+
+Dry-run a native claim transaction:
+
+```sh
+npm run ops -- bridge claim-native --network neox-testnet --account personal --nonce <nonce> --dry-run true
+```
+
+Send a native claim transaction:
+
+```sh
+npm run ops -- bridge claim-native --network neox-testnet --account personal --nonce <nonce>
+```
+
+Dry-run a token claim transaction:
+
+```sh
+npm run ops -- bridge claim-token --network neox-testnet --account personal --token <alias-or-address> --nonce <nonce> --dry-run true
+```
+
+Send a token claim transaction:
+
+```sh
+npm run ops -- bridge claim-token --network neox-testnet --account personal --token <alias-or-address> --nonce <nonce>
+```
+
+## Command Reference
+
+Config:
+
+```sh
+npm run ops -- config show --network <network>
+```
+
+Accounts:
+
+```sh
+npm run ops -- accounts list --network <network>
+npm run ops -- accounts address --network <network> --account <name>
+npm run ops -- accounts check --network <network> [--account <name>]
+```
+
+Bridge:
+
+```sh
+npm run ops -- bridge state --network <network> [--bridge <address>] [--max-tokens <count>]
+npm run ops -- bridge token --network <network> --token <alias-or-address> [--bridge <address>]
+npm run ops -- bridge claimable --network <network> --nonce <nonce> [--token <alias-or-address>] [--bridge <address>]
+npm run ops -- bridge claim-native --network <network> --account <name> --nonce <nonce> [--bridge <address>] [--dry-run true] [--yes]
+npm run ops -- bridge claim-token --network <network> --account <name> --token <alias-or-address> --nonce <nonce> [--bridge <address>] [--dry-run true] [--yes]
+```
+
+Message bridge:
+
+```sh
+npm run ops -- message state --network <network> [--message-bridge <address>]
+npm run ops -- message get --network <network> --nonce <nonce> [--message-bridge <address>]
+npm run ops -- message result --network <network> --nonce <nonce> [--message-bridge <address>]
+npm run ops -- message executable --network <network> --nonce <nonce> [--message-bridge <address>]
+```
