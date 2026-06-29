@@ -205,16 +205,19 @@ Dry runs build the transaction request and print the transaction summary, but do
 Mainnet writes require explicit confirmation when sending:
 
 ```sh
-npm run ops -- <group> <write-command> --network neox-mainnet --account personal --yes true
+npm run ops -- <group> <write-command> --network neox-mainnet --account personal --yes
 ```
 
-Without `--yes true`, mainnet write commands refuse to send. Mainnet dry-runs do not require `--yes true` because they do not broadcast. This is only a safety prompt for accidental use of the wrong network; it is not an authorization mechanism.
+Without `--yes`, mainnet write commands refuse to send. Mainnet dry-runs do not require `--yes` because they do not broadcast. This is only a safety prompt for accidental use of the wrong network; it is not an authorization mechanism.
 
-Current boolean options use explicit values because the CLI parser is strict:
+Current boolean mode options use explicit values because the CLI parser is strict:
 
 - `--dry-run true`
 - `--dry-run false`
-- `--yes true`
+
+The mainnet confirmation is a presence-only safety flag:
+
+- `--yes`
 
 ### Bridge Claims
 
@@ -264,8 +267,8 @@ Bridge:
 npm run ops -- bridge state --network <network> [--bridge <address>] [--max-tokens <count>]
 npm run ops -- bridge token --network <network> --token <alias-or-address> [--bridge <address>]
 npm run ops -- bridge claimable --network <network> --nonce <nonce> [--token <alias-or-address>] [--bridge <address>]
-npm run ops -- bridge claim-native --network <network> --account <name> --nonce <nonce> [--bridge <address>] [--dry-run true] [--yes true]
-npm run ops -- bridge claim-token --network <network> --account <name> --token <alias-or-address> --nonce <nonce> [--bridge <address>] [--dry-run true] [--yes true]
+npm run ops -- bridge claim-native --network <network> --account <name> --nonce <nonce> [--bridge <address>] [--dry-run true] [--yes]
+npm run ops -- bridge claim-token --network <network> --account <name> --token <alias-or-address> --nonce <nonce> [--bridge <address>] [--dry-run true] [--yes]
 ```
 
 Message bridge:
