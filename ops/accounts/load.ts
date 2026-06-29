@@ -7,7 +7,18 @@ export interface AccountSummary {
   name: string;
   type: AccountSource["type"];
   source: string;
+  resolvedPath?: string;
   passwordEnv?: string;
+}
+
+export interface AccountCheckResult {
+  name: string;
+  type: AccountSource["type"];
+  source: string;
+  resolvedPath?: string;
+  address?: string;
+  ok: boolean;
+  error?: string;
 }
 
 export function listAccounts(config: OpsConfig): AccountSummary[] {
@@ -15,11 +26,20 @@ export function listAccounts(config: OpsConfig): AccountSummary[] {
     name,
     type: source.type,
     source: describeSource(source),
+    resolvedPath: source.type === "keystore" ? resolveAccountPath(source.path) : undefined,
     passwordEnv: source.type === "keystore" ? source.passwordEnv : undefined
   }));
 }
 
 export async function loadAccountAddress(config: OpsConfig, accountName: string): Promise<string> {
+  return (await loadAccountWallet(config, accountName)).address;
+}
+
+export async function loadAccountWallet(
+  config: OpsConfig,
+  accountName: string,
+  provider?: ethers.Provider
+): Promise<ethers.BaseWallet> {
   const source = config.accounts.accounts?.[accountName];
   if (!source) {
     throw new Error(`Account "${accountName}" is not configured for ${config.networkName}`);
@@ -28,13 +48,36 @@ export async function loadAccountAddress(config: OpsConfig, accountName: string)
   if (source.type === "privateKeyEnv") {
     const privateKey = process.env[source.env];
     if (!privateKey) throw new Error(`Environment variable ${source.env} is not set for account "${accountName}"`);
-    return new ethers.Wallet(privateKey).address;
+    return new ethers.Wallet(privateKey, provider);
   }
 
   const walletJson = fs.readFileSync(resolveAccountPath(source.path), "utf8");
   const password = await loadAccountPassword(accountName, source.passwordEnv);
   const wallet = await ethers.Wallet.fromEncryptedJson(walletJson, password);
-  return wallet.address;
+  return provider ? wallet.connect(provider) : wallet;
+}
+
+export async function checkAccount(config: OpsConfig, accountName: string): Promise<AccountCheckResult> {
+  const source = accountSource(config, accountName);
+  const result: AccountCheckResult = {
+    name: accountName,
+    type: source.type,
+    source: describeSource(source),
+    resolvedPath: source.type === "keystore" ? resolveAccountPath(source.path) : undefined,
+    ok: false
+  };
+
+  try {
+    if (source.type === "keystore") {
+      fs.accessSync(resolveAccountPath(source.path), fs.constants.R_OK);
+    }
+    result.address = (await loadAccountWallet(config, accountName)).address;
+    result.ok = true;
+    return result;
+  } catch (error) {
+    result.error = error instanceof Error ? error.message : String(error);
+    return result;
+  }
 }
 
 export function accountSource(config: OpsConfig, accountName: string): AccountSource {
