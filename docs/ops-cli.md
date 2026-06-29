@@ -51,6 +51,18 @@ Resolve one local account address:
 npm run ops -- accounts address --network neox-testnet --account personal
 ```
 
+Validate all configured local account sources:
+
+```sh
+npm run ops -- accounts check --network neox-testnet
+```
+
+Validate one configured local account source:
+
+```sh
+npm run ops -- accounts check --network neox-testnet --account personal
+```
+
 Print native bridge state and registered token bridges:
 
 ```sh
@@ -130,4 +142,6 @@ Supported account sources:
 }
 ```
 
-`accounts list` never reads secrets. `accounts address` reads only the selected account source. For keystore accounts, the CLI uses `passwordEnv` when set and prompts for the password otherwise.
+`accounts list` never reads secrets. `accounts address` and `accounts check` read only the selected account source unless `check` is run without `--account`.
+
+For keystore accounts, the CLI uses `passwordEnv` when set and prompts for the password otherwise. Absolute keystore paths are used as-is. Relative keystore paths are resolved from the current working directory.

@@ -39,6 +39,7 @@ Usage:
   npm run ops -- config show --network <network>
   npm run ops -- accounts list --network <network>
   npm run ops -- accounts address --network <network> --account <name>
+  npm run ops -- accounts check --network <network> [--account <name>]
   npm run ops -- bridge state --network <network> [--bridge <address>] [--max-tokens <count>]
   npm run ops -- bridge token --network <network> --token <alias-or-address> [--bridge <address>]
   npm run ops -- bridge claimable --network <network> --nonce <nonce> [--token <alias-or-address>] [--bridge <address>]
