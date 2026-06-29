@@ -4,6 +4,12 @@ import { connectErc20Metadata } from "../clients/erc20";
 import { assertConfiguredChain, createProvider } from "../clients/provider";
 import { loadOpsConfig, resolveBridgeAddress, resolveTokenAddress } from "../config/load";
 import { formatAmount, formatBool, isEmptyClaimable, printResolvedContext } from "../format";
+import { createWriteContext } from "../tx/context";
+import { parsePositiveInteger, parseNonce } from "../tx/parse";
+import { printTransactionReceipt } from "../tx/receipt";
+import { parseDryRunFlag, runTransactionRequest } from "../tx/send";
+import { printTransactionSummary } from "../tx/summary";
+import { parseYesFlag, requireMainnetConfirmation } from "../tx/guards";
 import { CommandOptions, hasHelpFlag, isHelpFlag, parseOptions, requireOption } from "./options";
 
 export async function runBridgeCommand(args: string[]): Promise<void> {
@@ -28,6 +34,14 @@ export async function runBridgeCommand(args: string[]): Promise<void> {
     await bridgeToken(config, options);
     return;
   }
+  if (command === "claim-native") {
+    await bridgeClaimNative(config, options);
+    return;
+  }
+  if (command === "claim-token") {
+    await bridgeClaimToken(config, options);
+    return;
+  }
   throw new Error(`Unknown bridge command: ${command ?? "(missing)"}`);
 }
 
@@ -38,18 +52,25 @@ Usage:
   npm run ops -- bridge state --network <network> [--bridge <address>] [--max-tokens <count>]
   npm run ops -- bridge token --network <network> --token <alias-or-address> [--bridge <address>]
   npm run ops -- bridge claimable --network <network> --nonce <nonce> [--token <alias-or-address>] [--bridge <address>]
+  npm run ops -- bridge claim-native --network <network> --account <name> --nonce <nonce> [--bridge <address>] [--dry-run true] [--yes true]
+  npm run ops -- bridge claim-token --network <network> --account <name> --token <alias-or-address> --nonce <nonce> [--bridge <address>] [--dry-run true] [--yes true]
 
 Commands:
   state       Print native bridge state and registered token bridges.
   token       Print state for one token bridge.
   claimable   Check native or token claimable state for one nonce.
+  claim-native  Claim native funds for one nonce.
+  claim-token   Claim token funds for one token and nonce.
 
 Options:
   --network      Required. One of local, neox-devnet, neox-testnet, neox-mainnet.
+  --account      Required for write commands. Account alias from config/accounts/<network>.json.
   --bridge       Optional bridge address override.
   --token        Token alias from deployment config or direct token address.
   --nonce        Claimable nonce.
   --max-tokens   Maximum registeredTokens(index) entries to read for state.
+  --dry-run      Use --dry-run true to print the transaction without sending.
+  --yes          Required as --yes true for mainnet write commands.
 `);
 }
 
@@ -133,6 +154,100 @@ async function bridgeToken(config: ReturnType<typeof loadOpsConfig>, options: Co
 
   printResolvedContext(config, { Bridge: bridgeAddress, Token: tokenAddress });
   await printTokenState(config, bridge, provider, tokenAddress, tokenInput);
+}
+
+async function bridgeClaimNative(config: ReturnType<typeof loadOpsConfig>, options: CommandOptions): Promise<void> {
+  const bridgeAddress = resolveBridgeAddress(config, options.bridge);
+  const accountName = requireOption(options, "account");
+  const nonce = parseNonce(requireOption(options, "nonce"));
+  const dryRun = parseDryRunFlag(options["dry-run"]);
+  const confirmed = parseYesFlag(options.yes);
+  const context = await createWriteContext(config, accountName);
+  const bridge = connectBridge(bridgeAddress, context.wallet);
+
+  printResolvedContext(config, { Bridge: bridgeAddress, Account: accountName, Sender: context.sender, Nonce: nonce.toString() });
+
+  const claimable = await bridge.claimableNative(nonce);
+  printClaimable(claimable, 8, "native");
+  if (isEmptyClaimable(claimable)) {
+    throw new Error(`No native claimable found for nonce ${nonce.toString()}`);
+  }
+
+  const request = await bridge.claimNative.populateTransaction(nonce);
+  printTransactionSummary(context, {
+    contract: bridgeAddress,
+    action: "claimNative",
+    args: {
+      nonce,
+      recipient: claimable.to,
+      amountRaw: claimable.amount
+    },
+    request,
+    dryRun
+  });
+  if (!dryRun) requireMainnetConfirmation(config, confirmed);
+
+  const result = await runTransactionRequest(context, request, { dryRun });
+  if (!result.sent) {
+    console.log("Dry run complete. Transaction was not sent.");
+    return;
+  }
+  printTransactionReceipt(result.receipt);
+}
+
+async function bridgeClaimToken(config: ReturnType<typeof loadOpsConfig>, options: CommandOptions): Promise<void> {
+  const bridgeAddress = resolveBridgeAddress(config, options.bridge);
+  const accountName = requireOption(options, "account");
+  const tokenInput = requireOption(options, "token");
+  const tokenAddress = resolveTokenAddress(config, tokenInput);
+  const nonce = parseNonce(requireOption(options, "nonce"));
+  const dryRun = parseDryRunFlag(options["dry-run"]);
+  const confirmed = parseYesFlag(options.yes);
+  const context = await createWriteContext(config, accountName);
+  const bridge = connectBridge(bridgeAddress, context.wallet);
+
+  printResolvedContext(config, {
+    Bridge: bridgeAddress,
+    Account: accountName,
+    Sender: context.sender,
+    Token: tokenAddress,
+    Nonce: nonce.toString()
+  });
+
+  const isRegistered = await bridge.isRegisteredToken(tokenAddress);
+  console.log(`Token registered: ${formatBool(isRegistered)}`);
+  if (!isRegistered) throw new Error(`Token ${tokenAddress} is not registered on ${config.networkName}`);
+
+  const [claimable, decimals] = await Promise.all([
+    bridge.tokenClaimables(tokenAddress, nonce),
+    resolveTokenDecimals(context.provider, tokenAddress, config.deployment.tokens?.[tokenInput]?.decimals)
+  ]);
+  printClaimable(claimable, decimals, "token");
+  if (isEmptyClaimable(claimable)) {
+    throw new Error(`No token claimable found for token ${tokenAddress} and nonce ${nonce.toString()}`);
+  }
+
+  const request = await bridge.claimToken.populateTransaction(tokenAddress, nonce);
+  printTransactionSummary(context, {
+    contract: bridgeAddress,
+    action: "claimToken",
+    args: {
+      token: tokenAddress,
+      nonce,
+      recipient: claimable.to,
+      amountRaw: claimable.amount
+    },
+    request,
+    dryRun
+  });
+  if (!dryRun) requireMainnetConfirmation(config, confirmed);
+
+  const result = await runTransactionRequest(context, request, { dryRun });
+  if (!result.sent) {
+    console.log("Dry run complete. Transaction was not sent.");
+    return;
+  }
+  printTransactionReceipt(result.receipt);
 }
 
 async function printRegisteredTokens(
@@ -255,16 +370,4 @@ async function resolveTokenMetadata(provider: ethers.Provider, tokenAddress: str
   } catch {
     return {};
   }
-}
-
-function parseNonce(value: string): bigint {
-  if (!/^\d+$/.test(value)) throw new Error(`Invalid nonce: ${value}`);
-  return BigInt(value);
-}
-
-function parsePositiveInteger(value: string, label: string): number {
-  if (!/^\d+$/.test(value)) throw new Error(`Invalid ${label}: ${value}`);
-  const parsed = Number(value);
-  if (!Number.isSafeInteger(parsed) || parsed <= 0) throw new Error(`Invalid ${label}: ${value}`);
-  return parsed;
 }

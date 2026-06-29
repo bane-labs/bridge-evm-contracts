@@ -87,6 +87,30 @@ Check a token claimable by nonce:
 npm run ops -- bridge claimable --network neox-testnet --token <alias-or-address> --nonce <nonce>
 ```
 
+Dry-run a native claim transaction:
+
+```sh
+npm run ops -- bridge claim-native --network neox-testnet --account personal --nonce <nonce> --dry-run true
+```
+
+Send a native claim transaction:
+
+```sh
+npm run ops -- bridge claim-native --network neox-testnet --account personal --nonce <nonce>
+```
+
+Dry-run a token claim transaction:
+
+```sh
+npm run ops -- bridge claim-token --network neox-testnet --account personal --token <alias-or-address> --nonce <nonce> --dry-run true
+```
+
+Send a token claim transaction:
+
+```sh
+npm run ops -- bridge claim-token --network neox-testnet --account personal --token <alias-or-address> --nonce <nonce>
+```
+
 Use `--bridge <address>` on bridge commands to override the configured bridge address for one command.
 
 Print message bridge state:
@@ -164,13 +188,13 @@ npm run ops -- <group> <write-command> --network neox-testnet --account personal
 
 Dry runs build the transaction request and print the transaction summary, but do not send the transaction.
 
-Mainnet writes require explicit confirmation:
+Mainnet writes require explicit confirmation when sending:
 
 ```sh
 npm run ops -- <group> <write-command> --network neox-mainnet --account personal --yes true
 ```
 
-Without `--yes true`, mainnet write commands refuse to send. This is only a safety prompt for accidental use of the wrong network; it is not an authorization mechanism.
+Without `--yes true`, mainnet write commands refuse to send. Mainnet dry-runs do not require `--yes true` because they do not broadcast. This is only a safety prompt for accidental use of the wrong network; it is not an authorization mechanism.
 
 Current boolean options use explicit values because the CLI parser is strict:
 

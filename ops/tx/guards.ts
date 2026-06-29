@@ -1,4 +1,5 @@
 import { OpsConfig } from "../config/types";
+import { parseBooleanOption } from "./parse";
 
 export function isMainnet(config: OpsConfig): boolean {
   return config.networkName === "neox-mainnet";
@@ -11,7 +12,5 @@ export function requireMainnetConfirmation(config: OpsConfig, confirmed: boolean
 }
 
 export function parseYesFlag(value: string | undefined): boolean {
-  if (value === undefined) return false;
-  if (value === "true" || value === "yes" || value === "1") return true;
-  throw new Error(`Invalid --yes value: ${value}`);
+  return parseBooleanOption(value, "--yes");
 }

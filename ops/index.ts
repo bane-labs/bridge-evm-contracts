@@ -43,6 +43,8 @@ Usage:
   npm run ops -- bridge state --network <network> [--bridge <address>] [--max-tokens <count>]
   npm run ops -- bridge token --network <network> --token <alias-or-address> [--bridge <address>]
   npm run ops -- bridge claimable --network <network> --nonce <nonce> [--token <alias-or-address>] [--bridge <address>]
+  npm run ops -- bridge claim-native --network <network> --account <name> --nonce <nonce> [--bridge <address>] [--dry-run true] [--yes true]
+  npm run ops -- bridge claim-token --network <network> --account <name> --token <alias-or-address> --nonce <nonce> [--bridge <address>] [--dry-run true] [--yes true]
   npm run ops -- message state --network <network> [--message-bridge <address>]
   npm run ops -- message get --network <network> --nonce <nonce> [--message-bridge <address>]
   npm run ops -- message result --network <network> --nonce <nonce> [--message-bridge <address>]
