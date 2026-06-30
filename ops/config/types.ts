@@ -51,6 +51,7 @@ export interface OpsConfig {
   accounts: AccountConfig;
   sources: {
     network: string;
+    networkOverride?: string;
     deployment?: string;
     deploymentOverride?: string;
     accounts?: string;

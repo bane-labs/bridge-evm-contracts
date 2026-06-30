@@ -68,6 +68,7 @@ Committed config:
 
 Local config:
 
+- `config/networks/<network>.local.json` can override network values locally, for example container-specific RPC URLs.
 - `config/deployments/<network>.local.json` can override deployment values locally.
 - `config/accounts/<network>.json` contains local account sources and is ignored by git.
 

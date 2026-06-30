@@ -135,6 +135,7 @@ crytic-export
 .openzeppelin
 
 # Local operator overrides
+config/networks/*.local.json
 config/deployments/*.local.json
 config/accounts/*.json
 !config/accounts/*.example.json

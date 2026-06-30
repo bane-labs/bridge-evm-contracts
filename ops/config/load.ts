@@ -20,12 +20,17 @@ export function normalizeNetworkName(input: string): string {
 export function loadOpsConfig(networkInput: string): OpsConfig {
   const networkName = normalizeNetworkName(networkInput);
   const networkPath = configPath("networks", `${networkName}.json`);
+  const networkOverridePath = configPath("networks", `${networkName}.local.json`);
   const deploymentPath = configPath("deployments", `${networkName}.json`);
   const deploymentOverridePath = configPath("deployments", `${networkName}.local.json`);
   const accountsPath = configPath("accounts", `${networkName}.json`);
 
-  const network = readJson<NetworkConfig>(networkPath, true);
-  validateNetworkConfig(network, networkPath, networkName);
+  const baseNetwork = readJson<NetworkConfig>(networkPath, true);
+  validateNetworkConfig(baseNetwork, networkPath, networkName);
+
+  const overrideNetwork = readJson<NetworkConfig>(networkOverridePath, false);
+  if (overrideNetwork) validateNetworkConfig(overrideNetwork, networkOverridePath, networkName);
+  const network = overrideNetwork ? mergeNetwork(baseNetwork, overrideNetwork) : baseNetwork;
 
   const baseDeployment = readJson<DeploymentConfig>(deploymentPath, false) ?? emptyDeployment(networkName);
   validateDeploymentConfig(baseDeployment, deploymentPath, networkName);
@@ -44,6 +49,7 @@ export function loadOpsConfig(networkInput: string): OpsConfig {
     accounts,
     sources: {
       network: relative(networkPath),
+      networkOverride: fs.existsSync(networkOverridePath) ? relative(networkOverridePath) : undefined,
       deployment: fs.existsSync(deploymentPath) ? relative(deploymentPath) : undefined,
       deploymentOverride: fs.existsSync(deploymentOverridePath) ? relative(deploymentOverridePath) : undefined,
       accounts: fs.existsSync(accountsPath) ? relative(accountsPath) : undefined
@@ -66,6 +72,16 @@ export function resolveTokenAddress(config: OpsConfig, token: string): string {
     throw new Error(`Token alias "${token}" is not configured for ${config.networkName}`);
   }
   return resolveAddress(`token alias "${token}"`, tokenConfig.neoX);
+}
+
+function mergeNetwork(base: NetworkConfig, override: NetworkConfig): NetworkConfig {
+  return {
+    name: override.name || base.name,
+    hardhatNetwork: override.hardhatNetwork || base.hardhatNetwork,
+    chainId: override.chainId || base.chainId,
+    rpcUrl: override.rpcUrl || base.rpcUrl,
+    gas: { ...(base.gas ?? {}), ...(override.gas ?? {}) }
+  };
 }
 
 function resolveAddress(label: string, value?: string): string {
