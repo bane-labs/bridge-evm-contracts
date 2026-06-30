@@ -23,6 +23,7 @@ export function normalizeNetworkName(input: string): string {
 
 export function loadOpsConfig(networkInput: string): OpsConfig {
   const networkName = normalizeNetworkName(networkInput);
+  validateNetworkName(networkName);
   const networkPath = configPath("networks", `${networkName}.json`);
   const networkOverridePath = configPath("networks", `${networkName}.local.json`);
   const deploymentPath = configPath("deployments", `${networkName}.json`);
@@ -37,14 +38,16 @@ export function loadOpsConfig(networkInput: string): OpsConfig {
   const network = overrideNetwork ? mergeNetwork(baseNetwork, overrideNetwork) : baseNetwork;
   if (overrideNetwork) validateNetworkConfig(network, networkOverridePath, networkName);
 
-  const baseDeployment = readJson<DeploymentConfig>(deploymentPath, false) ?? emptyDeployment(networkName);
+  const baseDeploymentFile = readJson<DeploymentConfig>(deploymentPath, false);
+  const baseDeployment = baseDeploymentFile ?? emptyDeployment(networkName);
   validateDeploymentConfig(baseDeployment, deploymentPath, networkName);
 
   const overrideDeployment = readJson<DeploymentConfig>(deploymentOverridePath, false);
   if (overrideDeployment) validateDeploymentConfig(overrideDeployment, deploymentOverridePath, networkName);
   const deployment = overrideDeployment ? mergeDeployment(baseDeployment, overrideDeployment) : baseDeployment;
 
-  const accounts = readJson<AccountConfig>(accountsPath, false) ?? { network: networkName, accounts: {} };
+  const accountsFile = readJson<AccountConfig>(accountsPath, false);
+  const accounts = accountsFile ?? { network: networkName, accounts: {} };
   validateAccountConfig(accounts, accountsPath, networkName);
 
   return {
@@ -54,10 +57,10 @@ export function loadOpsConfig(networkInput: string): OpsConfig {
     accounts,
     sources: {
       network: relative(networkPath),
-      networkOverride: fs.existsSync(networkOverridePath) ? relative(networkOverridePath) : undefined,
-      deployment: fs.existsSync(deploymentPath) ? relative(deploymentPath) : undefined,
-      deploymentOverride: fs.existsSync(deploymentOverridePath) ? relative(deploymentOverridePath) : undefined,
-      accounts: fs.existsSync(accountsPath) ? relative(accountsPath) : undefined
+      networkOverride: overrideNetwork !== undefined ? relative(networkOverridePath) : undefined,
+      deployment: baseDeploymentFile !== undefined ? relative(deploymentPath) : undefined,
+      deploymentOverride: overrideDeployment !== undefined ? relative(deploymentOverridePath) : undefined,
+      accounts: accountsFile !== undefined ? relative(accountsPath) : undefined
     }
   };
 }
@@ -115,6 +118,12 @@ function definedOnly<T extends Record<string, unknown>>(value: T): Partial<T> {
 
 function emptyDeployment(network: string): DeploymentConfig {
   return { network, contracts: {}, tokens: {} };
+}
+
+function validateNetworkName(networkName: string): void {
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(networkName)) {
+    throw new Error(`Invalid network name "${networkName}". Use lowercase letters, numbers, and hyphens only.`);
+  }
 }
 
 function validateNetworkConfig(config: NetworkConfig, filePath: string, expectedNetwork: string): void {
