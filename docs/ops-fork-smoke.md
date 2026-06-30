@@ -72,6 +72,14 @@ npm run ops -- bridge claimable --network neox-mainnet-fork --token <alias-or-ad
 npm run ops -- bridge claim-token --network neox-mainnet-fork --account anvil --token <alias-or-address> --nonce <claimable-nonce> --dry-run true
 ```
 
+Withdrawal checks need an amount accepted by the current bridge config:
+
+```sh
+npm run ops -- bridge withdraw-native --network neox-mainnet-fork --account anvil --to <address> --amount <eth> --dry-run true
+npm run ops -- bridge withdraw-token --network neox-mainnet-fork --account anvil --token <alias-or-address> --to <address> --amount <tokens> --dry-run true
+npm run ops -- bridge withdraw-token --network neox-mainnet-fork --account anvil --token <alias-or-address> --to <address> --amount <tokens> --approve --dry-run true
+```
+
 Message read and execute checks need known message nonces:
 
 ```sh

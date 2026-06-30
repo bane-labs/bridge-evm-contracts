@@ -225,9 +225,10 @@ Current boolean mode options use explicit values because the CLI parser is stric
 - `--dry-run true`
 - `--dry-run false`
 
-The mainnet confirmation is a presence-only safety flag:
+Presence-only flags do not take values:
 
 - `--yes`
+- `--approve`
 
 ### Bridge Claims
 
@@ -253,6 +254,30 @@ Send a token claim transaction:
 
 ```sh
 npm run ops -- bridge claim-token --network neox-testnet --account personal --token <alias-or-address> --nonce <nonce>
+```
+
+### Bridge Withdrawals
+
+Native withdrawals automatically use the current native bridge fee as `_maxFee` and include the withdrawal amount plus fee as transaction value.
+
+Dry-run a native withdrawal:
+
+```sh
+npm run ops -- bridge withdraw-native --network neox-testnet --account personal --to <address> --amount <eth> --dry-run true
+```
+
+Token withdrawals automatically use the current token bridge fee as transaction value. If token allowance is too low, rerun with `--approve` to approve the bridge before withdrawing.
+
+Dry-run a token withdrawal:
+
+```sh
+npm run ops -- bridge withdraw-token --network neox-testnet --account personal --token <alias-or-address> --to <address> --amount <tokens> --dry-run true
+```
+
+Dry-run approval plus token withdrawal:
+
+```sh
+npm run ops -- bridge withdraw-token --network neox-testnet --account personal --token <alias-or-address> --to <address> --amount <tokens> --approve --dry-run true
 ```
 
 ### Message Writes
@@ -309,6 +334,8 @@ npm run ops -- bridge token --network <network> --token <alias-or-address> [--br
 npm run ops -- bridge claimable --network <network> --nonce <nonce> [--token <alias-or-address>] [--bridge <address>]
 npm run ops -- bridge claim-native --network <network> --account <name> --nonce <nonce> [--bridge <address>] [--dry-run true] [--yes]
 npm run ops -- bridge claim-token --network <network> --account <name> --token <alias-or-address> --nonce <nonce> [--bridge <address>] [--dry-run true] [--yes]
+npm run ops -- bridge withdraw-native --network <network> --account <name> --to <address> --amount <eth> [--bridge <address>] [--dry-run true] [--yes]
+npm run ops -- bridge withdraw-token --network <network> --account <name> --token <alias-or-address> --to <address> --amount <tokens> [--bridge <address>] [--approve] [--dry-run true] [--yes]
 ```
 
 Message bridge:
