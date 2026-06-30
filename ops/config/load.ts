@@ -80,12 +80,16 @@ export function resolveTokenAddress(config: OpsConfig, token: string): string {
 }
 
 function mergeNetwork(base: NetworkConfig, override: NetworkConfigOverride): NetworkConfig {
+  const gas = base.gas === undefined && override.gas === undefined
+    ? undefined
+    : { ...(base.gas ?? {}), ...(override.gas ?? {}) };
+
   return {
     name: override.name ?? base.name,
     hardhatNetwork: override.hardhatNetwork ?? base.hardhatNetwork,
     chainId: override.chainId ?? base.chainId,
     rpcUrl: override.rpcUrl ?? base.rpcUrl,
-    gas: { ...(base.gas ?? {}), ...(override.gas ?? {}) }
+    gas
   };
 }
 
