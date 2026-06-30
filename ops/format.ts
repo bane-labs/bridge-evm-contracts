@@ -8,8 +8,10 @@ export function printResolvedContext(config: OpsConfig, extra: Record<string, st
     ["Network", config.networkName],
     ["Chain ID", config.network.chainId],
     ["RPC URL", config.network.rpcUrl],
+    ["Network config", config.sources.network],
+    ["Network override", config.sources.networkOverride],
     ["Deployment", config.sources.deployment],
-    ["Override", config.sources.deploymentOverride],
+    ["Deployment override", config.sources.deploymentOverride],
     ...Object.entries(extra)
   ];
   const visibleRows = rows.filter(([, value]) => value !== undefined && value !== "");

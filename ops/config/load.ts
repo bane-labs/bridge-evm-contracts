@@ -5,6 +5,10 @@ import { AccountConfig, DeploymentConfig, NetworkConfig, OpsConfig } from "./typ
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 
+type NetworkConfigOverride = Pick<NetworkConfig, "name"> & Partial<Omit<NetworkConfig, "name" | "gas">> & {
+  gas?: NetworkConfig["gas"];
+};
+
 const NETWORK_ALIASES: Record<string, string> = {
   neoxTestnet: "neox-testnet",
   neoxMainnet: "neox-mainnet",
@@ -19,22 +23,31 @@ export function normalizeNetworkName(input: string): string {
 
 export function loadOpsConfig(networkInput: string): OpsConfig {
   const networkName = normalizeNetworkName(networkInput);
+  validateNetworkName(networkName);
   const networkPath = configPath("networks", `${networkName}.json`);
+  const networkOverridePath = configPath("networks", `${networkName}.local.json`);
   const deploymentPath = configPath("deployments", `${networkName}.json`);
   const deploymentOverridePath = configPath("deployments", `${networkName}.local.json`);
   const accountsPath = configPath("accounts", `${networkName}.json`);
 
-  const network = readJson<NetworkConfig>(networkPath, true);
-  validateNetworkConfig(network, networkPath, networkName);
+  const baseNetwork = readJson<NetworkConfig>(networkPath, true);
+  validateNetworkConfig(baseNetwork, networkPath, networkName);
 
-  const baseDeployment = readJson<DeploymentConfig>(deploymentPath, false) ?? emptyDeployment(networkName);
+  const overrideNetwork = readJson<NetworkConfigOverride>(networkOverridePath, false);
+  if (overrideNetwork) validateNetworkOverrideConfig(overrideNetwork, networkOverridePath, networkName);
+  const network = overrideNetwork ? mergeNetwork(baseNetwork, overrideNetwork) : baseNetwork;
+  if (overrideNetwork) validateNetworkConfig(network, networkOverridePath, networkName);
+
+  const baseDeploymentFile = readJson<DeploymentConfig>(deploymentPath, false);
+  const baseDeployment = baseDeploymentFile ?? emptyDeployment(networkName);
   validateDeploymentConfig(baseDeployment, deploymentPath, networkName);
 
   const overrideDeployment = readJson<DeploymentConfig>(deploymentOverridePath, false);
   if (overrideDeployment) validateDeploymentConfig(overrideDeployment, deploymentOverridePath, networkName);
   const deployment = overrideDeployment ? mergeDeployment(baseDeployment, overrideDeployment) : baseDeployment;
 
-  const accounts = readJson<AccountConfig>(accountsPath, false) ?? { network: networkName, accounts: {} };
+  const accountsFile = readJson<AccountConfig>(accountsPath, false);
+  const accounts = accountsFile ?? { network: networkName, accounts: {} };
   validateAccountConfig(accounts, accountsPath, networkName);
 
   return {
@@ -44,9 +57,10 @@ export function loadOpsConfig(networkInput: string): OpsConfig {
     accounts,
     sources: {
       network: relative(networkPath),
-      deployment: fs.existsSync(deploymentPath) ? relative(deploymentPath) : undefined,
-      deploymentOverride: fs.existsSync(deploymentOverridePath) ? relative(deploymentOverridePath) : undefined,
-      accounts: fs.existsSync(accountsPath) ? relative(accountsPath) : undefined
+      networkOverride: overrideNetwork !== undefined ? relative(networkOverridePath) : undefined,
+      deployment: baseDeploymentFile !== undefined ? relative(deploymentPath) : undefined,
+      deploymentOverride: overrideDeployment !== undefined ? relative(deploymentOverridePath) : undefined,
+      accounts: accountsFile !== undefined ? relative(accountsPath) : undefined
     }
   };
 }
@@ -66,6 +80,20 @@ export function resolveTokenAddress(config: OpsConfig, token: string): string {
     throw new Error(`Token alias "${token}" is not configured for ${config.networkName}`);
   }
   return resolveAddress(`token alias "${token}"`, tokenConfig.neoX);
+}
+
+function mergeNetwork(base: NetworkConfig, override: NetworkConfigOverride): NetworkConfig {
+  const gas = base.gas === undefined && override.gas === undefined
+    ? undefined
+    : { ...(base.gas ?? {}), ...(override.gas ?? {}) };
+
+  return {
+    name: override.name ?? base.name,
+    hardhatNetwork: override.hardhatNetwork ?? base.hardhatNetwork,
+    chainId: override.chainId ?? base.chainId,
+    rpcUrl: override.rpcUrl ?? base.rpcUrl,
+    gas
+  };
 }
 
 function resolveAddress(label: string, value?: string): string {
@@ -92,6 +120,12 @@ function emptyDeployment(network: string): DeploymentConfig {
   return { network, contracts: {}, tokens: {} };
 }
 
+function validateNetworkName(networkName: string): void {
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(networkName)) {
+    throw new Error(`Invalid network name "${networkName}". Use lowercase letters, numbers, and hyphens only.`);
+  }
+}
+
 function validateNetworkConfig(config: NetworkConfig, filePath: string, expectedNetwork: string): void {
   if (!config.name) throw new Error(`${relative(filePath)} is missing name`);
   if (config.name !== expectedNetwork) {
@@ -99,6 +133,13 @@ function validateNetworkConfig(config: NetworkConfig, filePath: string, expected
   }
   if (!Number.isInteger(config.chainId) || config.chainId <= 0) throw new Error(`${relative(filePath)} has invalid chainId`);
   if (!config.rpcUrl) throw new Error(`${relative(filePath)} is missing rpcUrl`);
+}
+
+function validateNetworkOverrideConfig(config: NetworkConfigOverride, filePath: string, expectedNetwork: string): void {
+  if (!config.name) throw new Error(`${relative(filePath)} is missing name`);
+  if (config.name !== expectedNetwork) {
+    throw new Error(`${relative(filePath)} declares network "${config.name}" but "${expectedNetwork}" was requested`);
+  }
 }
 
 function validateDeploymentConfig(config: DeploymentConfig, filePath: string, expectedNetwork: string): void {
@@ -143,11 +184,25 @@ function readJson<T>(filePath: string, required: boolean): T | undefined {
     if (required) throw new Error(`Missing required config file: ${relative(filePath)}`);
     return undefined;
   }
-  return JSON.parse(fs.readFileSync(filePath, "utf8")) as T;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(fs.readFileSync(filePath, "utf8")) as unknown;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`${relative(filePath)} contains invalid JSON: ${message}`);
+  }
+  if (!isJsonObject(parsed)) {
+    throw new Error(`${relative(filePath)} must contain a JSON object`);
+  }
+  return parsed as T;
 }
 
 function configPath(...parts: string[]): string {
   return path.join(REPO_ROOT, "config", ...parts);
+}
+
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function relative(filePath: string): string {
