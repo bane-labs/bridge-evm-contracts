@@ -8,7 +8,7 @@ import { parseDryRunFlag } from "../tx/send";
 import { printTransactionSummary } from "../tx/summary";
 import { parseYesFlag } from "../tx/guards";
 import { CommandOptions, requireOption } from "./options";
-import { finishBridgeTransaction, printClaimable, resolveTokenDecimals } from "./bridgeShared";
+import { finishBridgeTransaction, nativeClaimableDecimals, printClaimable, resolveTokenDecimals } from "./bridgeShared";
 
 export async function bridgeClaimNative(config: OpsConfig, options: CommandOptions): Promise<void> {
   const bridgeAddress = resolveBridgeAddress(config, options.bridge);
@@ -21,10 +21,10 @@ export async function bridgeClaimNative(config: OpsConfig, options: CommandOptio
 
   printResolvedContext(config, { Bridge: bridgeAddress, Account: accountName, Sender: context.sender, Nonce: nonce.toString() });
 
-  await assertNativeClaimOpen(config, bridge);
+  const nativeBridge = await assertNativeClaimOpen(config, bridge);
 
   const claimable = await bridge.claimableNative(nonce);
-  printClaimable(claimable, 8, "native");
+  printClaimable(claimable, nativeClaimableDecimals(nativeBridge), "native");
   if (isEmptyClaimable(claimable)) {
     throw new Error(`No native claimable found for nonce ${nonce.toString()}`);
   }
@@ -97,7 +97,7 @@ export async function bridgeClaimToken(config: OpsConfig, options: CommandOption
 async function assertNativeClaimOpen(
   config: OpsConfig,
   bridge: ReturnType<typeof connectBridge>
-): Promise<void> {
+): Promise<Awaited<ReturnType<ReturnType<typeof connectBridge>["nativeBridge"]>>> {
   const [bridgePaused, nativeIsSet] = await Promise.all([
     bridge.bridgePaused(),
     bridge.nativeBridgeIsSet()
@@ -114,6 +114,7 @@ async function assertNativeClaimOpen(
   if (nativeBridge.paused) {
     throw new Error(`Native bridge is paused on ${config.networkName}; cannot claim native funds.`);
   }
+  return nativeBridge;
 }
 
 async function assertTokenClaimOpen(

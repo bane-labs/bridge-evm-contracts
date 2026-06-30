@@ -171,7 +171,7 @@ Options:
   --max          Native bridge setup maximum withdrawal amount in ether units.
   --neo-n3-token Neo N3 token address represented as an address.
   --target       Control target: bridge, withdrawals, native, token, or all.
-  --decimals-here  Native asset decimals on this chain.
+  --decimals-here  Native asset decimals on this chain. Must be 18.
   --decimals-n3    Native asset decimals on Neo N3.
   --scaling-factor Token decimal scaling factor.
   --approve      For token withdrawals, approve token spending before withdrawing if needed.

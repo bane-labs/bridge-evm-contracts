@@ -7,6 +7,7 @@ import { formatBool, printResolvedContext } from "../format";
 import { parsePositiveInteger, parseNonce } from "../tx/parse";
 import { CommandOptions, requireOption } from "./options";
 import {
+  nativeClaimableDecimals,
   printClaimable,
   printNativeBridge,
   printTokenBridge,
@@ -81,7 +82,7 @@ export async function bridgeClaimable(config: OpsConfig, options: CommandOptions
     bridge.claimableNative(nonce)
   ]);
   printNativeBridge(nativeBridge);
-  printClaimable(claimable, 8, "native");
+  printClaimable(claimable, nativeClaimableDecimals(nativeBridge), "native");
 }
 
 export async function bridgeToken(config: OpsConfig, options: CommandOptions): Promise<void> {

@@ -25,11 +25,14 @@ export function parseNonNegativeInteger(value: string, label: string): number {
 }
 
 export function parseAmount(value: string, decimals: number, label = "amount"): bigint {
+  let parsed: bigint;
   try {
-    return ethers.parseUnits(value, decimals);
+    parsed = ethers.parseUnits(value, decimals);
   } catch {
     throw new Error(`Invalid ${label}: ${value}`);
   }
+  if (parsed < 0n) throw new Error(`Invalid ${label}: ${value}`);
+  return parsed;
 }
 
 export function parsePositiveAmount(value: string, decimals: number, label = "amount"): bigint {

@@ -313,6 +313,8 @@ Configure the native bridge only when it has not been configured yet:
 npm run ops -- bridge configure-native --network neox-testnet --account governor --fee <eth> --min <eth> --max <eth> --max-deposits <count> --decimals-here <count> --decimals-n3 <count> --dry-run true
 ```
 
+Native setup amounts are parsed as 18-decimal ether values, so `--decimals-here` must be `18`.
+
 Update native bridge withdrawal settings:
 
 ```sh

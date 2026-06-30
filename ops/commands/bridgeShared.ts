@@ -64,6 +64,14 @@ export function printClaimable(claimable: { to: string; amount: bigint }, decima
   console.log(`  Amount:              ${formatAmount(claimable.amount, decimals)} ${label}`);
 }
 
+export function nativeClaimableDecimals(nativeBridge: Awaited<ReturnType<ReturnType<typeof connectBridge>["nativeBridge"]>>): number {
+  const decimalScalingFactor = Number(nativeBridge.config.decimalScalingFactor);
+  if (!Number.isSafeInteger(decimalScalingFactor) || decimalScalingFactor < 0 || decimalScalingFactor > 18) {
+    throw new Error(`Unsupported native bridge decimal scaling factor: ${nativeBridge.config.decimalScalingFactor.toString()}`);
+  }
+  return 18 - decimalScalingFactor;
+}
+
 export async function resolveTokenDecimals(provider: ethers.Provider, tokenAddress: string, configured?: number): Promise<number> {
   if (configured !== undefined) return configured;
   try {

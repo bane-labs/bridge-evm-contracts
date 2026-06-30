@@ -23,6 +23,9 @@ export async function bridgeConfigureNative(config: OpsConfig, options: CommandO
   const maxDeposits = parsePositiveInteger(requireOption(options, "max-deposits"), "max-deposits");
   const decimalsHere = parseBridgeDecimals(requireOption(options, "decimals-here"), "decimals-here");
   const decimalsOnN3 = parseBridgeDecimals(requireOption(options, "decimals-n3"), "decimals-n3");
+  if (decimalsHere !== 18) {
+    throw new Error("Unsupported decimals-here: this CLI parses native amounts as 18-decimal ether values, so --decimals-here must be 18.");
+  }
   const dryRun = parseDryRunFlag(options["dry-run"]);
   const confirmed = parseYesFlag(options.yes);
   const context = await createWriteContext(config, accountName);
