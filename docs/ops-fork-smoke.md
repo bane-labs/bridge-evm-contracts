@@ -80,6 +80,23 @@ npm run ops -- bridge withdraw-token --network neox-mainnet-fork --account anvil
 npm run ops -- bridge withdraw-token --network neox-mainnet-fork --account anvil --token <alias-or-address> --to <address> --amount <tokens> --approve --dry-run true
 ```
 
+Funding checks need an account that has funds, and native bridge funding requires the bridge funder role when sent:
+
+```sh
+npm run ops -- bridge fund-native --network neox-mainnet-fork --account anvil --amount <eth> --dry-run true
+npm run ops -- bridge fund-token --network neox-mainnet-fork --account anvil --token <alias-or-address> --amount <tokens> --dry-run true
+```
+
+Bridge control and configuration checks need an account with the governor or security-guard role:
+
+```sh
+npm run ops -- bridge pause --network neox-mainnet-fork --account anvil --target withdrawals --dry-run true
+npm run ops -- bridge unpause --network neox-mainnet-fork --account anvil --target withdrawals --dry-run true
+npm run ops -- bridge set-native-fee --network neox-mainnet-fork --account anvil --amount <eth> --dry-run true
+npm run ops -- bridge set-token-fee --network neox-mainnet-fork --account anvil --token <alias-or-address> --amount <eth> --dry-run true
+npm run ops -- bridge register-token --network neox-mainnet-fork --account anvil --token <alias-or-address> --neo-n3-token <address> --fee <eth> --min <tokens> --max <tokens> --max-deposits <count> --dry-run true
+```
+
 Message read and execute checks need known message nonces:
 
 ```sh

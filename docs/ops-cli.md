@@ -280,6 +280,65 @@ Dry-run approval plus token withdrawal:
 npm run ops -- bridge withdraw-token --network neox-testnet --account personal --token <alias-or-address> --to <address> --amount <tokens> --approve --dry-run true
 ```
 
+### Bridge Funding
+
+Fund the bridge with native currency:
+
+```sh
+npm run ops -- bridge fund-native --network neox-testnet --account funder --amount <eth> --dry-run true
+```
+
+Fund the bridge with an ERC20 token:
+
+```sh
+npm run ops -- bridge fund-token --network neox-testnet --account funder --token <alias-or-address> --amount <tokens> --dry-run true
+```
+
+### Bridge Control
+
+Pause or unpause one bridge component:
+
+```sh
+npm run ops -- bridge pause --network neox-testnet --account governor --target withdrawals --dry-run true
+npm run ops -- bridge unpause --network neox-testnet --account governor --target withdrawals --dry-run true
+```
+
+Use `--target token --token <alias-or-address>` for one token bridge. Use `--target all` to apply the action to the main bridge, withdrawals, the native bridge when configured, and the selected token bridge when `--token` is provided. Already-paused or already-unpaused targets are skipped without sending a transaction.
+
+### Bridge Configuration
+
+Configure the native bridge only when it has not been configured yet:
+
+```sh
+npm run ops -- bridge configure-native --network neox-testnet --account governor --fee <eth> --min <eth> --max <eth> --max-deposits <count> --decimals-here <count> --decimals-n3 <count> --dry-run true
+```
+
+Update native bridge withdrawal settings:
+
+```sh
+npm run ops -- bridge set-native-fee --network neox-testnet --account governor --amount <eth> --dry-run true
+npm run ops -- bridge set-native-min --network neox-testnet --account governor --amount <eth> --dry-run true
+npm run ops -- bridge set-native-max --network neox-testnet --account governor --amount <eth> --dry-run true
+npm run ops -- bridge set-native-max-deposits --network neox-testnet --account governor --max-deposits <count> --dry-run true
+```
+
+Update token bridge withdrawal settings:
+
+```sh
+npm run ops -- bridge set-token-fee --network neox-testnet --account governor --token <alias-or-address> --amount <eth> --dry-run true
+npm run ops -- bridge set-token-min --network neox-testnet --account governor --token <alias-or-address> --amount <tokens> --dry-run true
+npm run ops -- bridge set-token-max --network neox-testnet --account governor --token <alias-or-address> --amount <tokens> --dry-run true
+npm run ops -- bridge set-token-max-deposits --network neox-testnet --account governor --token <alias-or-address> --max-deposits <count> --dry-run true
+```
+
+Register a token bridge:
+
+```sh
+npm run ops -- bridge register-token --network neox-testnet --account governor --token <alias-or-address> --neo-n3-token <address> --fee <eth> --min <tokens> --max <tokens> --max-deposits <count> --scaling-factor <count> --dry-run true
+```
+
+If the token alias in deployment config already has `neoN3`, `--neo-n3-token` can be omitted. If `--scaling-factor` is omitted, it defaults to `0`.
+
 ### Message Writes
 
 Send commands automatically use the current `sendingFee()` as transaction value and print it in the transaction summary.
@@ -353,6 +412,20 @@ npm run ops -- bridge claim-native --network <network> --account <name> --nonce 
 npm run ops -- bridge claim-token --network <network> --account <name> --token <alias-or-address> --nonce <nonce> [--bridge <address>] [--dry-run true] [--yes]
 npm run ops -- bridge withdraw-native --network <network> --account <name> --to <address> --amount <eth> [--bridge <address>] [--dry-run true] [--yes]
 npm run ops -- bridge withdraw-token --network <network> --account <name> --token <alias-or-address> --to <address> --amount <tokens> [--bridge <address>] [--approve] [--dry-run true] [--yes]
+npm run ops -- bridge fund-native --network <network> --account <name> --amount <eth> [--bridge <address>] [--dry-run true] [--yes]
+npm run ops -- bridge fund-token --network <network> --account <name> --token <alias-or-address> --amount <tokens> [--bridge <address>] [--dry-run true] [--yes]
+npm run ops -- bridge pause --network <network> --account <name> --target <bridge|withdrawals|native|token|all> [--token <alias-or-address>] [--bridge <address>] [--dry-run true] [--yes]
+npm run ops -- bridge unpause --network <network> --account <name> --target <bridge|withdrawals|native|token|all> [--token <alias-or-address>] [--bridge <address>] [--dry-run true] [--yes]
+npm run ops -- bridge configure-native --network <network> --account <name> --fee <eth> --min <eth> --max <eth> --max-deposits <count> --decimals-here <count> --decimals-n3 <count> [--bridge <address>] [--dry-run true] [--yes]
+npm run ops -- bridge set-native-fee --network <network> --account <name> --amount <eth> [--bridge <address>] [--dry-run true] [--yes]
+npm run ops -- bridge set-native-min --network <network> --account <name> --amount <eth> [--bridge <address>] [--dry-run true] [--yes]
+npm run ops -- bridge set-native-max --network <network> --account <name> --amount <eth> [--bridge <address>] [--dry-run true] [--yes]
+npm run ops -- bridge set-native-max-deposits --network <network> --account <name> --max-deposits <count> [--bridge <address>] [--dry-run true] [--yes]
+npm run ops -- bridge set-token-fee --network <network> --account <name> --token <alias-or-address> --amount <eth> [--bridge <address>] [--dry-run true] [--yes]
+npm run ops -- bridge set-token-min --network <network> --account <name> --token <alias-or-address> --amount <tokens> [--bridge <address>] [--dry-run true] [--yes]
+npm run ops -- bridge set-token-max --network <network> --account <name> --token <alias-or-address> --amount <tokens> [--bridge <address>] [--dry-run true] [--yes]
+npm run ops -- bridge set-token-max-deposits --network <network> --account <name> --token <alias-or-address> --max-deposits <count> [--bridge <address>] [--dry-run true] [--yes]
+npm run ops -- bridge register-token --network <network> --account <name> --token <alias-or-address> --neo-n3-token <address> --fee <eth> --min <tokens> --max <tokens> --max-deposits <count> [--scaling-factor <count>] [--bridge <address>] [--dry-run true] [--yes]
 ```
 
 Message bridge:

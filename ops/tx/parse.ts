@@ -17,13 +17,23 @@ export function parsePositiveInteger(value: string, label: string): number {
   return parsed;
 }
 
-export function parsePositiveAmount(value: string, decimals: number, label = "amount"): bigint {
-  let parsed: bigint;
+export function parseNonNegativeInteger(value: string, label: string): number {
+  if (!/^\d+$/.test(value)) throw new Error(`Invalid ${label}: ${value}`);
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed)) throw new Error(`Invalid ${label}: ${value}`);
+  return parsed;
+}
+
+export function parseAmount(value: string, decimals: number, label = "amount"): bigint {
   try {
-    parsed = ethers.parseUnits(value, decimals);
+    return ethers.parseUnits(value, decimals);
   } catch {
     throw new Error(`Invalid ${label}: ${value}`);
   }
+}
+
+export function parsePositiveAmount(value: string, decimals: number, label = "amount"): bigint {
+  const parsed = parseAmount(value, decimals, label);
   if (parsed <= 0n) throw new Error(`Invalid ${label}: ${value}`);
   return parsed;
 }
