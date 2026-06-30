@@ -33,6 +33,7 @@ export function loadOpsConfig(networkInput: string): OpsConfig {
   validateNetworkConfig(baseNetwork, networkPath, networkName);
 
   const overrideNetwork = readJson<NetworkConfigOverride>(networkOverridePath, false);
+  if (overrideNetwork) validateNetworkOverrideConfig(overrideNetwork, networkOverridePath, networkName);
   const network = overrideNetwork ? mergeNetwork(baseNetwork, overrideNetwork) : baseNetwork;
   if (overrideNetwork) validateNetworkConfig(network, networkOverridePath, networkName);
 
@@ -121,6 +122,13 @@ function validateNetworkConfig(config: NetworkConfig, filePath: string, expected
   if (!config.rpcUrl) throw new Error(`${relative(filePath)} is missing rpcUrl`);
 }
 
+function validateNetworkOverrideConfig(config: NetworkConfigOverride, filePath: string, expectedNetwork: string): void {
+  if (!config.name) throw new Error(`${relative(filePath)} is missing name`);
+  if (config.name !== expectedNetwork) {
+    throw new Error(`${relative(filePath)} declares network "${config.name}" but "${expectedNetwork}" was requested`);
+  }
+}
+
 function validateDeploymentConfig(config: DeploymentConfig, filePath: string, expectedNetwork: string): void {
   if (!config.network) throw new Error(`${relative(filePath)} is missing network`);
   if (config.network !== expectedNetwork) {
@@ -163,7 +171,13 @@ function readJson<T>(filePath: string, required: boolean): T | undefined {
     if (required) throw new Error(`Missing required config file: ${relative(filePath)}`);
     return undefined;
   }
-  const parsed = JSON.parse(fs.readFileSync(filePath, "utf8")) as unknown;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(fs.readFileSync(filePath, "utf8")) as unknown;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`${relative(filePath)} contains invalid JSON: ${message}`);
+  }
   if (!isJsonObject(parsed)) {
     throw new Error(`${relative(filePath)} must contain a JSON object`);
   }
