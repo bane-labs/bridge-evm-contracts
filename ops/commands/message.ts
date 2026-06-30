@@ -3,6 +3,12 @@ import { connectMessageBridge } from "../clients/messageBridge";
 import { assertConfiguredChain, createProvider } from "../clients/provider";
 import { loadOpsConfig, resolveMessageBridgeAddress } from "../config/load";
 import { formatBool, printResolvedContext } from "../format";
+import { createWriteContext, WriteContext } from "../tx/context";
+import { parseYesFlag, requireMainnetConfirmation } from "../tx/guards";
+import { parseBooleanOption, parseNonce } from "../tx/parse";
+import { printTransactionReceipt } from "../tx/receipt";
+import { parseDryRunFlag, runTransactionRequest } from "../tx/send";
+import { printTransactionSummary } from "../tx/summary";
 import { CommandOptions, hasHelpFlag, isHelpFlag, parseOptions, requireOption } from "./options";
 import { MessageBridge__factory } from "../../typechain-types";
 
@@ -15,7 +21,7 @@ export async function runMessageCommand(args: string[]): Promise<void> {
     return;
   }
 
-  const options = parseOptions(rest);
+  const options = parseOptions(rest, new Set(["yes"]));
   const network = requireOption(options, "network");
   const config = loadOpsConfig(network);
 
@@ -35,6 +41,22 @@ export async function runMessageCommand(args: string[]): Promise<void> {
     await messageExecutable(config, options);
     return;
   }
+  if (command === "send-executable") {
+    await messageSendExecutable(config, options);
+    return;
+  }
+  if (command === "send-store-only") {
+    await messageSendStoreOnly(config, options);
+    return;
+  }
+  if (command === "send-result") {
+    await messageSendResult(config, options);
+    return;
+  }
+  if (command === "execute") {
+    await messageExecute(config, options);
+    return;
+  }
 
   throw new Error(`Unknown message command: ${command}`);
 }
@@ -47,17 +69,32 @@ Usage:
   npm run ops -- message get --network <network> --nonce <nonce> [--message-bridge <address>]
   npm run ops -- message result --network <network> --nonce <nonce> [--message-bridge <address>]
   npm run ops -- message executable --network <network> --nonce <nonce> [--message-bridge <address>]
+  npm run ops -- message send-executable --network <network> --account <name> --message <hex> --store-result <true|false> [--message-bridge <address>] [--dry-run true] [--yes]
+  npm run ops -- message send-store-only --network <network> --account <name> --message <hex> [--message-bridge <address>] [--dry-run true] [--yes]
+  npm run ops -- message send-result --network <network> --account <name> --related-nonce <nonce> [--message-bridge <address>] [--dry-run true] [--yes]
+  npm run ops -- message execute --network <network> --account <name> --nonce <nonce> [--message-bridge <address>] [--value <eth>] [--dry-run true] [--yes]
 
 Commands:
   state        Print message bridge state and config.
   get          Print one stored EVM message and decoded metadata.
   result       Print execution result state for one related message nonce.
   executable   Print executable state for one stored executable message.
+  send-executable  Send an executable EVM -> Neo message.
+  send-store-only  Send a store-only EVM -> Neo message.
+  send-result      Send a result message for an executed Neo -> EVM message.
+  execute          Execute one stored Neo -> EVM executable message.
 
 Options:
   --network           Required. One of local, neox-devnet, neox-testnet, neox-mainnet.
+  --account           Required for write commands. Account alias from config/accounts/<network>.json.
   --message-bridge    Optional message bridge address override.
   --nonce             Message nonce.
+  --related-nonce     Related message nonce for result messages.
+  --message           Hex-encoded raw message bytes.
+  --store-result      true or false for executable message result storage.
+  --value             Native value in ether to forward when executing a message.
+  --dry-run           Use --dry-run true to print the transaction without sending.
+  --yes               Required for mainnet write commands.
 `);
 }
 
@@ -182,6 +219,252 @@ async function messageExecutable(config: ReturnType<typeof loadOpsConfig>, optio
   }
 }
 
+async function messageSendExecutable(config: ReturnType<typeof loadOpsConfig>, options: CommandOptions): Promise<void> {
+  const messageBridgeAddress = resolveMessageBridgeAddress(config, options["message-bridge"]);
+  const accountName = requireOption(options, "account");
+  const message = parseBytes(requireOption(options, "message"), "message");
+  const storeResult = parseBooleanOption(requireOption(options, "store-result"), "--store-result");
+  const dryRun = parseDryRunFlag(options["dry-run"]);
+  const confirmed = parseYesFlag(options.yes);
+  const context = await createWriteContext(config, accountName);
+  const messageBridge = connectMessageBridge(messageBridgeAddress, context.wallet);
+
+  printResolvedContext(config, {
+    MessageBridge: messageBridgeAddress,
+    Account: accountName,
+    Sender: context.sender
+  });
+
+  const sendingFee = await assertMessageSendingOpen(config, messageBridge);
+  await assertMessageSize(config, messageBridge, message, "message");
+
+  const request = await messageBridge.sendExecutableMessage.populateTransaction(message, storeResult, { value: sendingFee });
+  printTransactionSummary(context, {
+    contract: messageBridgeAddress,
+    action: "sendExecutableMessage",
+    args: {
+      messageBytes: byteLength(message),
+      storeResult
+    },
+    value: sendingFee,
+    request,
+    dryRun
+  });
+  await finishTransaction(config, context, request, dryRun, confirmed);
+}
+
+async function messageSendStoreOnly(config: ReturnType<typeof loadOpsConfig>, options: CommandOptions): Promise<void> {
+  const messageBridgeAddress = resolveMessageBridgeAddress(config, options["message-bridge"]);
+  const accountName = requireOption(options, "account");
+  const message = parseBytes(requireOption(options, "message"), "message");
+  const dryRun = parseDryRunFlag(options["dry-run"]);
+  const confirmed = parseYesFlag(options.yes);
+  const context = await createWriteContext(config, accountName);
+  const messageBridge = connectMessageBridge(messageBridgeAddress, context.wallet);
+
+  printResolvedContext(config, {
+    MessageBridge: messageBridgeAddress,
+    Account: accountName,
+    Sender: context.sender
+  });
+
+  const sendingFee = await assertMessageSendingOpen(config, messageBridge);
+  await assertMessageSize(config, messageBridge, message, "message");
+
+  const request = await messageBridge.sendStoreOnlyMessage.populateTransaction(message, { value: sendingFee });
+  printTransactionSummary(context, {
+    contract: messageBridgeAddress,
+    action: "sendStoreOnlyMessage",
+    args: {
+      messageBytes: byteLength(message)
+    },
+    value: sendingFee,
+    request,
+    dryRun
+  });
+  await finishTransaction(config, context, request, dryRun, confirmed);
+}
+
+async function messageSendResult(config: ReturnType<typeof loadOpsConfig>, options: CommandOptions): Promise<void> {
+  const messageBridgeAddress = resolveMessageBridgeAddress(config, options["message-bridge"]);
+  const accountName = requireOption(options, "account");
+  const relatedNonce = parseNonce(requireOption(options, "related-nonce"), "related-nonce");
+  const dryRun = parseDryRunFlag(options["dry-run"]);
+  const confirmed = parseYesFlag(options.yes);
+  const context = await createWriteContext(config, accountName);
+  const messageBridge = connectMessageBridge(messageBridgeAddress, context.wallet);
+
+  printResolvedContext(config, {
+    MessageBridge: messageBridgeAddress,
+    Account: accountName,
+    Sender: context.sender,
+    RelatedNonce: relatedNonce.toString()
+  });
+
+  const sendingFee = await assertMessageSendingOpen(config, messageBridge);
+  const result = await getRequiredEvmExecutionResult(config, messageBridge, relatedNonce);
+  const encodedResult = encodeExecutionResult(result);
+  await assertMessageSize(config, messageBridge, encodedResult, "result message");
+
+  console.log("Execution result");
+  printResult(result, "  ");
+  console.log("");
+
+  const request = await messageBridge.sendResultMessage.populateTransaction(relatedNonce, { value: sendingFee });
+  printTransactionSummary(context, {
+    contract: messageBridgeAddress,
+    action: "sendResultMessage",
+    args: {
+      relatedNonce,
+      resultBytes: byteLength(encodedResult)
+    },
+    value: sendingFee,
+    request,
+    dryRun
+  });
+  await finishTransaction(config, context, request, dryRun, confirmed);
+}
+
+async function messageExecute(config: ReturnType<typeof loadOpsConfig>, options: CommandOptions): Promise<void> {
+  const messageBridgeAddress = resolveMessageBridgeAddress(config, options["message-bridge"]);
+  const accountName = requireOption(options, "account");
+  const nonce = parseNonce(requireOption(options, "nonce"));
+  const value = options.value ? parseEtherValue(options.value, "--value") : 0n;
+  const dryRun = parseDryRunFlag(options["dry-run"]);
+  const confirmed = parseYesFlag(options.yes);
+  const context = await createWriteContext(config, accountName);
+  const messageBridge = connectMessageBridge(messageBridgeAddress, context.wallet);
+
+  printResolvedContext(config, {
+    MessageBridge: messageBridgeAddress,
+    Account: accountName,
+    Sender: context.sender,
+    Nonce: nonce.toString()
+  });
+
+  const executableState = await assertMessageExecutable(config, messageBridge, context.provider, nonce);
+  console.log("Executable state");
+  printExecutableState(executableState, "  ");
+  console.log("");
+
+  const request = await messageBridge.executeMessage.populateTransaction(nonce, { value });
+  printTransactionSummary(context, {
+    contract: messageBridgeAddress,
+    action: "executeMessage",
+    args: {
+      nonce
+    },
+    value,
+    request,
+    dryRun
+  });
+  await finishTransaction(config, context, request, dryRun, confirmed);
+}
+
+async function finishTransaction(
+  config: ReturnType<typeof loadOpsConfig>,
+  context: WriteContext,
+  request: ethers.TransactionRequest,
+  dryRun: boolean,
+  confirmed: boolean
+): Promise<void> {
+  if (!dryRun) requireMainnetConfirmation(config, confirmed);
+
+  const result = await runTransactionRequest(context, request, { dryRun });
+  if (!result.sent) {
+    console.log("Dry run complete. Transaction was not sent.");
+    return;
+  }
+  printTransactionReceipt(result.receipt);
+}
+
+async function assertMessageSendingOpen(
+  config: ReturnType<typeof loadOpsConfig>,
+  messageBridge: ReturnType<typeof connectMessageBridge>
+): Promise<bigint> {
+  const [messageBridgePaused, sendingPaused, sendingFee] = await Promise.all([
+    messageBridge.messageBridgePaused(),
+    messageBridge.sendingPaused(),
+    messageBridge.sendingFee()
+  ]);
+
+  if (messageBridgePaused) {
+    throw new Error(`Message bridge is paused on ${config.networkName}; cannot send messages.`);
+  }
+  if (sendingPaused) {
+    throw new Error(`Message sending is paused on ${config.networkName}; cannot send messages.`);
+  }
+  return sendingFee;
+}
+
+async function assertMessageSize(
+  config: ReturnType<typeof loadOpsConfig>,
+  messageBridge: ReturnType<typeof connectMessageBridge>,
+  message: string,
+  label: string
+): Promise<void> {
+  const maxMessageSize = await messageBridge.maxMessageSize();
+  const size = byteLength(message);
+  if (BigInt(size) > maxMessageSize) {
+    throw new Error(`${label} is ${size} bytes, exceeding max message size ${maxMessageSize.toString()} on ${config.networkName}.`);
+  }
+}
+
+async function getRequiredEvmExecutionResult(
+  config: ReturnType<typeof loadOpsConfig>,
+  messageBridge: ReturnType<typeof connectMessageBridge>,
+  relatedNonce: bigint
+): Promise<{ success: boolean; returnData: string }> {
+  try {
+    return await messageBridge.getEvmExecutionResult(relatedNonce);
+  } catch (error) {
+    if (!ethers.isCallException(error)) throw error;
+    throw new Error(
+      `Cannot send result for related nonce ${relatedNonce.toString()} on ${config.networkName}: ${decodeMessageBridgeError(error.data)}.`
+    );
+  }
+}
+
+async function assertMessageExecutable(
+  config: ReturnType<typeof loadOpsConfig>,
+  messageBridge: ReturnType<typeof connectMessageBridge>,
+  provider: ethers.JsonRpcProvider,
+  nonce: bigint
+): Promise<{ executed: boolean; expirationTimestamp: bigint }> {
+  const [executingPaused, executionManager] = await Promise.all([
+    messageBridge.executingPaused(),
+    messageBridge.executionManager()
+  ]);
+
+  if (executingPaused) {
+    throw new Error(`Message execution is paused on ${config.networkName}; cannot execute message ${nonce.toString()}.`);
+  }
+  if (executionManager === ethers.ZeroAddress) {
+    throw new Error(`Message execution manager is not configured on ${config.networkName}; cannot execute message ${nonce.toString()}.`);
+  }
+
+  let executableState: { executed: boolean; expirationTimestamp: bigint };
+  try {
+    executableState = await messageBridge.getExecutableState(nonce);
+  } catch (error) {
+    if (!ethers.isCallException(error)) throw error;
+    throw new Error(`Cannot execute message ${nonce.toString()} on ${config.networkName}: ${decodeMessageBridgeError(error.data)}.`);
+  }
+
+  if (executableState.executed) {
+    throw new Error(`Message ${nonce.toString()} was already executed on ${config.networkName}.`);
+  }
+
+  const latestBlock = await provider.getBlock("latest");
+  if (latestBlock && BigInt(latestBlock.timestamp) > executableState.expirationTimestamp) {
+    throw new Error(
+      `Message ${nonce.toString()} execution window expired at ${formatTimestamp(executableState.expirationTimestamp)} on ${config.networkName}.`
+    );
+  }
+
+  return executableState;
+}
+
 function printState(state: { nonce: bigint; root: string }, indent = ""): void {
   console.log(`${indent}Nonce:              ${state.nonce.toString()}`);
   console.log(`${indent}Root:               ${state.root}`);
@@ -285,11 +568,33 @@ function formatTimestamp(timestamp: bigint): string {
   return new Date(Number(timestamp) * 1000).toISOString();
 }
 
-function parseNonce(value: string): bigint {
-  if (!/^\d+$/.test(value)) throw new Error(`Invalid nonce: ${value}`);
-  return BigInt(value);
-}
-
 function isEmptyBytes(value: string): boolean {
   return value === "0x";
+}
+
+function parseBytes(value: string, label: string): string {
+  if (!ethers.isHexString(value)) throw new Error(`Invalid ${label}: expected hex bytes`);
+  return value;
+}
+
+function parseEtherValue(value: string, label: string): bigint {
+  let parsed: bigint;
+  try {
+    parsed = ethers.parseEther(value);
+  } catch {
+    throw new Error(`Invalid ${label}: ${value}`);
+  }
+  if (parsed < 0n) throw new Error(`Invalid ${label}: ${value}`);
+  return parsed;
+}
+
+function byteLength(value: string): number {
+  return ethers.getBytes(value).length;
+}
+
+function encodeExecutionResult(result: { success: boolean; returnData: string }): string {
+  return ethers.AbiCoder.defaultAbiCoder().encode(
+    ["tuple(bool success, bytes returnData)"],
+    [{ success: result.success, returnData: result.returnData }]
+  );
 }
