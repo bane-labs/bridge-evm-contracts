@@ -100,6 +100,8 @@ npm run ops -- bridge register-token --network neox-mainnet-fork --account anvil
 Message read and execute checks need known message nonces:
 
 ```sh
+npm run ops -- message encode-balance-of --network neox-mainnet-fork --token <alias-or-address> --holder <address>
+npm run ops -- message decode-uint256 --network neox-mainnet-fork --data <hex>
 npm run ops -- message get --network neox-mainnet-fork --nonce <message-nonce>
 npm run ops -- message result --network neox-mainnet-fork --nonce <related-message-nonce>
 npm run ops -- message executable --network neox-mainnet-fork --nonce <executable-message-nonce>

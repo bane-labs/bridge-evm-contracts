@@ -1,4 +1,7 @@
-import { AccountCheckResult, accountSource, checkAccount, listAccounts, loadAccountAddress } from "../accounts/load";
+import fs from "fs";
+import path from "path";
+import { ethers } from "ethers";
+import { AccountCheckResult, accountSource, checkAccount, listAccounts, loadAccountAddress, promptHidden } from "../accounts/load";
 import { loadOpsConfig } from "../config/load";
 import { AccountSource } from "../config/types";
 import { printResolvedContext } from "../format";
@@ -10,7 +13,17 @@ export async function runAccountsCommand(args: string[]): Promise<void> {
     printAccountsHelp();
     return;
   }
-  const options = parseOptions(rest);
+  const options = parseOptions(rest, new Set(["show-private-key"]));
+
+  if (command === "create-keystore") {
+    await createKeystore(options);
+    return;
+  }
+  if (command === "decrypt-keystore") {
+    await decryptKeystore(options);
+    return;
+  }
+
   const network = requireOption(options, "network");
   const config = loadOpsConfig(network);
 
@@ -43,16 +56,67 @@ Usage:
   npm run ops -- accounts list --network <network>
   npm run ops -- accounts address --network <network> --account <name>
   npm run ops -- accounts check --network <network> [--account <name>]
+  npm run ops -- accounts create-keystore --path <path> [--password-env <env>]
+  npm run ops -- accounts decrypt-keystore --path <path> [--password-env <env>] [--show-private-key]
 
 Commands:
   list       Print configured account aliases and sources. Does not read secrets.
   address    Resolve one configured account address from privateKeyEnv or keystore.
   check      Validate configured account sources and print derived addresses.
+  create-keystore   Create an encrypted JSON keystore. Does not print the private key.
+  decrypt-keystore  Decrypt a JSON keystore and print its address. Private key requires --show-private-key.
 
 Account config:
   Copy config/accounts/<network>.example.json to config/accounts/<network>.json.
   Local account config files are ignored by git.
 `);
+}
+
+async function createKeystore(options: Record<string, string>): Promise<void> {
+  const outputPath = path.resolve(requireOption(options, "path"));
+  if (fs.existsSync(outputPath)) throw new Error(`Refusing to overwrite existing keystore: ${outputPath}`);
+
+  const password = await loadPassword("new keystore", options["password-env"], true);
+  const wallet = ethers.Wallet.createRandom();
+  const encryptedJson = await wallet.encrypt(password);
+
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  fs.writeFileSync(outputPath, encryptedJson, { encoding: "utf8", flag: "wx", mode: 0o600 });
+
+  console.log("Keystore created");
+  console.log(`  Path:    ${outputPath}`);
+  console.log(`  Address: ${wallet.address}`);
+}
+
+async function decryptKeystore(options: Record<string, string>): Promise<void> {
+  const keystorePath = path.resolve(requireOption(options, "path"));
+  const password = await loadPassword("keystore", options["password-env"], false);
+  const wallet = await ethers.Wallet.fromEncryptedJson(fs.readFileSync(keystorePath, "utf8"), password);
+
+  console.log("Keystore");
+  console.log(`  Path:        ${keystorePath}`);
+  console.log(`  Address:     ${wallet.address}`);
+  if (options["show-private-key"]) {
+    console.log(`  Private key: ${wallet.privateKey}`);
+  } else {
+    console.log("  Private key: hidden; rerun with --show-private-key to print it");
+  }
+}
+
+async function loadPassword(label: string, passwordEnv: string | undefined, confirm: boolean): Promise<string> {
+  let password: string;
+  if (passwordEnv) {
+    if (process.env[passwordEnv] === undefined) throw new Error(`Environment variable ${passwordEnv} is not set`);
+    password = process.env[passwordEnv] ?? "";
+  } else {
+    password = await promptHidden(`Password for ${label}: `);
+  }
+
+  if (!confirm) return password;
+
+  const confirmation = passwordEnv ? password : await promptHidden(`Confirm password for ${label}: `);
+  if (confirmation !== password) throw new Error("Passwords do not match");
+  return password;
 }
 
 function printAccounts(config: ReturnType<typeof loadOpsConfig>): void {

@@ -5,12 +5,13 @@ import { loadOpsConfig, resolveMessageBridgeAddress } from "../config/load";
 import { formatBool, printResolvedContext } from "../format";
 import { createWriteContext, WriteContext } from "../tx/context";
 import { parseYesFlag, requireMainnetConfirmation } from "../tx/guards";
-import { parseBooleanOption, parseNonce } from "../tx/parse";
+import { parseBooleanOption, parseBytes, parseNonce } from "../tx/parse";
 import { printTransactionReceipt } from "../tx/receipt";
 import { parseDryRunFlag, runTransactionRequest } from "../tx/send";
 import { printTransactionSummary } from "../tx/summary";
 import { CommandOptions, hasHelpFlag, isHelpFlag, parseOptions, requireOption } from "./options";
 import { messageSetSendingFee } from "./messageConfigure";
+import { messageDecodeUint256, messageEncodeBalanceOf } from "./messageEncoding";
 import { messagePause } from "./messagePause";
 import { MessageBridge__factory } from "../../typechain-types";
 
@@ -71,6 +72,14 @@ export async function runMessageCommand(args: string[]): Promise<void> {
     await messageSetSendingFee(config, options);
     return;
   }
+  if (command === "encode-balance-of") {
+    messageEncodeBalanceOf(config, options);
+    return;
+  }
+  if (command === "decode-uint256") {
+    messageDecodeUint256(options);
+    return;
+  }
 
   throw new Error(`Unknown message command: ${command}`);
 }
@@ -90,6 +99,8 @@ Usage:
   npm run ops -- message pause --network <network> --account <name> --target <bridge|sending|executing|all> [--message-bridge <address>] [--dry-run true] [--yes]
   npm run ops -- message unpause --network <network> --account <name> --target <bridge|sending|executing|all> [--message-bridge <address>] [--dry-run true] [--yes]
   npm run ops -- message set-sending-fee --network <network> --account <name> --amount <eth> [--message-bridge <address>] [--dry-run true] [--yes]
+  npm run ops -- message encode-balance-of --network <network> --token <alias-or-address> --holder <address> [--allow-failure true] [--value <eth>]
+  npm run ops -- message decode-uint256 --network <network> --data <hex>
 
 Commands:
   state        Print message bridge state and config.
@@ -103,6 +114,8 @@ Commands:
   pause            Pause message bridge, sending, executing, or all targets.
   unpause          Unpause message bridge, sending, executing, or all targets.
   set-sending-fee  Set the message bridge sending fee.
+  encode-balance-of  Encode an executable ERC20 balanceOf message.
+  decode-uint256     Decode a uint256 result payload.
 
 Options:
   --network           Required. One of local, neox-devnet, neox-testnet, neox-mainnet.
@@ -115,6 +128,10 @@ Options:
   --target            bridge, sending, executing, or all.
   --amount            Fee amount in native ether units.
   --value             Native value in ether to forward when executing a message.
+  --token             Token alias from deployment config or direct token address.
+  --holder            Address used as balanceOf holder.
+  --allow-failure     true or false for encoded executable calls.
+  --data              Hex-encoded result bytes.
   --dry-run           Use --dry-run true to print the transaction without sending.
   --yes               Required for mainnet write commands.
 `);
@@ -614,11 +631,6 @@ function formatDuration(seconds: bigint): string {
 
 function isEmptyBytes(value: string): boolean {
   return value === "0x";
-}
-
-function parseBytes(value: string, label: string): string {
-  if (!ethers.isHexString(value)) throw new Error(`Invalid ${label}: expected hex bytes`);
-  return value;
 }
 
 function parseEtherValue(value: string, label: string): bigint {
