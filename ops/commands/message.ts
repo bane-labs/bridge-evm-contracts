@@ -146,7 +146,7 @@ async function messageState(config: ReturnType<typeof loadOpsConfig>, options: C
   console.log(`  Sending fee:         ${ethers.formatEther(sendingFee)} (${sendingFee.toString()} raw)`);
   console.log(`  Max message size:    ${maxMessageSize.toString()} bytes`);
   console.log(`  Max nr messages:     ${maxNrMessages.toString()}`);
-  console.log(`  Execution window:    ${executionWindowSeconds.toString()} seconds`);
+  console.log(`  Execution window:    ${formatDuration(executionWindowSeconds)} (${executionWindowSeconds.toString()} seconds raw)`);
   console.log("");
 
   console.log("Neo -> EVM state");
@@ -566,6 +566,28 @@ function formatTimestamp(timestamp: bigint): string {
     return `${new Date(Number(timestamp)).toISOString()}, interpreted as milliseconds`;
   }
   return new Date(Number(timestamp) * 1000).toISOString();
+}
+
+function formatDuration(seconds: bigint): string {
+  if (seconds === 0n) return "0 seconds";
+
+  const units: Array<[string, bigint]> = [
+    ["day", 86_400n],
+    ["hour", 3_600n],
+    ["minute", 60n],
+    ["second", 1n]
+  ];
+  let remaining = seconds;
+  const parts: string[] = [];
+
+  for (const [unit, size] of units) {
+    const value = remaining / size;
+    if (value === 0n) continue;
+    parts.push(`${value.toString()} ${unit}${value === 1n ? "" : "s"}`);
+    remaining %= size;
+  }
+
+  return parts.join(" ");
 }
 
 function isEmptyBytes(value: string): boolean {
