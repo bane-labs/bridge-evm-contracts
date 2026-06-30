@@ -14,7 +14,7 @@ Available groups:
 - `config` inspects resolved network, deployment, token, and account config.
 - `accounts` inspects local account aliases and resolves account addresses.
 - `bridge` reads token bridge state and runs guarded bridge operations.
-- `message` reads message bridge state.
+- `message` reads message bridge state and runs guarded message bridge operations.
 
 ## Quick Start
 
@@ -40,6 +40,12 @@ Read message bridge state:
 
 ```sh
 npm run ops -- message state --network neox-testnet
+```
+
+Dry-run a store-only message send:
+
+```sh
+npm run ops -- message send-store-only --network neox-testnet --account personal --message 0x1234 --dry-run true
 ```
 
 Dry-run a native claim:
@@ -245,6 +251,36 @@ Send a token claim transaction:
 npm run ops -- bridge claim-token --network neox-testnet --account personal --token <alias-or-address> --nonce <nonce>
 ```
 
+### Message Writes
+
+Send commands automatically use the current `sendingFee()` as transaction value and print it in the transaction summary.
+
+Dry-run an executable EVM -> Neo message:
+
+```sh
+npm run ops -- message send-executable --network neox-testnet --account personal --message <hex> --store-result true --dry-run true
+```
+
+Send a store-only EVM -> Neo message:
+
+```sh
+npm run ops -- message send-store-only --network neox-testnet --account personal --message <hex>
+```
+
+Send a result message for an executed Neo -> EVM message:
+
+```sh
+npm run ops -- message send-result --network neox-testnet --account personal --related-nonce <nonce>
+```
+
+Execute a stored Neo -> EVM executable message:
+
+```sh
+npm run ops -- message execute --network neox-testnet --account personal --nonce <nonce>
+```
+
+Use `--value <eth>` on `message execute` only when the target call needs native value forwarded.
+
 ## Command Reference
 
 Config:
@@ -278,4 +314,8 @@ npm run ops -- message state --network <network> [--message-bridge <address>]
 npm run ops -- message get --network <network> --nonce <nonce> [--message-bridge <address>]
 npm run ops -- message result --network <network> --nonce <nonce> [--message-bridge <address>]
 npm run ops -- message executable --network <network> --nonce <nonce> [--message-bridge <address>]
+npm run ops -- message send-executable --network <network> --account <name> --message <hex> --store-result <true|false> [--message-bridge <address>] [--dry-run true] [--yes]
+npm run ops -- message send-store-only --network <network> --account <name> --message <hex> [--message-bridge <address>] [--dry-run true] [--yes]
+npm run ops -- message send-result --network <network> --account <name> --related-nonce <nonce> [--message-bridge <address>] [--dry-run true] [--yes]
+npm run ops -- message execute --network <network> --account <name> --nonce <nonce> [--message-bridge <address>] [--value <eth>] [--dry-run true] [--yes]
 ```

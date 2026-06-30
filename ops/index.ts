@@ -49,6 +49,10 @@ Usage:
   npm run ops -- message get --network <network> --nonce <nonce> [--message-bridge <address>]
   npm run ops -- message result --network <network> --nonce <nonce> [--message-bridge <address>]
   npm run ops -- message executable --network <network> --nonce <nonce> [--message-bridge <address>]
+  npm run ops -- message send-executable --network <network> --account <name> --message <hex> --store-result <true|false> [--message-bridge <address>] [--dry-run true] [--yes]
+  npm run ops -- message send-store-only --network <network> --account <name> --message <hex> [--message-bridge <address>] [--dry-run true] [--yes]
+  npm run ops -- message send-result --network <network> --account <name> --related-nonce <nonce> [--message-bridge <address>] [--dry-run true] [--yes]
+  npm run ops -- message execute --network <network> --account <name> --nonce <nonce> [--message-bridge <address>] [--value <eth>] [--dry-run true] [--yes]
 
 Networks:
   local, neox-devnet, neox-testnet, neox-mainnet
@@ -56,8 +60,8 @@ Networks:
 Groups:
   config      Inspect resolved config.
   accounts    Inspect configured local accounts.
-  bridge      Read token bridge state.
-  message     Read message bridge state.
+  bridge      Read bridge state and run guarded bridge operations.
+  message     Read message bridge state and run guarded message operations.
 `);
 }
 
