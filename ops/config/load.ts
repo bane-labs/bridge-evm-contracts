@@ -5,7 +5,7 @@ import { AccountConfig, DeploymentConfig, NetworkConfig, OpsConfig } from "./typ
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 
-type NetworkConfigOverride = Partial<Omit<NetworkConfig, "gas">> & {
+type NetworkConfigOverride = Pick<NetworkConfig, "name"> & Partial<Omit<NetworkConfig, "name" | "gas">> & {
   gas?: NetworkConfig["gas"];
 };
 
