@@ -8,7 +8,7 @@ The contracts in `./contracts` are under development. The contract artifacts for
 
 Use `npm run ops -- help` to inspect configured bridge deployments and local operator accounts.
 
-See [docs/ops-cli.md](docs/ops-cli.md) for command examples and local account config.
+See [docs/ops-cli.md](docs/ops-cli.md) for command examples and local account config. See [docs/ops-fork-smoke.md](docs/ops-fork-smoke.md) for testing the ops CLI against a local Neo X mainnet fork.
 
 ## Deployments on Neo X Mainnet and Testnet
 

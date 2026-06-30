@@ -8,6 +8,7 @@
   },
   "scripts": {
     "ops": "ts-node ops/index.ts",
+    "ops:fork:mainnet": "anvil --fork-url ${NEOX_MAINNET_RPC_URL:?Set NEOX_MAINNET_RPC_URL} --chain-id 47763 --port 8545",
     "test": "forge clean && forge test --gas-report -vvv",
     "precoverage": "command -v lcov >/dev/null 2>&1 && rm -fr coverage && exit 0 || echo \"Please install lcov to generate coverage reports: https://command-not-found.com/genhtml\" && exit 1",
     "coverage": "forge coverage --report lcov && genhtml -o coverage --branch-coverage --ignore-errors inconsistent lcov.info"
