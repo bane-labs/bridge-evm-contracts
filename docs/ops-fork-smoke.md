@@ -15,6 +15,8 @@ npm run ops:fork:mainnet
 
 The fork profile expects Anvil on `http://127.0.0.1:8545` with chain ID `47763`.
 
+Some ops reads intentionally probe Solidity getters until they revert, for example `registeredTokens(index)` at the end of the dynamic token array. The CLI handles those expected reverts, but Anvil may still log them as failed RPC calls in the fork terminal.
+
 ## Configure a Local Account
 
 Create an ignored account config for the fork:
