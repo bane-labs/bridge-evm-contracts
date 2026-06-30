@@ -5,6 +5,10 @@ import { AccountConfig, DeploymentConfig, NetworkConfig, OpsConfig } from "./typ
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 
+type NetworkConfigOverride = Partial<Omit<NetworkConfig, "gas">> & {
+  gas?: NetworkConfig["gas"];
+};
+
 const NETWORK_ALIASES: Record<string, string> = {
   neoxTestnet: "neox-testnet",
   neoxMainnet: "neox-mainnet",
@@ -28,9 +32,9 @@ export function loadOpsConfig(networkInput: string): OpsConfig {
   const baseNetwork = readJson<NetworkConfig>(networkPath, true);
   validateNetworkConfig(baseNetwork, networkPath, networkName);
 
-  const overrideNetwork = readJson<NetworkConfig>(networkOverridePath, false);
-  if (overrideNetwork) validateNetworkConfig(overrideNetwork, networkOverridePath, networkName);
+  const overrideNetwork = readJson<NetworkConfigOverride>(networkOverridePath, false);
   const network = overrideNetwork ? mergeNetwork(baseNetwork, overrideNetwork) : baseNetwork;
+  if (overrideNetwork) validateNetworkConfig(network, networkOverridePath, networkName);
 
   const baseDeployment = readJson<DeploymentConfig>(deploymentPath, false) ?? emptyDeployment(networkName);
   validateDeploymentConfig(baseDeployment, deploymentPath, networkName);
@@ -74,12 +78,12 @@ export function resolveTokenAddress(config: OpsConfig, token: string): string {
   return resolveAddress(`token alias "${token}"`, tokenConfig.neoX);
 }
 
-function mergeNetwork(base: NetworkConfig, override: NetworkConfig): NetworkConfig {
+function mergeNetwork(base: NetworkConfig, override: NetworkConfigOverride): NetworkConfig {
   return {
-    name: override.name || base.name,
-    hardhatNetwork: override.hardhatNetwork || base.hardhatNetwork,
-    chainId: override.chainId || base.chainId,
-    rpcUrl: override.rpcUrl || base.rpcUrl,
+    name: override.name ?? base.name,
+    hardhatNetwork: override.hardhatNetwork ?? base.hardhatNetwork,
+    chainId: override.chainId ?? base.chainId,
+    rpcUrl: override.rpcUrl ?? base.rpcUrl,
     gas: { ...(base.gas ?? {}), ...(override.gas ?? {}) }
   };
 }
@@ -159,11 +163,19 @@ function readJson<T>(filePath: string, required: boolean): T | undefined {
     if (required) throw new Error(`Missing required config file: ${relative(filePath)}`);
     return undefined;
   }
-  return JSON.parse(fs.readFileSync(filePath, "utf8")) as T;
+  const parsed = JSON.parse(fs.readFileSync(filePath, "utf8")) as unknown;
+  if (!isJsonObject(parsed)) {
+    throw new Error(`${relative(filePath)} must contain a JSON object`);
+  }
+  return parsed as T;
 }
 
 function configPath(...parts: string[]): string {
   return path.join(REPO_ROOT, "config", ...parts);
+}
+
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function relative(filePath: string): string {
