@@ -11,6 +11,8 @@ npm run ops -- <group> --help
 
 For local fork smoke testing, see [ops-fork-smoke.md](ops-fork-smoke.md).
 
+Legacy operational scripts under `scripts/` are removed once their workflows are covered by `ops/`. Deployment, registration, funding, wallet, and local test-helper scripts may still live under `scripts/` until those workflows are migrated separately.
+
 Available groups:
 
 - `config` inspects resolved network, deployment, token, and account config.
