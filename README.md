@@ -10,6 +10,8 @@ Use `npm run ops -- help` to inspect configured bridge deployments and local ope
 
 See [docs/ops-cli.md](docs/ops-cli.md) for command examples and local account config. See [docs/ops-fork-smoke.md](docs/ops-fork-smoke.md) for testing the ops CLI against a local Neo X mainnet fork.
 
+Legacy operational scripts under `scripts/` are removed once their workflows are covered by the ops CLI. Deployment and local helper scripts remain there until those workflows are migrated separately.
+
 ## Deployments on Neo X Mainnet and Testnet
 
 | Contract              | Hash                                    |
