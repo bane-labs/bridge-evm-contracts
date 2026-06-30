@@ -25,13 +25,13 @@ Create an ignored account config for the fork:
 cp config/accounts/neox-mainnet-fork.example.json config/accounts/neox-mainnet-fork.json
 ```
 
-For Anvil's default first account:
+Use one of the development private keys printed by Anvil on startup:
 
 ```sh
-export OPS_FORK_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+export OPS_FORK_PRIVATE_KEY=<anvil-private-key>
 ```
 
-This is a public development private key. Do not use it outside local fork testing.
+Anvil development keys are public and must only be used on local forks.
 
 ## Basic Smoke Checks
 
