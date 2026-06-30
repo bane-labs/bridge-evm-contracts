@@ -9,6 +9,8 @@ npm run ops -- help
 npm run ops -- <group> --help
 ```
 
+For local fork smoke testing, see [ops-fork-smoke.md](ops-fork-smoke.md).
+
 Available groups:
 
 - `config` inspects resolved network, deployment, token, and account config.

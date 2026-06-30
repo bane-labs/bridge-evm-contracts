@@ -1,0 +1,9 @@
+{
+  "network": "neox-mainnet-fork",
+  "accounts": {
+    "anvil": {
+      "type": "privateKeyEnv",
+      "env": "OPS_FORK_PRIVATE_KEY"
+    }
+  }
+}
