@@ -40,6 +40,8 @@ Usage:
   npm run ops -- accounts list --network <network>
   npm run ops -- accounts address --network <network> --account <name>
   npm run ops -- accounts check --network <network> [--account <name>]
+  npm run ops -- accounts create-keystore --path <path> [--password-env <env>]
+  npm run ops -- accounts decrypt-keystore --path <path> [--password-env <env>] [--show-private-key]
   npm run ops -- bridge state --network <network> [--bridge <address>] [--max-tokens <count>]
   npm run ops -- bridge token --network <network> --token <alias-or-address> [--bridge <address>]
   npm run ops -- bridge claimable --network <network> --nonce <nonce> [--token <alias-or-address>] [--bridge <address>]
@@ -72,6 +74,8 @@ Usage:
   npm run ops -- message pause --network <network> --account <name> --target <bridge|sending|executing|all> [--message-bridge <address>] [--dry-run true] [--yes]
   npm run ops -- message unpause --network <network> --account <name> --target <bridge|sending|executing|all> [--message-bridge <address>] [--dry-run true] [--yes]
   npm run ops -- message set-sending-fee --network <network> --account <name> --amount <eth> [--message-bridge <address>] [--dry-run true] [--yes]
+  npm run ops -- message encode-balance-of --network <network> --token <alias-or-address> --holder <address> [--allow-failure true] [--value <eth>]
+  npm run ops -- message decode-uint256 --network <network> --data <hex>
 
 Networks:
   local, neox-devnet, neox-testnet, neox-mainnet

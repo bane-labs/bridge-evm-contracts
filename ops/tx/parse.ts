@@ -10,6 +10,11 @@ export function parseAddress(value: string, label = "address"): string {
   return ethers.getAddress(value);
 }
 
+export function parseBytes(value: string, label = "bytes"): string {
+  if (!ethers.isHexString(value)) throw new Error(`Invalid ${label}: expected hex bytes`);
+  return value;
+}
+
 export function parsePositiveInteger(value: string, label: string): number {
   if (!/^\d+$/.test(value)) throw new Error(`Invalid ${label}: ${value}`);
   const parsed = Number(value);

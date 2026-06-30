@@ -102,7 +102,7 @@ async function loadAccountPassword(accountName: string, passwordEnv?: string): P
     : `Password for account "${accountName}": `);
 }
 
-function promptHidden(prompt: string): Promise<string> {
+export function promptHidden(prompt: string): Promise<string> {
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
     throw new Error("Password prompt requires a TTY. Set the configured password env var in non-interactive environments.");
   }

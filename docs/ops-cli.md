@@ -11,7 +11,7 @@ npm run ops -- <group> --help
 
 For local fork smoke testing, see [ops-fork-smoke.md](ops-fork-smoke.md).
 
-Legacy operational scripts under `scripts/` are removed once their workflows are covered by `ops/`. Deployment, registration, funding, wallet, and local test-helper scripts may still live under `scripts/` until those workflows are migrated separately.
+Legacy operational scripts under `scripts/` are removed once their workflows are covered by `ops/`. Remaining scripts are intentionally limited to deploy/bootstrap flows and their deploy helpers until deployment strategy is handled separately.
 
 Available groups:
 
@@ -133,6 +133,24 @@ npm run ops -- accounts check --network neox-testnet --account personal
 `accounts list` never reads secrets. `accounts address` and `accounts check` read only the selected account source unless `check` is run without `--account`.
 
 For keystore accounts, the CLI uses `passwordEnv` when set and prompts for the password otherwise. Absolute keystore paths are used as-is. Relative keystore paths are resolved from the current working directory.
+
+Create an encrypted keystore:
+
+```sh
+npm run ops -- accounts create-keystore --path /absolute/path/to/personal.json
+```
+
+Print the address for a keystore:
+
+```sh
+npm run ops -- accounts decrypt-keystore --path /absolute/path/to/personal.json
+```
+
+Printing the private key requires an explicit flag:
+
+```sh
+npm run ops -- accounts decrypt-keystore --path /absolute/path/to/personal.json --show-private-key
+```
 
 ## Read Commands
 
@@ -388,6 +406,20 @@ Set the message sending fee:
 npm run ops -- message set-sending-fee --network neox-testnet --account governor --amount <eth> --dry-run true
 ```
 
+### Message Encoding
+
+Encode an executable ERC20 `balanceOf(address)` message:
+
+```sh
+npm run ops -- message encode-balance-of --network neox-testnet --token <alias-or-address> --holder <address>
+```
+
+Use the printed `Message` value with `message send-executable --message <hex>`. Decode a uint256 result payload:
+
+```sh
+npm run ops -- message decode-uint256 --network neox-testnet --data <hex>
+```
+
 ## Command Reference
 
 Config:
@@ -402,6 +434,8 @@ Accounts:
 npm run ops -- accounts list --network <network>
 npm run ops -- accounts address --network <network> --account <name>
 npm run ops -- accounts check --network <network> [--account <name>]
+npm run ops -- accounts create-keystore --path <path> [--password-env <env>]
+npm run ops -- accounts decrypt-keystore --path <path> [--password-env <env>] [--show-private-key]
 ```
 
 Bridge:
@@ -444,4 +478,6 @@ npm run ops -- message execute --network <network> --account <name> --nonce <non
 npm run ops -- message pause --network <network> --account <name> --target <bridge|sending|executing|all> [--message-bridge <address>] [--dry-run true] [--yes]
 npm run ops -- message unpause --network <network> --account <name> --target <bridge|sending|executing|all> [--message-bridge <address>] [--dry-run true] [--yes]
 npm run ops -- message set-sending-fee --network <network> --account <name> --amount <eth> [--message-bridge <address>] [--dry-run true] [--yes]
+npm run ops -- message encode-balance-of --network <network> --token <alias-or-address> --holder <address> [--allow-failure true] [--value <eth>]
+npm run ops -- message decode-uint256 --network <network> --data <hex>
 ```
