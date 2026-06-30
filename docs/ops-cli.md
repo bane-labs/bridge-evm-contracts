@@ -310,6 +310,23 @@ npm run ops -- message execute --network neox-testnet --account personal --nonce
 
 Use `--value <eth>` on `message execute` only when the target call needs native value forwarded.
 
+### Message Control
+
+Pause or unpause one message bridge component:
+
+```sh
+npm run ops -- message pause --network neox-testnet --account governor --target sending --dry-run true
+npm run ops -- message unpause --network neox-testnet --account governor --target sending --dry-run true
+```
+
+Use `--target all` to apply the action to the message bridge, sending, and executing components. Already-paused or already-unpaused targets are skipped without sending a transaction.
+
+Set the message sending fee:
+
+```sh
+npm run ops -- message set-sending-fee --network neox-testnet --account governor --amount <eth> --dry-run true
+```
+
 ## Command Reference
 
 Config:
@@ -349,4 +366,7 @@ npm run ops -- message send-executable --network <network> --account <name> --me
 npm run ops -- message send-store-only --network <network> --account <name> --message <hex> [--message-bridge <address>] [--dry-run true] [--yes]
 npm run ops -- message send-result --network <network> --account <name> --related-nonce <nonce> [--message-bridge <address>] [--dry-run true] [--yes]
 npm run ops -- message execute --network <network> --account <name> --nonce <nonce> [--message-bridge <address>] [--value <eth>] [--dry-run true] [--yes]
+npm run ops -- message pause --network <network> --account <name> --target <bridge|sending|executing|all> [--message-bridge <address>] [--dry-run true] [--yes]
+npm run ops -- message unpause --network <network> --account <name> --target <bridge|sending|executing|all> [--message-bridge <address>] [--dry-run true] [--yes]
+npm run ops -- message set-sending-fee --network <network> --account <name> --amount <eth> [--message-bridge <address>] [--dry-run true] [--yes]
 ```

@@ -88,6 +88,9 @@ npm run ops -- message result --network neox-mainnet-fork --nonce <related-messa
 npm run ops -- message executable --network neox-mainnet-fork --nonce <executable-message-nonce>
 npm run ops -- message execute --network neox-mainnet-fork --account anvil --nonce <executable-message-nonce> --dry-run true
 npm run ops -- message send-result --network neox-mainnet-fork --account anvil --related-nonce <executed-message-nonce> --dry-run true
+npm run ops -- message pause --network neox-mainnet-fork --account anvil --target sending --dry-run true
+npm run ops -- message unpause --network neox-mainnet-fork --account anvil --target sending --dry-run true
+npm run ops -- message set-sending-fee --network neox-mainnet-fork --account anvil --amount <eth> --dry-run true
 ```
 
 If no matching state exists at the forked block, these commands should fail with a clear missing claimable, missing message, missing result, already executed, expired, or paused-state error.

@@ -10,6 +10,8 @@ import { printTransactionReceipt } from "../tx/receipt";
 import { parseDryRunFlag, runTransactionRequest } from "../tx/send";
 import { printTransactionSummary } from "../tx/summary";
 import { CommandOptions, hasHelpFlag, isHelpFlag, parseOptions, requireOption } from "./options";
+import { messageSetSendingFee } from "./messageConfigure";
+import { messagePause } from "./messagePause";
 import { MessageBridge__factory } from "../../typechain-types";
 
 const METADATA_TYPES = ["EXECUTABLE", "STORE_ONLY", "RESULT"] as const;
@@ -57,6 +59,18 @@ export async function runMessageCommand(args: string[]): Promise<void> {
     await messageExecute(config, options);
     return;
   }
+  if (command === "pause") {
+    await messagePause(config, options, "pause");
+    return;
+  }
+  if (command === "unpause") {
+    await messagePause(config, options, "unpause");
+    return;
+  }
+  if (command === "set-sending-fee") {
+    await messageSetSendingFee(config, options);
+    return;
+  }
 
   throw new Error(`Unknown message command: ${command}`);
 }
@@ -73,6 +87,9 @@ Usage:
   npm run ops -- message send-store-only --network <network> --account <name> --message <hex> [--message-bridge <address>] [--dry-run true] [--yes]
   npm run ops -- message send-result --network <network> --account <name> --related-nonce <nonce> [--message-bridge <address>] [--dry-run true] [--yes]
   npm run ops -- message execute --network <network> --account <name> --nonce <nonce> [--message-bridge <address>] [--value <eth>] [--dry-run true] [--yes]
+  npm run ops -- message pause --network <network> --account <name> --target <bridge|sending|executing|all> [--message-bridge <address>] [--dry-run true] [--yes]
+  npm run ops -- message unpause --network <network> --account <name> --target <bridge|sending|executing|all> [--message-bridge <address>] [--dry-run true] [--yes]
+  npm run ops -- message set-sending-fee --network <network> --account <name> --amount <eth> [--message-bridge <address>] [--dry-run true] [--yes]
 
 Commands:
   state        Print message bridge state and config.
@@ -83,6 +100,9 @@ Commands:
   send-store-only  Send a store-only EVM -> Neo message.
   send-result      Send a result message for an executed Neo -> EVM message.
   execute          Execute one stored Neo -> EVM executable message.
+  pause            Pause message bridge, sending, executing, or all targets.
+  unpause          Unpause message bridge, sending, executing, or all targets.
+  set-sending-fee  Set the message bridge sending fee.
 
 Options:
   --network           Required. One of local, neox-devnet, neox-testnet, neox-mainnet.
@@ -92,6 +112,8 @@ Options:
   --related-nonce     Related message nonce for result messages.
   --message           Hex-encoded raw message bytes.
   --store-result      true or false for executable message result storage.
+  --target            bridge, sending, executing, or all.
+  --amount            Fee amount in native ether units.
   --value             Native value in ether to forward when executing a message.
   --dry-run           Use --dry-run true to print the transaction without sending.
   --yes               Required for mainnet write commands.
