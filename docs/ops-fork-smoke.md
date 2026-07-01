@@ -2,7 +2,7 @@
 
 Use this workflow to test the ops CLI against a local Anvil fork of Neo X mainnet without broadcasting transactions to mainnet.
 
-This covers the new `ops/` CLI only. It does not test the legacy `scripts/` directory.
+This covers the `ops/` CLI only. It does not test Foundry deployment scripts.
 
 ## Start the Fork
 

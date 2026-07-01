@@ -2,6 +2,8 @@
 
 These scripts are the Foundry deployment path for the current bridge deployment profile. They intentionally keep using the existing `Test*` contracts because the production contracts do not yet expose deploy-safe initializers. Contract changes to remove that requirement should be handled separately.
 
+Token deployment and token bridge registration are not part of this deploy suite. Use the ops CLI `bridge register-token` command after the bridge stack and token addresses are known.
+
 ## Manifest
 
 Scripts share deployment context through a JSON manifest:
@@ -41,13 +43,9 @@ Without `GOVERNOR_PRIVATE_KEY`, `DeployBridgeSuite` deploys all contracts and wr
 
 ## ExecutionManager Configuration
 
-`DeployExecutionManager` only deploys the execution contract. The MessageBridge must
-also be told which ExecutionManager it should use for executable messages. That
-configuration is a governor-only call on MessageBridge, so it may need to happen
-in a separate transaction from deployment.
+`DeployExecutionManager` only deploys the execution contract. The MessageBridge must also be told which ExecutionManager it should use for executable messages. That configuration is a governor-only call on MessageBridge, so it may need to happen in a separate transaction from deployment.
 
-`ConfigureExecutionManager` reads `messageBridge` and `executionManager` from the
-manifest and calls `setExecutionManager` on the MessageBridge. Use it when:
+`ConfigureExecutionManager` reads `messageBridge` and `executionManager` from the manifest and calls `setExecutionManager` on the MessageBridge. Use it when:
 
 - contracts were deployed one-by-one, after both MessageBridge and ExecutionManager exist
 - `DeployBridgeSuite` was run without `GOVERNOR_PRIVATE_KEY`
