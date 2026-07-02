@@ -7,6 +7,12 @@
     "test": "test"
   },
   "scripts": {
+    "deploy:bridge-suite": "forge script script/deploy/DeployBridgeSuite.s.sol:DeployBridgeSuite --broadcast",
+    "deploy:bridge-management": "forge script script/deploy/DeployBridgeManagement.s.sol:DeployBridgeManagement --broadcast",
+    "deploy:bridge": "forge script script/deploy/DeployBridge.s.sol:DeployBridge --broadcast",
+    "deploy:message-bridge": "forge script script/deploy/DeployMessageBridge.s.sol:DeployMessageBridge --broadcast",
+    "deploy:execution-manager": "forge script script/deploy/DeployExecutionManager.s.sol:DeployExecutionManager --broadcast",
+    "deploy:configure-execution-manager": "forge script script/deploy/ConfigureExecutionManager.s.sol:ConfigureExecutionManager --broadcast",
     "ops": "ts-node ops/index.ts",
     "ops:fork:mainnet": "anvil --fork-url ${NEOX_MAINNET_RPC_URL:?Set NEOX_MAINNET_RPC_URL} --chain-id 47763 --port 8545",
     "test": "forge clean && forge test --gas-report -vvv",

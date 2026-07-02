@@ -11,7 +11,7 @@ npm run ops -- <group> --help
 
 For local fork smoke testing, see [ops-fork-smoke.md](ops-fork-smoke.md).
 
-Legacy operational scripts under `scripts/` are removed once their workflows are covered by `ops/`. Remaining scripts are intentionally limited to deploy/bootstrap flows and their deploy helpers until deployment strategy is handled separately.
+Legacy operational script workflows move into `ops/` once they are covered there. Fresh bridge stack deployments use the Foundry scripts under `script/deploy`. Token bridge registration is handled by `ops bridge register-token` after deployment.
 
 Available groups:
 

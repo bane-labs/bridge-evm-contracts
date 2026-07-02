@@ -124,6 +124,7 @@ typechain-types/
 
 #foundry
 
+broadcast/
 cache_forge/
 crytic-export
 
