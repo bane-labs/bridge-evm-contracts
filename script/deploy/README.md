@@ -12,7 +12,7 @@ Scripts share deployment context through a JSON manifest:
 deployments/foundry/<network>.json
 ```
 
-Set `DEPLOYMENT_NETWORK` to control the filename. The default `deployments/foundry` output directory is the only write-enabled deploy path in `foundry.toml`. If you set `DEPLOYMENT_MANIFEST` or `DEPLOYMENT_MANIFEST_DIR` to another path, update `fs_permissions` accordingly. Individual scripts read prerequisites from this manifest and fail clearly if a dependency is missing.
+Set `DEPLOYMENT_NETWORK` to control the filename. The default `deployments/foundry` output directory is the only write-enabled deploy path in `foundry.toml`. If you set `DEPLOYMENT_MANIFEST` or `DEPLOYMENT_MANIFEST_DIR` to another path, update `fs_permissions` accordingly. Prefer `DEPLOYMENT_MANIFEST_DIR` when moving manifests to a different directory because the scripts create that directory automatically. `DEPLOYMENT_MANIFEST` is a full file-path override, so its parent directory must already exist. Individual scripts read prerequisites from this manifest and fail clearly if a dependency is missing.
 
 ## Required Role Inputs
 
