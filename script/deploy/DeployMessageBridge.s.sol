@@ -21,6 +21,7 @@ contract DeployMessageBridge is BaseDeploy {
 
         manifest.messageBridge = address(messageBridge);
         manifest.messageBridgeImplementation = implementation;
+        manifest = _clearContractsDependingOnMessageBridge(manifest);
         _writeManifest(manifest);
         _printMessageBridge(messageBridge, implementation);
     }

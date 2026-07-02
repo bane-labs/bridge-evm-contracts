@@ -20,6 +20,7 @@ contract DeployBridgeManagement is BaseDeploy {
 
         manifest.bridgeManagement = address(management);
         manifest.bridgeManagementImplementation = implementation;
+        manifest = _clearContractsDependingOnBridgeManagement(manifest);
         _writeManifest(manifest);
         _printBridgeManagement(management, implementation);
     }

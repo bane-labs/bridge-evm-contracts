@@ -45,7 +45,7 @@ contract DeployBridgeSuite is BaseDeploy {
         _writeManifest(manifest);
 
         if (vm.envExists("GOVERNOR_PRIVATE_KEY")) {
-            vm.startBroadcast(vm.envUint("GOVERNOR_PRIVATE_KEY"));
+            _startGovernorBroadcast(roles.governor);
             messageBridge.setExecutionManager(address(executionManager));
             vm.stopBroadcast();
             require(

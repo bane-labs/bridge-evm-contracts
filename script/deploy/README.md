@@ -32,12 +32,16 @@ Optional:
 BRIDGE_VALIDATOR_THRESHOLD     default: 2
 BRIDGE_SECURITY_GUARD          default: BRIDGE_OWNER
 BRIDGE_FUNDER                  default: BRIDGE_OWNER
-MESSAGE_BRIDGE_FEE             default: 0.1 ether
+MESSAGE_BRIDGE_FEE             default: 100000000000000000
 MESSAGE_BRIDGE_MAX_MESSAGE_SIZE default: 10240
 MESSAGE_BRIDGE_MAX_NR_MESSAGES default: 100
 MESSAGE_BRIDGE_EXECUTION_WINDOW_SECONDS default: 86400
 GOVERNOR_PRIVATE_KEY           links ExecutionManager during DeployBridgeSuite
 ```
+
+`BRIDGE_VALIDATOR_THRESHOLD` must be between `1` and the number of configured validators. The current deploy profile uses the fixed `BRIDGE_VALIDATOR01` and `BRIDGE_VALIDATOR02` set, so valid values are `1` or `2`.
+
+The `MESSAGE_BRIDGE_*` overrides are parsed with Foundry's `vm.envUint`, so provide raw `uint256` values, not Solidity unit expressions. `MESSAGE_BRIDGE_FEE` is wei, `MESSAGE_BRIDGE_MAX_MESSAGE_SIZE` is bytes, and `MESSAGE_BRIDGE_EXECUTION_WINDOW_SECONDS` is seconds. For example, use `MESSAGE_BRIDGE_FEE=100000000000000000` for `0.1 ether`.
 
 Without `GOVERNOR_PRIVATE_KEY`, `DeployBridgeSuite` deploys all contracts and writes the manifest, but leaves `ExecutionManager` unlinked. Run `deploy:configure-execution-manager` with a governor broadcaster to link it.
 

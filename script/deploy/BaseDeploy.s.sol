@@ -68,6 +68,7 @@ abstract contract BaseDeploy is Script {
         roles.validators = new address[](2);
         roles.validators[0] = _requiredAddress("BRIDGE_VALIDATOR01");
         roles.validators[1] = _requiredAddress("BRIDGE_VALIDATOR02");
+        _validateValidatorThreshold(roles.validatorThreshold, roles.validators.length);
         roles.governor = _requiredAddress("BRIDGE_GOVERNOR");
         roles.securityGuard = _envAddressOr("BRIDGE_SECURITY_GUARD", roles.owner);
         roles.funder = _envAddressOr("BRIDGE_FUNDER", roles.owner);
@@ -205,6 +206,34 @@ abstract contract BaseDeploy is Script {
         console2.log("Deployment manifest:", path);
     }
 
+    function _clearContractsDependingOnBridgeManagement(DeploymentManifest memory manifest)
+        internal
+        pure
+        returns (DeploymentManifest memory)
+    {
+        manifest.bridge = address(0);
+        manifest.bridgeImplementation = address(0);
+        manifest.messageBridge = address(0);
+        manifest.messageBridgeImplementation = address(0);
+        manifest.executionManager = address(0);
+        return manifest;
+    }
+
+    function _clearContractsDependingOnMessageBridge(DeploymentManifest memory manifest)
+        internal
+        pure
+        returns (DeploymentManifest memory)
+    {
+        manifest.executionManager = address(0);
+        return manifest;
+    }
+
+    function _startGovernorBroadcast(address governor) internal {
+        uint256 privateKey = vm.envUint("GOVERNOR_PRIVATE_KEY");
+        require(vm.addr(privateKey) == governor, "GOVERNOR_PRIVATE_KEY mismatch");
+        vm.startBroadcast(privateKey);
+    }
+
     function _printBridgeManagement(TestBridgeManagement management, address implementation) internal view {
         console2.log("");
         console2.log("Deployment of BridgeManagement");
@@ -279,5 +308,9 @@ abstract contract BaseDeploy is Script {
     function _envUintOr(string memory name, uint256 fallbackValue) private view returns (uint256) {
         if (!vm.envExists(name)) return fallbackValue;
         return vm.envUint(name);
+    }
+
+    function _validateValidatorThreshold(uint256 threshold, uint256 validatorCount) private pure {
+        require(threshold >= 1 && threshold <= validatorCount, "Invalid validator threshold");
     }
 }

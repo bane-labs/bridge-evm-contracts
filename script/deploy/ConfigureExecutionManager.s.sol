@@ -17,15 +17,14 @@ contract ConfigureExecutionManager is BaseDeploy {
         require(manifest.messageBridge != address(0), "MessageBridge missing");
         require(manifest.executionManager != address(0), "ExecutionManager missing");
 
-        if (vm.envExists("GOVERNOR_PRIVATE_KEY")) vm.startBroadcast(vm.envUint("GOVERNOR_PRIVATE_KEY"));
+        TestMessageBridge messageBridge = TestMessageBridge(payable(manifest.messageBridge));
+
+        if (vm.envExists("GOVERNOR_PRIVATE_KEY")) _startGovernorBroadcast(messageBridge.management().getGovernor());
         else vm.startBroadcast();
 
-        TestMessageBridge(payable(manifest.messageBridge)).setExecutionManager(manifest.executionManager);
+        messageBridge.setExecutionManager(manifest.executionManager);
         vm.stopBroadcast();
 
-        require(
-            address(TestMessageBridge(payable(manifest.messageBridge)).executionManager()) == manifest.executionManager,
-            "ExecutionManager link failed"
-        );
+        require(address(messageBridge.executionManager()) == manifest.executionManager, "ExecutionManager link failed");
     }
 }
