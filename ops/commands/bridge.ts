@@ -159,7 +159,7 @@ Commands:
   register-token  Register a token bridge.
 
 Options:
-  --network      Required. One of local, neox-devnet, neox-testnet, neox-mainnet.
+  --network      Required. One of local, neox-devnet, neox-testnet, neox-mainnet, neox-mainnet-fork.
   --account      Required for write commands. Account alias from config/accounts/<network>.json.
   --bridge       Optional bridge address override.
   --token        Token alias from deployment config or direct token address.

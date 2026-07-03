@@ -2,6 +2,7 @@ import { runAccountsCommand } from "./commands/accounts";
 import { runBridgeCommand } from "./commands/bridge";
 import { runConfigCommand } from "./commands/config";
 import { runMessageCommand } from "./commands/message";
+import { runNeoTokenCommand } from "./commands/neoToken";
 
 async function main(): Promise<void> {
   const [group, ...args] = process.argv.slice(2);
@@ -20,6 +21,10 @@ async function main(): Promise<void> {
   }
   if (group === "message" || group === "message-bridge") {
     await runMessageCommand(args);
+    return;
+  }
+  if (group === "neo-token") {
+    await runNeoTokenCommand(args);
     return;
   }
   if (group === "accounts" || group === "account") {
@@ -63,6 +68,10 @@ Usage:
   npm run ops -- bridge set-token-max --network <network> --account <name> --token <alias-or-address> --amount <tokens> [--bridge <address>] [--dry-run true] [--yes]
   npm run ops -- bridge set-token-max-deposits --network <network> --account <name> --token <alias-or-address> --max-deposits <count> [--bridge <address>] [--dry-run true] [--yes]
   npm run ops -- bridge register-token --network <network> --account <name> --token <alias-or-address> --neo-n3-token <address> --fee <eth> --min <tokens> --max <tokens> --max-deposits <count> [--scaling-factor <count>] [--bridge <address>] [--dry-run true] [--yes]
+  npm run ops -- neo-token state --network <network> [--neo-token <address>]
+  npm run ops -- neo-token total-supply --network <network> [--neo-token <address>]
+  npm run ops -- neo-token balance-of --network <network> --holder <address> [--neo-token <address>]
+  npm run ops -- neo-token owner --network <network> [--neo-token <address>]
   npm run ops -- message state --network <network> [--message-bridge <address>]
   npm run ops -- message get --network <network> --nonce <nonce> [--message-bridge <address>]
   npm run ops -- message result --network <network> --nonce <nonce> [--message-bridge <address>]
@@ -78,12 +87,13 @@ Usage:
   npm run ops -- message decode-uint256 --network <network> --data <hex>
 
 Networks:
-  local, neox-devnet, neox-testnet, neox-mainnet
+  local, neox-devnet, neox-testnet, neox-mainnet, neox-mainnet-fork
 
 Groups:
   config      Inspect resolved config.
   accounts    Inspect configured local accounts.
   bridge      Read bridge state and run guarded bridge operations.
+  neo-token   Read NeoToken state.
   message     Read message bridge state and run guarded message operations.
 `);
 }

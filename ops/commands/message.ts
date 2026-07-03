@@ -118,7 +118,7 @@ Commands:
   decode-uint256     Decode a uint256 result payload.
 
 Options:
-  --network           Required. One of local, neox-devnet, neox-testnet, neox-mainnet.
+  --network           Required. One of local, neox-devnet, neox-testnet, neox-mainnet, neox-mainnet-fork.
   --account           Required for write commands. Account alias from config/accounts/<network>.json.
   --message-bridge    Optional message bridge address override.
   --nonce             Message nonce.
