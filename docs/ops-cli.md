@@ -18,6 +18,7 @@ Available groups:
 - `config` inspects resolved network, deployment, token, and account config.
 - `accounts` inspects local account aliases and resolves account addresses.
 - `bridge` reads token bridge state and runs guarded bridge operations.
+- `neo-token` reads NeoToken state.
 - `message` reads message bridge state and runs guarded message bridge operations.
 
 ## Quick Start
@@ -38,6 +39,12 @@ Read token bridge state:
 
 ```sh
 npm run ops -- bridge state --network neox-testnet
+```
+
+Read NeoToken total supply:
+
+```sh
+npm run neo-token:total-supply -- --network neox-mainnet
 ```
 
 Read message bridge state:
@@ -184,6 +191,40 @@ npm run ops -- bridge claimable --network neox-testnet --token <alias-or-address
 ```
 
 Use `--bridge <address>` on bridge commands to override the configured bridge address for one command.
+
+### NeoToken Reads
+
+Read commands do not require an account and never send transactions. The CLI reads `contracts.neoToken` from deployment config by default. Use `--neo-token <address>` only to override the configured NeoToken address for one command.
+
+Print NeoToken metadata, supply, and ownership:
+
+```sh
+npm run ops -- neo-token state --network neox-mainnet
+npm run neo-token:state -- --network neox-mainnet
+```
+
+Print total supply:
+
+```sh
+npm run ops -- neo-token total-supply --network neox-mainnet
+npm run neo-token:total-supply -- --network neox-mainnet
+```
+
+Print the balance of one holder:
+
+```sh
+npm run ops -- neo-token balance-of --network neox-mainnet --holder <address>
+npm run neo-token:balance-of -- --network neox-mainnet --holder <address>
+```
+
+Print the owner:
+
+```sh
+npm run ops -- neo-token owner --network neox-mainnet
+npm run neo-token:owner -- --network neox-mainnet
+```
+
+`contracts/token/NeoToken.sol` uses `owner()` as the authority for both `mint(uint256)` and UUPS upgrades.
 
 ### Message Bridge Reads
 
@@ -463,6 +504,15 @@ npm run ops -- bridge set-token-min --network <network> --account <name> --token
 npm run ops -- bridge set-token-max --network <network> --account <name> --token <alias-or-address> --amount <tokens> [--bridge <address>] [--dry-run true] [--yes]
 npm run ops -- bridge set-token-max-deposits --network <network> --account <name> --token <alias-or-address> --max-deposits <count> [--bridge <address>] [--dry-run true] [--yes]
 npm run ops -- bridge register-token --network <network> --account <name> --token <alias-or-address> --neo-n3-token <address> --fee <eth> --min <tokens> --max <tokens> --max-deposits <count> [--scaling-factor <count>] [--bridge <address>] [--dry-run true] [--yes]
+```
+
+NeoToken:
+
+```sh
+npm run ops -- neo-token state --network <network> [--neo-token <address>]
+npm run ops -- neo-token total-supply --network <network> [--neo-token <address>]
+npm run ops -- neo-token balance-of --network <network> --holder <address> [--neo-token <address>]
+npm run ops -- neo-token owner --network <network> [--neo-token <address>]
 ```
 
 Message bridge:

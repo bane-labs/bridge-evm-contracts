@@ -17,6 +17,7 @@ export interface DeploymentConfig {
     bridgeManagement?: string;
     messageBridge?: string;
     executionManager?: string;
+    neoToken?: string;
   };
   tokens?: Record<string, TokenConfig>;
 }
